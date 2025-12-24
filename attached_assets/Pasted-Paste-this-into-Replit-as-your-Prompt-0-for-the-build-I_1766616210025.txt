@@ -1,0 +1,243 @@
+Paste this into Replit as your “Prompt 0” for the build. It’s designed to force a lean, shippable Pilot Engine that proves the loop without you becoming a daily build slave.
+
+⸻
+
+Replit Build Prompt: Interactive Narrative Card Engine Pilot (StoryFlix MVP)
+
+Role
+
+You are a senior full-stack engineer and product builder. You are building a production-grade MVP for an interactive narrative platform that delivers one “card” per day and monetises via text-only AI character chat. Build lean, stable, and measurable.
+
+Non-negotiable outcome
+
+Build a deployed web app (PWA-ready) where the founder can schedule and publish daily story cards, and users can:
+	•	View Today’s card and catch up on previous cards
+	•	Export each card as a shareable vertical MP4 clip (auto-generated once, cached)
+	•	Chat with 1–3 constrained AI characters (text-only) who cannot reveal future plot
+	•	Join community discussion via an external Discord link (do not build forums yet)
+
+This engine must run without daily Replit overhead. Replit is only for building the engine, not generating daily assets manually.
+
+⸻
+
+Product definition
+
+Core loop
+
+Drop (daily card) → Obsession (watch + read) → Chat (constrained character) → Share (vertical clip) → Return (next day)
+
+MVP scope
+
+Public user features
+	1.	Home
+
+	•	Today’s card front and centre
+	•	Simple “Catch up” link
+	•	Discord link (external community)
+
+	2.	Today view
+
+	•	Card reveal player (image + captions)
+	•	Short scene text
+	•	“Chat with Character” button(s)
+	•	“Share clip” download link to the cached MP4 (generated once)
+
+	3.	Catch-up
+
+	•	List of past cards with dates
+	•	Progress indicator (how many seen)
+	•	“Recap” text for each card
+
+	4.	Character chat (text-only)
+
+	•	User chats with a selected character
+	•	The character is constrained by:
+	•	Knowledge cutoff: can reference only cards up to user’s current unlocked day
+	•	Secrets: a JSON list of forbidden facts
+	•	Tone and behaviour: in-character, may mislead, but must not leak future canon
+
+	5.	Account-lite
+
+	•	Email login (magic link or simple passwordless token) OR lightweight username-only for MVP
+	•	Track user’s unlocked day and chat usage limits
+
+Founder showrunner features (admin)
+	1.	Admin dashboard
+
+	•	Create a “Universe”
+	•	Create characters for that universe
+	•	Create cards with:
+	•	Title
+	•	Day index (1..30)
+	•	Publish date/time (scheduled)
+	•	Image upload (required)
+	•	Captions (1–3 lines)
+	•	Scene text (short)
+	•	Recap text (short)
+	•	Which character(s) are available to chat for this card
+	•	Which reveal effect template to use
+
+	2.	Publishing
+
+	•	Scheduled publishing with a reliable server-side job
+	•	When a card publishes, the system auto-generates its vertical MP4 clip once and caches it
+
+	3.	Analytics (minimal but essential)
+
+	•	DAU, card views, completion events (watched to end), share clicks
+	•	Chat starts, messages per user
+	•	Retention checkpoints (D1/D7/D14) basic tracking
+
+⸻
+
+Strong constraints (do not ignore)
+	•	DO NOT build voice synthesis in MVP
+	•	DO NOT build in-app forums
+	•	DO NOT build creator marketplace
+	•	Keep it one universe and 30 cards
+	•	Focus on retention, chat usage, share rate
+	•	Avoid feature creep
+
+⸻
+
+Technical requirements
+
+Stack (choose and implement)
+	•	Vite + React + TypeScript (client)
+	•	Node + Express (server)
+	•	SQLite (database) via Prisma
+	•	Auth: simple email magic link OR minimal session auth with secure cookies
+	•	Deployed target: Render (provide render.yaml and deploy steps)
+
+Database schema (minimum)
+	•	Universe(id, name, description, styleNotes)
+	•	Character(id, universeId, name, systemPrompt, secretsJson, knowledgeRulesJson, isActive)
+	•	Card(id, universeId, dayIndex, publishAt, status[draft|scheduled|published], title, imagePath, captionsJson, sceneText, recapText, effectTemplate, createdAt)
+	•	CardCharacter(cardId, characterId)
+	•	User(id, email/username, createdAt)
+	•	UserProgress(userId, universeId, unlockedDayIndex, lastSeenAt)
+	•	ChatThread(id, userId, universeId, characterId, createdAt)
+	•	ChatMessage(id, threadId, role[user|assistant|system], content, createdAt)
+	•	Asset(id, cardId, type[mp4|image], path, generatedAt)
+	•	Event(id, userId?, type, metadataJson, createdAt)
+
+Card publishing and scheduling
+	•	Implement a server-side scheduler that checks every minute for scheduled cards due to publish
+	•	When publishing:
+	1.	mark card as published
+	2.	generate MP4 if not exists
+	3.	log events
+
+Vertical MP4 generation (must exist, cached)
+
+Goal: each card becomes a 9:16 video (1080x1920) suitable for TikTok/Reels.
+
+Implement server-side ffmpeg rendering:
+	•	Base layer: uploaded image
+	•	Add slow zoom-in (Ken Burns) over 8–12 seconds
+	•	Overlay captions (from captionsJson) in a readable style
+	•	Optional overlay effect template:
+	•	Provide 3 built-in effect templates as short looping MP4s stored in /assets/effects:
+	•	smoke.mp4
+	•	glitch.mp4
+	•	police_lights.mp4
+	•	Compose: image + effect overlay (with opacity) + captions
+	•	Output: /public/generated/cards/{cardId}.mp4
+	•	Cache: if file exists, never regenerate unless admin presses “Regenerate”
+
+If ffmpeg install is not available in Replit, use ffmpeg-static in Node. If still blocked, provide a graceful fallback that exports a simple MP4 without effect overlay. But keep the hook: motion + captions.
+
+AI character chat
+	•	Use OpenAI API with a cheap model (gpt-4o-mini)
+	•	System prompt must include:
+	•	Character persona
+	•	Card knowledge cutoff rules
+	•	Explicit forbidden list
+	•	Safety rules: no medical, legal, self-harm advice; no sexual content with minors; no harassment; no instructions for wrongdoing
+	•	Messages must include context:
+	•	The user’s unlocked day
+	•	Summaries of cards up to unlocked day (use recapText, not full story text to keep token costs low)
+
+Limits and monetisation stub
+	•	Free tier: 10 messages per day total across characters
+	•	Paid stub: create a “Pro” flag on user, manual toggle in admin for now
+	•	UI should show usage remaining and an upgrade button that currently shows “Coming soon”
+
+⸻
+
+UX requirements
+	•	Must feel cinematic and premium even in MVP
+	•	Dark mode by default
+	•	Card reveal animation:
+	•	Use CSS animation for flip and subtle particle overlay if video effects are not ready
+	•	Keep it smooth, not gimmicky
+	•	Avoid long dashes in copy. Use normal hyphens.
+
+⸻
+
+Deliverables
+	1.	Working app with:
+
+	•	Public pages: Home, Today, Catch-up, Card detail, Chat
+	•	Admin pages: Dashboard, Universe, Characters, Cards, Publish status
+
+	2.	API routes:
+
+	•	GET /api/today
+	•	GET /api/cards
+	•	GET /api/cards/:id
+	•	POST /api/admin/cards
+	•	POST /api/admin/cards/:id/publish
+	•	POST /api/admin/cards/:id/regenerate-video
+	•	POST /api/chat/start-thread
+	•	POST /api/chat/message
+	•	GET /api/user/progress
+	•	POST /api/events
+
+	3.	Render deployment:
+
+	•	render.yaml
+	•	Environment variables documented in README
+
+	4.	README includes:
+
+	•	How to run locally in Replit
+	•	How scheduling works
+	•	How MP4 generation works and where files are stored
+	•	How to add effect templates
+	•	How to configure OpenAI key
+	•	How to create first universe, character, and 7 starter cards
+
+⸻
+
+Environment variables
+	•	DATABASE_URL=sqlite:./dev.db
+	•	SESSION_SECRET=…
+	•	OPENAI_API_KEY=…
+	•	ADMIN_EMAILS=comma separated list
+
+⸻
+
+Build order (follow strictly)
+	1.	Scaffold app + DB + auth + admin gate
+	2.	Cards CRUD + scheduled publishing
+	3.	Today + Catch-up UX
+	4.	Chat with knowledge cutoffs and recap-based context
+	5.	MP4 generation + caching
+	6.	Event tracking + minimal dashboard metrics
+	7.	Polish and harden
+
+⸻
+
+Quality bar
+	•	No placeholder “TODO” flows in the core loop
+	•	Errors must be handled and visible
+	•	The engine must be stable enough to run unattended for 30 days
+
+Now build it.
+
+⸻
+
+If you want, I can also generate:
+	•	3 “starter effect templates” spec (exact ffmpeg filters and caption styling)
+	•	A 30-card story structure template you can paste into the admin as your first season
