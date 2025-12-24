@@ -1,17 +1,52 @@
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MOCK_CARDS } from "@/lib/mockData";
-import { BarChart3, Calendar, Plus, Users, Video, Upload } from "lucide-react";
+import { MOCK_CARDS, MOCK_UNIVERSE } from "@/lib/mockData";
+import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare } from "lucide-react";
 import { Link } from "wouter";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Admin() {
   return (
     <Layout>
       <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in">
         
-        <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-display font-bold">Showrunner Dashboard</h1>
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+                <h1 className="text-3xl font-display font-bold tracking-tight">Showrunner Dashboard</h1>
+                <div className="flex items-center gap-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-auto p-0 hover:bg-transparent font-normal text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
+                                <span className="uppercase tracking-widest text-xs">Universe:</span>
+                                <span className="font-bold text-foreground">{MOCK_UNIVERSE.name}</span>
+                                <ChevronDown className="w-3 h-3 opacity-50" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-56">
+                            <DropdownMenuLabel>Active Universe</DropdownMenuLabel>
+                            <DropdownMenuItem className="cursor-pointer font-bold bg-accent/50">
+                                Neon Rain
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="cursor-pointer">
+                                Create New Universe...
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <span className="text-muted-foreground/30">•</span>
+                    <span className="text-xs text-muted-foreground uppercase tracking-widest">Season 1</span>
+                </div>
+            </div>
+
             <div className="flex gap-2">
                 <Link href="/admin/create">
                     <Button className="gap-2" variant="outline">
@@ -19,15 +54,18 @@ export default function Admin() {
                     </Button>
                 </Link>
                 <Link href="/admin/import">
-                    <Button className="gap-2">
+                    <Button className="gap-2 bg-white text-black hover:bg-white/90">
                         <Upload className="w-4 h-4" /> Import Season Pack
                     </Button>
                 </Link>
             </div>
         </div>
         
-        <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg flex items-center justify-center text-sm text-primary/80">
+        <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg flex items-center justify-between text-sm text-primary/80">
             <p>💡 <strong>Tip:</strong> Manual is best for editing one card. Import is best for uploading an entire season.</p>
+             <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 hover:text-primary hover:bg-primary/10">
+                <PenSquare className="w-3 h-3" /> Edit Universe Details
+             </Button>
         </div>
 
         {/* Stats */}
