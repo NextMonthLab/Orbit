@@ -2,7 +2,7 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MOCK_CARDS } from "@/lib/mockData";
-import { BarChart3, Calendar, Plus, Users, Video } from "lucide-react";
+import { BarChart3, Calendar, Plus, Users, Video, Upload } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Admin() {
@@ -12,11 +12,22 @@ export default function Admin() {
         
         <div className="flex items-center justify-between">
             <h1 className="text-3xl font-display font-bold">Showrunner Dashboard</h1>
-            <Link href="/admin/create">
-                <Button className="gap-2">
-                    <Plus className="w-4 h-4" /> New Card
-                </Button>
-            </Link>
+            <div className="flex gap-2">
+                <Link href="/admin/create">
+                    <Button className="gap-2" variant="outline">
+                        <Plus className="w-4 h-4" /> Create Card
+                    </Button>
+                </Link>
+                <Link href="/admin/import">
+                    <Button className="gap-2">
+                        <Upload className="w-4 h-4" /> Import Season Pack
+                    </Button>
+                </Link>
+            </div>
+        </div>
+        
+        <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg flex items-center justify-center text-sm text-primary/80">
+            <p>💡 <strong>Tip:</strong> Manual is best for editing one card. Import is best for uploading an entire season.</p>
         </div>
 
         {/* Stats */}

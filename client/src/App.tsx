@@ -11,6 +11,7 @@ import CatchUp from "@/pages/CatchUp";
 import Chat from "@/pages/Chat";
 import Admin from "@/pages/Admin";
 import AdminCreate from "@/pages/AdminCreate";
+import AdminImport from "@/pages/AdminImport";
 import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
 
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/chat" component={Chat} />
       <Route path="/admin" component={Admin} />
       <Route path="/admin/create" component={AdminCreate} />
+      <Route path="/admin/import" component={AdminImport} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,0 +1,137 @@
+Paste this into Replit as your next instruction (this is clear enough that it won’t “half build” it).
+
+⸻
+
+Replit Instruction: Support BOTH Manual Card Entry and Bulk Season Pack Upload
+
+Goal
+
+Build the engine so the admin can create story content in two ways:
+	1.	Manual mode (card-by-card)
+	2.	Bulk mode (Season Pack ZIP import)
+
+Both must write to the same database tables and use the same validation rules, so there is a single source of truth.
+
+⸻
+
+1) Manual Mode (Card-by-Card Admin)
+
+Admin UI
+
+Add an Admin → Cards area with:
+	•	Card list (filter by universe/season, status)
+	•	Create / Edit card form
+	•	Upload image per card
+	•	Select reveal effect template
+	•	Select which characters are available for this card
+	•	Set publish date/time (or leave blank and schedule later)
+	•	Buttons:
+	•	Save draft
+	•	Schedule
+	•	Publish now
+	•	Regenerate video (if cached MP4 exists)
+
+Validation (same as bulk)
+	•	Day index must be unique within universe/season
+	•	Day indices should be contiguous (warn if gaps)
+	•	Image must exist before publish
+	•	Captions length guardrails
+	•	Characters referenced must exist
+
+⸻
+
+2) Bulk Mode (Season Pack ZIP Import)
+
+Admin UI
+
+Add Admin → Import Season Pack page with:
+	•	File input for .zip
+	•	Optional start date/time override
+	•	Import button
+	•	Dry-run toggle (validate only, no DB writes)
+	•	Import report output
+
+Required ZIP Structure
+
+season-pack.zip
+  manifest.json
+  cards.csv
+  characters.csv
+  assets/
+    images/...
+    audio/... (optional for later)
+
+Import behaviour
+
+When importing:
+	1.	Upload ZIP
+	2.	Extract to server temp directory
+	3.	Parse manifest.json
+	4.	Parse characters.csv, upsert characters
+	5.	Parse cards.csv, upsert cards
+	6.	Copy assets to permanent storage path
+	7.	Validate all referenced assets exist
+	8.	If publishMode is schedule-based, auto-fill publish times
+	9.	Generate MP4 clips (optional at import-time, otherwise at publish-time)
+	10.	Output an import report:
+
+	•	Created/updated cards count
+	•	Created/updated characters count
+	•	Missing assets list
+	•	Schedule preview
+	•	Errors/warnings
+
+Dry run
+
+If dry-run is enabled:
+	•	Do all validation
+	•	Do not write to DB
+	•	Do not copy assets
+	•	Return full error list with row numbers for CSV
+
+⸻
+
+3) Single Source of Truth
+
+Shared backend services
+
+Implement shared functions used by both flows:
+	•	validateCard(card)
+	•	validateSeasonPack(pack)
+	•	upsertCharacter(character)
+	•	upsertCard(card)
+	•	scheduleCards(universeId, startDate, defaultPublishTime)
+	•	generateCardVideo(cardId) (cached)
+
+Manual and Bulk must call these same services.
+
+⸻
+
+4) Database expectation
+
+Cards and Characters must have stable IDs:
+	•	Characters: character_id string slug (eg alyssa)
+	•	Cards: (universe_id, season, day_index) unique
+
+⸻
+
+5) UX requirement
+
+In the Admin UI home, provide two clear buttons:
+	•	Create Card
+	•	Import Season Pack
+
+And show a short note:
+“Manual is best for editing one card. Import is best for uploading an entire season.”
+
+⸻
+
+Deliverables
+	•	Working manual CRUD for cards and characters
+	•	Working ZIP import with dry-run validation and an import report
+	•	Both routes use the same validation and persistence logic
+	•	Basic tests for importer parsing and validation
+
+Build it cleanly. No duplication. No half measures.
+
+⸻
