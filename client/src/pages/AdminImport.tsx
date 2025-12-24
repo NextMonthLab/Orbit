@@ -72,7 +72,17 @@ export default function AdminImport() {
                     <CardTitle>Source File</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center text-center hover:bg-muted/50 transition-colors cursor-pointer group">
+                    <div className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center text-center hover:bg-muted/50 transition-colors cursor-pointer group relative">
+                        <Input 
+                            type="file" 
+                            accept=".zip" 
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                            onChange={(e) => {
+                                if (e.target.files?.length) {
+                                    toast({ title: "File Selected", description: e.target.files[0].name });
+                                }
+                            }}
+                        />
                         <FileArchive className="w-10 h-10 text-muted-foreground mb-4 group-hover:text-primary transition-colors" />
                         <span className="font-bold text-sm">Drop ZIP file here</span>
                         <span className="text-xs text-muted-foreground mt-1">manifest.json + assets</span>
