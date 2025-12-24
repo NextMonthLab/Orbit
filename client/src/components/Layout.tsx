@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Play, MessageSquare, List, Settings } from "lucide-react";
+import { Home, Play, MessageSquare, List, Settings, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -10,6 +10,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/today", icon: Play, label: "Today" },
     { href: "/catch-up", icon: List, label: "Catch Up" },
     { href: "/chat", icon: MessageSquare, label: "Chat" },
+    { href: "/profile", icon: User, label: "Profile" },
   ];
 
   return (

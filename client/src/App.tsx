@@ -10,15 +10,21 @@ import Today from "@/pages/Today";
 import CatchUp from "@/pages/CatchUp";
 import Chat from "@/pages/Chat";
 import Admin from "@/pages/Admin";
+import AdminCreate from "@/pages/AdminCreate";
+import Login from "@/pages/Login";
+import Profile from "@/pages/Profile";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
+      <Route path="/profile" component={Profile} />
       <Route path="/today" component={Today} />
       <Route path="/catch-up" component={CatchUp} />
       <Route path="/chat" component={Chat} />
       <Route path="/admin" component={Admin} />
+      <Route path="/admin/create" component={AdminCreate} />
       <Route component={NotFound} />
     </Switch>
   );

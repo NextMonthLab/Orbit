@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MOCK_CARDS } from "@/lib/mockData";
 import { BarChart3, Calendar, Plus, Users, Video } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Admin() {
   return (
@@ -11,9 +12,11 @@ export default function Admin() {
         
         <div className="flex items-center justify-between">
             <h1 className="text-3xl font-display font-bold">Showrunner Dashboard</h1>
-            <Button className="gap-2">
-                <Plus className="w-4 h-4" /> New Card
-            </Button>
+            <Link href="/admin/create">
+                <Button className="gap-2">
+                    <Plus className="w-4 h-4" /> New Card
+                </Button>
+            </Link>
         </div>
 
         {/* Stats */}
