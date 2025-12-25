@@ -1519,13 +1519,14 @@ export async function registerRoutes(
       const prompt = await composeImagePrompt(universe, card);
       const negativePrompt = composeNegativePrompt(universe, card);
       
-      // Determine size based on aspect ratio (DALL-E 3 supports 1024x1024, 1024x1792, 1792x1024)
+      // Determine size based on aspect ratio
+      // gpt-image-1 supports: 1024x1024, 1024x1536 (portrait), 1536x1024 (landscape), auto
       const aspectRatio = universe.visualStyle?.aspectRatio || "9:16";
-      let size: "1024x1024" | "1024x1792" | "1792x1024" = "1024x1792"; // Default vertical for stories
+      let size: "1024x1024" | "1024x1536" | "1536x1024" = "1024x1536"; // Default vertical for stories
       if (aspectRatio === "1:1") {
         size = "1024x1024";
       } else if (aspectRatio === "16:9" || aspectRatio === "4:3") {
-        size = "1792x1024";
+        size = "1536x1024";
       }
       
       // Combine prompt with negative guidance (DALL-E doesn't have negative prompt, so we include it as avoidance)
