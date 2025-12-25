@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, ImageIcon, CheckCircle, Trash2, Settings, Image as PhotoIcon, Clapperboard, ExternalLink } from "lucide-react";
+import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, ImageIcon, CheckCircle, Trash2, Settings, Image as PhotoIcon, Clapperboard, ExternalLink, Music } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -346,6 +346,13 @@ export default function Admin() {
                         <Upload className="w-4 h-4" /> 
                         <span className="hidden sm:inline">Import Pack</span>
                         <span className="sm:hidden">Import</span>
+                    </Button>
+                </Link>
+                <Link href="/admin/audio" className="contents">
+                    <Button className="gap-2 h-12 sm:h-10" variant="secondary" data-testid="button-audio-library">
+                        <Music className="w-4 h-4" /> 
+                        <span className="hidden sm:inline">Audio Library</span>
+                        <span className="sm:hidden">Audio</span>
                     </Button>
                 </Link>
             </div>

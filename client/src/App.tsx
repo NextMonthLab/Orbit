@@ -16,6 +16,7 @@ import AdminCreate from "@/pages/AdminCreate";
 import AdminImport from "@/pages/AdminImport";
 import AdminCardDetail from "@/pages/AdminCardDetail";
 import AdminCardEdit from "@/pages/AdminCardEdit";
+import AdminAudio from "@/pages/AdminAudio";
 import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
 
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/admin" component={Admin} />
       <Route path="/admin/create" component={AdminCreate} />
       <Route path="/admin/import" component={AdminImport} />
+      <Route path="/admin/audio" component={AdminAudio} />
       <Route path="/admin/cards/:id" component={AdminCardDetail} />
       <Route path="/admin/cards/:id/edit" component={AdminCardEdit} />
       <Route component={NotFound} />

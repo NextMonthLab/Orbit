@@ -2079,5 +2079,242 @@ export async function registerRoutes(
     }
   });
 
+  // ============ AUDIO LIBRARY ROUTES ============
+
+  // Scan uploads/audio directory for unimported tracks
+  app.get("/api/admin/audio/scan", requireAdmin, async (req, res) => {
+    try {
+      const audioDir = path.join(process.cwd(), "uploads", "audio");
+      
+      if (!fs.existsSync(audioDir)) {
+        return res.json({ files: [] });
+      }
+      
+      const files = fs.readdirSync(audioDir).filter(f => f.endsWith(".mp3"));
+      const existingTracks = await storage.getAllAudioTracks();
+      const existingPaths = new Set(existingTracks.map(t => t.filePath));
+      
+      const unimported = files
+        .filter(f => !existingPaths.has(`uploads/audio/${f}`))
+        .map(f => ({
+          filename: f,
+          path: `uploads/audio/${f}`,
+          url: `/uploads/audio/${encodeURIComponent(f)}`,
+          suggestedTitle: f.replace(/_\d+\.mp3$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+        }));
+      
+      res.json({ files: unimported });
+    } catch (error) {
+      console.error("Error scanning audio:", error);
+      res.status(500).json({ message: "Error scanning audio directory" });
+    }
+  });
+
+  // Import scanned audio files
+  app.post("/api/admin/audio/import", requireAdmin, async (req, res) => {
+    try {
+      const { files } = req.body;
+      
+      if (!files || !Array.isArray(files)) {
+        return res.status(400).json({ message: "files array required" });
+      }
+      
+      const imported: schema.AudioTrack[] = [];
+      
+      for (const file of files) {
+        const track = await storage.createAudioTrack({
+          title: file.title || file.suggestedTitle || file.filename,
+          artist: file.artist,
+          source: "upload",
+          licence: file.licence || "Royalty Free",
+          licenceUrl: file.licenceUrl,
+          attributionRequired: file.attributionRequired || false,
+          attributionText: file.attributionText,
+          filePath: file.path,
+          fileUrl: `/${file.path}`,
+          moodTags: file.moodTags || [],
+          genreTags: file.genreTags || [],
+          createdByUserId: req.user!.id,
+        });
+        imported.push(track);
+      }
+      
+      res.json({ imported, count: imported.length });
+    } catch (error) {
+      console.error("Error importing audio:", error);
+      res.status(500).json({ message: "Error importing audio files" });
+    }
+  });
+
+  // Upload new audio file
+  app.post("/api/admin/audio/upload", requireAdmin, upload.single("audio"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No audio file uploaded" });
+      }
+      
+      const audioDir = path.join(process.cwd(), "uploads", "audio");
+      if (!fs.existsSync(audioDir)) {
+        fs.mkdirSync(audioDir, { recursive: true });
+      }
+      
+      const filename = `${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+      const filePath = path.join(audioDir, filename);
+      fs.writeFileSync(filePath, req.file.buffer);
+      
+      const relativePath = `uploads/audio/${filename}`;
+      const metadata = JSON.parse(req.body.metadata || "{}");
+      
+      const track = await storage.createAudioTrack({
+        title: metadata.title || req.file.originalname.replace(/\.[^/.]+$/, ""),
+        artist: metadata.artist,
+        source: "upload",
+        licence: metadata.licence || "Royalty Free",
+        licenceUrl: metadata.licenceUrl,
+        attributionRequired: metadata.attributionRequired || false,
+        attributionText: metadata.attributionText,
+        filePath: relativePath,
+        fileUrl: `/${relativePath}`,
+        moodTags: metadata.moodTags || [],
+        genreTags: metadata.genreTags || [],
+        createdByUserId: req.user!.id,
+      });
+      
+      res.json({ track });
+    } catch (error) {
+      console.error("Error uploading audio:", error);
+      res.status(500).json({ message: "Error uploading audio file" });
+    }
+  });
+
+  // Get all audio tracks
+  app.get("/api/audio", async (req, res) => {
+    try {
+      const { mood, genre } = req.query;
+      
+      let tracks;
+      if (mood || genre) {
+        tracks = await storage.getAudioTracksByFilter(
+          mood as string | undefined,
+          genre as string | undefined
+        );
+      } else {
+        tracks = await storage.getAllAudioTracks();
+      }
+      
+      res.json(tracks);
+    } catch (error) {
+      console.error("Error fetching audio tracks:", error);
+      res.status(500).json({ message: "Error fetching audio tracks" });
+    }
+  });
+
+  // Get single audio track
+  app.get("/api/audio/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const track = await storage.getAudioTrack(id);
+      
+      if (!track) {
+        return res.status(404).json({ message: "Track not found" });
+      }
+      
+      res.json(track);
+    } catch (error) {
+      console.error("Error fetching audio track:", error);
+      res.status(500).json({ message: "Error fetching audio track" });
+    }
+  });
+
+  // Update audio track
+  app.patch("/api/audio/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const track = await storage.updateAudioTrack(id, updates);
+      
+      if (!track) {
+        return res.status(404).json({ message: "Track not found" });
+      }
+      
+      res.json(track);
+    } catch (error) {
+      console.error("Error updating audio track:", error);
+      res.status(500).json({ message: "Error updating audio track" });
+    }
+  });
+
+  // Delete audio track
+  app.delete("/api/audio/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const track = await storage.getAudioTrack(id);
+      
+      if (!track) {
+        return res.status(404).json({ message: "Track not found" });
+      }
+      
+      // Optionally delete file from disk
+      if (track.filePath && fs.existsSync(track.filePath)) {
+        fs.unlinkSync(track.filePath);
+      }
+      
+      await storage.deleteAudioTrack(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting audio track:", error);
+      res.status(500).json({ message: "Error deleting audio track" });
+    }
+  });
+
+  // Get universe audio settings
+  app.get("/api/universes/:id/audio-settings", async (req, res) => {
+    try {
+      const universeId = parseInt(req.params.id);
+      const settings = await storage.getUniverseAudioSettings(universeId);
+      
+      res.json(settings || {
+        universeId,
+        audioMode: "off",
+        defaultTrackId: null,
+        allowedTrackIds: [],
+        fadeInMs: 500,
+        fadeOutMs: 500,
+        crossfadeMs: 800,
+        duckingDuringVoiceOver: true,
+        duckDb: 12,
+      });
+    } catch (error) {
+      console.error("Error fetching universe audio settings:", error);
+      res.status(500).json({ message: "Error fetching audio settings" });
+    }
+  });
+
+  // Update universe audio settings
+  app.put("/api/universes/:id/audio-settings", requireAdmin, async (req, res) => {
+    try {
+      const universeId = parseInt(req.params.id);
+      const { audioMode, defaultTrackId, allowedTrackIds, fadeInMs, fadeOutMs, crossfadeMs, duckingDuringVoiceOver, duckDb } = req.body;
+      
+      const settings = await storage.createOrUpdateUniverseAudioSettings({
+        universeId,
+        audioMode: audioMode || "off",
+        defaultTrackId: defaultTrackId || null,
+        allowedTrackIds: allowedTrackIds || [],
+        fadeInMs: fadeInMs ?? 500,
+        fadeOutMs: fadeOutMs ?? 500,
+        crossfadeMs: crossfadeMs ?? 800,
+        duckingDuringVoiceOver: duckingDuringVoiceOver ?? true,
+        duckDb: duckDb ?? 12,
+      });
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating universe audio settings:", error);
+      res.status(500).json({ message: "Error updating audio settings" });
+    }
+  });
+
   return httpServer;
 }

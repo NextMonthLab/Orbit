@@ -287,6 +287,75 @@ class ApiClient {
     
     return response.json();
   }
+
+  // Audio
+  async scanAudioFiles(): Promise<{ files: ScannedAudioFile[] }> {
+    return this.request<{ files: ScannedAudioFile[] }>("/admin/audio/scan");
+  }
+
+  async importAudioFiles(files: Array<ScannedAudioFile & { title?: string; artist?: string; moodTags?: string[]; genreTags?: string[] }>): Promise<{ imported: AudioTrack[]; count: number }> {
+    return this.request<{ imported: AudioTrack[]; count: number }>("/admin/audio/import", {
+      method: "POST",
+      body: JSON.stringify({ files }),
+    });
+  }
+
+  async uploadAudioFile(file: File, metadata?: { title?: string; artist?: string; moodTags?: string[]; genreTags?: string[] }): Promise<{ track: AudioTrack }> {
+    const formData = new FormData();
+    formData.append("audio", file);
+    if (metadata) {
+      formData.append("metadata", JSON.stringify(metadata));
+    }
+    
+    const response = await fetch(`${this.baseUrl}/admin/audio/upload`, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: "Upload failed" }));
+      throw new Error(error.message || "Upload failed");
+    }
+    
+    return response.json();
+  }
+
+  async getAudioTracks(mood?: string, genre?: string): Promise<AudioTrack[]> {
+    const params = new URLSearchParams();
+    if (mood) params.append("mood", mood);
+    if (genre) params.append("genre", genre);
+    const query = params.toString();
+    return this.request<AudioTrack[]>(`/audio${query ? `?${query}` : ""}`);
+  }
+
+  async getAudioTrack(id: number): Promise<AudioTrack> {
+    return this.request<AudioTrack>(`/audio/${id}`);
+  }
+
+  async updateAudioTrack(id: number, updates: Partial<AudioTrack>): Promise<AudioTrack> {
+    return this.request<AudioTrack>(`/audio/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteAudioTrack(id: number): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/audio/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  async getUniverseAudioSettings(universeId: number): Promise<UniverseAudioSettings> {
+    return this.request<UniverseAudioSettings>(`/universes/${universeId}/audio-settings`);
+  }
+
+  async updateUniverseAudioSettings(universeId: number, settings: Partial<UniverseAudioSettings>): Promise<UniverseAudioSettings> {
+    return this.request<UniverseAudioSettings>(`/universes/${universeId}/audio-settings`, {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    });
+  }
 }
 
 export interface ImportValidationResult {
@@ -366,6 +435,45 @@ export interface FeedResponse {
   visibleCount: number;
   lockedCount: number;
   nextUnlock: string | null;
+}
+
+export interface AudioTrack {
+  id: number;
+  title: string;
+  artist?: string | null;
+  source: string;
+  licence?: string | null;
+  licenceUrl?: string | null;
+  attributionRequired: boolean;
+  attributionText?: string | null;
+  filePath?: string | null;
+  fileUrl: string;
+  durationSeconds?: number | null;
+  moodTags: string[];
+  genreTags: string[];
+  createdByUserId?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UniverseAudioSettings {
+  id?: number;
+  universeId: number;
+  audioMode: string;
+  defaultTrackId: number | null;
+  allowedTrackIds: number[];
+  fadeInMs: number;
+  fadeOutMs: number;
+  crossfadeMs: number;
+  duckingDuringVoiceOver: boolean;
+  duckDb: number;
+}
+
+export interface ScannedAudioFile {
+  filename: string;
+  path: string;
+  url: string;
+  suggestedTitle: string;
 }
 
 export const api = new ApiClient();
