@@ -1524,28 +1524,38 @@ export async function registerRoutes(
       console.log(`Generating image for card ${cardId}: ${card.title}`);
       console.log(`Prompt length: ${fullPrompt.length} chars`);
       
-      // Call OpenAI DALL-E 3 API
+      // Call OpenAI image generation via Replit AI Integrations (uses gpt-image-1)
+      // gpt-image-1 only supports 1024x1024, 512x512, 256x256
+      const compatibleSize = "1024x1024";
       const response = await getOpenAI().images.generate({
-        model: "dall-e-3",
+        model: "gpt-image-1",
         prompt: fullPrompt,
         n: 1,
-        size: size,
-        quality: "standard",
+        size: compatibleSize,
       });
       
-      const imageUrl = response.data?.[0]?.url;
-      if (!imageUrl) {
-        throw new Error("No image URL returned from OpenAI");
+      // gpt-image-1 returns base64 instead of URL
+      const imageData = response.data?.[0];
+      const base64Image = imageData?.b64_json;
+      const imageUrl = imageData?.url;
+      
+      let imageBuffer: Buffer;
+      if (base64Image) {
+        // Decode base64 image
+        imageBuffer = Buffer.from(base64Image, "base64");
+      } else if (imageUrl) {
+        // Fallback to URL download
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to download image: HTTP ${imageResponse.status}`);
+        }
+        imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+      } else {
+        throw new Error("No image data returned from OpenAI");
       }
       
-      // Download the image and save it locally
-      const imageResponse = await fetch(imageUrl);
-      if (!imageResponse.ok) {
-        throw new Error(`Failed to download image: HTTP ${imageResponse.status}`);
-      }
-      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
       if (imageBuffer.length < 1000) {
-        throw new Error("Downloaded image is too small, may be corrupt");
+        throw new Error("Generated image is too small, may be corrupt");
       }
       
       // Ensure uploads directory exists
