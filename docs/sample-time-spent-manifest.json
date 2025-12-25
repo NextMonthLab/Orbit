@@ -1,7 +1,10 @@
 {
+  "schemaVersion": 1,
+  "seasonId": "template-s1",
   "universe": {
     "name": "Season Pack Template",
     "description": "A template showing all available fields for StoryFlix season packs. Replace with your own story content.",
+    "slug": "season-pack-template",
     "styleNotes": "Warm colors, social realism, intimate character moments",
     "visual_mode": "engine_generated",
     "visual_style": {

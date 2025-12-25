@@ -755,15 +755,18 @@ export async function registerRoutes(
   }
   
   interface SeasonManifest {
+    schemaVersion?: number;
+    seasonId?: string;
     universe: {
       name: string;
       description?: string;
+      slug?: string;
       styleNotes?: string;
       visual_mode?: "engine_generated" | "author_supplied";
       visual_style?: VisualStyleManifest;
       visual_continuity?: VisualContinuityManifest;
     };
-    season?: number;
+    season?: number | string;
     startDate?: string;
     characters?: ManifestCharacter[];
     locations?: ManifestLocation[];
@@ -833,10 +836,40 @@ export async function registerRoutes(
         warnings.push("engine_generated mode: universe.visual_style is recommended for consistent image generation");
       }
       
-      // Validate visual_continuity for engine_generated mode
+      // Validate visual_style required fields for engine_generated mode
       if (isEngineGenerated) {
-        if (!manifest.universe?.visual_continuity?.art_direction) {
+        const vs = manifest.universe?.visual_style;
+        if (!vs?.base_prompt) {
+          errors.push("engine_generated mode: universe.visual_style.base_prompt is required");
+        }
+        if (!vs?.negative_prompt) {
+          warnings.push("engine_generated mode: universe.visual_style.negative_prompt is recommended");
+        }
+        if (!vs?.aspect_ratio) {
+          warnings.push("engine_generated mode: universe.visual_style.aspect_ratio is recommended (defaults to 9:16)");
+        }
+      }
+      
+      // Validate visual_continuity required fields for engine_generated mode
+      if (isEngineGenerated) {
+        const vc = manifest.universe?.visual_continuity;
+        if (!vc?.art_direction) {
           errors.push("engine_generated mode: universe.visual_continuity.art_direction is required");
+        }
+        if (!vc?.palette) {
+          errors.push("engine_generated mode: universe.visual_continuity.palette is required");
+        }
+        if (!vc?.camera_language) {
+          errors.push("engine_generated mode: universe.visual_continuity.camera_language is required");
+        }
+        if (!vc?.lighting_rules) {
+          errors.push("engine_generated mode: universe.visual_continuity.lighting_rules is required");
+        }
+        if (!vc?.texture_rules) {
+          errors.push("engine_generated mode: universe.visual_continuity.texture_rules is required");
+        }
+        if (!vc?.taboo_list || vc.taboo_list.length === 0) {
+          warnings.push("engine_generated mode: universe.visual_continuity.taboo_list is recommended");
         }
       }
       
@@ -1138,7 +1171,7 @@ export async function registerRoutes(
       }
       
       // Create cards
-      const season = manifest.season || 1;
+      const season = typeof manifest.season === 'string' ? parseInt(manifest.season, 10) : (manifest.season || 1);
       const startDate = manifest.startDate ? new Date(manifest.startDate) : new Date();
       
       // Convert image_generation from manifest format to DB format

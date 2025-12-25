@@ -1,0 +1,187 @@
+Absolutely. Here is a single, clean, copy-paste prompt you can give to Replit that is only about the ZIP upload, nothing else.
+
+This prompt assumes:
+	•	manifest.json at the root
+	•	Engine-generated images
+	•	Visual continuity + character + location locking
+	•	No image generation happening at upload time (just validation + import)
+
+⸻
+
+Replit Prompt: Season Pack ZIP Upload (Canonical Specification)
+
+ROLE
+You are extending the Story Engine’s ZIP upload system to support full “Season Pack” imports.
+
+GOAL
+A single ZIP upload must be able to define:
+- the universe (story world + visual continuity)
+- characters (including locked visual profiles)
+- locations (with continuity rules)
+- cards (daily story units with image-generation metadata)
+
+The ZIP is the canonical source of truth for a season.
+
+--------------------------------
+ZIP STRUCTURE (REQUIRED)
+--------------------------------
+The uploaded ZIP must contain at minimum:
+
+/manifest.json
+
+Optional (future-compatible):
+/assets/images/   (for reference images later)
+
+--------------------------------
+MANIFEST FORMAT (REQUIRED)
+--------------------------------
+
+Top-level fields:
+- schemaVersion (number)
+- season (number or string)
+- seasonId (string, stable identifier)
+- universe (object)
+- characters (array)
+- locations (array)
+- cards (array)
+
+--------------------------------
+UNIVERSE
+--------------------------------
+manifest.universe must support:
+
+Required:
+- name (string)
+- description (string)
+- visual_mode ("engine_generated" | "author_supplied")
+
+If visual_mode === "engine_generated", the following are REQUIRED:
+- visual_style.base_prompt
+- visual_style.negative_prompt
+- visual_style.aspect_ratio
+- visual_continuity.art_direction
+- visual_continuity.palette
+- visual_continuity.camera_language
+- visual_continuity.lighting_rules
+- visual_continuity.texture_rules
+- visual_continuity.taboo_list (array)
+
+Optional:
+- universe.slug
+- universe.styleNotes
+- visual_style.consistency (character_lock, location_lock, palette_lock)
+
+--------------------------------
+CHARACTERS
+--------------------------------
+Each character must include:
+
+Required:
+- id (string, unique, lowercase-safe)
+- name (string)
+- visual_profile.continuity_description
+
+If visual_mode === "engine_generated", visual_profile is REQUIRED.
+
+visual_profile supports:
+- continuity_description (string)
+- age_range
+- build
+- face_features
+- hair
+- wardrobe
+- mannerisms
+- do_not_change (array of strings)
+
+--------------------------------
+LOCATIONS
+--------------------------------
+Each location must include:
+
+Required:
+- id (string, unique)
+- name (string)
+- continuity_description (string)
+
+Optional:
+- lighting
+- textures
+- do_not_change (array)
+
+--------------------------------
+CARDS
+--------------------------------
+Each card must include:
+
+Required:
+- dayIndex (number, 1-based)
+- title (string)
+- sceneText (string)
+- primary_character_ids (array of character ids)
+- status ("draft" | "published")
+
+Optional but supported:
+- captions (array of strings)
+- recapText (string)
+- scene_description (string)
+- chat_unlocked_character_ids (array of character ids)
+- location_id (string)
+- publishAt (ISO date or null)
+
+--------------------------------
+IMAGE GENERATION FIELDS
+--------------------------------
+Cards may include:
+
+image_generation:
+- prompt (string)
+- negative_prompt (string, optional)
+- shot_type (string, optional)
+- lighting (string, optional)
+
+RULE:
+If image_generation.prompt exists, it is always preferred.
+scene_description is only a fallback.
+
+--------------------------------
+VALIDATION RULES
+--------------------------------
+On upload, the system must:
+
+1) Validate schema shape and required fields
+2) Ensure all referenced character IDs exist
+3) Ensure referenced location IDs exist
+4) Enforce visual continuity requirements when visual_mode = engine_generated
+5) Fail fast with clear error messages (JSON path + reason)
+
+--------------------------------
+IMPORT BEHAVIOUR
+--------------------------------
+On successful upload:
+- Universe, characters, locations, and cards are created
+- Cards are imported without generating images
+- Cards with image_generation data are marked as "prompt_ready"
+- Image generation happens only when triggered explicitly from Admin
+
+--------------------------------
+DELIVERABLE
+--------------------------------
+Implement ZIP upload parsing, validation, and import exactly as specified.
+Do not auto-generate images during upload.
+
+
+⸻
+
+Why this prompt works
+	•	It is narrow (ZIP upload only)
+	•	It matches your current engine architecture
+	•	It avoids premature image generation
+	•	It enforces visual continuity as first-class data
+	•	It future-proofs creators without overcomplication
+
+If you want next:
+	•	I can generate a matching downloadable template ZIP
+	•	or a Time Spent example pack using this exact spec
+	•	or a CSV → ZIP converter spec for bulk uploads later
+
+Just say the word.
