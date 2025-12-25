@@ -1,4 +1,4 @@
-import type { User, Universe, Character, Card, UserProgress, ChatThread, ChatMessage } from "@shared/schema";
+import type { User, Universe, Character, Card, UserProgress, ChatThread, ChatMessage, ImageGeneration } from "@shared/schema";
 
 class ApiClient {
   private baseUrl = "/api";
@@ -194,6 +194,31 @@ class ApiClient {
     });
   }
 
+  // Image Generation
+  async getPendingImages(universeId: number): Promise<PendingImagesResult> {
+    return this.request<PendingImagesResult>(`/universes/${universeId}/cards/pending-images`);
+  }
+
+  async generateCardImage(cardId: number): Promise<GenerateImageResult> {
+    return this.request<GenerateImageResult>(`/cards/${cardId}/generate-image`, {
+      method: "POST",
+    });
+  }
+
+  async setGeneratedImage(cardId: number, generatedImageUrl: string) {
+    return this.request<{ success: boolean; cardId: number; generatedImageUrl: string }>(`/cards/${cardId}/set-generated-image`, {
+      method: "PATCH",
+      body: JSON.stringify({ generatedImageUrl }),
+    });
+  }
+
+  async updateCardImageSettings(cardId: number, data: { sceneDescription?: string; imageGeneration?: any }) {
+    return this.request<{ success: boolean; card: any }>(`/cards/${cardId}/image-settings`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
   // Import
   async validateImport(file: File): Promise<ImportValidationResult> {
     const formData = new FormData();
@@ -238,20 +263,50 @@ class ApiClient {
 export interface ImportValidationResult {
   valid: boolean;
   universe: string;
+  visualMode?: string;
   createdCards: number;
   createdCharacters: number;
+  cardsWithImagePrompts?: number;
+  cardsMissingImagePrompts?: number;
   warnings: string[];
   errors: string[];
-  schedule: { day: number; title: string; date: string }[];
+  schedule: { day: number; title: string; date: string; hasImagePrompt?: boolean }[];
 }
 
 export interface ImportExecutionResult {
   success: boolean;
   universeId: number;
   universeName: string;
+  visualMode?: string;
   createdCards: number;
   createdCharacters: number;
   warnings: string[];
+}
+
+export interface PendingImagesResult {
+  universeId: number;
+  universeName: string;
+  visualMode: string;
+  totalCards: number;
+  pendingCount: number;
+  generatedCount: number;
+  pendingCards: {
+    id: number;
+    title: string;
+    dayIndex: number;
+    sceneDescription?: string;
+    imageGeneration?: any;
+  }[];
+}
+
+export interface GenerateImageResult {
+  cardId: number;
+  cardTitle: string;
+  composedPrompt: string;
+  negativePrompt?: string;
+  aspectRatio: string;
+  status: string;
+  message: string;
 }
 
 export const api = new ApiClient();

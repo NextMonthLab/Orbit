@@ -1,0 +1,86 @@
+{
+  "universe": {
+    "name": "Time Spent",
+    "description": "A story about choices, regrets, and the moments that define us.",
+    "styleNotes": "Warm colors, social realism, intimate character moments",
+    "visual_mode": "engine_generated",
+    "visual_style": {
+      "style_preset": "time_spent_social_realism",
+      "base_prompt": "Realistic photography style, warm natural lighting, intimate character-focused composition, subtle emotional depth, contemporary urban setting, 35mm film aesthetic",
+      "negative_prompt": "neon lights, cyberpunk, sci-fi, fantasy, anime, cartoon, digital art, oversaturated, cold colors, dark moody lighting",
+      "aspect_ratio": "9:16",
+      "consistency": {
+        "character_lock": true,
+        "location_lock": true,
+        "colour_palette_lock": true
+      }
+    }
+  },
+  "season": 1,
+  "startDate": "2025-01-01",
+  "characters": [
+    {
+      "name": "Elena",
+      "role": "The Protagonist",
+      "personality": "Thoughtful, introspective, carrying the weight of a decision she made years ago",
+      "secretInfo": "She knows why Marcus left, but has never told anyone the truth."
+    },
+    {
+      "name": "Marcus",
+      "role": "The One Who Left",
+      "personality": "Charismatic but guarded, returned after five years with questions of his own"
+    },
+    {
+      "name": "Sophie",
+      "role": "The Best Friend",
+      "personality": "Loyal, perceptive, the one person who notices what others miss"
+    }
+  ],
+  "cards": [
+    {
+      "dayIndex": 1,
+      "title": "The Coffee Shop",
+      "captions": ["She recognized him instantly.", "Five years.", "Same table."],
+      "sceneText": "Elena's hands trembled as she held her cup. Marcus was back. After everything, he was sitting at their old table like no time had passed at all.",
+      "recapText": "Marcus returned to town after five years away.",
+      "scene_description": "A woman in her late 20s sits in a cozy coffee shop, morning light streaming through the window. She's frozen mid-sip, staring at something off-frame. Her expression shows recognition and old pain. Warm wooden interior, steam rising from her cup.",
+      "image_generation": {
+        "prompt": "Young woman with dark hair in a warm cafe, morning sunlight through window, holding coffee cup, expression of shock and recognition, cozy interior with wooden furniture, shallow depth of field, intimate portrait",
+        "shot_type": "close_up",
+        "lighting": "natural morning light through window"
+      },
+      "characters": ["Elena", "Marcus"],
+      "status": "published"
+    },
+    {
+      "dayIndex": 2,
+      "title": "The Conversation",
+      "captions": ["'Why now?'", "He didn't have an answer.", "Neither did she."],
+      "sceneText": "They sat across from each other, the years between them heavier than the silence. Some questions don't have good answers.",
+      "recapText": "Elena and Marcus finally spoke for the first time in five years.",
+      "scene_description": "Two people in their late 20s sitting across from each other at a small cafe table. Awkward body language, emotional tension visible. Half-empty coffee cups between them. Afternoon light creates long shadows.",
+      "image_generation": {
+        "prompt": "Two people at cafe table facing each other, tense body language, afternoon sunlight creating shadows, emotional conversation, intimate framing, realistic photography",
+        "shot_type": "over_the_shoulder",
+        "lighting": "afternoon natural light"
+      },
+      "characters": ["Elena", "Marcus"],
+      "status": "published"
+    },
+    {
+      "dayIndex": 3,
+      "title": "Sophie Knows",
+      "captions": ["'You saw him.'", "It wasn't a question.", "'I can always tell.'"],
+      "sceneText": "Sophie found Elena on the bench in the park where they always met. Best friends don't need explanations. They just know.",
+      "recapText": "Sophie realized Marcus was back before Elena could tell her.",
+      "scene_description": "Two women sitting on a park bench, one comforting the other. Late afternoon golden hour light filtering through trees. Supportive body language, one woman's hand on the other's shoulder. Urban park setting.",
+      "image_generation": {
+        "prompt": "Two women on park bench, supportive friendship moment, golden hour sunlight through trees, one comforting the other, urban park background, warm emotional tone, candid photography style",
+        "shot_type": "wide",
+        "lighting": "golden hour"
+      },
+      "characters": ["Elena", "Sophie"],
+      "status": "published"
+    }
+  ]
+}
