@@ -409,30 +409,31 @@ export default function Admin() {
                         const isGenerating = generatingCardId === card.id;
                         
                         return (
-                        <div key={card.id} className="p-4 flex items-center justify-between hover:bg-muted/10" data-testid={`card-row-${card.id}`}>
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-muted rounded overflow-hidden relative">
+                        <div key={card.id} className="p-3 sm:p-4 hover:bg-muted/10" data-testid={`card-row-${card.id}`}>
+                            {/* Mobile-first layout */}
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-muted rounded overflow-hidden relative flex-shrink-0">
                                     {displayImage ? (
                                       <img src={displayImage} className="w-full h-full object-cover" />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center">
-                                        <ImageIcon className="w-5 h-5 text-muted-foreground/50" />
+                                        <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground/50" />
                                       </div>
                                     )}
                                     {card.imageGenerated && (
                                       <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-0.5">
-                                        <CheckCircle className="w-3 h-3 text-white" />
+                                        <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                                       </div>
                                     )}
                                 </div>
-                                <div>
-                                    <p className="font-bold">Day {card.dayIndex}: {card.title}</p>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-sm sm:text-base truncate">Day {card.dayIndex}: {card.title}</p>
                                     <p className="text-xs text-muted-foreground">
-                                      {card.publishAt ? `Scheduled: ${new Date(card.publishAt).toLocaleDateString()}` : 'Not scheduled'}
+                                      {card.publishAt ? new Date(card.publishAt).toLocaleDateString() : 'Not scheduled'}
                                       {isEngineGenerated && (
-                                        <span className="ml-2">
+                                        <span className="ml-1.5">
                                           {card.imageGenerated ? (
-                                            <span className="text-green-500">• Image ready</span>
+                                            <span className="text-green-500">• Ready</span>
                                           ) : hasPrompt ? (
                                             <span className="text-yellow-500">• Needs image</span>
                                           ) : (
@@ -441,44 +442,44 @@ export default function Admin() {
                                         </span>
                                       )}
                                     </p>
+                                    {/* Actions row - visible on mobile */}
+                                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                         {needsGeneration && (
+                                           <Button 
+                                             variant="outline" 
+                                             size="sm" 
+                                             className="h-7 text-xs gap-1 border-purple-500/30 text-purple-500 hover:bg-purple-500/10"
+                                             onClick={() => generateImageMutation.mutate(card.id)}
+                                             disabled={isGenerating}
+                                             data-testid={`button-generate-${card.id}`}
+                                           >
+                                             {isGenerating ? (
+                                               <Loader2 className="w-3 h-3 animate-spin" />
+                                             ) : (
+                                               <Wand2 className="w-3 h-3" />
+                                             )}
+                                             <span className="hidden sm:inline">{isGenerating ? 'Generating...' : 'Generate'}</span>
+                                           </Button>
+                                         )}
+                                         <span className={`px-1.5 py-0.5 text-xs rounded border ${
+                                           card.status === 'published' 
+                                             ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                                             : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                                         }`}>
+                                           {card.status === 'published' ? 'Published' : 'Draft'}
+                                         </span>
+                                         <Link href={`/card/${card.id}`}>
+                                           <Button 
+                                             variant="outline" 
+                                             size="sm" 
+                                             className="h-7 text-xs gap-1"
+                                             data-testid={`button-view-${card.id}`}
+                                           >
+                                             <Eye className="w-3 h-3" /> <span className="hidden sm:inline">View</span>
+                                           </Button>
+                                         </Link>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                 {needsGeneration && (
-                                   <Button 
-                                     variant="outline" 
-                                     size="sm" 
-                                     className="h-8 gap-1 border-purple-500/30 text-purple-500 hover:bg-purple-500/10"
-                                     onClick={() => generateImageMutation.mutate(card.id)}
-                                     disabled={isGenerating}
-                                     data-testid={`button-generate-${card.id}`}
-                                   >
-                                     {isGenerating ? (
-                                       <Loader2 className="w-3 h-3 animate-spin" />
-                                     ) : (
-                                       <Wand2 className="w-3 h-3" />
-                                     )}
-                                     {isGenerating ? 'Generating...' : 'Generate'}
-                                   </Button>
-                                 )}
-                                 <span className={`px-2 py-1 text-xs rounded border ${
-                                   card.status === 'published' 
-                                     ? 'bg-green-500/10 text-green-500 border-green-500/20'
-                                     : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
-                                 }`}>
-                                   {card.status === 'published' ? 'Published' : 'Draft'}
-                                 </span>
-                                 <Link href={`/card/${card.id}`}>
-                                   <Button 
-                                     variant="outline" 
-                                     size="sm" 
-                                     className="h-8 gap-1"
-                                     data-testid={`button-view-${card.id}`}
-                                   >
-                                     <Eye className="w-3 h-3" /> View
-                                   </Button>
-                                 </Link>
-                                 <Button variant="outline" size="sm" className="h-8">Edit</Button>
                             </div>
                         </div>
                       );})

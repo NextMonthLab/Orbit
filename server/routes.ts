@@ -12,16 +12,15 @@ import path from "path";
 import fs from "fs";
 import OpenAI from "openai";
 
-// OpenAI client for image generation - uses OPENAI_API_KEY env var
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-// Lazy initialization to avoid startup errors when API key is not set
+// OpenAI client for image generation - uses Replit AI Integrations (no API key needed)
+// Charges are billed to your Replit credits
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
-    }
-    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    _openai = new OpenAI({ 
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY || "dummy",
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
   }
   return _openai;
 }
@@ -1491,10 +1490,10 @@ export async function registerRoutes(
         });
       }
       
-      // Check if OpenAI API key is configured
-      if (!process.env.OPENAI_API_KEY) {
+      // Check if OpenAI is configured (either via Replit AI Integrations or direct API key)
+      if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY && !process.env.OPENAI_API_KEY) {
         return res.status(500).json({ 
-          message: "OPENAI_API_KEY is not configured. Please add it to your environment variables.",
+          message: "OpenAI is not configured. Please set up AI Integrations or add OPENAI_API_KEY.",
         });
       }
       
@@ -1594,7 +1593,7 @@ export async function registerRoutes(
       }
       if (error?.status === 401) {
         return res.status(401).json({ 
-          message: "Invalid OpenAI API key. Please check your OPENAI_API_KEY.",
+          message: "Invalid OpenAI configuration. Please check your AI Integrations setup.",
         });
       }
       

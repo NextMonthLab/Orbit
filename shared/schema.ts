@@ -341,3 +341,6 @@ export const manifestSchema = z.object({
 });
 
 export type ManifestData = z.infer<typeof manifestSchema>;
+
+// Export chat models for AI integrations
+export * from "./models/chat";
