@@ -654,6 +654,190 @@ export async function registerRoutes(
     }
   });
   
+  // ============ CARD MESSAGE BOARD ROUTES ============
+  
+  app.get("/api/cards/:cardId/messages", async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.cardId);
+      const messages = await storage.getCardMessages(cardId, 50);
+      
+      const messagesWithReactions = await Promise.all(messages.map(async (msg) => {
+        const reactions = await storage.getCardMessageReactions(msg.id);
+        const reactionCounts: Record<string, number> = {};
+        for (const r of reactions) {
+          reactionCounts[r.reactionType] = (reactionCounts[r.reactionType] || 0) + 1;
+        }
+        return { ...msg, reactions: reactionCounts, reactionCount: reactions.length };
+      }));
+      
+      res.json(messagesWithReactions);
+    } catch (error) {
+      console.error("Error fetching card messages:", error);
+      res.status(500).json({ message: "Error fetching messages" });
+    }
+  });
+  
+  app.post("/api/cards/:cardId/messages", async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.cardId);
+      const { displayName, body, anonFingerprint } = req.body;
+      
+      if (!body || body.length === 0) {
+        return res.status(400).json({ message: "Message body required" });
+      }
+      if (body.length > 280) {
+        return res.status(400).json({ message: "Message too long (max 280 characters)" });
+      }
+      if (!displayName || displayName.length === 0) {
+        return res.status(400).json({ message: "Display name required" });
+      }
+      
+      const message = await storage.createCardMessage({
+        cardId,
+        userId: req.user?.id || null,
+        displayName: displayName.slice(0, 50),
+        body: body.slice(0, 280),
+      });
+      
+      res.json(message);
+    } catch (error) {
+      console.error("Error creating card message:", error);
+      res.status(500).json({ message: "Error creating message" });
+    }
+  });
+  
+  app.post("/api/cards/messages/:messageId/reactions", async (req, res) => {
+    try {
+      const messageId = parseInt(req.params.messageId);
+      const { reactionType, anonFingerprint } = req.body;
+      
+      if (!reactionType) {
+        return res.status(400).json({ message: "Reaction type required" });
+      }
+      
+      const reaction = await storage.addCardMessageReaction({
+        messageId,
+        userId: req.user?.id || null,
+        anonFingerprint: req.user?.id ? null : anonFingerprint,
+        reactionType,
+      });
+      
+      res.json(reaction);
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+      res.status(500).json({ message: "Error adding reaction" });
+    }
+  });
+  
+  app.delete("/api/cards/messages/:messageId/reactions", async (req, res) => {
+    try {
+      const messageId = parseInt(req.params.messageId);
+      const { anonFingerprint } = req.body;
+      
+      await storage.removeCardMessageReaction(
+        messageId,
+        req.user?.id || null,
+        req.user?.id ? null : anonFingerprint
+      );
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing reaction:", error);
+      res.status(500).json({ message: "Error removing reaction" });
+    }
+  });
+  
+  app.post("/api/chat/send", requireAuth, async (req, res) => {
+    try {
+      const { threadId, message, characterId, universeId, cardId } = req.body;
+      
+      if (!threadId || !message || !characterId || !universeId) {
+        return res.status(400).json({ message: "threadId, message, characterId, and universeId required" });
+      }
+      
+      const character = await storage.getCharacter(characterId);
+      if (!character) {
+        return res.status(404).json({ message: "Character not found" });
+      }
+      
+      const universe = await storage.getUniverse(universeId);
+      if (!universe) {
+        return res.status(404).json({ message: "Universe not found" });
+      }
+      
+      let currentCard = null;
+      if (cardId) {
+        currentCard = await storage.getCard(cardId);
+      }
+      
+      const progress = await storage.getUserProgress(req.user!.id, universeId);
+      const userDayIndex = progress?.unlockedDayIndex || 0;
+      
+      const { buildChatSystemPrompt, getChatDisclaimer } = await import("./chat");
+      
+      const systemPrompt = buildChatSystemPrompt({
+        universe,
+        character,
+        currentCard: currentCard || undefined,
+        userDayIndex,
+      });
+      
+      await storage.addChatMessage({
+        threadId,
+        role: "user",
+        content: message,
+      });
+      
+      const historyMessages = await storage.getChatMessages(threadId, 20);
+      const openaiMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+        { role: "system", content: systemPrompt },
+      ];
+      
+      for (const msg of historyMessages.slice(-19)) {
+        openaiMessages.push({
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        });
+      }
+      
+      if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY && !process.env.OPENAI_API_KEY) {
+        const fallbackResponse = `*${character.name} looks at you thoughtfully*\n\nI'd love to chat, but the storyteller hasn't connected to the AI service yet. Try again soon!`;
+        const assistantMessage = await storage.addChatMessage({
+          threadId,
+          role: "assistant",
+          content: fallbackResponse,
+        });
+        return res.json({
+          message: assistantMessage,
+          disclaimer: getChatDisclaimer(universe.chatPolicy as any),
+        });
+      }
+      
+      const completion = await getOpenAI().chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: openaiMessages,
+        max_tokens: 500,
+        temperature: 0.9,
+      });
+      
+      const aiResponse = completion.choices[0]?.message?.content || "...";
+      
+      const assistantMessage = await storage.addChatMessage({
+        threadId,
+        role: "assistant",
+        content: aiResponse,
+      });
+      
+      res.json({
+        message: assistantMessage,
+        disclaimer: getChatDisclaimer(universe.chatPolicy as any),
+      });
+    } catch (error) {
+      console.error("Error in chat send:", error);
+      res.status(500).json({ message: "Error processing chat" });
+    }
+  });
+  
   // ============ ANALYTICS ROUTES ============
   
   app.post("/api/events", async (req, res) => {
@@ -826,6 +1010,12 @@ export async function registerRoutes(
       seed?: number;
       notes?: string;
     };
+    chat_overrides?: Record<string, {
+      mood?: string;
+      knows_up_to_dayIndex?: number;
+      refuse_topics?: string[];
+      can_reveal?: string[];
+    }>;
   }
   
   interface ManifestCharacterVisualProfile {
@@ -842,6 +1032,20 @@ export async function registerRoutes(
     reference_image_path?: string;
   }
   
+  interface ManifestChatProfile {
+    voice?: string;
+    speech_style?: string;
+    goals?: string[];
+    knowledge?: {
+      knows_up_to_dayIndex?: number | "dynamic";
+      spoiler_protection?: boolean;
+    };
+    hard_limits?: string[];
+    allowed_topics?: string[];
+    blocked_topics?: string[];
+    refusal_style?: string;
+  }
+
   interface ManifestCharacter {
     id?: string;
     name: string;
@@ -850,6 +1054,8 @@ export async function registerRoutes(
     personality?: string;
     secretInfo?: string;
     visual_profile?: ManifestCharacterVisualProfile;
+    chat_profile?: ManifestChatProfile;
+    is_public_figure_simulation?: boolean;
   }
   
   interface ManifestLocation {
@@ -888,6 +1094,20 @@ export async function registerRoutes(
     };
   }
   
+  interface ManifestChatPolicy {
+    mode?: "role_gated" | "character_only";
+    global_rules?: string[];
+    blocked_personas?: string[];
+    allowed_roles?: string[];
+    safety?: {
+      no_harassment?: boolean;
+      no_self_harm_guidance?: boolean;
+      no_sexual_content?: boolean;
+      no_illegal_instructions?: boolean;
+    };
+    disclaimer?: string;
+  }
+
   interface SeasonManifest {
     schemaVersion?: number;
     seasonId?: string;
@@ -899,6 +1119,7 @@ export async function registerRoutes(
       visual_mode?: "engine_generated" | "author_supplied";
       visual_style?: VisualStyleManifest;
       visual_continuity?: VisualContinuityManifest;
+      chat_policy?: ManifestChatPolicy;
     };
     season?: number | string;
     startDate?: string;
@@ -1284,6 +1505,7 @@ export async function registerRoutes(
           visualMode: manifest.universe.visual_mode || "author_supplied",
           visualStyle: convertVisualStyle(manifest.universe.visual_style),
           visualContinuity: convertVisualContinuity(manifest.universe.visual_continuity),
+          chatPolicy: manifest.universe.chat_policy || null,
         });
         universe = updated!;
         warnings.push(`Replaced existing universe "${existingBySlug.name}" (ID: ${existingBySlug.id})`);
@@ -1296,6 +1518,7 @@ export async function registerRoutes(
           visualMode: manifest.universe.visual_mode || "author_supplied",
           visualStyle: convertVisualStyle(manifest.universe.visual_style),
           visualContinuity: convertVisualContinuity(manifest.universe.visual_continuity),
+          chatPolicy: manifest.universe.chat_policy || null,
         });
       }
       
@@ -1313,6 +1536,8 @@ export async function registerRoutes(
           description: charDef.personality || null,
           secretsJson: charDef.secretInfo ? [charDef.secretInfo] : null,
           visualProfile: convertVisualProfile(charDef.visual_profile),
+          chatProfile: charDef.chat_profile || null,
+          isPublicFigureSimulation: charDef.is_public_figure_simulation || false,
         });
         // Store by ID if present, and always by name for fallback
         if (charDef.id) {
@@ -1399,6 +1624,7 @@ export async function registerRoutes(
           imageGenerated: false,
           primaryCharacterIds: primaryCharacterIds.length > 0 ? primaryCharacterIds : null,
           locationId: locationId || null,
+          chatOverrides: cardDef.chat_overrides || null,
         });
         createdItems.cards.push(card.id);
         

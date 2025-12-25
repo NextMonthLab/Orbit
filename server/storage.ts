@@ -58,7 +58,7 @@ export interface IStorage {
   // Chat
   getChatThread(userId: number, universeId: number, characterId: number): Promise<schema.ChatThread | undefined>;
   createChatThread(thread: schema.InsertChatThread): Promise<schema.ChatThread>;
-  getChatMessages(threadId: number): Promise<schema.ChatMessage[]>;
+  getChatMessages(threadId: number, limit?: number): Promise<schema.ChatMessage[]>;
   addChatMessage(message: schema.InsertChatMessage): Promise<schema.ChatMessage>;
   
   // Events
@@ -71,6 +71,13 @@ export interface IStorage {
   createLocation(location: schema.InsertLocation): Promise<schema.Location>;
   updateLocation(id: number, location: Partial<schema.InsertLocation>): Promise<schema.Location | undefined>;
   deleteLocation(id: number): Promise<void>;
+  
+  // Card Messages (micro message boards)
+  getCardMessages(cardId: number, limit?: number): Promise<schema.CardMessage[]>;
+  createCardMessage(message: schema.InsertCardMessage): Promise<schema.CardMessage>;
+  getCardMessageReactions(messageId: number): Promise<schema.CardMessageReaction[]>;
+  addCardMessageReaction(reaction: schema.InsertCardMessageReaction): Promise<schema.CardMessageReaction>;
+  removeCardMessageReaction(messageId: number, userId: number | null, anonFingerprint: string | null): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -356,10 +363,11 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
   
-  async getChatMessages(threadId: number): Promise<schema.ChatMessage[]> {
+  async getChatMessages(threadId: number, limit?: number): Promise<schema.ChatMessage[]> {
     return await db.query.chatMessages.findMany({
       where: eq(schema.chatMessages.threadId, threadId),
       orderBy: [schema.chatMessages.createdAt],
+      limit: limit,
     });
   }
   
@@ -412,6 +420,49 @@ export class DatabaseStorage implements IStorage {
   
   async deleteLocation(id: number): Promise<void> {
     await db.delete(schema.locations).where(eq(schema.locations.id, id));
+  }
+  
+  // Card Messages (micro message boards)
+  async getCardMessages(cardId: number, limit?: number): Promise<schema.CardMessage[]> {
+    return await db.query.cardMessages.findMany({
+      where: eq(schema.cardMessages.cardId, cardId),
+      orderBy: [desc(schema.cardMessages.createdAt)],
+      limit: limit || 50,
+    });
+  }
+  
+  async createCardMessage(message: schema.InsertCardMessage): Promise<schema.CardMessage> {
+    const [result] = await db.insert(schema.cardMessages).values(message).returning();
+    return result;
+  }
+  
+  async getCardMessageReactions(messageId: number): Promise<schema.CardMessageReaction[]> {
+    return await db.query.cardMessageReactions.findMany({
+      where: eq(schema.cardMessageReactions.messageId, messageId),
+    });
+  }
+  
+  async addCardMessageReaction(reaction: schema.InsertCardMessageReaction): Promise<schema.CardMessageReaction> {
+    const [result] = await db.insert(schema.cardMessageReactions).values(reaction).returning();
+    return result;
+  }
+  
+  async removeCardMessageReaction(messageId: number, userId: number | null, anonFingerprint: string | null): Promise<void> {
+    if (userId) {
+      await db.delete(schema.cardMessageReactions).where(
+        and(
+          eq(schema.cardMessageReactions.messageId, messageId),
+          eq(schema.cardMessageReactions.userId, userId)
+        )
+      );
+    } else if (anonFingerprint) {
+      await db.delete(schema.cardMessageReactions).where(
+        and(
+          eq(schema.cardMessageReactions.messageId, messageId),
+          eq(schema.cardMessageReactions.anonFingerprint, anonFingerprint)
+        )
+      );
+    }
   }
 }
 
