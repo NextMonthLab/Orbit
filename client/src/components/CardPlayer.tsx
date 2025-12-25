@@ -8,7 +8,7 @@ import { Link } from "wouter";
 interface Character {
   id: number;
   name: string;
-  avatarPath?: string | null;
+  avatar?: string | null;
 }
 
 interface CardPlayerProps {
@@ -230,9 +230,9 @@ export default function CardPlayer({
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/50 to-primary/20 flex items-center justify-center overflow-hidden">
-                      {primaryCharacter.avatarPath ? (
+                      {primaryCharacter.avatar ? (
                         <img 
-                          src={primaryCharacter.avatarPath} 
+                          src={primaryCharacter.avatar} 
                           alt={primaryCharacter.name}
                           className="w-full h-full object-cover"
                         />

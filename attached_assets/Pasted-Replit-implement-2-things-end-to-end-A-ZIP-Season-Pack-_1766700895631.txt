@@ -1,0 +1,150 @@
+Replit — implement 2 things end-to-end:
+
+(A) ZIP Season Pack: add AI character chat prompts + guardrails
+(B) Card Stage 2: add a micro message board attached to each card
+
+============================================================
+A) ZIP Season Pack schema upgrade (chat prompts + guardrails)
+============================================================
+
+1) Extend the Season Pack JSON schema (schemaVersion stays 1 for now, but allow optional new fields).
+Add these OPTIONAL objects:
+
+Universe-level:
+- universe.chat_policy: the global guardrails and role gating rules for this universe.
+
+Character-level:
+- characters[].chat_profile: how this character speaks + goals + allowed/blocked topics + hard limits + spoiler rules.
+
+Card-level:
+- cards[].chat_unlocked_character_ids already exists; keep it.
+- cards[].chat_overrides (optional): per-card mood/knowledge cutoffs/refusals per character.
+
+Example structure (must be supported by importer + DB storage):
+
+universe.chat_policy = {
+  "mode": "role_gated" | "character_only",
+  "global_rules": [string],
+  "blocked_personas": ["victim","private_individual","minor"],
+  "allowed_roles": ["journalist","doctor","politician","expert"],
+  "safety": {
+    "no_harassment": true,
+    "no_self_harm_guidance": true,
+    "no_sexual_content": true,
+    "no_illegal_instructions": true
+  },
+  "disclaimer": "This is an AI simulation. It may be fictionalised. It must not impersonate victims or private individuals."
+}
+
+characters[].chat_profile = {
+  "voice": "short description of voice/tone",
+  "speech_style": "how they talk",
+  "goals": [string],
+  "knowledge": {
+    "knows_up_to_dayIndex": "dynamic",
+    "spoiler_protection": true
+  },
+  "hard_limits": [string],
+  "allowed_topics": [string],
+  "blocked_topics": [string],
+  "refusal_style": "how they refuse requests"
+}
+
+cards[].chat_overrides = {
+  "<character_id>": {
+    "mood": "string",
+    "knows_up_to_dayIndex": number,
+    "refuse_topics": [string],
+    "can_reveal": [string]
+  }
+}
+
+2) Database/storage:
+- Add columns/fields to persist:
+  - universe.chat_policy (JSONB)
+  - character.chat_profile (JSONB)
+  - card.chat_overrides (JSONB, nullable)
+
+If schema uses Prisma or Drizzle, update migration accordingly.
+
+3) Importer:
+- When Season Pack is uploaded, validate these new fields (basic validation only: types, arrays, required keys where present).
+- If missing, default to safe behaviour:
+  - universe.chat_policy defaults to strict, no impersonation, spoiler protection enabled
+  - characters.chat_profile defaults to safe minimal profile (no private individual impersonation; no advice; no spoilers)
+
+4) Prompt composition for chat:
+Create a function buildChatSystemPrompt({ universe, card, character, dayIndex }) that composes:
+- universe.chat_policy.disclaimer + global_rules
+- the universe narrative framing + spoiler rule: character only knows up to dayIndex / card dayIndex
+- character.chat_profile (voice, speech_style, goals, hard_limits, allowed/blocked topics)
+- card context (title, recapText, sceneText, and card dayIndex)
+- card chat_overrides for that character (mood, refusals, cutoffs)
+Return the final system prompt string and metadata.
+
+5) Chat endpoint:
+Add/verify:
+- POST /api/chat
+Payload: { cardId, characterId, message }
+Server:
+- loads card + universe + character
+- builds system prompt with buildChatSystemPrompt
+- uses OpenAI (process.env.OPENAI_API_KEY) to respond
+- logs conversation (cardId, characterId, userId, timestamps) in DB
+Client:
+- Stage 2 “Chat with X” opens chat modal using this endpoint.
+
+6) Safety:
+Hard rules (must be enforced in system prompt + server side):
+- Never speak as victims, minors, private individuals.
+- For real-world/news style universes, only speak as role-based experts, not named real individuals unless explicitly configured and legally cleared (add a boolean if needed: character.is_public_figure_simulation).
+- Refuse requests for spoilers beyond current dayIndex.
+- Refuse medical/legal/financial advice; provide general info and encourage professional help.
+
+============================================================
+B) Micro message board in Card Stage 2
+============================================================
+
+1) Add a “Micro Board” section to CardPlayer Phase 2 (Context view):
+- Shows a small thread list for THIS card only.
+- User can post a short message (max 280 chars).
+- Optional reactions: 👍 🤔 😮 (counts per message).
+- Sort messages newest first (or pinned first then newest).
+- Show message count.
+
+2) Spoiler protection:
+- Users can ONLY see/post in boards for cards they have unlocked/seen.
+- No cross-card thread mixing.
+
+3) Database:
+Create tables:
+- card_messages: id, card_id, user_id (nullable for anon), display_name, body, created_at
+- card_message_reactions: id, message_id, user_id (or anon fingerprint), reaction_type, created_at
+Add indexes on card_id + created_at.
+
+4) API endpoints:
+- GET /api/cards/:id/messages -> list messages + reaction counts
+- POST /api/cards/:id/messages -> create message
+- POST /api/messages/:id/react -> toggle reaction
+
+5) UI behaviour:
+- Micro Board loads only in Phase 2.
+- Keep it “micro”:
+  - show last 10 messages with “View more” (optional)
+  - no nested replies for MVP
+  - basic moderation: profanity filter + report button placeholder
+
+============================================================
+Acceptance checklist (must be met)
+============================================================
+- Uploading a Season Pack with chat_policy/chat_profile/chat_overrides persists them in DB.
+- Clicking “Chat with Elena” in Stage 2 produces an in-character response that:
+  - respects spoiler cutoff (dayIndex)
+  - follows allowed/blocked topics
+  - refuses disallowed persona requests
+- Micro Board appears in Stage 2 and is card-specific.
+- Messages persist and show on refresh.
+- Works locally + deploy-safe on Render (env var OPENAI_API_KEY).
+- Add a “Download Template” button that includes the new chat fields in the sample manifest.
+
+Do NOT add branching narrative. Do NOT add voice synthesis. Focus only on these two features.
