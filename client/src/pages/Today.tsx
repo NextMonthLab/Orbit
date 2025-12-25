@@ -62,7 +62,7 @@ export default function Today() {
           captions: card.captionsJson || [],
           sceneText: card.sceneText,
           recapText: card.recapText,
-          publishDate: card.publishAt?.toISOString() || new Date().toISOString(),
+          publishDate: card.publishAt ? String(card.publishAt) : new Date().toISOString(),
         }} />
 
         {/* Scene Text */}
