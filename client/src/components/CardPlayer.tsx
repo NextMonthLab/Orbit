@@ -16,6 +16,8 @@ interface CardPlayerProps {
   autoplay?: boolean;
   characters?: Character[];
   onChatClick?: (characterId: number) => void;
+  onPhaseChange?: (phase: "cinematic" | "context") => void;
+  fullScreen?: boolean;
 }
 
 type Phase = "cinematic" | "context";
@@ -24,7 +26,9 @@ export default function CardPlayer({
   card, 
   autoplay = true, 
   characters = [],
-  onChatClick 
+  onChatClick,
+  onPhaseChange,
+  fullScreen = false
 }: CardPlayerProps) {
   const [phase, setPhase] = useState<Phase>("cinematic");
   const [isPlaying, setIsPlaying] = useState(autoplay);
@@ -41,14 +45,16 @@ export default function CardPlayer({
 
   const advanceToContext = useCallback(() => {
     setPhase("context");
-  }, []);
+    onPhaseChange?.("context");
+  }, [onPhaseChange]);
 
   const resetToCinematic = useCallback(() => {
     setShowSwipeHint(false);
     setPhase("cinematic");
     setCaptionIndex(0);
     setIsPlaying(true);
-  }, []);
+    onPhaseChange?.("cinematic");
+  }, [onPhaseChange]);
 
   useEffect(() => {
     if (!isPlaying || phase !== "cinematic") return;
@@ -84,9 +90,13 @@ export default function CardPlayer({
 
   const primaryCharacter = characters[0];
 
+  const containerClass = fullScreen
+    ? "relative w-full h-full overflow-hidden bg-black"
+    : "relative w-full aspect-[9/16] overflow-hidden rounded-2xl bg-black shadow-2xl border border-white/10";
+
   return (
     <div 
-      className="relative w-full aspect-[9/16] overflow-hidden rounded-2xl bg-black shadow-2xl border border-white/10"
+      className={containerClass}
       onClick={handleTap}
       data-testid="card-player"
     >
@@ -125,7 +135,7 @@ export default function CardPlayer({
               </span>
             </div>
 
-            <div className="absolute inset-0 flex flex-col justify-end p-6 pb-16">
+            <div className={`absolute inset-x-0 bottom-0 flex flex-col justify-end ${fullScreen ? 'p-8 pb-24' : 'p-6 pb-16'}`}>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={captionIndex}
@@ -133,10 +143,10 @@ export default function CardPlayer({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
-                  className="min-h-[120px] flex items-end justify-center"
+                  className="flex items-center justify-center"
                 >
                   {captionIndex < card.captions.length ? (
-                    <p className="text-2xl md:text-3xl font-bold text-white text-center leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+                    <p className={`font-bold text-white text-center leading-snug drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] px-4 ${fullScreen ? 'text-3xl md:text-4xl' : 'text-2xl md:text-3xl'}`}>
                       {card.captions[captionIndex]}
                     </p>
                   ) : null}
