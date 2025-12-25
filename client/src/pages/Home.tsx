@@ -17,12 +17,6 @@ export default function Home() {
     enabled: !!universe,
   });
 
-  const { data: progress } = useQuery({
-    queryKey: ["progress", universe?.id],
-    queryFn: () => api.getProgress(universe!.id),
-    enabled: !!universe && !!user,
-  });
-
   if (!universe || cardsLoading) {
     return (
       <Layout>
@@ -33,12 +27,24 @@ export default function Home() {
     );
   }
 
-  if (!cards || cards.length === 0) {
+  // Filter to only published cards with publishAt in the past
+  const now = new Date();
+  const availableCards = cards
+    ?.filter(c => c.status === 'published' && c.publishAt && new Date(c.publishAt) <= now)
+    .sort((a, b) => a.dayIndex - b.dayIndex) || [];
+
+  if (availableCards.length === 0) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
-          <h2 className="text-2xl font-display font-bold mb-4">No Story Available</h2>
-          <p className="text-muted-foreground mb-6">There are no story cards for this universe yet.</p>
+          <h2 className="text-2xl font-display font-bold mb-4">
+            {cards && cards.length > 0 ? "Coming Soon" : "No Story Available"}
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            {cards && cards.length > 0 
+              ? "The first story drop hasn't been released yet. Check back soon!"
+              : "There are no story cards for this universe yet."}
+          </p>
           {user?.isAdmin && (
             <Link href="/admin">
               <Button>Go to Admin Panel</Button>
@@ -49,16 +55,16 @@ export default function Home() {
     );
   }
 
-  const unlocked = progress?.unlockedDayIndex ?? 1;
-  const currentStreak = progress?.currentStreak ?? 0;
-  const todayCard = cards.find(c => c.dayIndex === unlocked) || cards[0];
-  const missedCards = Math.max(0, unlocked - 1);
+  // Latest available card (highest day index that's been published)
+  const todayCard = availableCards[availableCards.length - 1];
+  const totalAvailable = availableCards.length;
+  const catchUpCount = Math.max(0, totalAvailable - 1);
 
   return (
     <Layout>
       <div className="p-4 pt-8 md:p-8 space-y-8 animate-in fade-in duration-500">
         
-        {/* Header with Streak */}
+        {/* Header with Progress */}
         <div className="flex justify-between items-start">
             <div className="space-y-1">
                 <span className="text-xs font-bold tracking-[0.2em] text-primary uppercase" data-testid="text-daily-drop">Daily Drop</span>
@@ -68,7 +74,7 @@ export default function Home() {
             </div>
             <div className="flex flex-col items-center bg-card border border-border px-3 py-2 rounded-lg shadow-lg">
                 <Flame className="w-5 h-5 text-orange-500 fill-orange-500 animate-pulse" />
-                <span className="text-xs font-bold font-mono mt-1" data-testid="text-streak">DAY {currentStreak || unlocked}</span>
+                <span className="text-xs font-bold font-mono mt-1" data-testid="text-streak">DAY {todayCard.dayIndex}</span>
             </div>
         </div>
 
@@ -91,7 +97,9 @@ export default function Home() {
                     </div>
                     
                     <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black to-transparent pt-24">
-                        <span className="inline-block px-2 py-0.5 mb-2 text-[10px] font-bold bg-primary text-white rounded uppercase tracking-wider shadow-lg">Today's Chapter</span>
+                        <span className="inline-block px-2 py-0.5 mb-2 text-[10px] font-bold bg-primary text-white rounded uppercase tracking-wider shadow-lg">
+                          {todayCard.dayIndex === 1 ? "Start Here" : "Latest Chapter"}
+                        </span>
                         <h2 className="text-3xl font-display font-bold text-white mb-1 drop-shadow-md" data-testid="text-today-title">{todayCard.title}</h2>
                         <div className="flex items-center gap-2 text-white/80 text-xs font-medium tracking-wide">
                             <span>TAP TO WATCH</span>
@@ -106,8 +114,8 @@ export default function Home() {
         <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto pt-4">
             <Link href="/catch-up">
                 <div className="p-4 rounded-lg bg-card/50 border border-border hover:bg-card hover:border-primary/50 transition-all cursor-pointer text-center group">
-                    <span className="block text-2xl font-bold mb-1 group-hover:text-primary transition-colors" data-testid="text-missed-count">{missedCards}</span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Missed Cards</span>
+                    <span className="block text-2xl font-bold mb-1 group-hover:text-primary transition-colors" data-testid="text-missed-count">{catchUpCount}</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Previous Cards</span>
                 </div>
             </Link>
              <a href="https://discord.com" target="_blank" rel="noreferrer">

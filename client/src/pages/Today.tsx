@@ -1,16 +1,17 @@
 import Layout from "@/components/Layout";
 import CardPlayer from "@/components/CardPlayer";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Download, Loader2 } from "lucide-react";
-import { Link } from "wouter";
+import { MessageSquare, Download, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAppContext } from "@/lib/app-context";
-import { useAuth } from "@/lib/auth";
+import { useState } from "react";
 
 export default function Today() {
   const { universe } = useAppContext();
-  const { user } = useAuth();
+  const params = useParams<{ id?: string }>();
+  const cardIdFromUrl = params.id ? parseInt(params.id) : null;
 
   const { data: cards, isLoading: cardsLoading } = useQuery({
     queryKey: ["cards", universe?.id],
@@ -18,11 +19,7 @@ export default function Today() {
     enabled: !!universe,
   });
 
-  const { data: progress } = useQuery({
-    queryKey: ["progress", universe?.id],
-    queryFn: () => api.getProgress(universe!.id),
-    enabled: !!universe && !!user,
-  });
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   if (!universe || cardsLoading) {
     return (
@@ -45,14 +42,69 @@ export default function Today() {
     );
   }
 
-  const unlocked = progress?.unlockedDayIndex ?? 0;
-  const currentCard = cards.find(c => c.dayIndex === Math.max(1, unlocked));
-  const card = currentCard || cards[0];
+  // Filter to only published cards with publishAt in the past
+  const now = new Date();
+  const availableCards = cards
+    .filter(c => c.status === 'published' && c.publishAt && new Date(c.publishAt) <= now)
+    .sort((a, b) => a.dayIndex - b.dayIndex);
+
+  if (availableCards.length === 0) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
+          <h2 className="text-2xl font-display font-bold mb-4">Coming Soon</h2>
+          <p className="text-muted-foreground">The first story drop hasn't been released yet. Check back soon!</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  // If viewing a specific card by ID
+  let cardIndex = selectedIndex;
+  if (cardIdFromUrl) {
+    const idx = availableCards.findIndex(c => c.id === cardIdFromUrl);
+    if (idx !== -1) cardIndex = idx;
+  }
+  if (cardIndex === null) {
+    // Default to the latest (highest day index) available card
+    cardIndex = availableCards.length - 1;
+  }
+
+  const card = availableCards[cardIndex];
+  const hasPrev = cardIndex > 0;
+  const hasNext = cardIndex < availableCards.length - 1;
 
   return (
     <Layout>
       <div className="p-4 pb-24 md:p-8 max-w-md mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-500">
         
+        {/* Navigation */}
+        {availableCards.length > 1 && (
+          <div className="flex items-center justify-between">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setSelectedIndex(cardIndex! - 1)}
+              disabled={!hasPrev}
+              className="gap-1"
+            >
+              <ChevronLeft className="w-4 h-4" /> Previous
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {cardIndex! + 1} of {availableCards.length}
+            </span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setSelectedIndex(cardIndex! + 1)}
+              disabled={!hasNext}
+              className="gap-1"
+            >
+              Next <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
         {/* The Card Player */}
         <CardPlayer card={{
           id: card.id.toString(),

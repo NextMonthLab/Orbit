@@ -24,6 +24,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/profile" component={Profile} />
       <Route path="/today" component={Today} />
+      <Route path="/card/:id" component={Today} />
       <Route path="/catch-up" component={CatchUp} />
       <Route path="/chat" component={Chat} />
       <Route path="/admin" component={Admin} />
