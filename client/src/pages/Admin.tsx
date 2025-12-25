@@ -56,6 +56,9 @@ export default function Admin() {
   const [showEditUniverseDialog, setShowEditUniverseDialog] = useState(false);
   const [editUniverseName, setEditUniverseName] = useState("");
   const [editUniverseDescription, setEditUniverseDescription] = useState("");
+  const [editReleaseMode, setEditReleaseMode] = useState<string>("daily");
+  const [editIntroCardsCount, setEditIntroCardsCount] = useState(3);
+  const [editTimezone, setEditTimezone] = useState("UTC");
   const [generatingAllImages, setGeneratingAllImages] = useState(false);
 
   const { data: universes, isLoading: universesLoading } = useQuery({
@@ -218,16 +221,24 @@ export default function Admin() {
     if (selectedUniverse) {
       setEditUniverseName(selectedUniverse.name);
       setEditUniverseDescription(selectedUniverse.description || "");
+      setEditReleaseMode(selectedUniverse.releaseMode || "daily");
+      setEditIntroCardsCount(selectedUniverse.introCardsCount ?? 3);
+      setEditTimezone(selectedUniverse.timezone || "UTC");
       setShowEditUniverseDialog(true);
     }
   };
 
   const handleSaveUniverse = () => {
     if (!editUniverseName.trim() || !selectedUniverse) return;
+    const dailyStartsAt = editIntroCardsCount + 1;
     updateUniverseMutation.mutate({
       id: selectedUniverse.id,
       name: editUniverseName,
       description: editUniverseDescription,
+      releaseMode: editReleaseMode as any,
+      introCardsCount: editIntroCardsCount,
+      dailyReleaseStartsAtDayIndex: dailyStartsAt,
+      timezone: editTimezone,
     });
   };
 
@@ -711,11 +722,11 @@ export default function Admin() {
 
         {/* Edit Universe Dialog */}
         <Dialog open={showEditUniverseDialog} onOpenChange={setShowEditUniverseDialog}>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Universe</DialogTitle>
               <DialogDescription>
-                Update the details for this story world.
+                Update the details and release settings for this story world.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -738,6 +749,79 @@ export default function Admin() {
                   onChange={(e) => setEditUniverseDescription(e.target.value)}
                   data-testid="input-edit-universe-description"
                 />
+              </div>
+              
+              {/* Release Settings Section */}
+              <div className="pt-4 border-t">
+                <h4 className="text-sm font-semibold mb-3">Release Settings</h4>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-release-mode">Release Mode</Label>
+                    <select
+                      id="edit-release-mode"
+                      className="w-full p-2 border rounded-md bg-background text-foreground"
+                      value={editReleaseMode}
+                      onChange={(e) => setEditReleaseMode(e.target.value)}
+                      data-testid="select-release-mode"
+                    >
+                      <option value="daily">Daily - All cards follow publish date</option>
+                      <option value="hybrid_intro_then_daily">Hybrid - First cards instant, then daily</option>
+                      <option value="all_at_once">All at Once - Release everything immediately</option>
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      {editReleaseMode === 'hybrid_intro_then_daily' 
+                        ? `First ${editIntroCardsCount} cards unlock instantly, then daily from Day ${editIntroCardsCount + 1}.`
+                        : editReleaseMode === 'all_at_once'
+                        ? 'All published cards are visible immediately.'
+                        : 'All cards follow their scheduled publish dates.'}
+                    </p>
+                  </div>
+                  
+                  {editReleaseMode === 'hybrid_intro_then_daily' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-intro-count">Intro Cards Count</Label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          id="edit-intro-count"
+                          min={1}
+                          max={5}
+                          value={editIntroCardsCount}
+                          onChange={(e) => setEditIntroCardsCount(parseInt(e.target.value))}
+                          className="flex-1"
+                          data-testid="slider-intro-count"
+                        />
+                        <span className="w-8 text-center font-mono font-bold">{editIntroCardsCount}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Number of cards to unlock immediately for new viewers.
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-timezone">Timezone</Label>
+                    <select
+                      id="edit-timezone"
+                      className="w-full p-2 border rounded-md bg-background text-foreground"
+                      value={editTimezone}
+                      onChange={(e) => setEditTimezone(e.target.value)}
+                      data-testid="select-timezone"
+                    >
+                      <option value="UTC">UTC</option>
+                      <option value="America/New_York">Eastern Time (US)</option>
+                      <option value="America/Los_Angeles">Pacific Time (US)</option>
+                      <option value="Europe/London">London</option>
+                      <option value="Europe/Paris">Paris</option>
+                      <option value="Asia/Tokyo">Tokyo</option>
+                      <option value="Australia/Sydney">Sydney</option>
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      Timezone used for publish date comparisons.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
             <DialogFooter>
