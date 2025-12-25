@@ -52,6 +52,7 @@ export default function Admin() {
   const [previewCard, setPreviewCard] = useState<any>(null);
   const [generatingCardId, setGeneratingCardId] = useState<number | null>(null);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [showDeleteUniverseDialog, setShowDeleteUniverseDialog] = useState(false);
 
   const { data: universes, isLoading: universesLoading } = useQuery({
     queryKey: ["universes"],
@@ -103,6 +104,26 @@ export default function Admin() {
       toast({
         title: "Error",
         description: error.message || "Failed to delete cards",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteUniverseMutation = useMutation({
+    mutationFn: (universeId: number) => api.deleteUniverse(universeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["universes"] });
+      setSelectedUniverseId(null);
+      setShowDeleteUniverseDialog(false);
+      toast({
+        title: "Universe deleted",
+        description: "The universe and all its content have been deleted.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete universe",
         variant: "destructive",
       });
     },
@@ -210,6 +231,19 @@ export default function Admin() {
                                 <Plus className="w-4 h-4 mr-2" />
                                 Create New Universe...
                             </DropdownMenuItem>
+                            {selectedUniverse && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="cursor-pointer text-destructive focus:text-destructive"
+                                  onClick={() => setShowDeleteUniverseDialog(true)}
+                                  data-testid="menu-delete-universe"
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete Universe...
+                                </DropdownMenuItem>
+                              </>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                     <span className="text-muted-foreground/30">•</span>
@@ -460,6 +494,30 @@ export default function Admin() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Universe Dialog */}
+        <AlertDialog open={showDeleteUniverseDialog} onOpenChange={setShowDeleteUniverseDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Universe?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete "{selectedUniverse?.name}" and all its content including cards, characters, and locations. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => selectedUniverse && deleteUniverseMutation.mutate(selectedUniverse.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteUniverseMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
+                Delete Universe
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Card Preview Dialog */}
         <Dialog open={!!previewCard} onOpenChange={(open) => !open && setPreviewCard(null)}>

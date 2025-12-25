@@ -238,6 +238,8 @@ export async function registerRoutes(
   app.delete("/api/universes/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      // Delete all content first (cards, characters, locations), then the universe
+      await storage.deleteUniverseContent(id);
       await storage.deleteUniverse(id);
       res.json({ message: "Universe deleted" });
     } catch (error) {
