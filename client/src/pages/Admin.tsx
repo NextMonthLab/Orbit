@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, Wand2, ImageIcon, CheckCircle, Trash2 } from "lucide-react";
+import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, ImageIcon, CheckCircle, Trash2, Settings, Image as PhotoIcon, Clapperboard, ExternalLink } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -353,11 +353,45 @@ export default function Admin() {
           </Card>
         ) : (
           <>
-            <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg flex items-center justify-between text-sm text-primary/80">
-                <p>💡 <strong>Tip:</strong> Manual is best for editing one card. Import is best for uploading an entire season.</p>
-                 <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 hover:text-primary hover:bg-primary/10">
-                    <PenSquare className="w-3 h-3" /> Edit Universe Details
-                 </Button>
+            {/* Universe Actions Bar */}
+            <div className="bg-muted/30 border border-border p-4 rounded-lg space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-lg">{selectedUniverse.name}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedUniverse.description || 'No description'}</p>
+                </div>
+                <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-edit-universe">
+                  <Settings className="w-3.5 h-3.5" /> Edit Universe
+                </Button>
+              </div>
+              
+              {/* Generate AI Images - Prominent action for engine-generated universes */}
+              {isEngineGenerated && (
+                <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg p-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <p className="font-medium flex items-center gap-2">
+                        <PhotoIcon className="w-4 h-4 text-purple-500" />
+                        Generate AI Images
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Generate missing images for published cards using the composed prompt.
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline"
+                        size="sm" 
+                        className="gap-1.5 border-purple-500/50 text-purple-600 hover:bg-purple-500/10"
+                        data-testid="button-generate-all-images"
+                      >
+                        <PhotoIcon className="w-3.5 h-3.5" /> 
+                        Generate All Missing
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Stats */}
@@ -444,23 +478,6 @@ export default function Admin() {
                                     </p>
                                     {/* Actions row - visible on mobile */}
                                     <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                         {needsGeneration && (
-                                           <Button 
-                                             variant="outline" 
-                                             size="sm" 
-                                             className="h-7 text-xs gap-1 border-purple-500/30 text-purple-500 hover:bg-purple-500/10"
-                                             onClick={() => generateImageMutation.mutate(card.id)}
-                                             disabled={isGenerating}
-                                             data-testid={`button-generate-${card.id}`}
-                                           >
-                                             {isGenerating ? (
-                                               <Loader2 className="w-3 h-3 animate-spin" />
-                                             ) : (
-                                               <Wand2 className="w-3 h-3" />
-                                             )}
-                                             <span className="hidden sm:inline">{isGenerating ? 'Generating...' : 'Generate'}</span>
-                                           </Button>
-                                         )}
                                          <span className={`px-1.5 py-0.5 text-xs rounded border ${
                                            card.status === 'published' 
                                              ? 'bg-green-500/10 text-green-500 border-green-500/20'
@@ -468,14 +485,68 @@ export default function Admin() {
                                          }`}>
                                            {card.status === 'published' ? 'Published' : 'Draft'}
                                          </span>
-                                         <Link href={`/card/${card.id}`}>
+                                         
+                                         {/* Image generation button with clear status */}
+                                         {isEngineGenerated && (
                                            <Button 
                                              variant="outline" 
                                              size="sm" 
-                                             className="h-7 text-xs gap-1"
+                                             className={`h-7 text-xs gap-1 ${
+                                               card.imageGenerated 
+                                                 ? 'border-green-500/30 text-green-600' 
+                                                 : hasPrompt 
+                                                   ? 'border-purple-500/30 text-purple-600 hover:bg-purple-500/10'
+                                                   : 'border-muted text-muted-foreground'
+                                             }`}
+                                             onClick={() => !card.imageGenerated && hasPrompt && generateImageMutation.mutate(card.id)}
+                                             disabled={isGenerating || card.imageGenerated || !hasPrompt}
+                                             data-testid={`button-generate-${card.id}`}
+                                           >
+                                             {isGenerating ? (
+                                               <Loader2 className="w-3 h-3 animate-spin" />
+                                             ) : card.imageGenerated ? (
+                                               <CheckCircle className="w-3 h-3" />
+                                             ) : (
+                                               <PhotoIcon className="w-3 h-3" />
+                                             )}
+                                             <span className="hidden sm:inline">
+                                               {isGenerating ? 'Generating...' : card.imageGenerated ? 'Image ready' : hasPrompt ? 'Generate AI Image' : 'No prompt'}
+                                             </span>
+                                           </Button>
+                                         )}
+                                         
+                                         {/* Quick actions: Open in Admin, Edit */}
+                                         <Link href={`/admin/cards/${card.id}`}>
+                                           <Button 
+                                             variant="ghost" 
+                                             size="sm" 
+                                             className="h-7 w-7 p-0"
+                                             title="Open in Admin"
+                                             data-testid={`button-admin-${card.id}`}
+                                           >
+                                             <ExternalLink className="w-3.5 h-3.5" />
+                                           </Button>
+                                         </Link>
+                                         <Link href={`/admin/cards/${card.id}/edit`}>
+                                           <Button 
+                                             variant="ghost" 
+                                             size="sm" 
+                                             className="h-7 w-7 p-0"
+                                             title="Edit Card"
+                                             data-testid={`button-edit-${card.id}`}
+                                           >
+                                             <PenSquare className="w-3.5 h-3.5" />
+                                           </Button>
+                                         </Link>
+                                         <Link href={`/card/${card.id}`}>
+                                           <Button 
+                                             variant="ghost" 
+                                             size="sm" 
+                                             className="h-7 w-7 p-0"
+                                             title="Preview"
                                              data-testid={`button-view-${card.id}`}
                                            >
-                                             <Eye className="w-3 h-3" /> <span className="hidden sm:inline">View</span>
+                                             <Eye className="w-3.5 h-3.5" />
                                            </Button>
                                          </Link>
                                     </div>
