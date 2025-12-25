@@ -1,82 +1,274 @@
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
-import { Share2, PlayCircle } from "lucide-react";
+import { MessageSquare, ChevronUp, Share2, BookOpen } from "lucide-react";
+import { Link } from "wouter";
+
+interface Character {
+  id: number;
+  name: string;
+  avatarPath?: string | null;
+}
 
 interface CardPlayerProps {
   card: Card;
   autoplay?: boolean;
+  characters?: Character[];
+  onChatClick?: (characterId: number) => void;
 }
 
-export default function CardPlayer({ card, autoplay = true }: CardPlayerProps) {
+type Phase = "cinematic" | "context";
+
+export default function CardPlayer({ 
+  card, 
+  autoplay = true, 
+  characters = [],
+  onChatClick 
+}: CardPlayerProps) {
+  const [phase, setPhase] = useState<Phase>("cinematic");
   const [isPlaying, setIsPlaying] = useState(autoplay);
   const [captionIndex, setCaptionIndex] = useState(0);
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
 
-  // Simulation of "Video" playing
+  // Reset all state when card changes
   useEffect(() => {
-    if (!isPlaying) return;
+    setPhase("cinematic");
+    setCaptionIndex(0);
+    setShowSwipeHint(false);
+    setIsPlaying(autoplay);
+  }, [card.id, autoplay]);
+
+  const advanceToContext = useCallback(() => {
+    setPhase("context");
+  }, []);
+
+  const resetToCinematic = useCallback(() => {
+    setShowSwipeHint(false);
+    setPhase("cinematic");
+    setCaptionIndex(0);
+    setIsPlaying(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isPlaying || phase !== "cinematic") return;
 
     const captionInterval = setInterval(() => {
-      setCaptionIndex((prev) => (prev + 1) % (card.captions.length + 1));
-    }, 3000); // Change caption every 3 seconds
+      setCaptionIndex((prev) => {
+        const next = prev + 1;
+        if (next >= card.captions.length) {
+          setShowSwipeHint(true);
+          return prev;
+        }
+        return next;
+      });
+    }, 3000);
 
     return () => clearInterval(captionInterval);
-  }, [isPlaying, card.captions.length]);
+  }, [isPlaying, card.captions.length, phase]);
+
+  useEffect(() => {
+    if (showSwipeHint) {
+      const timeout = setTimeout(() => {
+        advanceToContext();
+      }, 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [showSwipeHint, advanceToContext]);
+
+  const handleTap = () => {
+    if (phase === "cinematic") {
+      advanceToContext();
+    }
+  };
+
+  const primaryCharacter = characters[0];
 
   return (
-    <div className="relative w-full aspect-[9/16] overflow-hidden rounded-lg bg-black shadow-2xl group border border-border/50">
-      {/* Background Image with Ken Burns Effect */}
-      <div className={`absolute inset-0 w-full h-full transition-transform duration-[20s] ease-linear ${isPlaying ? 'scale-125' : 'scale-100'}`}>
-         {card.image ? (
-           <img
-              src={card.image}
-              alt={card.title}
-              className="w-full h-full object-cover opacity-80"
-            />
-         ) : (
-           <div className="w-full h-full bg-gradient-to-br from-primary/30 via-background to-primary/10" />
-         )}
-      </div>
+    <div 
+      className="relative w-full aspect-[9/16] overflow-hidden rounded-2xl bg-black shadow-2xl border border-white/10"
+      onClick={handleTap}
+      data-testid="card-player"
+    >
+      <AnimatePresence mode="wait">
+        {phase === "cinematic" ? (
+          <motion.div
+            key="cinematic"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0"
+          >
+            <motion.div 
+              className="absolute inset-0 w-full h-full"
+              initial={{ scale: 1 }}
+              animate={{ scale: isPlaying ? 1.15 : 1 }}
+              transition={{ duration: 20, ease: "linear" }}
+            >
+              {card.image ? (
+                <img
+                  src={card.image}
+                  alt={card.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary/40 via-background to-primary/20" />
+              )}
+            </motion.div>
 
-      {/* Overlay Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/90 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80 pointer-events-none" />
 
-      {/* Captions Layer */}
-      <div className="absolute inset-0 flex flex-col justify-end p-8 pb-24 text-center pointer-events-none">
-        <motion.div
-            key={captionIndex}
-            initial={{ opacity: 0, y: 20 }}
+            <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+              <span className="text-xs font-mono text-white/60 bg-black/30 px-2 py-1 rounded backdrop-blur-sm">
+                DAY {card.dayIndex}
+              </span>
+            </div>
+
+            <div className="absolute inset-0 flex flex-col justify-end p-6 pb-16">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={captionIndex}
+                  initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="min-h-[120px] flex items-end justify-center"
+                >
+                  {captionIndex < card.captions.length ? (
+                    <p className="text-2xl md:text-3xl font-bold text-white text-center leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+                      {card.captions[captionIndex]}
+                    </p>
+                  ) : null}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {showSwipeHint && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-1"
+              >
+                <motion.div
+                  animate={{ y: [-3, 3, -3] }}
+                  transition={{ repeat: Infinity, duration: 1.2 }}
+                >
+                  <ChevronUp className="w-6 h-6 text-white/80" />
+                </motion.div>
+                <span className="text-xs text-white/60">Tap to continue</span>
+              </motion.div>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="context"
+            initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="min-h-[100px] flex items-center justify-center"
-        >
-          {captionIndex < card.captions.length ? (
-            <p className="text-2xl md:text-3xl font-bold font-display text-white drop-shadow-lg leading-tight">
-              {card.captions[captionIndex]}
-            </p>
-          ) : (
-             <div className="flex flex-col items-center gap-2">
-                 <h2 className="text-3xl font-display font-bold text-primary mb-2">{card.title}</h2>
-                 <p className="text-sm text-gray-300">Tap to replay</p>
-             </div>
-          )}
-        </motion.div>
-      </div>
+            exit={{ opacity: 0, y: 50 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="absolute inset-0 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative h-2/5 overflow-hidden">
+              {card.image ? (
+                <img
+                  src={card.image}
+                  alt={card.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary/40 via-background to-primary/20" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black" />
+              
+              <button
+                onClick={resetToCinematic}
+                className="absolute top-3 left-3 text-xs text-white/70 bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm hover:bg-black/60 transition-colors flex items-center gap-1"
+                data-testid="button-replay"
+              >
+                ↺ Replay
+              </button>
+            </div>
 
-      {/* Controls */}
-      <div className="absolute bottom-4 right-4 flex gap-2">
-        <Button size="icon" variant="secondary" className="rounded-full bg-black/50 backdrop-blur-md border-white/10 hover:bg-white/20">
-            <Share2 className="w-4 h-4 text-white" />
-        </Button>
-      </div>
+            <div className="flex-1 bg-gradient-to-b from-black via-zinc-900 to-zinc-900 p-5 flex flex-col">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <span className="text-xs font-mono text-primary/80">DAY {card.dayIndex}</span>
+                  <h2 className="text-xl font-bold text-white mt-0.5" data-testid="context-title">
+                    {card.title}
+                  </h2>
+                </div>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="rounded-full text-white/60 hover:text-white hover:bg-white/10"
+                >
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              </div>
 
-       {/* Play/Pause Overlay (if needed) */}
-       {!isPlaying && (
-           <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm cursor-pointer" onClick={() => setIsPlaying(true)}>
-               <PlayCircle className="w-16 h-16 text-white/80" />
-           </div>
-       )}
+              {card.sceneText && (
+                <p className="text-sm text-white/70 leading-relaxed mb-4 line-clamp-3 italic border-l-2 border-primary/50 pl-3">
+                  "{card.sceneText}"
+                </p>
+              )}
+
+              <div className="flex-1" />
+
+              {primaryCharacter ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/50 to-primary/20 flex items-center justify-center overflow-hidden">
+                      {primaryCharacter.avatarPath ? (
+                        <img 
+                          src={primaryCharacter.avatarPath} 
+                          alt={primaryCharacter.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg font-bold text-white">
+                          {primaryCharacter.name.charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-white">{primaryCharacter.name}</p>
+                      <p className="text-xs text-white/50">Available to chat</p>
+                    </div>
+                  </div>
+
+                  <Link href={`/chat?character=${primaryCharacter.id}`}>
+                    <Button 
+                      size="lg" 
+                      className="w-full gap-2 py-6 text-base font-semibold bg-primary hover:bg-primary/90"
+                      data-testid="button-chat-character"
+                      onClick={() => onChatClick?.(primaryCharacter.id)}
+                    >
+                      <MessageSquare className="w-5 h-5" />
+                      Chat with {primaryCharacter.name}
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Link href="/journal">
+                    <Button 
+                      size="lg" 
+                      variant="outline"
+                      className="w-full gap-2 py-6 text-base border-white/20 hover:bg-white/5"
+                      data-testid="button-journal"
+                    >
+                      <BookOpen className="w-5 h-5" />
+                      View Case Journal
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
