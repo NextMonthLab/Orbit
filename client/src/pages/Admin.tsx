@@ -195,107 +195,149 @@ export default function Admin() {
 
   return (
     <Layout>
-      <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in">
+      <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in">
         
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1">
-                <h1 className="text-3xl font-display font-bold tracking-tight">Showrunner Dashboard</h1>
-                <div className="flex items-center gap-2">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-auto p-0 hover:bg-transparent font-normal text-muted-foreground hover:text-primary transition-colors flex items-center gap-1" data-testid="button-universe-dropdown">
-                                <span className="uppercase tracking-widest text-xs">Universe:</span>
-                                <span className="font-bold text-foreground">{selectedUniverse?.name || "None"}</span>
-                                <ChevronDown className="w-3 h-3 opacity-50" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-56">
-                            <DropdownMenuLabel>Active Universe</DropdownMenuLabel>
-                            {universes?.map(u => (
-                              <DropdownMenuItem 
-                                key={u.id}
-                                className={`cursor-pointer ${u.id === selectedUniverse?.id ? 'font-bold bg-accent/50' : ''}`}
-                                onClick={() => setSelectedUniverseId(u.id)}
-                                data-testid={`menu-universe-${u.id}`}
-                              >
-                                {u.name}
-                              </DropdownMenuItem>
-                            ))}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="cursor-pointer"
-                              onClick={() => setShowNewUniverseDialog(true)}
-                              data-testid="menu-create-universe"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Create New Universe...
-                            </DropdownMenuItem>
-                            {selectedUniverse && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  className="cursor-pointer text-destructive focus:text-destructive"
-                                  onClick={() => setShowDeleteUniverseDialog(true)}
-                                  data-testid="menu-delete-universe"
-                                >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete Universe...
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <span className="text-muted-foreground/30">•</span>
-                    <span className="text-xs text-muted-foreground uppercase tracking-widest">Season 1</span>
-                </div>
+        {/* Header Section - Mobile Optimized */}
+        <div className="space-y-4">
+            <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">Showrunner Dashboard</h1>
+            
+            {/* Universe Selector */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="justify-between w-full sm:w-auto min-w-[200px]" data-testid="button-universe-dropdown">
+                            <span className="flex items-center gap-2">
+                                <span className="text-muted-foreground text-xs uppercase">Universe:</span>
+                                <span className="font-semibold truncate max-w-[150px]">{selectedUniverse?.name || "Select..."}</span>
+                            </span>
+                            <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[280px]">
+                        <DropdownMenuLabel>Select Universe</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {universes?.map(u => (
+                          <DropdownMenuItem 
+                            key={u.id}
+                            className={`cursor-pointer ${u.id === selectedUniverse?.id ? 'font-bold bg-accent/50' : ''}`}
+                            onClick={() => setSelectedUniverseId(u.id)}
+                            data-testid={`menu-universe-${u.id}`}
+                          >
+                            {u.name}
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="cursor-pointer"
+                          onClick={() => setShowNewUniverseDialog(true)}
+                          data-testid="menu-create-universe"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create New Universe...
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <span className="hidden sm:inline text-muted-foreground/50">•</span>
+                <span className="text-xs text-muted-foreground uppercase tracking-widest">Season 1</span>
             </div>
 
-            <div className="flex gap-2">
-                <Link href="/admin/create">
-                    <Button className="gap-2" variant="outline" data-testid="button-create-card" disabled={!selectedUniverse}>
-                        <Plus className="w-4 h-4" /> Create Card
+            {/* Action Buttons - Mobile Grid */}
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                <Link href="/admin/create" className="contents">
+                    <Button className="gap-2 h-12 sm:h-10" variant="outline" data-testid="button-create-card" disabled={!selectedUniverse}>
+                        <Plus className="w-4 h-4" /> 
+                        <span className="hidden sm:inline">Create Card</span>
+                        <span className="sm:hidden">Card</span>
                     </Button>
                 </Link>
-                <Link href="/admin/import">
-                    <Button className="gap-2 bg-white text-black hover:bg-white/90" data-testid="button-import" disabled={!selectedUniverse}>
-                        <Upload className="w-4 h-4" /> Import Season Pack
+                <Link href="/admin/import" className="contents">
+                    <Button className="gap-2 h-12 sm:h-10 bg-white text-black hover:bg-white/90" data-testid="button-import" disabled={!selectedUniverse}>
+                        <Upload className="w-4 h-4" /> 
+                        <span className="hidden sm:inline">Import Pack</span>
+                        <span className="sm:hidden">Import</span>
                     </Button>
                 </Link>
-                <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
-                    <AlertDialogTrigger asChild>
+            </div>
+
+            {/* Danger Zone - Collapsible on Mobile */}
+            {selectedUniverse && (
+              <div className="border border-destructive/30 rounded-lg p-3 bg-destructive/5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="text-sm">
+                    <span className="font-medium text-destructive">Danger Zone</span>
+                    <p className="text-muted-foreground text-xs mt-0.5">Destructive actions for "{selectedUniverse.name}"</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+                      <AlertDialogTrigger asChild>
                         <Button 
-                          className="gap-2" 
-                          variant="destructive" 
+                          size="sm"
+                          variant="outline" 
+                          className="gap-1.5 border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground flex-1 sm:flex-initial"
                           data-testid="button-delete-all-cards" 
-                          disabled={!selectedUniverse || !cards?.length}
+                          disabled={!cards?.length}
                         >
-                            <Trash2 className="w-4 h-4" /> Delete All Cards
+                          <Trash2 className="w-3.5 h-3.5" /> Delete Cards
                         </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Delete All Cards?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This will permanently delete all {cards?.length || 0} cards from "{selectedUniverse?.name}". 
-                                This action cannot be undone.
-                            </AlertDialogDescription>
+                          <AlertDialogTitle>Delete All Cards?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete all {cards?.length || 0} cards from "{selectedUniverse?.name}". 
+                            This action cannot be undone.
+                          </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => selectedUniverse && deleteAllCardsMutation.mutate(selectedUniverse.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                                {deleteAllCardsMutation.isPending ? (
-                                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                ) : null}
-                                Delete All Cards
-                            </AlertDialogAction>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => selectedUniverse && deleteAllCardsMutation.mutate(selectedUniverse.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deleteAllCardsMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : null}
+                            Delete All Cards
+                          </AlertDialogAction>
                         </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </div>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <AlertDialog open={showDeleteUniverseDialog} onOpenChange={setShowDeleteUniverseDialog}>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          size="sm"
+                          variant="destructive" 
+                          className="gap-1.5 flex-1 sm:flex-initial"
+                          data-testid="button-delete-universe"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete Universe
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Universe?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete "{selectedUniverse?.name}" and all its content including cards, characters, and locations. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => selectedUniverse && deleteUniverseMutation.mutate(selectedUniverse.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deleteUniverseMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : null}
+                            Delete Universe
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
         
         {!selectedUniverse ? (
@@ -494,30 +536,6 @@ export default function Admin() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        {/* Delete Universe Dialog */}
-        <AlertDialog open={showDeleteUniverseDialog} onOpenChange={setShowDeleteUniverseDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Universe?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete "{selectedUniverse?.name}" and all its content including cards, characters, and locations. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={() => selectedUniverse && deleteUniverseMutation.mutate(selectedUniverse.id)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleteUniverseMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : null}
-                Delete Universe
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
         {/* Card Preview Dialog */}
         <Dialog open={!!previewCard} onOpenChange={(open) => !open && setPreviewCard(null)}>
