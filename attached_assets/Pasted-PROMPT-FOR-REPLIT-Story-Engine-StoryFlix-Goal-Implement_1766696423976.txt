@@ -1,0 +1,84 @@
+PROMPT FOR REPLIT (Story Engine / StoryFlix)
+
+Goal
+Implement a “3-card hook” onboarding mechanic to increase stickiness and return rate.
+Every story (Universe + Season) should optionally unlock the first 3 cards immediately for new viewers, then switch to daily cadence from card 4 onward.
+
+Context
+We already have:
+- Universes, Seasons, Cards (dayIndex, status, publishAt, etc)
+- Front UI that currently filters cards by: status === 'published' && publishAt <= now
+- Admin UI to edit cards and generate images
+
+Problem
+Daily gating too early causes drop-off. Users need an initial “mini-act” to get invested before they accept “come back tomorrow”.
+
+Spec
+1) Universe-level settings
+Add new universe fields:
+- introCardsCount (int, default 3)
+- releaseMode (enum: 'daily' | 'all_at_once' | 'hybrid_intro_then_daily'; default 'hybrid_intro_then_daily')
+- dailyReleaseStartsAtDayIndex (int, default introCardsCount + 1)
+- timezone (string, default 'UTC') for publishAt comparisons if needed
+
+2) Card visibility rules (Front UI)
+Replace the current simple filter with a resolver that considers:
+- If releaseMode === 'all_at_once': show all published cards immediately (ignore publishAt)
+- If releaseMode === 'daily': current behaviour (status+publishAt gating)
+- If releaseMode === 'hybrid_intro_then_daily':
+  - Always allow dayIndex 1..introCardsCount immediately when status='published' (ignore publishAt)
+  - For dayIndex >= dailyReleaseStartsAtDayIndex: enforce publishAt <= now (and status='published')
+
+3) New viewer experience
+On first entry into a story:
+- Auto-play cards 1..introCardsCount in sequence (or allow swipe through them without a lock icon)
+- After card introCardsCount, show a clear “Daily starts tomorrow” state:
+  Copy suggestion:
+  - Title: “Daily Drop Starts Tomorrow”
+  - Body: “You’ve unlocked the opening. New cards will release daily from Day {dailyReleaseStartsAtDayIndex}.”
+  - CTA: “Enable reminders” (optional, if we have notifications later)
+
+4) Lock display logic
+For locked cards (dayIndex >= dailyReleaseStartsAtDayIndex with publishAt in future):
+- Show lock icon
+- Show unlock date/time formatted in user locale
+- Keep card preview minimal (title visible, no content)
+
+5) Admin UI improvements (minimum)
+On Universe admin screen:
+- Add “Edit Universe” button that opens an edit form for:
+  - introCardsCount
+  - releaseMode
+  - timezone
+- Add a small helper hint: “Hybrid mode unlocks first {introCardsCount} cards instantly, then switches to daily.”
+
+6) Backwards compatibility
+- Default existing universes to current behaviour unless set:
+  - If universe.releaseMode is null/undefined, treat as 'daily' (to avoid breaking old content)
+- Migration should set:
+  - releaseMode = 'hybrid_intro_then_daily'
+  - introCardsCount = 3
+  for new universes only (or add an admin toggle to opt-in)
+
+7) Testing requirements
+Add tests (or at least a dev-only debug view) proving:
+- A hybrid universe shows cards 1-3 even when publishAt is in the future
+- Card 4+ only appears when publishAt <= now
+- Daily mode still behaves exactly as before
+- All-at-once mode ignores publishAt entirely
+
+Deliverables
+- DB/schema changes for universe settings
+- API updates (universe read/write, and card feed endpoint if exists)
+- Front UI updated to use the new visibility resolver
+- Admin UI: universe edit screen + buttons
+
+Do not:
+- Do not change the card editor UI fields unless required for this feature
+- Do not remove existing publishAt logic; only extend it with the hybrid rules
+- Do not introduce new external services
+
+Acceptance Criteria
+- New or updated “hybrid” universes reliably show 3 cards on first visit even if publishAt is tomorrow
+- From day 4 onward, daily lock behaves predictably
+- Admin can configure the intro count (1-5) and mode per universe

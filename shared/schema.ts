@@ -77,6 +77,9 @@ export const locationContinuitySchema = z.object({
 
 export type LocationContinuity = z.infer<typeof locationContinuitySchema>;
 
+// Release mode types for universe card visibility
+export type ReleaseMode = 'daily' | 'all_at_once' | 'hybrid_intro_then_daily';
+
 // Universe (Story World)
 export const universes = pgTable("universes", {
   id: serial("id").primaryKey(),
@@ -87,6 +90,11 @@ export const universes = pgTable("universes", {
   visualMode: text("visual_mode").default("author_supplied"), // "engine_generated" | "author_supplied"
   visualStyle: jsonb("visual_style").$type<VisualStyle>(), // Universe-level style constraints
   visualContinuity: jsonb("visual_continuity").$type<VisualContinuity>(), // Style bible for consistent look
+  // Release cadence settings for 3-card hook onboarding
+  releaseMode: text("release_mode").$type<ReleaseMode>().default("daily"), // 'daily' | 'all_at_once' | 'hybrid_intro_then_daily'
+  introCardsCount: integer("intro_cards_count").default(3), // Number of cards to unlock immediately in hybrid mode
+  dailyReleaseStartsAtDayIndex: integer("daily_release_starts_at_day_index"), // When daily gating begins (defaults to introCardsCount + 1)
+  timezone: text("timezone").default("UTC"), // Timezone for publishAt comparisons
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
