@@ -666,6 +666,15 @@ export async function registerRoutes(
     status?: string;
     publishDate?: string;
     characters?: string[];
+    scene_description?: string;
+    image_generation?: {
+      prompt?: string;
+      negative_prompt?: string;
+      shot_type?: string;
+      lighting?: string;
+      seed?: number;
+      notes?: string;
+    };
   }
   
   interface ManifestCharacter {
@@ -676,11 +685,30 @@ export async function registerRoutes(
     secretInfo?: string;
   }
   
+  interface VisualStyleManifest {
+    style_preset?: string;
+    base_prompt?: string;
+    negative_prompt?: string;
+    aspect_ratio?: string;
+    render_model?: string;
+    guidance_scale?: number;
+    steps?: number;
+    sampler?: string;
+    consistency?: {
+      character_lock?: boolean;
+      location_lock?: boolean;
+      colour_palette_lock?: boolean;
+      reference_images?: string[];
+    };
+  }
+  
   interface SeasonManifest {
     universe: {
       name: string;
       description?: string;
       styleNotes?: string;
+      visual_mode?: "engine_generated" | "author_supplied";
+      visual_style?: VisualStyleManifest;
     };
     season?: number;
     startDate?: string;
@@ -724,6 +752,15 @@ export async function registerRoutes(
         errors.push("manifest.universe.name is required");
       }
       
+      // Detect visual mode
+      const visualMode = manifest.universe?.visual_mode || "author_supplied";
+      const isEngineGenerated = visualMode === "engine_generated";
+      
+      // Validate visual_style for engine_generated mode
+      if (isEngineGenerated && !manifest.universe?.visual_style) {
+        warnings.push("engine_generated mode: universe.visual_style is recommended for consistent image generation");
+      }
+      
       // Validate characters
       const characters = manifest.characters || [];
       for (let i = 0; i < characters.length; i++) {
@@ -741,7 +778,9 @@ export async function registerRoutes(
       
       // Validate cards
       const cards = manifest.cards || [];
-      const schedule: { day: number; title: string; date: string }[] = [];
+      const schedule: { day: number; title: string; date: string; hasImagePrompt: boolean }[] = [];
+      let cardsWithImagePrompts = 0;
+      let cardsMissingImagePrompts = 0;
       
       for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
@@ -751,10 +790,26 @@ export async function registerRoutes(
         if (card.dayIndex === undefined) {
           errors.push(`Card "${card.title || i}" is missing dayIndex`);
         }
-        if (card.image) {
+        
+        // Check for image source
+        const hasImageFile = !!card.image;
+        const hasSceneDescription = !!card.scene_description;
+        const hasImagePrompt = !!card.image_generation?.prompt;
+        
+        if (hasImageFile) {
           const imageEntry = entries.find((e: AdmZip.IZipEntry) => e.entryName.endsWith(card.image!));
           if (!imageEntry) {
-            warnings.push(`Card "${card.title}": image file "${card.image}" not found in ZIP - will use default`);
+            warnings.push(`Card "${card.title}": image file "${card.image}" not found in ZIP`);
+          }
+        }
+        
+        // For engine_generated mode, check image prompts
+        if (isEngineGenerated) {
+          if (hasSceneDescription || hasImagePrompt) {
+            cardsWithImagePrompts++;
+          } else if (!hasImageFile) {
+            cardsMissingImagePrompts++;
+            errors.push(`cards[${i}] "${card.title}": engine_generated mode requires either scene_description or image_generation.prompt`);
           }
         }
         
@@ -770,6 +825,7 @@ export async function registerRoutes(
           day: card.dayIndex,
           title: card.title || `Untitled Card ${i + 1}`,
           date: dateStr,
+          hasImagePrompt: hasSceneDescription || hasImagePrompt,
         });
       }
       
@@ -779,8 +835,11 @@ export async function registerRoutes(
       res.json({
         valid: errors.length === 0,
         universe: manifest.universe?.name || "Unknown",
+        visualMode,
         createdCards: cards.length,
         createdCharacters: characters.length,
+        cardsWithImagePrompts,
+        cardsMissingImagePrompts,
         warnings,
         errors,
         schedule,
@@ -817,6 +876,27 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid manifest: universe.name is required" });
       }
       
+      // Convert visual_style from manifest format to DB format
+      const convertVisualStyle = (vs?: VisualStyleManifest): schema.VisualStyle | null => {
+        if (!vs) return null;
+        return {
+          stylePreset: vs.style_preset,
+          basePrompt: vs.base_prompt,
+          negativePrompt: vs.negative_prompt,
+          aspectRatio: vs.aspect_ratio || "9:16",
+          renderModel: vs.render_model,
+          guidanceScale: vs.guidance_scale,
+          steps: vs.steps,
+          sampler: vs.sampler,
+          consistency: vs.consistency ? {
+            characterLock: vs.consistency.character_lock,
+            locationLock: vs.consistency.location_lock,
+            colourPaletteLock: vs.consistency.colour_palette_lock,
+            referenceImages: vs.consistency.reference_images,
+          } : undefined,
+        };
+      };
+      
       // Create or use existing universe
       let universe: schema.Universe;
       if (universeId) {
@@ -830,6 +910,8 @@ export async function registerRoutes(
           name: manifest.universe.name,
           description: manifest.universe.description || "",
           styleNotes: manifest.universe.styleNotes || null,
+          visualMode: manifest.universe.visual_mode || "author_supplied",
+          visualStyle: convertVisualStyle(manifest.universe.visual_style),
         });
       }
       
@@ -844,9 +926,9 @@ export async function registerRoutes(
           characterSlug: slug,
           name: charDef.name,
           role: charDef.role || "Character",
-          avatarPath: charDef.avatar || null,
-          personality: charDef.personality || null,
-          secretInfo: charDef.secretInfo || null,
+          avatar: charDef.avatar || null,
+          description: charDef.personality || null,
+          secretsJson: charDef.secretInfo ? [charDef.secretInfo] : null,
         });
         characterMap.set(charDef.name.toLowerCase(), character.id);
         createdItems.characters.push(character.id);
@@ -855,6 +937,19 @@ export async function registerRoutes(
       // Create cards
       const season = manifest.season || 1;
       const startDate = manifest.startDate ? new Date(manifest.startDate) : new Date();
+      
+      // Convert image_generation from manifest format to DB format
+      const convertImageGeneration = (ig?: ManifestCard['image_generation']): schema.ImageGeneration | null => {
+        if (!ig) return null;
+        return {
+          prompt: ig.prompt,
+          negativePrompt: ig.negative_prompt,
+          shotType: ig.shot_type,
+          lighting: ig.lighting,
+          seed: ig.seed,
+          notes: ig.notes,
+        };
+      };
       
       for (const cardDef of manifest.cards || []) {
         const publishDate = new Date(startDate);
@@ -872,6 +967,9 @@ export async function registerRoutes(
           effectTemplate: cardDef.effectTemplate || "ken-burns",
           status: cardDef.status || "draft",
           publishAt: publishDate,
+          sceneDescription: cardDef.scene_description || null,
+          imageGeneration: convertImageGeneration(cardDef.image_generation),
+          imageGenerated: false,
         });
         createdItems.cards.push(card.id);
         
@@ -892,6 +990,7 @@ export async function registerRoutes(
         success: true,
         universeId: universe.id,
         universeName: universe.name,
+        visualMode: manifest.universe.visual_mode || "author_supplied",
         createdCards: createdItems.cards.length,
         createdCharacters: createdItems.characters.length,
         warnings,
@@ -899,6 +998,201 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Import execution error:", error);
       res.status(500).json({ message: "Error executing import" });
+    }
+  });
+
+  // ============ IMAGE GENERATION ROUTES ============
+  
+  // Get cards pending image generation for a universe
+  app.get("/api/universes/:id/cards/pending-images", requireAdmin, async (req, res) => {
+    try {
+      const universeId = parseInt(req.params.id);
+      const universe = await storage.getUniverse(universeId);
+      
+      if (!universe) {
+        return res.status(404).json({ message: "Universe not found" });
+      }
+      
+      const cards = await storage.getCardsByUniverse(universeId);
+      const pendingCards = cards.filter((c: schema.Card) => 
+        !c.imageGenerated && 
+        !c.imagePath && 
+        (c.sceneDescription || c.imageGeneration?.prompt)
+      );
+      
+      res.json({
+        universeId,
+        universeName: universe.name,
+        visualMode: universe.visualMode,
+        totalCards: cards.length,
+        pendingCount: pendingCards.length,
+        generatedCount: cards.filter((c: schema.Card) => c.imageGenerated).length,
+        pendingCards: pendingCards.map((c: schema.Card) => ({
+          id: c.id,
+          title: c.title,
+          dayIndex: c.dayIndex,
+          sceneDescription: c.sceneDescription,
+          imageGeneration: c.imageGeneration,
+        })),
+      });
+    } catch (error) {
+      console.error("Error fetching pending images:", error);
+      res.status(500).json({ message: "Error fetching pending images" });
+    }
+  });
+  
+  // Compose prompt for a card (combines universe style + card prompt)
+  const composeImagePrompt = (universe: schema.Universe, card: schema.Card): string => {
+    const parts: string[] = [];
+    
+    // Add universe base prompt
+    if (universe.visualStyle?.basePrompt) {
+      parts.push(universe.visualStyle.basePrompt);
+    }
+    
+    // Add card-specific prompt (prefer explicit prompt over scene_description)
+    if (card.imageGeneration?.prompt) {
+      parts.push(card.imageGeneration.prompt);
+    } else if (card.sceneDescription) {
+      parts.push(card.sceneDescription);
+    }
+    
+    // Add shot type and lighting if specified
+    if (card.imageGeneration?.shotType) {
+      parts.push(`Shot type: ${card.imageGeneration.shotType}`);
+    }
+    if (card.imageGeneration?.lighting) {
+      parts.push(`Lighting: ${card.imageGeneration.lighting}`);
+    }
+    
+    return parts.join(". ");
+  };
+  
+  const composeNegativePrompt = (universe: schema.Universe, card: schema.Card): string => {
+    const parts: string[] = [];
+    
+    if (universe.visualStyle?.negativePrompt) {
+      parts.push(universe.visualStyle.negativePrompt);
+    }
+    
+    if (card.imageGeneration?.negativePrompt) {
+      parts.push(card.imageGeneration.negativePrompt);
+    }
+    
+    return parts.join(", ");
+  };
+  
+  // Generate image for a single card
+  app.post("/api/cards/:id/generate-image", requireAdmin, async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      const card = await storage.getCard(cardId);
+      
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      const universe = await storage.getUniverse(card.universeId);
+      if (!universe) {
+        return res.status(404).json({ message: "Universe not found" });
+      }
+      
+      // Check if card has prompt data
+      if (!card.sceneDescription && !card.imageGeneration?.prompt) {
+        return res.status(400).json({ 
+          message: "Card has no scene_description or image_generation.prompt",
+          cardId,
+        });
+      }
+      
+      // Compose prompts
+      const prompt = composeImagePrompt(universe, card);
+      const negativePrompt = composeNegativePrompt(universe, card);
+      const aspectRatio = universe.visualStyle?.aspectRatio || "9:16";
+      
+      // Return the composed prompt info (actual generation would call external API)
+      // For now, we return what would be sent to the image generator
+      res.json({
+        cardId: card.id,
+        cardTitle: card.title,
+        composedPrompt: prompt,
+        negativePrompt: negativePrompt || null,
+        aspectRatio,
+        status: "prompt_ready",
+        message: "Prompt composed. Image generation ready.",
+        // In production, this would trigger actual image generation
+        // and return the generated image URL
+      });
+    } catch (error) {
+      console.error("Error generating image:", error);
+      res.status(500).json({ message: "Error generating image" });
+    }
+  });
+  
+  // Update card with generated image URL (after external generation)
+  app.patch("/api/cards/:id/set-generated-image", requireAdmin, async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      const { generatedImageUrl } = req.body;
+      
+      if (!generatedImageUrl) {
+        return res.status(400).json({ message: "generatedImageUrl is required" });
+      }
+      
+      const card = await storage.updateCard(cardId, {
+        generatedImageUrl,
+        imageGenerated: true,
+      });
+      
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      res.json({
+        success: true,
+        cardId: card.id,
+        generatedImageUrl: card.generatedImageUrl,
+      });
+    } catch (error) {
+      console.error("Error updating card image:", error);
+      res.status(500).json({ message: "Error updating card image" });
+    }
+  });
+  
+  // Update card image generation settings
+  app.patch("/api/cards/:id/image-settings", requireAdmin, async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      const { sceneDescription, imageGeneration } = req.body;
+      
+      const updates: Partial<schema.InsertCard> = {};
+      
+      if (sceneDescription !== undefined) {
+        updates.sceneDescription = sceneDescription;
+      }
+      
+      if (imageGeneration !== undefined) {
+        updates.imageGeneration = imageGeneration;
+      }
+      
+      const card = await storage.updateCard(cardId, updates);
+      
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      res.json({
+        success: true,
+        card: {
+          id: card.id,
+          title: card.title,
+          sceneDescription: card.sceneDescription,
+          imageGeneration: card.imageGeneration,
+        },
+      });
+    } catch (error) {
+      console.error("Error updating card image settings:", error);
+      res.status(500).json({ message: "Error updating card image settings" });
     }
   });
 
