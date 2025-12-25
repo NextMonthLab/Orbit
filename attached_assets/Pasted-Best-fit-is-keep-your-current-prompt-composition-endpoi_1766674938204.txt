@@ -1,0 +1,112 @@
+Best fit is: keep your current prompt-composition endpoint exactly as-is, then bolt on a real image-generation “job runner” that (a) generates once, (b) stores the image, (c) updates the card, and (d) is resilient to retries.
+
+And for the provider: use OpenAI’s image generation via the Responses/Images API as the default, with Replicate as an optional fallback later.
+
+Why: you’re already deep in OpenAI for Whisper/TTS and prompt logic, and OpenAI’s image pricing is predictable per image (vs “time on GPU”), which makes your unit economics easier to control.  ￼
+
+⸻
+
+How the system should generate images (the practical flow)
+
+0) Import (already done)
+	•	ZIP imports scene_description, image_generation, universe + character + location continuity.
+	•	/api/cards/:id/generate-image currently returns { status: "prompt_ready", composedPrompt }.
+
+Keep that.
+
+1) Add a new endpoint: “queue image generation”
+
+POST /api/cards/:id/generate-image
+	•	If card already has generatedImageUrl and imageVersion matches: return “already_generated”
+	•	Else create a job: status = queued
+
+2) Background worker (or server-side job runner)
+
+Worker loop:
+	•	Pull next queued job
+	•	Call image provider API with:
+	•	prompt = composedPrompt
+	•	negative = composedNegative
+	•	size/aspect = 9:16
+	•	Store result in your storage (S3/R2/Supabase storage)
+	•	Update card:
+	•	generatedImageUrl
+	•	imageStatus = complete
+	•	imageModelUsed
+	•	promptHash (important)
+	•	seed (if you support it)
+
+3) UI experience
+
+Admin card editor shows:
+	•	“Prompt ready”
+	•	“Generate image”
+	•	“Generating…”
+	•	Preview once complete
+	•	“Regenerate” (increments version + creates new job)
+
+4) Caching (non-negotiable)
+
+Generate once, reuse forever:
+	•	Key by hash(universeContinuity + characterProfiles + location + cardPrompt + shotType + lighting + model + quality)
+	•	If same hash exists, reuse stored image and skip API call
+
+This is what keeps costs sane.
+
+⸻
+
+Provider recommendation
+
+Default: OpenAI image generation
+	•	Good prompt adherence
+	•	Predictable per-image pricing
+	•	Works cleanly with a job model
+	•	Easy to integrate alongside your existing OpenAI stack  ￼
+
+(Also: OpenAI’s docs and pricing are crystal clear, which matters when you’re productising.)  ￼
+
+Optional fallback: Replicate (FLUX/SD)
+
+Replicate is great when you want:
+	•	model choice (FLUX/SD variants)
+	•	experimentation
+	•	eventual fine-tuning paths
+
+But billing is either time-based or per-model, and you’ll want that once you’ve nailed the core loop.  ￼
+
+⸻
+
+What to build next in Replit terms (clear instruction)
+
+You tell Replit:
+	1.	Do not touch importer.
+	2.	Add image generation as:
+	•	queue table
+	•	worker process
+	•	storage upload
+	•	update card row with generatedImageUrl
+
+If you’re on Render, easiest pattern is:
+	•	Web service handles API + UI
+	•	Separate worker service runs the job loop (same repo, different start command)
+
+⸻
+
+Cost sanity check (why OpenAI default makes sense)
+
+OpenAI’s per-image pricing depends on model/quality/size (e.g. low/medium/high).  ￼
+That means you can do:
+	•	Draft quality for previews
+	•	High quality only when publishing / sponsored upgrades
+
+That plugs directly into your sponsorship idea.
+
+⸻
+
+TL;DR decision
+	•	Keep /generate-image prompt composition.
+	•	Add a job queue + worker + storage + caching.
+	•	Start with OpenAI image generation for predictable economics and simpler integration.  ￼
+	•	Add Replicate later as a “Creator Pro / Style Lab” option.  ￼
+
+If you want, I’ll write the exact Replit prompt to implement the worker + queue + storage in one pass (and I’ll assume Postgres + S3/R2 unless you tell me otherwise).
