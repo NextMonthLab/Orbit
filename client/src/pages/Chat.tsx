@@ -8,12 +8,12 @@ import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useLocation, Link } from "wouter";
+import { useLocation, Link, useRoute } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useAppContext } from "@/lib/app-context";
 
 export default function Chat() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const searchParams = new URLSearchParams(location.split('?')[1] || '');
   const characterId = searchParams.get('character');
   const cardId = searchParams.get('card');
@@ -32,6 +32,13 @@ export default function Chat() {
     queryFn: () => api.getCharacters(universe!.id),
     enabled: !characterId && !!universe,
   });
+
+  // Auto-redirect to chat if there's only one character (skip selection screen)
+  useEffect(() => {
+    if (!characterId && allCharacters && allCharacters.length === 1) {
+      setLocation(`/chat?character=${allCharacters[0].id}`);
+    }
+  }, [characterId, allCharacters, setLocation]);
 
   const { data: thread, isLoading: threadLoading } = useQuery({
     queryKey: ["chat-thread", character?.universeId, characterId],
@@ -168,7 +175,7 @@ export default function Chat() {
       );
     }
 
-    if (allCharacters && allCharacters.length > 0) {
+    if (allCharacters && allCharacters.length > 1) {
       return (
         <Layout>
           <div className="p-4 pt-8 md:p-8 max-w-md mx-auto animate-in fade-in duration-500">
@@ -180,28 +187,28 @@ export default function Chat() {
 
             <div className="space-y-3">
               {allCharacters.map((char) => (
-                <Link key={char.id} href={`/chat?character=${char.id}`}>
-                  <div 
-                    className="group flex items-center gap-4 p-4 rounded-lg border border-border bg-card hover:bg-accent/5 hover:border-primary/30 transition-all cursor-pointer"
-                    data-testid={`character-chat-${char.id}`}
-                  >
-                    <Avatar className="h-14 w-14 ring-2 ring-primary/30 group-hover:ring-primary/50 transition-all">
-                      <AvatarImage src={char.avatar || undefined} className="object-cover" />
-                      <AvatarFallback className="bg-primary/20 text-primary font-bold">
-                        {char.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-display font-bold text-lg group-hover:text-primary transition-colors">
-                        {char.name}
-                      </h3>
-                      <p className="text-xs text-primary/70 uppercase tracking-wider font-medium">
-                        {char.role || 'Character'}
-                      </p>
-                    </div>
-                    <MessageSquare className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                <div 
+                  key={char.id}
+                  onClick={() => setLocation(`/chat?character=${char.id}`)}
+                  className="group flex items-center gap-4 p-4 rounded-lg border border-border bg-card hover:bg-accent/5 hover:border-primary/30 transition-all cursor-pointer"
+                  data-testid={`character-chat-${char.id}`}
+                >
+                  <Avatar className="h-14 w-14 ring-2 ring-primary/30 group-hover:ring-primary/50 transition-all">
+                    <AvatarImage src={char.avatar || undefined} className="object-cover" />
+                    <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                      {char.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-display font-bold text-lg group-hover:text-primary transition-colors">
+                      {char.name}
+                    </h3>
+                    <p className="text-xs text-primary/70 uppercase tracking-wider font-medium">
+                      {char.role || 'Character'}
+                    </p>
                   </div>
-                </Link>
+                  <MessageSquare className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
               ))}
             </div>
           </div>
