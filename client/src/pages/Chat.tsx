@@ -3,13 +3,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Loader2, ArrowLeft } from "lucide-react";
+import { Send, Loader2, ArrowLeft, MessageSquare } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth";
+import { useAppContext } from "@/lib/app-context";
 
 export default function Chat() {
   const [location] = useLocation();
@@ -17,11 +18,19 @@ export default function Chat() {
   const characterId = searchParams.get('character');
   const cardId = searchParams.get('card');
   const { user } = useAuth();
+  const { universe } = useAppContext();
 
   const { data: character, isLoading } = useQuery({
     queryKey: ["character", characterId],
     queryFn: () => api.getCharacter(parseInt(characterId!)),
     enabled: !!characterId,
+  });
+
+  // Fetch all characters from the universe when no specific character is selected
+  const { data: allCharacters, isLoading: charactersLoading } = useQuery({
+    queryKey: ["characters", universe?.id],
+    queryFn: () => api.getCharacters(universe!.id),
+    enabled: !characterId && !!universe,
   });
 
   const { data: thread, isLoading: threadLoading } = useQuery({
@@ -148,11 +157,64 @@ export default function Chat() {
   }
 
   if (!characterId || !character) {
+    // Show character selection when no specific character is chosen
+    if (charactersLoading) {
+      return (
+        <Layout>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        </Layout>
+      );
+    }
+
+    if (allCharacters && allCharacters.length > 0) {
+      return (
+        <Layout>
+          <div className="p-4 pt-8 md:p-8 max-w-md mx-auto animate-in fade-in duration-500">
+            <div className="mb-6 text-center">
+              <span className="text-xs font-bold tracking-[0.2em] text-primary uppercase">Chat</span>
+              <h1 className="text-2xl font-display font-bold">Choose a Character</h1>
+              <p className="text-sm text-muted-foreground mt-2">Who would you like to talk to?</p>
+            </div>
+
+            <div className="space-y-3">
+              {allCharacters.map((char) => (
+                <Link key={char.id} href={`/chat?character=${char.id}`}>
+                  <div 
+                    className="group flex items-center gap-4 p-4 rounded-lg border border-border bg-card hover:bg-accent/5 hover:border-primary/30 transition-all cursor-pointer"
+                    data-testid={`character-chat-${char.id}`}
+                  >
+                    <Avatar className="h-14 w-14 ring-2 ring-primary/30 group-hover:ring-primary/50 transition-all">
+                      <AvatarImage src={char.avatar || undefined} className="object-cover" />
+                      <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                        {char.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-display font-bold text-lg group-hover:text-primary transition-colors">
+                        {char.name}
+                      </h3>
+                      <p className="text-xs text-primary/70 uppercase tracking-wider font-medium">
+                        {char.role || 'Character'}
+                      </p>
+                    </div>
+                    <MessageSquare className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </Layout>
+      );
+    }
+
+    // No characters available
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
-          <h2 className="text-2xl font-display font-bold mb-4">No Character Selected</h2>
-          <p className="text-muted-foreground mb-6">Select a character to chat with from a story card.</p>
+          <h2 className="text-2xl font-display font-bold mb-4">No Characters Yet</h2>
+          <p className="text-muted-foreground mb-6">Watch some story cards to unlock characters to chat with.</p>
           <Link href="/today">
             <Button className="gap-2">
               <ArrowLeft className="w-4 h-4" />
