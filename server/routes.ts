@@ -1456,7 +1456,13 @@ export async function registerRoutes(
       
       // Download the image and save it locally
       const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to download image: HTTP ${imageResponse.status}`);
+      }
       const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+      if (imageBuffer.length < 1000) {
+        throw new Error("Downloaded image is too small, may be corrupt");
+      }
       
       // Ensure uploads directory exists
       const uploadsDir = path.join(process.cwd(), "uploads", "generated");

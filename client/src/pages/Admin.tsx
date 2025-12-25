@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye } from "lucide-react";
+import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, Wand2, ImageIcon, CheckCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,6 +39,7 @@ export default function Admin() {
   const [newUniverseName, setNewUniverseName] = useState("");
   const [newUniverseDescription, setNewUniverseDescription] = useState("");
   const [previewCard, setPreviewCard] = useState<any>(null);
+  const [generatingCardId, setGeneratingCardId] = useState<number | null>(null);
 
   const { data: universes, isLoading: universesLoading } = useQuery({
     queryKey: ["universes"],
@@ -76,6 +77,29 @@ export default function Admin() {
     },
   });
 
+  const generateImageMutation = useMutation({
+    mutationFn: (cardId: number) => api.generateCardImage(cardId),
+    onMutate: (cardId) => {
+      setGeneratingCardId(cardId);
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["cards", selectedUniverse?.id] });
+      setGeneratingCardId(null);
+      toast({
+        title: "Image Generated",
+        description: `Image created for "${result.cardTitle}"`,
+      });
+    },
+    onError: (error: any, cardId) => {
+      setGeneratingCardId(null);
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate image",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateUniverse = () => {
     if (!newUniverseName.trim()) {
       toast({
@@ -90,6 +114,8 @@ export default function Admin() {
       description: newUniverseDescription,
     });
   };
+
+  const isEngineGenerated = selectedUniverse?.visualMode === 'engine_generated';
 
   if (!user?.isAdmin) {
     return (
@@ -236,20 +262,65 @@ export default function Admin() {
                         No cards yet. Create your first card to get started!
                       </div>
                     ) : (
-                      cards?.map((card) => (
+                      cards?.map((card) => {
+                        const hasPrompt = !!(card.sceneDescription || card.imageGeneration?.prompt);
+                        const displayImage = card.generatedImageUrl || card.imagePath;
+                        const needsGeneration = isEngineGenerated && hasPrompt && !card.imageGenerated;
+                        const isGenerating = generatingCardId === card.id;
+                        
+                        return (
                         <div key={card.id} className="p-4 flex items-center justify-between hover:bg-muted/10" data-testid={`card-row-${card.id}`}>
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-muted rounded overflow-hidden">
-                                    <img src={card.imagePath || "/placeholder.jpg"} className="w-full h-full object-cover" />
+                                <div className="w-12 h-12 bg-muted rounded overflow-hidden relative">
+                                    {displayImage ? (
+                                      <img src={displayImage} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center">
+                                        <ImageIcon className="w-5 h-5 text-muted-foreground/50" />
+                                      </div>
+                                    )}
+                                    {card.imageGenerated && (
+                                      <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-0.5">
+                                        <CheckCircle className="w-3 h-3 text-white" />
+                                      </div>
+                                    )}
                                 </div>
                                 <div>
                                     <p className="font-bold">Day {card.dayIndex}: {card.title}</p>
                                     <p className="text-xs text-muted-foreground">
                                       {card.publishAt ? `Scheduled: ${new Date(card.publishAt).toLocaleDateString()}` : 'Not scheduled'}
+                                      {isEngineGenerated && (
+                                        <span className="ml-2">
+                                          {card.imageGenerated ? (
+                                            <span className="text-green-500">• Image ready</span>
+                                          ) : hasPrompt ? (
+                                            <span className="text-yellow-500">• Needs image</span>
+                                          ) : (
+                                            <span className="text-muted-foreground/50">• No prompt</span>
+                                          )}
+                                        </span>
+                                      )}
                                     </p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
+                                 {needsGeneration && (
+                                   <Button 
+                                     variant="outline" 
+                                     size="sm" 
+                                     className="h-8 gap-1 border-purple-500/30 text-purple-500 hover:bg-purple-500/10"
+                                     onClick={() => generateImageMutation.mutate(card.id)}
+                                     disabled={isGenerating}
+                                     data-testid={`button-generate-${card.id}`}
+                                   >
+                                     {isGenerating ? (
+                                       <Loader2 className="w-3 h-3 animate-spin" />
+                                     ) : (
+                                       <Wand2 className="w-3 h-3" />
+                                     )}
+                                     {isGenerating ? 'Generating...' : 'Generate'}
+                                   </Button>
+                                 )}
                                  <span className={`px-2 py-1 text-xs rounded border ${
                                    card.status === 'published' 
                                      ? 'bg-green-500/10 text-green-500 border-green-500/20'
@@ -270,7 +341,7 @@ export default function Admin() {
                                  <Button variant="outline" size="sm" className="h-8">Edit</Button>
                             </div>
                         </div>
-                      ))
+                      );})
                     )}
                 </div>
             </div>
