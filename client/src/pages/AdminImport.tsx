@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Upload, FileArchive, CheckCircle2, AlertTriangle, Loader2, XCircle } from "lucide-react";
+import { ArrowLeft, Upload, FileArchive, CheckCircle2, AlertTriangle, Loader2, XCircle, Download } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -178,6 +178,19 @@ export default function AdminImport() {
                         {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                         {isProcessing ? "Processing..." : isDryRun ? "Run Validation" : "Import Pack"}
                     </Button>
+
+                    <div className="pt-4 border-t">
+                        <p className="text-xs text-muted-foreground mb-3">Need a template to get started?</p>
+                        <Button 
+                          variant="outline" 
+                          className="w-full gap-2" 
+                          onClick={() => window.open("/api/import/template", "_blank")}
+                          data-testid="button-download-template"
+                        >
+                            <Download className="w-4 h-4" />
+                            Download Sample Manifest
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 

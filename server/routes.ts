@@ -754,6 +754,24 @@ export async function registerRoutes(
     cards?: ManifestCard[];
   }
   
+  // Download sample manifest template for Season Pack imports
+  app.get("/api/import/template", requireAdmin, async (_req, res) => {
+    try {
+      const templatePath = path.join(process.cwd(), "docs", "sample-time-spent-manifest.json");
+      if (!fs.existsSync(templatePath)) {
+        return res.status(404).json({ message: "Template file not found" });
+      }
+      
+      const template = fs.readFileSync(templatePath, "utf8");
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("Content-Disposition", "attachment; filename=manifest-template.json");
+      res.send(template);
+    } catch (error) {
+      console.error("Error serving template:", error);
+      res.status(500).json({ message: "Error serving template" });
+    }
+  });
+
   app.post("/api/import/validate", requireAdmin, upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
