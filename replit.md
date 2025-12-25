@@ -9,6 +9,21 @@ Key features include:
 - **Interactive Chat**: Conversations with story characters (AI-powered, with secrets they cannot reveal)
 - **Case Journal**: Track progress and collected clues
 - **Admin Dashboard**: Create cards manually or import Season Packs via ZIP, schedule releases
+- **Engine-Generated Images**: AI image generation support with visual style constraints and prompt composition
+
+### Engine-Generated Images System
+
+Universes can specify `visualMode`:
+- `author_supplied` (default): Images are uploaded by content creators
+- `engine_generated`: Images are generated using AI based on prompts
+
+For engine-generated universes:
+- `visualStyle` defines base prompt, negative prompt, aspect ratio, and consistency settings
+- Cards include `sceneDescription` and/or `imageGeneration` with prompt, shot_type, lighting
+- Prompt composition: universe.basePrompt + card.prompt + shot_type + lighting
+- API endpoints: `/api/universes/:id/cards/pending-images`, `/api/cards/:id/generate-image`
+
+Sample manifest available at: `docs/sample-time-spent-manifest.json`
 
 ## User Preferences
 
