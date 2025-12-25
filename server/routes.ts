@@ -10,6 +10,21 @@ import multer from "multer";
 import AdmZip from "adm-zip";
 import path from "path";
 import fs from "fs";
+import OpenAI from "openai";
+
+// OpenAI client for image generation - uses OPENAI_API_KEY env var
+// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+// Lazy initialization to avoid startup errors when API key is not set
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
+    }
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -1333,7 +1348,42 @@ export async function registerRoutes(
     return parts.join(", ");
   };
   
-  // Generate image for a single card
+  // Preview composed prompt for a card (without generating)
+  app.get("/api/cards/:id/preview-prompt", requireAdmin, async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      const card = await storage.getCard(cardId);
+      
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      const universe = await storage.getUniverse(card.universeId);
+      if (!universe) {
+        return res.status(404).json({ message: "Universe not found" });
+      }
+      
+      const prompt = await composeImagePrompt(universe, card);
+      const negativePrompt = composeNegativePrompt(universe, card);
+      const aspectRatio = universe.visualStyle?.aspectRatio || "9:16";
+      
+      res.json({
+        cardId: card.id,
+        cardTitle: card.title,
+        composedPrompt: prompt,
+        negativePrompt: negativePrompt || null,
+        aspectRatio,
+        hasPrompt: !!(card.sceneDescription || card.imageGeneration?.prompt),
+        imageGenerated: card.imageGenerated,
+        generatedImageUrl: card.generatedImageUrl,
+      });
+    } catch (error) {
+      console.error("Error previewing prompt:", error);
+      res.status(500).json({ message: "Error previewing prompt" });
+    }
+  });
+
+  // Generate image for a single card using OpenAI DALL-E
   app.post("/api/cards/:id/generate-image", requireAdmin, async (req, res) => {
     try {
       const cardId = parseInt(req.params.id);
@@ -1356,27 +1406,111 @@ export async function registerRoutes(
         });
       }
       
+      // Check if OpenAI API key is configured
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ 
+          message: "OPENAI_API_KEY is not configured. Please add it to your environment variables.",
+        });
+      }
+      
       // Compose prompts
       const prompt = await composeImagePrompt(universe, card);
       const negativePrompt = composeNegativePrompt(universe, card);
-      const aspectRatio = universe.visualStyle?.aspectRatio || "9:16";
       
-      // Return the composed prompt info (actual generation would call external API)
-      // For now, we return what would be sent to the image generator
+      // Determine size based on aspect ratio (DALL-E 3 supports 1024x1024, 1024x1792, 1792x1024)
+      const aspectRatio = universe.visualStyle?.aspectRatio || "9:16";
+      let size: "1024x1024" | "1024x1792" | "1792x1024" = "1024x1792"; // Default vertical for stories
+      if (aspectRatio === "1:1") {
+        size = "1024x1024";
+      } else if (aspectRatio === "16:9" || aspectRatio === "4:3") {
+        size = "1792x1024";
+      }
+      
+      // Combine prompt with negative guidance (DALL-E doesn't have negative prompt, so we include it as avoidance)
+      let fullPrompt = prompt;
+      if (negativePrompt) {
+        fullPrompt += `. Avoid: ${negativePrompt}`;
+      }
+      
+      // Truncate if too long (DALL-E 3 has a 4000 char limit)
+      if (fullPrompt.length > 3900) {
+        fullPrompt = fullPrompt.substring(0, 3900) + "...";
+      }
+      
+      console.log(`Generating image for card ${cardId}: ${card.title}`);
+      console.log(`Prompt length: ${fullPrompt.length} chars`);
+      
+      // Call OpenAI DALL-E 3 API
+      const response = await getOpenAI().images.generate({
+        model: "dall-e-3",
+        prompt: fullPrompt,
+        n: 1,
+        size: size,
+        quality: "standard",
+      });
+      
+      const imageUrl = response.data?.[0]?.url;
+      if (!imageUrl) {
+        throw new Error("No image URL returned from OpenAI");
+      }
+      
+      // Download the image and save it locally
+      const imageResponse = await fetch(imageUrl);
+      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+      
+      // Ensure uploads directory exists
+      const uploadsDir = path.join(process.cwd(), "uploads", "generated");
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      
+      // Save with unique filename
+      const filename = `card-${cardId}-${Date.now()}.png`;
+      const filepath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filepath, imageBuffer);
+      
+      // Update card with generated image path
+      const generatedImageUrl = `/uploads/generated/${filename}`;
+      await storage.updateCard(cardId, {
+        generatedImageUrl,
+        imageGenerated: true,
+      });
+      
+      console.log(`Image generated and saved: ${generatedImageUrl}`);
+      
       res.json({
+        success: true,
         cardId: card.id,
         cardTitle: card.title,
-        composedPrompt: prompt,
-        negativePrompt: negativePrompt || null,
-        aspectRatio,
-        status: "prompt_ready",
-        message: "Prompt composed. Image generation ready.",
-        // In production, this would trigger actual image generation
-        // and return the generated image URL
+        generatedImageUrl,
+        promptUsed: fullPrompt.substring(0, 500) + (fullPrompt.length > 500 ? "..." : ""),
+        size,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating image:", error);
-      res.status(500).json({ message: "Error generating image" });
+      
+      // Handle specific OpenAI errors
+      if (error?.status === 400) {
+        return res.status(400).json({ 
+          message: "OpenAI rejected the prompt. It may contain prohibited content.",
+          error: error.message,
+        });
+      }
+      if (error?.status === 429) {
+        return res.status(429).json({ 
+          message: "Rate limit exceeded. Please wait a moment and try again.",
+        });
+      }
+      if (error?.status === 401) {
+        return res.status(401).json({ 
+          message: "Invalid OpenAI API key. Please check your OPENAI_API_KEY.",
+        });
+      }
+      
+      res.status(500).json({ 
+        message: "Error generating image",
+        error: error.message || "Unknown error",
+      });
     }
   });
   
