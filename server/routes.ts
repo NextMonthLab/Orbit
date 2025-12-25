@@ -1541,15 +1541,15 @@ export async function registerRoutes(
       
       console.log(`Generating image for card ${cardId}: ${card.title}`);
       console.log(`Prompt length: ${fullPrompt.length} chars`);
+      console.log(`Aspect ratio: ${aspectRatio}, Size: ${size}`);
       
-      // Call OpenAI image generation via Replit AI Integrations (uses gpt-image-1)
-      // gpt-image-1 only supports 1024x1024, 512x512, 256x256
-      const compatibleSize = "1024x1024";
+      // Call OpenAI image generation via Replit AI Integrations
+      // gpt-image-1 supports: 1024x1024, 1024x1792 (portrait), 1792x1024 (landscape)
       const response = await getOpenAI().images.generate({
         model: "gpt-image-1",
         prompt: fullPrompt,
         n: 1,
-        size: compatibleSize,
+        size: size,
       });
       
       // gpt-image-1 returns base64 instead of URL
