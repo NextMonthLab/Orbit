@@ -159,7 +159,7 @@ export default function Home() {
         <div className="relative max-w-sm mx-auto group cursor-pointer mt-8">
              <Link href="/today">
                 <div className="relative aspect-[9/16] rounded-xl overflow-hidden shadow-2xl border-2 border-white/5 group-hover:border-primary/50 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-primary/20">
-                    <img src={todayCard.imagePath || "/placeholder.jpg"} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity" />
+                    <img src={todayCard.generatedImageUrl || todayCard.imagePath || "/placeholder.jpg"} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
                     
                     {/* Play Button Overlay */}
@@ -235,9 +235,9 @@ function UniverseCard({ universe, onSelect }: { universe: Universe; onSelect: ()
       data-testid={`card-universe-${universe.id}`}
     >
       <div className="relative aspect-video rounded-xl overflow-hidden shadow-lg border border-white/10 group-hover:border-primary/50 transition-all duration-300 group-hover:scale-[1.01]">
-        {latestCard?.imagePath ? (
+        {(latestCard?.generatedImageUrl || latestCard?.imagePath) ? (
           <img 
-            src={latestCard.imagePath} 
+            src={latestCard.generatedImageUrl || latestCard.imagePath || undefined} 
             className="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity" 
           />
         ) : (

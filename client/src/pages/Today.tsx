@@ -115,7 +115,7 @@ export default function Today() {
           id: card.id.toString(),
           dayIndex: card.dayIndex,
           title: card.title,
-          image: card.imagePath || "",
+          image: card.generatedImageUrl || card.imagePath || "",
           captions: card.captionsJson || [],
           sceneText: card.sceneText,
           recapText: card.recapText,

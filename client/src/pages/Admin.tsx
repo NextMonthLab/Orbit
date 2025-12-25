@@ -770,10 +770,10 @@ export default function Admin() {
             {previewCard && (
               <div className="space-y-6 py-4">
                 {/* Card Image Preview */}
-                {previewCard.imagePath && (
+                {(previewCard.generatedImageUrl || previewCard.imagePath) && (
                   <div className="aspect-[9/16] max-h-[300px] w-auto mx-auto bg-muted rounded-lg overflow-hidden border">
                     <img 
-                      src={previewCard.imagePath} 
+                      src={previewCard.generatedImageUrl || previewCard.imagePath} 
                       alt={previewCard.title}
                       className="w-full h-full object-cover"
                     />
