@@ -257,15 +257,16 @@ export default function Admin() {
                                  }`}>
                                    {card.status === 'published' ? 'Published' : 'Draft'}
                                  </span>
-                                 <Button 
-                                   variant="outline" 
-                                   size="sm" 
-                                   className="h-8 gap-1"
-                                   onClick={() => setPreviewCard(card)}
-                                   data-testid={`button-view-${card.id}`}
-                                 >
-                                   <Eye className="w-3 h-3" /> View
-                                 </Button>
+                                 <Link href={`/card/${card.id}`}>
+                                   <Button 
+                                     variant="outline" 
+                                     size="sm" 
+                                     className="h-8 gap-1"
+                                     data-testid={`button-view-${card.id}`}
+                                   >
+                                     <Eye className="w-3 h-3" /> View
+                                   </Button>
+                                 </Link>
                                  <Button variant="outline" size="sm" className="h-8">Edit</Button>
                             </div>
                         </div>
