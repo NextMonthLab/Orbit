@@ -193,6 +193,65 @@ class ApiClient {
       body: JSON.stringify({ type, metadata }),
     });
   }
+
+  // Import
+  async validateImport(file: File): Promise<ImportValidationResult> {
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    const response = await fetch(`${this.baseUrl}/import/validate`, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: "Validation failed" }));
+      throw new Error(error.message || "Validation failed");
+    }
+    
+    return response.json();
+  }
+
+  async executeImport(file: File, universeId?: number): Promise<ImportExecutionResult> {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (universeId) {
+      formData.append("universeId", universeId.toString());
+    }
+    
+    const response = await fetch(`${this.baseUrl}/import/execute`, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: "Import failed" }));
+      throw new Error(error.message || "Import failed");
+    }
+    
+    return response.json();
+  }
+}
+
+export interface ImportValidationResult {
+  valid: boolean;
+  universe: string;
+  createdCards: number;
+  createdCharacters: number;
+  warnings: string[];
+  errors: string[];
+  schedule: { day: number; title: string; date: string }[];
+}
+
+export interface ImportExecutionResult {
+  success: boolean;
+  universeId: number;
+  universeName: string;
+  createdCards: number;
+  createdCharacters: number;
+  warnings: string[];
 }
 
 export const api = new ApiClient();

@@ -6,6 +6,15 @@ import bcrypt from "bcrypt";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import multer from "multer";
+import AdmZip from "adm-zip";
+import path from "path";
+import fs from "fs";
+
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
 
 // Extend Express user type
 declare global {
@@ -641,6 +650,251 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error seeding database:", error);
       res.status(500).json({ message: "Error seeding database" });
+    }
+  });
+
+  // ============ IMPORT ROUTES ============
+  
+  interface ManifestCard {
+    dayIndex: number;
+    title: string;
+    image?: string;
+    captions?: string[];
+    sceneText?: string;
+    recapText?: string;
+    effectTemplate?: string;
+    status?: string;
+    publishDate?: string;
+    characters?: string[];
+  }
+  
+  interface ManifestCharacter {
+    name: string;
+    role?: string;
+    avatar?: string;
+    personality?: string;
+    secretInfo?: string;
+  }
+  
+  interface SeasonManifest {
+    universe: {
+      name: string;
+      description?: string;
+      styleNotes?: string;
+    };
+    season?: number;
+    startDate?: string;
+    characters?: ManifestCharacter[];
+    cards?: ManifestCard[];
+  }
+  
+  app.post("/api/import/validate", requireAdmin, upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      const zip = new AdmZip(req.file.buffer);
+      const entries = zip.getEntries();
+      
+      // Find manifest.json
+      const manifestEntry = entries.find((e: AdmZip.IZipEntry) => e.entryName === "manifest.json" || e.entryName.endsWith("/manifest.json"));
+      if (!manifestEntry) {
+        return res.status(400).json({ 
+          message: "Invalid ZIP: No manifest.json found",
+          errors: ["manifest.json is required in the root of the ZIP file"]
+        });
+      }
+      
+      let manifest: SeasonManifest;
+      try {
+        manifest = JSON.parse(manifestEntry.getData().toString("utf8"));
+      } catch (_e) {
+        return res.status(400).json({ 
+          message: "Invalid manifest.json",
+          errors: ["manifest.json contains invalid JSON"]
+        });
+      }
+      
+      const warnings: string[] = [];
+      const errors: string[] = [];
+      
+      // Validate universe
+      if (!manifest.universe?.name) {
+        errors.push("manifest.universe.name is required");
+      }
+      
+      // Validate characters
+      const characters = manifest.characters || [];
+      for (let i = 0; i < characters.length; i++) {
+        const char = characters[i];
+        if (!char.name) {
+          errors.push(`Character at index ${i} is missing a name`);
+        }
+        if (char.avatar) {
+          const avatarEntry = entries.find((e: AdmZip.IZipEntry) => e.entryName.endsWith(char.avatar!));
+          if (!avatarEntry) {
+            warnings.push(`Character "${char.name}": avatar file "${char.avatar}" not found in ZIP`);
+          }
+        }
+      }
+      
+      // Validate cards
+      const cards = manifest.cards || [];
+      const schedule: { day: number; title: string; date: string }[] = [];
+      
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+        if (!card.title) {
+          errors.push(`Card at index ${i} is missing a title`);
+        }
+        if (card.dayIndex === undefined) {
+          errors.push(`Card "${card.title || i}" is missing dayIndex`);
+        }
+        if (card.image) {
+          const imageEntry = entries.find((e: AdmZip.IZipEntry) => e.entryName.endsWith(card.image!));
+          if (!imageEntry) {
+            warnings.push(`Card "${card.title}": image file "${card.image}" not found in ZIP - will use default`);
+          }
+        }
+        
+        // Build schedule
+        const publishDate = card.publishDate || manifest.startDate;
+        let dateStr = "Not scheduled";
+        if (publishDate) {
+          const baseDate = new Date(publishDate);
+          baseDate.setDate(baseDate.getDate() + (card.dayIndex - 1));
+          dateStr = baseDate.toISOString().split("T")[0];
+        }
+        schedule.push({
+          day: card.dayIndex,
+          title: card.title || `Untitled Card ${i + 1}`,
+          date: dateStr,
+        });
+      }
+      
+      // Sort schedule by day
+      schedule.sort((a, b) => a.day - b.day);
+      
+      res.json({
+        valid: errors.length === 0,
+        universe: manifest.universe?.name || "Unknown",
+        createdCards: cards.length,
+        createdCharacters: characters.length,
+        warnings,
+        errors,
+        schedule,
+      });
+    } catch (error) {
+      console.error("Import validation error:", error);
+      res.status(500).json({ message: "Error validating import file" });
+    }
+  });
+  
+  app.post("/api/import/execute", requireAdmin, upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      const universeId = req.body.universeId ? parseInt(req.body.universeId) : null;
+      
+      const zip = new AdmZip(req.file.buffer);
+      const entries = zip.getEntries();
+      
+      // Find manifest.json
+      const manifestEntry = entries.find((e: AdmZip.IZipEntry) => e.entryName === "manifest.json" || e.entryName.endsWith("/manifest.json"));
+      if (!manifestEntry) {
+        return res.status(400).json({ message: "No manifest.json found" });
+      }
+      
+      const manifest: SeasonManifest = JSON.parse(manifestEntry.getData().toString("utf8"));
+      const warnings: string[] = [];
+      const createdItems: { characters: number[]; cards: number[] } = { characters: [], cards: [] };
+      
+      // Validate manifest structure
+      if (!manifest.universe?.name) {
+        return res.status(400).json({ message: "Invalid manifest: universe.name is required" });
+      }
+      
+      // Create or use existing universe
+      let universe: schema.Universe;
+      if (universeId) {
+        const existing = await storage.getUniverse(universeId);
+        if (!existing) {
+          return res.status(400).json({ message: "Universe not found" });
+        }
+        universe = existing;
+      } else {
+        universe = await storage.createUniverse({
+          name: manifest.universe.name,
+          description: manifest.universe.description || "",
+          styleNotes: manifest.universe.styleNotes || null,
+        });
+      }
+      
+      // Create characters
+      const characterMap = new Map<string, number>();
+      for (const charDef of manifest.characters || []) {
+        const character = await storage.createCharacter({
+          universeId: universe.id,
+          name: charDef.name,
+          role: charDef.role || "Character",
+          avatarPath: charDef.avatar || null,
+          personality: charDef.personality || null,
+          secretInfo: charDef.secretInfo || null,
+        });
+        characterMap.set(charDef.name.toLowerCase(), character.id);
+        createdItems.characters.push(character.id);
+      }
+      
+      // Create cards
+      const season = manifest.season || 1;
+      const startDate = manifest.startDate ? new Date(manifest.startDate) : new Date();
+      
+      for (const cardDef of manifest.cards || []) {
+        const publishDate = new Date(startDate);
+        publishDate.setDate(publishDate.getDate() + (cardDef.dayIndex - 1));
+        
+        const card = await storage.createCard({
+          universeId: universe.id,
+          season,
+          dayIndex: cardDef.dayIndex,
+          title: cardDef.title,
+          imagePath: cardDef.image || null,
+          captionsJson: cardDef.captions || [],
+          sceneText: cardDef.sceneText || "",
+          recapText: cardDef.recapText || `Day ${cardDef.dayIndex} - ${cardDef.title}`,
+          effectTemplate: cardDef.effectTemplate || "ken-burns",
+          status: cardDef.status || "draft",
+          publishAt: publishDate,
+        });
+        createdItems.cards.push(card.id);
+        
+        // Link characters to card (case-insensitive matching)
+        if (cardDef.characters) {
+          for (const charName of cardDef.characters) {
+            const charId = characterMap.get(charName.toLowerCase());
+            if (charId) {
+              await storage.linkCardCharacter(card.id, charId);
+            } else {
+              warnings.push(`Card "${cardDef.title}": character "${charName}" not found in manifest`);
+            }
+          }
+        }
+      }
+      
+      res.json({
+        success: true,
+        universeId: universe.id,
+        universeName: universe.name,
+        createdCards: createdItems.cards.length,
+        createdCharacters: createdItems.characters.length,
+        warnings,
+      });
+    } catch (error) {
+      console.error("Import execution error:", error);
+      res.status(500).json({ message: "Error executing import" });
     }
   });
 
