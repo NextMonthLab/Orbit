@@ -77,6 +77,50 @@ export const locationContinuitySchema = z.object({
 
 export type LocationContinuity = z.infer<typeof locationContinuitySchema>;
 
+// Chat Policy Schema (universe-level guardrails)
+export const chatPolicySchema = z.object({
+  mode: z.enum(["role_gated", "character_only"]).default("character_only"),
+  global_rules: z.array(z.string()).optional(),
+  blocked_personas: z.array(z.string()).optional(),
+  allowed_roles: z.array(z.string()).optional(),
+  safety: z.object({
+    no_harassment: z.boolean().default(true),
+    no_self_harm_guidance: z.boolean().default(true),
+    no_sexual_content: z.boolean().default(true),
+    no_illegal_instructions: z.boolean().default(true),
+  }).optional(),
+  disclaimer: z.string().optional(),
+}).optional();
+
+export type ChatPolicy = z.infer<typeof chatPolicySchema>;
+
+// Character Chat Profile Schema (how character speaks + goals + limits)
+export const chatProfileSchema = z.object({
+  voice: z.string().optional(),
+  speech_style: z.string().optional(),
+  goals: z.array(z.string()).optional(),
+  knowledge: z.object({
+    knows_up_to_dayIndex: z.union([z.number(), z.literal("dynamic")]).optional(),
+    spoiler_protection: z.boolean().default(true),
+  }).optional(),
+  hard_limits: z.array(z.string()).optional(),
+  allowed_topics: z.array(z.string()).optional(),
+  blocked_topics: z.array(z.string()).optional(),
+  refusal_style: z.string().optional(),
+}).optional();
+
+export type ChatProfile = z.infer<typeof chatProfileSchema>;
+
+// Card Chat Overrides Schema (per-card mood/knowledge changes)
+export const chatOverridesSchema = z.record(z.string(), z.object({
+  mood: z.string().optional(),
+  knows_up_to_dayIndex: z.number().optional(),
+  refuse_topics: z.array(z.string()).optional(),
+  can_reveal: z.array(z.string()).optional(),
+})).optional();
+
+export type ChatOverrides = z.infer<typeof chatOverridesSchema>;
+
 // Release mode types for universe card visibility
 export type ReleaseMode = 'daily' | 'all_at_once' | 'hybrid_intro_then_daily';
 
@@ -90,6 +134,7 @@ export const universes = pgTable("universes", {
   visualMode: text("visual_mode").default("author_supplied"), // "engine_generated" | "author_supplied"
   visualStyle: jsonb("visual_style").$type<VisualStyle>(), // Universe-level style constraints
   visualContinuity: jsonb("visual_continuity").$type<VisualContinuity>(), // Style bible for consistent look
+  chatPolicy: jsonb("chat_policy").$type<ChatPolicy>(), // Global chat guardrails and safety rules
   // Release cadence settings for 3-card hook onboarding
   releaseMode: text("release_mode").$type<ReleaseMode>().default("daily"), // 'daily' | 'all_at_once' | 'hybrid_intro_then_daily'
   introCardsCount: integer("intro_cards_count").default(3), // Number of cards to unlock immediately in hybrid mode
@@ -126,6 +171,8 @@ export const characters = pgTable("characters", {
   systemPrompt: text("system_prompt"), // AI character instructions
   secretsJson: jsonb("secrets_json").$type<string[]>(), // Things character can't reveal
   visualProfile: jsonb("visual_profile").$type<CharacterVisualProfile>(), // Visual appearance for image generation
+  chatProfile: jsonb("chat_profile").$type<ChatProfile>(), // How character speaks + goals + limits
+  isPublicFigureSimulation: boolean("is_public_figure_simulation").default(false), // Legal clearance for real individuals
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -177,6 +224,9 @@ export const cards = pgTable("cards", {
   // Visual continuity references (for prompt composition)
   primaryCharacterIds: jsonb("primary_character_ids").$type<number[]>(), // Characters in this scene
   locationId: integer("location_id").references(() => locations.id), // Location for this scene
+  
+  // Chat overrides for this card (mood/knowledge per character)
+  chatOverrides: jsonb("chat_overrides").$type<ChatOverrides>(),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -249,6 +299,34 @@ export const insertEventSchema = createInsertSchema(events).omit({ id: true, cre
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
 
+// Card Messages (Micro Message Board)
+export const cardMessages = pgTable("card_messages", {
+  id: serial("id").primaryKey(),
+  cardId: integer("card_id").references(() => cards.id).notNull(),
+  userId: integer("user_id").references(() => users.id), // nullable for anonymous
+  displayName: text("display_name").notNull(),
+  body: text("body").notNull(), // max 280 chars enforced at API level
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCardMessageSchema = createInsertSchema(cardMessages).omit({ id: true, createdAt: true });
+export type InsertCardMessage = z.infer<typeof insertCardMessageSchema>;
+export type CardMessage = typeof cardMessages.$inferSelect;
+
+// Card Message Reactions
+export const cardMessageReactions = pgTable("card_message_reactions", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").references(() => cardMessages.id).notNull(),
+  userId: integer("user_id").references(() => users.id), // nullable for anon fingerprint
+  anonFingerprint: text("anon_fingerprint"), // for anonymous users
+  reactionType: text("reaction_type").notNull(), // "👍", "🤔", "😮"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCardMessageReactionSchema = createInsertSchema(cardMessageReactions).omit({ id: true, createdAt: true });
+export type InsertCardMessageReaction = z.infer<typeof insertCardMessageReactionSchema>;
+export type CardMessageReaction = typeof cardMessageReactions.$inferSelect;
+
 // Manifest validation schemas for ZIP import
 export const manifestVisualStyleSchema = z.object({
   style_preset: z.string().optional(),
@@ -309,6 +387,44 @@ export const manifestCardImageGenerationSchema = z.object({
   notes: z.string().optional(),
 }).optional();
 
+// Manifest Chat Policy Schema (snake_case for JSON import)
+export const manifestChatPolicySchema = z.object({
+  mode: z.enum(["role_gated", "character_only"]).optional(),
+  global_rules: z.array(z.string()).optional(),
+  blocked_personas: z.array(z.string()).optional(),
+  allowed_roles: z.array(z.string()).optional(),
+  safety: z.object({
+    no_harassment: z.boolean().optional(),
+    no_self_harm_guidance: z.boolean().optional(),
+    no_sexual_content: z.boolean().optional(),
+    no_illegal_instructions: z.boolean().optional(),
+  }).optional(),
+  disclaimer: z.string().optional(),
+}).optional();
+
+// Manifest Chat Profile Schema (for characters)
+export const manifestChatProfileSchema = z.object({
+  voice: z.string().optional(),
+  speech_style: z.string().optional(),
+  goals: z.array(z.string()).optional(),
+  knowledge: z.object({
+    knows_up_to_dayIndex: z.union([z.number(), z.literal("dynamic")]).optional(),
+    spoiler_protection: z.boolean().optional(),
+  }).optional(),
+  hard_limits: z.array(z.string()).optional(),
+  allowed_topics: z.array(z.string()).optional(),
+  blocked_topics: z.array(z.string()).optional(),
+  refusal_style: z.string().optional(),
+}).optional();
+
+// Manifest Chat Overrides Schema (for cards)
+export const manifestChatOverridesSchema = z.record(z.string(), z.object({
+  mood: z.string().optional(),
+  knows_up_to_dayIndex: z.number().optional(),
+  refuse_topics: z.array(z.string()).optional(),
+  can_reveal: z.array(z.string()).optional(),
+})).optional();
+
 export const manifestUniverseSchema = z.object({
   name: z.string(),
   description: z.string().default(""),
@@ -316,6 +432,7 @@ export const manifestUniverseSchema = z.object({
   visual_mode: z.enum(["engine_generated", "author_supplied"]).default("author_supplied"),
   visual_style: manifestVisualStyleSchema,
   visual_continuity: manifestVisualContinuitySchema,
+  chat_policy: manifestChatPolicySchema,
 });
 
 export const manifestCharacterSchema = z.object({
@@ -325,6 +442,8 @@ export const manifestCharacterSchema = z.object({
   secretInfo: z.string().optional(),
   avatar: z.string().optional(),
   visual_profile: manifestCharacterVisualProfileSchema,
+  chat_profile: manifestChatProfileSchema,
+  is_public_figure_simulation: z.boolean().optional(),
 });
 
 export const manifestCardSchema = z.object({
@@ -335,12 +454,14 @@ export const manifestCardSchema = z.object({
   recapText: z.string().default(""),
   effectTemplate: z.string().optional(),
   characters: z.array(z.string()).default([]),
+  chat_unlocked_character_ids: z.array(z.string()).optional(), // Characters unlocked for chat after this card
   primary_character_ids: z.array(z.string()).optional(),
   location_id: z.string().optional(),
   status: z.enum(["draft", "published"]).default("draft"),
   imagePath: z.string().optional(),
   scene_description: z.string().optional(),
   image_generation: manifestCardImageGenerationSchema,
+  chat_overrides: manifestChatOverridesSchema,
 });
 
 export const manifestSchema = z.object({
