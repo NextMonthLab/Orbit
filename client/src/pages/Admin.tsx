@@ -590,12 +590,16 @@ export default function Admin() {
                                            </span>
                                          )}
                                          
-                                         {/* Image generation button - only if can generate */}
-                                         {isEngineGenerated && hasPrompt && !card.imageGenerated && (
+                                         {/* Image generation button */}
+                                         {isEngineGenerated && hasPrompt && (
                                            <Button 
                                              variant="outline" 
                                              size="sm" 
-                                             className="h-7 text-xs gap-1 border-purple-500/30 text-purple-600 hover:bg-purple-500/10"
+                                             className={`h-7 text-xs gap-1 ${
+                                               card.imageGenerated 
+                                                 ? 'border-orange-500/30 text-orange-600 hover:bg-orange-500/10'
+                                                 : 'border-purple-500/30 text-purple-600 hover:bg-purple-500/10'
+                                             }`}
                                              onClick={() => generateImageMutation.mutate(card.id)}
                                              disabled={isGenerating}
                                              data-testid={`button-generate-${card.id}`}
@@ -606,7 +610,7 @@ export default function Admin() {
                                                <PhotoIcon className="w-3 h-3" />
                                              )}
                                              <span className="hidden sm:inline">
-                                               {isGenerating ? 'Generating...' : 'Generate AI Image'}
+                                               {isGenerating ? 'Generating...' : card.imageGenerated ? 'Regenerate' : 'Generate AI Image'}
                                              </span>
                                            </Button>
                                          )}

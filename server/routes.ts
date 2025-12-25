@@ -1583,6 +1583,20 @@ export async function registerRoutes(
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
       
+      // Delete old generated image if it exists
+      if (card.generatedImageUrl) {
+        const oldFilename = card.generatedImageUrl.replace('/uploads/generated/', '');
+        const oldFilepath = path.join(uploadsDir, oldFilename);
+        if (fs.existsSync(oldFilepath)) {
+          try {
+            fs.unlinkSync(oldFilepath);
+            console.log(`Deleted old image: ${oldFilepath}`);
+          } catch (e) {
+            console.warn(`Could not delete old image: ${oldFilepath}`);
+          }
+        }
+      }
+      
       // Save with unique filename
       const filename = `card-${cardId}-${Date.now()}.png`;
       const filepath = path.join(uploadsDir, filename);
