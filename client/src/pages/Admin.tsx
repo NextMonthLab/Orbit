@@ -53,6 +53,10 @@ export default function Admin() {
   const [generatingCardId, setGeneratingCardId] = useState<number | null>(null);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [showDeleteUniverseDialog, setShowDeleteUniverseDialog] = useState(false);
+  const [showEditUniverseDialog, setShowEditUniverseDialog] = useState(false);
+  const [editUniverseName, setEditUniverseName] = useState("");
+  const [editUniverseDescription, setEditUniverseDescription] = useState("");
+  const [generatingAllImages, setGeneratingAllImages] = useState(false);
 
   const { data: universes, isLoading: universesLoading } = useQuery({
     queryKey: ["universes"],
@@ -151,6 +155,81 @@ export default function Admin() {
       });
     },
   });
+
+  const updateUniverseMutation = useMutation({
+    mutationFn: (data: { id: number; name: string; description: string }) => 
+      api.updateUniverse(data.id, { name: data.name, description: data.description }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["universes"] });
+      setShowEditUniverseDialog(false);
+      toast({
+        title: "Universe updated",
+        description: "Changes saved successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update universe",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleGenerateAllImages = async () => {
+    if (!cards || !selectedUniverse) return;
+    
+    const pendingCards = cards.filter(c => {
+      const hasPrompt = !!(c.sceneDescription || c.imageGeneration?.prompt);
+      return hasPrompt && !c.imageGenerated;
+    });
+    
+    if (pendingCards.length === 0) {
+      toast({
+        title: "No images to generate",
+        description: "All cards with prompts already have images.",
+      });
+      return;
+    }
+    
+    setGeneratingAllImages(true);
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const card of pendingCards) {
+      try {
+        await api.generateCardImage(card.id);
+        successCount++;
+      } catch (error) {
+        errorCount++;
+      }
+    }
+    
+    queryClient.invalidateQueries({ queryKey: ["cards", selectedUniverse.id] });
+    setGeneratingAllImages(false);
+    
+    toast({
+      title: "Bulk generation complete",
+      description: `Generated ${successCount} images${errorCount > 0 ? `, ${errorCount} failed` : ''}.`,
+    });
+  };
+
+  const handleEditUniverse = () => {
+    if (selectedUniverse) {
+      setEditUniverseName(selectedUniverse.name);
+      setEditUniverseDescription(selectedUniverse.description || "");
+      setShowEditUniverseDialog(true);
+    }
+  };
+
+  const handleSaveUniverse = () => {
+    if (!editUniverseName.trim() || !selectedUniverse) return;
+    updateUniverseMutation.mutate({
+      id: selectedUniverse.id,
+      name: editUniverseName,
+      description: editUniverseDescription,
+    });
+  };
 
   const handleCreateUniverse = () => {
     if (!newUniverseName.trim()) {
@@ -360,7 +439,7 @@ export default function Admin() {
                   <h3 className="font-semibold text-lg">{selectedUniverse.name}</h3>
                   <p className="text-sm text-muted-foreground">{selectedUniverse.description || 'No description'}</p>
                 </div>
-                <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-edit-universe">
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={handleEditUniverse} data-testid="button-edit-universe">
                   <Settings className="w-3.5 h-3.5" /> Edit Universe
                 </Button>
               </div>
@@ -383,10 +462,16 @@ export default function Admin() {
                         variant="outline"
                         size="sm" 
                         className="gap-1.5 border-purple-500/50 text-purple-600 hover:bg-purple-500/10"
+                        onClick={handleGenerateAllImages}
+                        disabled={generatingAllImages}
                         data-testid="button-generate-all-images"
                       >
-                        <PhotoIcon className="w-3.5 h-3.5" /> 
-                        Generate All Missing
+                        {generatingAllImages ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <PhotoIcon className="w-3.5 h-3.5" />
+                        )}
+                        {generatingAllImages ? 'Generating...' : 'Generate All Missing'}
                       </Button>
                     </div>
                   </div>
@@ -486,31 +571,42 @@ export default function Admin() {
                                            {card.status === 'published' ? 'Published' : 'Draft'}
                                          </span>
                                          
-                                         {/* Image generation button with clear status */}
+                                         {/* Image status badge - always visible */}
                                          {isEngineGenerated && (
+                                           <span className={`px-1.5 py-0.5 text-xs rounded border flex items-center gap-1 ${
+                                             card.imageGenerated 
+                                               ? 'bg-green-500/10 text-green-600 border-green-500/20'
+                                               : hasPrompt 
+                                                 ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
+                                                 : 'bg-muted/50 text-muted-foreground border-muted'
+                                           }`}>
+                                             {card.imageGenerated ? (
+                                               <><CheckCircle className="w-3 h-3" /> Image ready</>
+                                             ) : hasPrompt ? (
+                                               <><PhotoIcon className="w-3 h-3" /> Needs image</>
+                                             ) : (
+                                               <>No prompt</>
+                                             )}
+                                           </span>
+                                         )}
+                                         
+                                         {/* Image generation button - only if can generate */}
+                                         {isEngineGenerated && hasPrompt && !card.imageGenerated && (
                                            <Button 
                                              variant="outline" 
                                              size="sm" 
-                                             className={`h-7 text-xs gap-1 ${
-                                               card.imageGenerated 
-                                                 ? 'border-green-500/30 text-green-600' 
-                                                 : hasPrompt 
-                                                   ? 'border-purple-500/30 text-purple-600 hover:bg-purple-500/10'
-                                                   : 'border-muted text-muted-foreground'
-                                             }`}
-                                             onClick={() => !card.imageGenerated && hasPrompt && generateImageMutation.mutate(card.id)}
-                                             disabled={isGenerating || card.imageGenerated || !hasPrompt}
+                                             className="h-7 text-xs gap-1 border-purple-500/30 text-purple-600 hover:bg-purple-500/10"
+                                             onClick={() => generateImageMutation.mutate(card.id)}
+                                             disabled={isGenerating}
                                              data-testid={`button-generate-${card.id}`}
                                            >
                                              {isGenerating ? (
                                                <Loader2 className="w-3 h-3 animate-spin" />
-                                             ) : card.imageGenerated ? (
-                                               <CheckCircle className="w-3 h-3" />
                                              ) : (
                                                <PhotoIcon className="w-3 h-3" />
                                              )}
                                              <span className="hidden sm:inline">
-                                               {isGenerating ? 'Generating...' : card.imageGenerated ? 'Image ready' : hasPrompt ? 'Generate AI Image' : 'No prompt'}
+                                               {isGenerating ? 'Generating...' : 'Generate AI Image'}
                                              </span>
                                            </Button>
                                          )}
@@ -604,6 +700,55 @@ export default function Admin() {
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : null}
                 Create Universe
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Universe Dialog */}
+        <Dialog open={showEditUniverseDialog} onOpenChange={setShowEditUniverseDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Universe</DialogTitle>
+              <DialogDescription>
+                Update the details for this story world.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-universe-name">Universe Name</Label>
+                <Input
+                  id="edit-universe-name"
+                  placeholder="e.g., Neon Rain"
+                  value={editUniverseName}
+                  onChange={(e) => setEditUniverseName(e.target.value)}
+                  data-testid="input-edit-universe-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-universe-description">Description</Label>
+                <Textarea
+                  id="edit-universe-description"
+                  placeholder="A brief description of your story world..."
+                  value={editUniverseDescription}
+                  onChange={(e) => setEditUniverseDescription(e.target.value)}
+                  data-testid="input-edit-universe-description"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditUniverseDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveUniverse}
+                disabled={updateUniverseMutation.isPending}
+                data-testid="button-save-universe"
+              >
+                {updateUniverseMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
+                Save Changes
               </Button>
             </DialogFooter>
           </DialogContent>
