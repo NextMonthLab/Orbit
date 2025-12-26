@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, ImageIcon, CheckCircle, Trash2, Settings, Image as PhotoIcon, Clapperboard, ExternalLink, Music, Wand2, User } from "lucide-react";
+import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, ImageIcon, CheckCircle, Trash2, Settings, Image as PhotoIcon, Clapperboard, ExternalLink, Music, Wand2, User, MoreHorizontal } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -634,8 +634,9 @@ export default function Admin() {
                                         </span>
                                       )}
                                     </p>
-                                    {/* Actions row - visible on mobile */}
-                                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                    {/* Actions row - consolidated */}
+                                    <div className="flex items-center gap-2 mt-2">
+                                         {/* Status badges */}
                                          <span className={`px-1.5 py-0.5 text-xs rounded border ${
                                            card.status === 'published' 
                                              ? 'bg-green-500/10 text-green-500 border-green-500/20'
@@ -644,96 +645,62 @@ export default function Admin() {
                                            {card.status === 'published' ? 'Published' : 'Draft'}
                                          </span>
                                          
-                                         {/* Media status icons - colored when present, greyed when not */}
+                                         {/* Media status icons */}
                                          <div className="flex items-center gap-1">
                                            <PhotoIcon className={`w-4 h-4 ${card.imageGenerated || card.generatedImageUrl || card.imagePath ? 'text-green-500' : 'text-muted-foreground/30'}`} />
                                            <Video className={`w-4 h-4 ${card.videoGenerated ? 'text-green-500' : 'text-muted-foreground/30'}`} />
                                          </div>
                                          
-                                         {/* Image generation button */}
-                                         {isEngineGenerated && hasPrompt && (
-                                           <Button 
-                                             variant="outline" 
-                                             size="sm" 
-                                             className={`h-7 text-xs gap-1 ${
-                                               card.imageGenerated 
-                                                 ? 'border-orange-500/30 text-orange-600 hover:bg-orange-500/10'
-                                                 : 'border-purple-500/30 text-purple-600 hover:bg-purple-500/10'
-                                             }`}
-                                             onClick={() => generateImageMutation.mutate(card.id)}
-                                             disabled={isGenerating}
-                                             data-testid={`button-generate-${card.id}`}
-                                           >
-                                             {isGenerating ? (
-                                               <Loader2 className="w-3 h-3 animate-spin" />
-                                             ) : (
-                                               <PhotoIcon className="w-3 h-3" />
+                                         {/* More actions dropdown */}
+                                         <DropdownMenu>
+                                           <DropdownMenuTrigger asChild>
+                                             <Button variant="ghost" size="sm" className="h-7 w-7 p-0" data-testid={`button-more-${card.id}`}>
+                                               <MoreHorizontal className="w-4 h-4" />
+                                             </Button>
+                                           </DropdownMenuTrigger>
+                                           <DropdownMenuContent align="end" className="w-48">
+                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                             <DropdownMenuSeparator />
+                                             <Link href={`/admin/cards/${card.id}/edit`}>
+                                               <DropdownMenuItem data-testid={`menu-edit-${card.id}`}>
+                                                 <PenSquare className="w-4 h-4 mr-2" /> Edit Card
+                                               </DropdownMenuItem>
+                                             </Link>
+                                             <Link href={`/admin/cards/${card.id}`}>
+                                               <DropdownMenuItem data-testid={`menu-admin-${card.id}`}>
+                                                 <ExternalLink className="w-4 h-4 mr-2" /> Admin View
+                                               </DropdownMenuItem>
+                                             </Link>
+                                             <Link href={`/card/${card.id}`}>
+                                               <DropdownMenuItem data-testid={`menu-preview-${card.id}`}>
+                                                 <Eye className="w-4 h-4 mr-2" /> Preview
+                                               </DropdownMenuItem>
+                                             </Link>
+                                             {isEngineGenerated && hasPrompt && (
+                                               <>
+                                                 <DropdownMenuSeparator />
+                                                 <DropdownMenuItem 
+                                                   onClick={() => generateImageMutation.mutate(card.id)}
+                                                   disabled={isGenerating}
+                                                   data-testid={`menu-generate-image-${card.id}`}
+                                                 >
+                                                   {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <PhotoIcon className="w-4 h-4 mr-2" />}
+                                                   {card.imageGenerated ? 'Regenerate Image' : 'Generate Image'}
+                                                 </DropdownMenuItem>
+                                               </>
                                              )}
-                                             <span className="hidden sm:inline">
-                                               {isGenerating ? 'Generating...' : card.imageGenerated ? 'Regenerate' : 'Generate AI Image'}
-                                             </span>
-                                           </Button>
-                                         )}
-                                         
-                                         {/* Video generation button - only show when image is available */}
-                                         {isEngineGenerated && displayImage && (
-                                           <Button 
-                                             variant="outline" 
-                                             size="sm" 
-                                             className={`h-7 text-xs gap-1 ${
-                                               card.videoGenerated 
-                                                 ? 'border-green-500/30 text-green-600 hover:bg-green-500/10'
-                                                 : 'border-blue-500/30 text-blue-600 hover:bg-blue-500/10'
-                                             }`}
-                                             onClick={() => generateVideoMutation.mutate(card.id)}
-                                             disabled={generatingVideoCardId === card.id}
-                                             data-testid={`button-generate-video-${card.id}`}
-                                           >
-                                             {generatingVideoCardId === card.id ? (
-                                               <Loader2 className="w-3 h-3 animate-spin" />
-                                             ) : (
-                                               <Video className="w-3 h-3" />
+                                             {isEngineGenerated && displayImage && (
+                                               <DropdownMenuItem 
+                                                 onClick={() => generateVideoMutation.mutate(card.id)}
+                                                 disabled={generatingVideoCardId === card.id}
+                                                 data-testid={`menu-generate-video-${card.id}`}
+                                               >
+                                                 {generatingVideoCardId === card.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
+                                                 {card.videoGenerated ? 'Regenerate Video' : 'Generate Video'}
+                                               </DropdownMenuItem>
                                              )}
-                                             <span className="hidden sm:inline">
-                                               {generatingVideoCardId === card.id ? 'Generating...' : card.videoGenerated ? 'Regenerate Video' : 'Generate Video'}
-                                             </span>
-                                           </Button>
-                                         )}
-                                         
-                                         {/* Quick actions: Open in Admin, Edit */}
-                                         <Link href={`/admin/cards/${card.id}`}>
-                                           <Button 
-                                             variant="ghost" 
-                                             size="sm" 
-                                             className="h-7 w-7 p-0"
-                                             title="Open in Admin"
-                                             data-testid={`button-admin-${card.id}`}
-                                           >
-                                             <ExternalLink className="w-3.5 h-3.5" />
-                                           </Button>
-                                         </Link>
-                                         <Link href={`/admin/cards/${card.id}/edit`}>
-                                           <Button 
-                                             variant="ghost" 
-                                             size="sm" 
-                                             className="h-7 w-7 p-0"
-                                             title="Edit Card"
-                                             data-testid={`button-edit-${card.id}`}
-                                           >
-                                             <PenSquare className="w-3.5 h-3.5" />
-                                           </Button>
-                                         </Link>
-                                         <Link href={`/card/${card.id}`}>
-                                           <Button 
-                                             variant="ghost" 
-                                             size="sm" 
-                                             className="h-7 w-7 p-0"
-                                             title="Preview"
-                                             data-testid={`button-view-${card.id}`}
-                                           >
-                                             <Eye className="w-3.5 h-3.5" />
-                                           </Button>
-                                         </Link>
+                                           </DropdownMenuContent>
+                                         </DropdownMenu>
                                     </div>
                                 </div>
                             </div>
