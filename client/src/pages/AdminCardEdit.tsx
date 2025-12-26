@@ -95,7 +95,8 @@ export default function AdminCardEdit() {
   }, [videoConfig, videoModel]);
   
   useEffect(() => {
-    if (card?.videoGenerationStatus === "processing") {
+    const isGenerating = card?.videoGenerationStatus === "processing" || card?.videoGenerationStatus === "pending";
+    if (isGenerating) {
       if (!videoGenStartTime) {
         setVideoGenStartTime(Date.now());
       }
@@ -1019,12 +1020,12 @@ export default function AdminCardEdit() {
                         <p className="text-sm text-destructive">{card.videoGenerationError}</p>
                       )}
 
-                      {card.videoGenerationStatus === "processing" && (
+                      {(card.videoGenerationStatus === "processing" || card.videoGenerationStatus === "pending") && (
                         <div className="space-y-3 p-3 bg-muted/50 rounded-lg border">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium flex items-center gap-2">
                               <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                              Generating video...
+                              {card.videoGenerationStatus === "pending" ? "Starting video generation..." : "Generating video..."}
                             </p>
                             <span className="text-sm font-mono text-muted-foreground">
                               {Math.floor(videoGenElapsed / 60)}:{(videoGenElapsed % 60).toString().padStart(2, '0')}
