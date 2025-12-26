@@ -372,25 +372,17 @@ export default function Admin() {
 
             {/* Action Buttons - Mobile Grid */}
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                <Link href="/admin/transformations" className="contents">
+                    <Button className="gap-2 h-12 sm:h-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white col-span-2 sm:col-span-1" data-testid="button-create-story">
+                        <Wand2 className="w-4 h-4" /> 
+                        <span>Create Story</span>
+                    </Button>
+                </Link>
                 <Link href="/admin/create" className="contents">
                     <Button className="gap-2 h-12 sm:h-10" variant="outline" data-testid="button-create-card" disabled={!selectedUniverse}>
                         <Plus className="w-4 h-4" /> 
-                        <span className="hidden sm:inline">Create Card</span>
+                        <span className="hidden sm:inline">Add Card</span>
                         <span className="sm:hidden">Card</span>
-                    </Button>
-                </Link>
-                <Link href="/admin/import" className="contents">
-                    <Button className="gap-2 h-12 sm:h-10 bg-white text-black hover:bg-white/90" data-testid="button-import" disabled={!selectedUniverse}>
-                        <Upload className="w-4 h-4" /> 
-                        <span className="hidden sm:inline">Import Pack</span>
-                        <span className="sm:hidden">Import</span>
-                    </Button>
-                </Link>
-                <Link href="/admin/transformations" className="contents">
-                    <Button className="gap-2 h-12 sm:h-10" variant="outline" data-testid="button-transformations">
-                        <Wand2 className="w-4 h-4" /> 
-                        <span className="hidden sm:inline">Transform Story</span>
-                        <span className="sm:hidden">Transform</span>
                     </Button>
                 </Link>
                 <Link href="/admin/audio" className="contents">
@@ -404,14 +396,21 @@ export default function Admin() {
         </div>
         
         {!selectedUniverse ? (
-          <Card className="border-dashed border-2 border-primary/30">
+          <Card className="border-2 border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-blue-500/5">
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <Plus className="w-12 h-12 text-primary/50 mb-4" />
-              <h3 className="text-xl font-bold mb-2">No Universe Selected</h3>
-              <p className="text-muted-foreground mb-6">Create your first universe to start adding story cards.</p>
-              <Button onClick={() => setShowNewUniverseDialog(true)} data-testid="button-create-first-universe">
-                <Plus className="w-4 h-4 mr-2" /> Create Universe
-              </Button>
+              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center mb-4">
+                <Wand2 className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Welcome to StoryFlix</h3>
+              <p className="text-muted-foreground mb-6 max-w-md">
+                Transform your script, story, or ideas into an interactive narrative experience. 
+                Upload any text and our AI will create characters, scenes, and daily story drops.
+              </p>
+              <Link href="/admin/transformations">
+                <Button className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700" data-testid="button-get-started">
+                  <Wand2 className="w-4 h-4" /> Create Your First Story
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         ) : (

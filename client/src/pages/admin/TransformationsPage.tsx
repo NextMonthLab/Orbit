@@ -137,14 +137,15 @@ function CreateTransformationForm({ onSuccess }: { onSuccess: () => void }) {
   };
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Upload className="w-5 h-5" />
-          Create New Transformation
-        </CardTitle>
-        <CardDescription>
-          Upload a script, PDF, or paste text to transform into a StoryFlix universe
+    <Card className="border-2 border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-blue-500/5">
+      <CardHeader className="text-center pb-2">
+        <div className="w-14 h-14 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center mx-auto mb-3">
+          <Upload className="w-7 h-7 text-white" />
+        </div>
+        <CardTitle className="text-xl">Create Your Story</CardTitle>
+        <CardDescription className="max-w-md mx-auto">
+          Upload a script, PDF, or paste your story text. Our AI will analyze it and create 
+          an interactive universe with characters, scenes, and daily story drops.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -230,18 +231,18 @@ function CreateTransformationForm({ onSuccess }: { onSuccess: () => void }) {
           <Button
             type="submit"
             disabled={createMutation.isPending || (!file && !text.trim())}
-            className="w-full"
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white h-12"
             data-testid="button-start-transformation"
           >
             {createMutation.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Starting...
+                Creating Your Story...
               </>
             ) : (
               <>
                 <Upload className="w-4 h-4 mr-2" />
-                Start Transformation
+                Create Story
               </>
             )}
           </Button>
@@ -336,35 +337,35 @@ export default function TransformationsPage() {
     refetchInterval: 3000,
   });
   
+  const hasJobs = jobs && jobs.length > 0;
+  
   return (
     <AdminLayout>
-      <div className="container mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold" data-testid="page-title">Story Transformations</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Transform scripts and text into StoryFlix universes
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()} className="self-start sm:self-auto" data-testid="button-refresh">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
+      <div className="container mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-5 sm:space-y-6">
+        {/* Header - Simplified */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl sm:text-2xl font-bold" data-testid="page-title">Create Story</h1>
+          {hasJobs && (
+            <Button variant="ghost" size="sm" onClick={() => refetch()} data-testid="button-refresh" aria-label="Refresh transformations">
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          )}
         </div>
         
+        {/* Main Create Form */}
         <CreateTransformationForm onSuccess={() => refetch()} />
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Transformations</CardTitle>
-            <CardDescription>
-              Track the progress of your story transformations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <JobsList jobs={jobs || []} isLoading={isLoading} />
-          </CardContent>
-        </Card>
+        {/* Previous Transformations - Only show if there are jobs */}
+        {hasJobs && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base sm:text-lg">Previous Transformations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <JobsList jobs={jobs} isLoading={isLoading} />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </AdminLayout>
   );
