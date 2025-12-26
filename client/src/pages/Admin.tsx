@@ -644,24 +644,11 @@ export default function Admin() {
                                            {card.status === 'published' ? 'Published' : 'Draft'}
                                          </span>
                                          
-                                         {/* Image status badge - always visible */}
-                                         {isEngineGenerated && (
-                                           <span className={`px-1.5 py-0.5 text-xs rounded border flex items-center gap-1 ${
-                                             card.imageGenerated 
-                                               ? 'bg-green-500/10 text-green-600 border-green-500/20'
-                                               : hasPrompt 
-                                                 ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
-                                                 : 'bg-muted/50 text-muted-foreground border-muted'
-                                           }`}>
-                                             {card.imageGenerated ? (
-                                               <><CheckCircle className="w-3 h-3" /> Image ready</>
-                                             ) : hasPrompt ? (
-                                               <><PhotoIcon className="w-3 h-3" /> Needs image</>
-                                             ) : (
-                                               <>No prompt</>
-                                             )}
-                                           </span>
-                                         )}
+                                         {/* Media status icons - colored when present, greyed when not */}
+                                         <div className="flex items-center gap-1">
+                                           <PhotoIcon className={`w-4 h-4 ${card.imageGenerated || card.generatedImageUrl || card.imagePath ? 'text-green-500' : 'text-muted-foreground/30'}`} />
+                                           <Video className={`w-4 h-4 ${card.videoGenerated ? 'text-green-500' : 'text-muted-foreground/30'}`} />
+                                         </div>
                                          
                                          {/* Image generation button */}
                                          {isEngineGenerated && hasPrompt && (

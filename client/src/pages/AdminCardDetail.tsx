@@ -200,16 +200,6 @@ export default function AdminCardDetail() {
                     <ImageIcon className="w-16 h-16 text-muted-foreground/30" />
                   </div>
                 )}
-                {!showVideo && card.imageGenerated && (
-                  <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-                    <CheckCircle className="w-3 h-3" /> Image ready
-                  </div>
-                )}
-                {showVideo && hasVideo && (
-                  <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-                    <CheckCircle className="w-3 h-3" /> Video ready
-                  </div>
-                )}
               </div>
               <Button 
                 className="w-full gap-2" 
