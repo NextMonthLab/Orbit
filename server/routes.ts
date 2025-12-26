@@ -2409,7 +2409,7 @@ export async function registerRoutes(
     }
   });
   
-  // Generate video for a single card using Kling AI
+  // Generate video for a single card (supports Replicate and Kling)
   app.post("/api/cards/:id/generate-video", requireAdmin, async (req, res) => {
     try {
       const cardId = parseInt(req.params.id);
@@ -2419,10 +2419,12 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Card not found" });
       }
       
-      // Check if Kling is configured
-      if (!isKlingConfigured()) {
+      const { isReplicateConfigured, generateVideoWithReplicate, getReplicateModels } = await import("./video");
+      
+      // Check if any video provider is configured
+      if (!isReplicateConfigured() && !isKlingConfigured()) {
         return res.status(503).json({ 
-          message: "Video generation is not configured. KLING_ACCESS_KEY and KLING_SECRET_KEY are required.",
+          message: "Video generation is not configured. Set REPLICATE_API_TOKEN or KLING_ACCESS_KEY/KLING_SECRET_KEY.",
         });
       }
       
@@ -2447,7 +2449,51 @@ export async function registerRoutes(
       
       console.log(`Starting video generation for card ${cardId} with image: ${sourceImage}`);
       
-      // Start video generation
+      // Prefer Replicate if configured (pay-per-use, no balance issues)
+      if (isReplicateConfigured()) {
+        const models = getReplicateModels();
+        const defaultModel = models[0]?.id || "kling-v1.6-standard";
+        
+        console.log(`[Video] Using Replicate provider with model: ${defaultModel}`);
+        
+        const result = await generateVideoWithReplicate({
+          prompt,
+          imageUrl: sourceImage,
+          negativePrompt: "blurry, low quality, distorted, watermark, text overlay",
+          aspectRatio: "9:16",
+          duration: 5,
+          model: defaultModel,
+        });
+        
+        if (result.status === "completed" && result.videoUrl) {
+          await storage.updateCard(cardId, {
+            generatedVideoUrl: result.videoUrl,
+            videoGenerated: true,
+            videoGenerationStatus: "completed",
+            videoGeneratedAt: new Date(),
+          });
+          
+          return res.json({
+            cardId: card.id,
+            cardTitle: card.title,
+            status: "completed",
+            videoUrl: result.videoUrl,
+          });
+        } else {
+          await storage.updateCard(cardId, {
+            videoGenerationStatus: "failed",
+            videoGenerationError: result.error || "Video generation failed",
+          });
+          return res.status(500).json({
+            cardId: card.id,
+            cardTitle: card.title,
+            status: "failed",
+            message: result.error || "Video generation failed",
+          });
+        }
+      }
+      
+      // Fall back to Kling if Replicate not configured
       const taskId = await startImageToVideoGeneration({
         imageUrl: sourceImage,
         prompt,
@@ -2458,7 +2504,6 @@ export async function registerRoutes(
       
       console.log(`Video generation task started: ${taskId}`);
       
-      // Poll for completion (with timeout)
       const result = await waitForVideoCompletion(taskId, (status) => {
         console.log(`Video generation status for ${cardId}: ${status.status}`);
       });
@@ -2473,7 +2518,6 @@ export async function registerRoutes(
       }
       
       if (result.status === "completed" && result.videoUrl) {
-        // Update the card with the video URL
         await storage.updateCard(cardId, {
           generatedVideoUrl: result.videoUrl,
           videoGenerated: true,
