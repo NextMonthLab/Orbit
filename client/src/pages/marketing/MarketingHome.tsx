@@ -4,6 +4,7 @@ import { ArrowRight, Play, Sparkles, Building2, Film, GraduationCap, Upload, Wan
 import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
+import nextSceneLogo from "@assets/70C5E1E7-6EF6-4D4E-B835-33F4C5924FDE_1766780755538.png";
 
 const useCases = [
   {
@@ -127,7 +128,7 @@ export default function MarketingHome() {
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           <Link href="/">
             <img 
-              src="/attached_assets/70C5E1E7-6EF6-4D4E-B835-33F4C5924FDE_1766780755538.png" 
+              src={nextSceneLogo} 
               alt="NextScene" 
               className="h-10 cursor-pointer" 
               data-testid="link-logo"
@@ -409,7 +410,7 @@ export default function MarketingHome() {
         <footer className="py-12 px-6 border-t border-white/10 bg-black">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
             <img 
-              src="/attached_assets/70C5E1E7-6EF6-4D4E-B835-33F4C5924FDE_1766780755538.png" 
+              src={nextSceneLogo} 
               alt="NextScene" 
               className="h-8"
             />
