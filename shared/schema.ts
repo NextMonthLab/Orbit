@@ -354,6 +354,7 @@ export const cards = pgTable("cards", {
   videoThumbnailUrl: text("video_thumbnail_url"),
   videoDurationSec: real("video_duration_sec"),
   videoGeneratedAt: timestamp("video_generated_at"),
+  preferredMediaType: text("preferred_media_type").$type<'image' | 'video'>().default("image"), // Which media to display to viewers
   
   // Visual continuity references (for prompt composition)
   primaryCharacterIds: jsonb("primary_character_ids").$type<number[]>(), // Characters in this scene

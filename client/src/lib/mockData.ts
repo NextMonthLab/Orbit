@@ -17,6 +17,7 @@ export interface Card {
   generatedVideoUrl?: string | null;
   videoGenerated?: boolean;
   videoGenerationStatus?: string | null;
+  preferredMediaType?: 'image' | 'video' | null;
 }
 
 export interface Character {

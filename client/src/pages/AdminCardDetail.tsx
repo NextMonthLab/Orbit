@@ -64,6 +64,17 @@ export default function AdminCardDetail() {
     },
   });
 
+  const setPreferredMediaMutation = useMutation({
+    mutationFn: (mediaType: 'image' | 'video') => api.updateCard(cardId, { preferredMediaType: mediaType }),
+    onSuccess: (_, mediaType) => {
+      queryClient.invalidateQueries({ queryKey: ["card", cardId] });
+      toast({ title: `Card will now display ${mediaType} to viewers` });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to update preference", description: error.message, variant: "destructive" });
+    },
+  });
+
   if (!user?.isAdmin) {
     return (
       <Layout>
@@ -133,27 +144,40 @@ export default function AdminCardDetail() {
             <CardContent className="space-y-4">
               {/* Media Toggle Buttons */}
               {hasBothMediaTypes && (
-                <div className="flex gap-2">
-                  <Button
-                    variant={!showVideo ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setShowVideo(false)}
-                    className="flex-1 gap-2"
-                    data-testid="button-show-image"
-                  >
-                    <ImageIcon className="w-4 h-4" />
-                    Image
-                  </Button>
-                  <Button
-                    variant={showVideo ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setShowVideo(true)}
-                    className="flex-1 gap-2"
-                    data-testid="button-show-video"
-                  >
-                    <Film className="w-4 h-4" />
-                    Video
-                  </Button>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Choose which media viewers will see:</p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={card.preferredMediaType !== 'video' ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setShowVideo(false);
+                        setPreferredMediaMutation.mutate('image');
+                      }}
+                      disabled={setPreferredMediaMutation.isPending}
+                      className="flex-1 gap-2"
+                      data-testid="button-use-image"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                      Use Image
+                      {card.preferredMediaType !== 'video' && <CheckCircle className="w-3 h-3 ml-1" />}
+                    </Button>
+                    <Button
+                      variant={card.preferredMediaType === 'video' ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setShowVideo(true);
+                        setPreferredMediaMutation.mutate('video');
+                      }}
+                      disabled={setPreferredMediaMutation.isPending}
+                      className="flex-1 gap-2"
+                      data-testid="button-use-video"
+                    >
+                      <Film className="w-4 h-4" />
+                      Use Video
+                      {card.preferredMediaType === 'video' && <CheckCircle className="w-3 h-3 ml-1" />}
+                    </Button>
+                  </div>
                 </div>
               )}
 
