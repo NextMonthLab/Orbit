@@ -2,9 +2,34 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, ChevronUp, Share2, BookOpen } from "lucide-react";
+import { MessageSquare, ChevronUp, Share2, BookOpen, RotateCcw } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import MessageBoard from "@/components/MessageBoard";
+
+function useIsTabletLandscape() {
+  const [isTabletLandscape, setIsTabletLandscape] = useState(false);
+
+  useEffect(() => {
+    const checkOrientation = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const isLandscape = width > height;
+      const isTabletSize = width >= 768 && width <= 1366;
+      setIsTabletLandscape(isLandscape && isTabletSize);
+    };
+
+    checkOrientation();
+    window.addEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", checkOrientation);
+
+    return () => {
+      window.removeEventListener("resize", checkOrientation);
+      window.removeEventListener("orientationchange", checkOrientation);
+    };
+  }, []);
+
+  return isTabletLandscape;
+}
 
 interface Character {
   id: number;
@@ -36,6 +61,8 @@ export default function CardPlayer({
   const [isPlaying, setIsPlaying] = useState(autoplay);
   const [captionIndex, setCaptionIndex] = useState(0);
   const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const [dismissedRotateHint, setDismissedRotateHint] = useState(false);
+  const isTabletLandscape = useIsTabletLandscape();
 
   // Reset all state when card changes
   useEffect(() => {
@@ -112,17 +139,32 @@ export default function CardPlayer({
             transition={{ duration: 0.5 }}
             className="absolute inset-0"
           >
+            {fullScreen && isTabletLandscape && !dismissedRotateHint && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-black/80 backdrop-blur-sm px-4 py-2 rounded-full flex items-center gap-2 text-white/90 text-sm"
+                onClick={(e) => { e.stopPropagation(); setDismissedRotateHint(true); }}
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Rotate for best view</span>
+                <button className="ml-2 text-white/60 hover:text-white">&times;</button>
+              </motion.div>
+            )}
             <motion.div 
-              className="absolute inset-0 w-full h-full"
+              className="absolute inset-0 w-full h-full flex items-center justify-center"
               initial={{ scale: 1 }}
-              animate={{ scale: isPlaying ? 1.15 : 1 }}
+              animate={{ scale: isPlaying && !isTabletLandscape ? 1.15 : 1 }}
               transition={{ duration: 20, ease: "linear" }}
             >
               {card.image ? (
                 <img
                   src={card.image}
                   alt={card.title}
-                  className="w-full h-full object-cover"
+                  className={fullScreen && isTabletLandscape 
+                    ? "max-w-full max-h-full object-contain" 
+                    : "w-full h-full object-cover"}
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary/40 via-background to-primary/20" />
@@ -182,12 +224,14 @@ export default function CardPlayer({
             className="absolute inset-0 flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative h-2/5 overflow-hidden">
+            <div className={`relative overflow-hidden ${fullScreen && isTabletLandscape ? 'h-1/3 flex items-center justify-center bg-black' : 'h-2/5'}`}>
               {card.image ? (
                 <img
                   src={card.image}
                   alt={card.title}
-                  className="w-full h-full object-cover"
+                  className={fullScreen && isTabletLandscape 
+                    ? "max-w-full max-h-full object-contain"
+                    : "w-full h-full object-cover"}
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary/40 via-background to-primary/20" />
