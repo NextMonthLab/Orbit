@@ -1,0 +1,217 @@
+Absolutely. Here’s the next Replit prompt, tightly focused on messaging + onboarding, and written to sharpen clarity without fragmenting the product.
+
+This prompt assumes one engine, three lenses.
+
+You can paste this straight into Replit.
+
+⸻
+
+🔹 REPLIT PROMPT: NextScene Messaging & Onboarding Refinement (Three Sectors)
+
+Product
+
+NextScene
+
+Objective
+
+Tighten messaging, onboarding, and first-use experience so that:
+	•	Different audiences instantly feel “this is for me”
+	•	The underlying engine remains unified
+	•	Onboarding adapts by lens, not by product fork
+
+This is about framing and flow, not new core features.
+
+⸻
+
+1. Core Principle (Do Not Break This)
+
+NextScene is one engine with three onboarding lenses:
+	1.	Brand & Business
+	2.	Creators & Filmmakers
+	3.	Knowledge & Learning
+
+The system, UI, and data model stay the same.
+Only:
+	•	Language
+	•	Defaults
+	•	Examples
+	•	Guardrail strictness
+change per lens.
+
+⸻
+
+2. Entry Point: Sector Selection (Lightweight)
+
+After clicking “Create a NextScene”, users see a simple choice screen:
+
+What are you creating today?
+
+Options (with microcopy)
+
+A. Brand / Business Story
+
+Turn a website or product into an interactive experience
+
+B. Creative Story / Script
+
+Bring a story, script, or idea to life moment by moment
+
+C. Knowledge / Learning
+
+Transform documents into something people actually remember
+
+This choice:
+	•	Sets onboarding copy
+	•	Preselects templates
+	•	Adjusts guardrails
+	•	Never locks the user permanently
+
+Users can switch later.
+
+⸻
+
+3. Messaging Tightening by Sector
+
+A. Brand & Business Lens
+
+Primary emotional hook:
+
+“Explain what you do without making people read.”
+
+Language rules:
+	•	Emphasise clarity, trust, conversion
+	•	Avoid “storytelling fluff”
+	•	Avoid “AI marketing” phrasing
+
+Replace generic copy with:
+	•	“Your website → a cinematic walkthrough”
+	•	“Let customers explore, then ask questions”
+	•	“Every answer stays grounded in your actual content”
+
+Onboarding defaults:
+	•	URL input first
+	•	Character preset: Brand Expert
+	•	Guardrails: strict factual boundaries ON
+	•	Visuals: illustrative, brand-aligned
+	•	Export options highlighted early
+
+⸻
+
+B. Creators & Filmmakers Lens
+
+Primary emotional hook:
+
+“Let people live inside your story.”
+
+Language rules:
+	•	Lean cinematic, emotional, intimate
+	•	Avoid business or productivity language
+	•	Avoid “content” framing
+
+Replace generic copy with:
+	•	“Each card is a moment”
+	•	“Scenes, beats, or memories”
+	•	“Your audience doesn’t just watch, they respond”
+
+Onboarding defaults:
+	•	Script / text upload first
+	•	Character creation surfaced early
+	•	Guardrails: creative freedom bias
+	•	Visuals: character-driven
+	•	Daily release vs full-drop option introduced
+
+⸻
+
+C. Knowledge & Learning Lens
+
+Primary emotional hook:
+
+“Turn information into understanding.”
+
+Language rules:
+	•	Calm, reassuring, intelligent
+	•	Avoid hype
+	•	Avoid entertainment framing
+
+Replace generic copy with:
+	•	“Make dense material digestible”
+	•	“Explain once, let it scale”
+	•	“Ask the expert without interrupting them”
+
+Onboarding defaults:
+	•	PDF / document upload first
+	•	Character preset: Subject Matter Expert
+	•	Guardrails: accuracy-first
+	•	Visuals: explanatory, diagram-friendly
+	•	Completion tracking surfaced
+
+⸻
+
+4. First-Time Onboarding Flow (All Lenses)
+
+Each onboarding flow should follow this same structure, with different copy:
+	1.	What you upload
+Short reassurance about what will happen
+	2.	What NextScene extracts
+Themes, boundaries, tone (visualised simply)
+	3.	What you can edit
+Prompts, guardrails, visuals are always editable
+	4.	What the audience experiences
+Cards → interaction → chat → share/export
+
+This builds trust before magic.
+
+⸻
+
+5. Guardrails Messaging (Critical)
+
+Add a visible but calm reassurance across all sectors:
+
+“NextScene doesn’t invent meaning.
+It elevates what’s already there.”
+
+In the admin:
+	•	Prompts
+	•	Negative prompts
+	•	Guardrails
+must be clearly labeled as creator-controlled, not hidden.
+
+⸻
+
+6. Onboarding Success Criteria
+
+You’ve succeeded if:
+	•	A business user never sees “script” language
+	•	A filmmaker never sees “conversion” language
+	•	A learning user never sees “entertainment” language
+	•	All three still end up creating the same underlying object: a NextScene
+
+⸻
+
+7. Explicit Non-Goals (Do Not Add)
+	•	No separate products
+	•	No separate dashboards
+	•	No duplicated code paths
+	•	No industry-specific hard forks
+
+This is one engine, three doors.
+
+⸻
+
+8. Output Request
+
+Please:
+	1.	Refine homepage messaging to cleanly support this structure
+	2.	Implement the sector-selection onboarding step
+	3.	Adjust onboarding copy, defaults, and examples per lens
+	4.	Keep all functionality shared under the hood
+
+⸻
+
+If you want, next we can:
+	•	Script the exact onboarding microcopy screen by screen
+	•	Design the visual “engine working” animation
+	•	Or pressure-test the first 60 seconds for each sector
+
+You’re not building three products.
+You’re teaching three audiences how to see the same one.
