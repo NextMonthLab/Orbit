@@ -126,7 +126,7 @@ export default function MarketingHome() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black via-black/90 to-transparent">
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           <Link href="/">
-            <span className="text-2xl font-display font-black tracking-tight cursor-pointer bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent" data-testid="link-logo">
+            <span className="text-2xl font-bold tracking-tight cursor-pointer text-white" data-testid="link-logo">
               NEXTSCENE
             </span>
           </Link>
@@ -137,7 +137,7 @@ export default function MarketingHome() {
               </Button>
             </Link>
             <Link href="/login?signup=true">
-              <Button className="bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-400 text-white border-0 shadow-lg shadow-violet-500/25" data-testid="button-signup">
+              <Button className="bg-violet-600 hover:bg-violet-500 text-white border-0 shadow-lg shadow-violet-600/20" data-testid="button-signup">
                 Get Started
               </Button>
             </Link>
@@ -146,11 +146,10 @@ export default function MarketingHome() {
       </header>
 
       <main>
-        {/* Hero Section */}
+        {/* Hero Section - reduced ambient gradients */}
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-violet-950/30 via-black to-black" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-fuchsia-900/20 via-transparent to-transparent" />
-          <div className="absolute top-0 left-0 right-0 h-[50vh] bg-gradient-to-br from-violet-600/10 via-fuchsia-600/5 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-neutral-950 via-black to-black" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-950/20 via-transparent to-transparent" />
           
           <div className="absolute inset-0 opacity-[0.03]" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -169,7 +168,7 @@ export default function MarketingHome() {
               
               <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-black tracking-tight mb-8 leading-[0.9]" data-testid="text-hero-title">
                 <span className="block text-white">Turn any content into an</span>
-                <span className="block bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">
+                <span className="block text-violet-300">
                   interactive cinematic experience
                 </span>
               </h1>
@@ -181,12 +180,12 @@ export default function MarketingHome() {
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/login?signup=true">
-                  <Button size="lg" className="h-14 px-8 text-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-400 text-white border-0 shadow-xl shadow-violet-500/30 gap-3" data-testid="button-hero-cta">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-violet-600 hover:bg-violet-500 text-white border-0 shadow-lg shadow-violet-600/20 gap-3" data-testid="button-hero-cta">
                     Create a NextScene
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 </Link>
-                <Button size="lg" variant="outline" className="h-14 px-8 text-lg bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 gap-3 backdrop-blur-sm" data-testid="button-hero-demo">
+                <Button size="lg" variant="outline" className="h-14 px-8 text-lg bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 gap-3" data-testid="button-hero-demo">
                   <Play className="w-5 h-5 fill-current" />
                   See how it works
                 </Button>
@@ -200,10 +199,10 @@ export default function MarketingHome() {
               className="mt-20 relative"
             >
               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 pointer-events-none" />
-              <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-violet-500/10">
-                <div className="aspect-video bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 flex items-center justify-center">
+              <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-xl">
+                <div className="aspect-video bg-neutral-900 flex items-center justify-center">
                   <div className="text-center">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-violet-500/30 cursor-pointer hover:scale-105 transition-transform">
+                    <div className="w-20 h-20 rounded-full bg-violet-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-violet-600/20 cursor-pointer hover:bg-violet-500 transition-colors">
                       <Play className="w-8 h-8 text-white ml-1 fill-white" />
                     </div>
                     <p className="text-white/40 text-sm">See NextScene in action</p>
@@ -221,8 +220,8 @@ export default function MarketingHome() {
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4" data-testid="text-pipeline-title">
-                What is <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">NextScene?</span>
+              <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-pipeline-title">
+                What is <span className="text-violet-400">NextScene?</span>
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
                 From content to cinematic experience in five steps
@@ -260,13 +259,12 @@ export default function MarketingHome() {
 
         {/* Three Ways to Use NextScene */}
         <section className="py-24 px-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-950/20 via-black to-black" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-fuchsia-500/5 rounded-full blur-3xl" />
+          <div className="absolute inset-0 bg-neutral-950" />
           
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4" data-testid="text-usecases-title">
-                Three ways to use <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">NextScene</span>
+              <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-usecases-title">
+                Three ways to use <span className="text-violet-400">NextScene</span>
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
                 One engine, built for every storyteller
@@ -309,11 +307,11 @@ export default function MarketingHome() {
 
         {/* Why NextScene is Different */}
         <section className="py-24 px-6 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
+          <div className="absolute inset-0 bg-black" />
           <div className="max-w-5xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4" data-testid="text-different-title">
-                Why NextScene is <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">different</span>
+              <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-different-title">
+                Why NextScene is <span className="text-violet-400">different</span>
               </h2>
             </div>
             
@@ -339,14 +337,14 @@ export default function MarketingHome() {
 
         {/* Trust & Control */}
         <section className="py-24 px-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-950/20 via-black to-black" />
+          <div className="absolute inset-0 bg-neutral-950" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 text-sm font-medium bg-violet-500/10 border border-violet-500/20 rounded-full">
+              <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 text-sm font-medium bg-white/5 border border-white/10 rounded-full">
                 <Shield className="w-4 h-4 text-violet-400" />
-                <span className="text-violet-300">Built for Trust</span>
+                <span className="text-white/70">Built for Trust</span>
               </div>
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4" data-testid="text-trust-title">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-trust-title">
                 Trust & Control
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
@@ -377,8 +375,8 @@ export default function MarketingHome() {
 
         {/* Final CTA */}
         <section className="py-32 px-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-t from-violet-950/40 via-violet-950/20 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
+          <div className="absolute inset-0 bg-neutral-950" />
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-white/10" />
           
           <div className="max-w-4xl mx-auto text-center relative z-10">
             <motion.div
@@ -389,15 +387,13 @@ export default function MarketingHome() {
             >
               <h2 className="text-4xl md:text-6xl font-display font-bold mb-6" data-testid="text-cta-title">
                 Ready to create your first<br />
-                <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">
-                  NextScene?
-                </span>
+                <span className="text-violet-300">NextScene?</span>
               </h2>
               <p className="text-xl text-white/50 mb-10 max-w-xl mx-auto">
                 Transform your content into cinematic experiences your audience will never forget
               </p>
               <Link href="/login?signup=true">
-                <Button size="lg" className="h-16 px-12 text-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-400 text-white border-0 shadow-xl shadow-violet-500/30 gap-3" data-testid="button-footer-cta">
+                <Button size="lg" className="h-16 px-12 text-lg bg-violet-600 hover:bg-violet-500 text-white border-0 shadow-lg shadow-violet-600/20 gap-3" data-testid="button-footer-cta">
                   Create a NextScene
                   <ArrowRight className="w-5 h-5" />
                 </Button>
@@ -407,9 +403,9 @@ export default function MarketingHome() {
         </section>
 
         {/* Footer */}
-        <footer className="py-12 px-6 border-t border-white/10">
+        <footer className="py-12 px-6 border-t border-white/10 bg-black">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-            <span className="text-xl font-display font-black tracking-tight bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+            <span className="text-xl font-bold tracking-tight text-white">
               NEXTSCENE
             </span>
             <div className="flex items-center gap-8">
