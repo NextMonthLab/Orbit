@@ -105,54 +105,60 @@ export default function TransformationDetailPage() {
   
   return (
     <AdminLayout>
-      <div className="container mx-auto py-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/admin/transformations">
-              <Button variant="ghost" size="sm" data-testid="button-back">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-            </Link>
+      <div className="container mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        {/* Header - Mobile Optimized */}
+        <div className="space-y-3">
+          <Link href="/admin/transformations">
+            <Button variant="ghost" size="sm" className="h-8 px-2" data-testid="button-back">
+              <ArrowLeft className="w-4 h-4 mr-1.5" />
+              Back
+            </Button>
+          </Link>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold" data-testid="page-title">
+              <h1 className="text-xl sm:text-2xl font-bold" data-testid="page-title">
                 Transformation #{job.id}
               </h1>
-              <p className="text-muted-foreground">
-                Started {format(new Date(job.createdAt), "MMM d, yyyy 'at' h:mm a")}
+              <p className="text-sm text-muted-foreground">
+                Started {format(new Date(job.createdAt), "MMM d, h:mm a")}
               </p>
             </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {job.status === "failed" && (
-              <Button
-                variant="outline"
-                onClick={() => retryMutation.mutate()}
-                disabled={retryMutation.isPending}
-                data-testid="button-retry"
-              >
-                {retryMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
+            
+            {(job.status === "failed" || job.outputUniverseId) && (
+              <div className="flex items-center gap-2">
+                {job.status === "failed" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => retryMutation.mutate()}
+                    disabled={retryMutation.isPending}
+                    data-testid="button-retry"
+                  >
+                    {retryMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-1.5" />
+                    )}
+                    Retry
+                  </Button>
                 )}
-                Retry
-              </Button>
-            )}
-            {job.outputUniverseId && (
-              <Link href={`/admin/universes/${job.outputUniverseId}`}>
-                <Button data-testid="button-view-universe">
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  View Universe
-                </Button>
-              </Link>
+                {job.outputUniverseId && (
+                  <Link href={`/admin/universes/${job.outputUniverseId}`}>
+                    <Button size="sm" data-testid="button-view-universe">
+                      <ExternalLink className="w-4 h-4 mr-1.5" />
+                      View Universe
+                    </Button>
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+        {/* Main Content - Mobile First Layout */}
+        <div className="space-y-4 lg:grid lg:grid-cols-3 lg:gap-6 lg:space-y-0">
+          <div className="lg:col-span-2 order-1">
             <TransformationTimeline
               stageStatuses={job.stageStatuses}
               artifacts={job.artifacts}
@@ -163,30 +169,34 @@ export default function TransformationDetailPage() {
             />
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-4 order-2">
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Job Info</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg">Job Info</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex justify-between">
+              <CardContent className="space-y-2.5 text-sm">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Status</span>
-                  <span className="font-medium capitalize">{job.status}</span>
+                  <span className={`font-medium capitalize ${
+                    job.status === 'completed' ? 'text-green-600 dark:text-green-400' :
+                    job.status === 'running' ? 'text-blue-600 dark:text-blue-400' :
+                    job.status === 'failed' ? 'text-red-600 dark:text-red-400' : ''
+                  }`}>{job.status}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Current Stage</span>
                   <span className="font-medium">{job.currentStage + 1} / 6</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Created</span>
-                  <span className="font-medium">{format(new Date(job.createdAt), "MMM d, h:mm a")}</span>
+                  <span className="font-medium text-xs sm:text-sm">{format(new Date(job.createdAt), "MMM d, h:mm a")}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Updated</span>
-                  <span className="font-medium">{format(new Date(job.updatedAt), "MMM d, h:mm a")}</span>
+                  <span className="font-medium text-xs sm:text-sm">{format(new Date(job.updatedAt), "MMM d, h:mm a")}</span>
                 </div>
                 {job.outputUniverseId && (
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Universe ID</span>
                     <span className="font-medium">{job.outputUniverseId}</span>
                   </div>
@@ -195,23 +205,24 @@ export default function TransformationDetailPage() {
             </Card>
             
             {job.status === "completed" && job.outputUniverseId && (
-              <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/20">
-                <CardHeader>
-                  <CardTitle className="text-lg text-green-700 dark:text-green-300">
+              <Card className="border-green-300 dark:border-green-700 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base sm:text-lg text-green-700 dark:text-green-300 flex items-center gap-2">
+                    <span className="text-xl">✨</span>
                     Ready to Explore
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-green-600/80 dark:text-green-400/80">
                     Your universe has been created with all content
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2.5 pt-2">
                   <Link href={`/admin/universes/${job.outputUniverseId}`}>
-                    <Button className="w-full" data-testid="button-manage-universe">
+                    <Button className="w-full bg-green-600 hover:bg-green-700" data-testid="button-manage-universe">
                       Manage Universe
                     </Button>
                   </Link>
                   <Link href={`/?universe=${job.outputUniverseId}`}>
-                    <Button variant="outline" className="w-full" data-testid="button-view-story">
+                    <Button variant="outline" className="w-full border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50" data-testid="button-view-story">
                       <ExternalLink className="w-4 h-4 mr-2" />
                       View Story
                     </Button>

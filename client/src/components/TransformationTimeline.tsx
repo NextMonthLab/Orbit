@@ -71,9 +71,9 @@ function StageIcon({ status }: { status: "pending" | "running" | "done" | "faile
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
-        className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center"
+        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center shadow-sm"
       >
-        <Check className="w-5 h-5 text-white" />
+        <Check className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
       </motion.div>
     );
   }
@@ -83,24 +83,24 @@ function StageIcon({ status }: { status: "pending" | "running" | "done" | "faile
       <motion.div
         animate={{ scale: [1, 1.1, 1] }}
         transition={{ repeat: Infinity, duration: 1.5 }}
-        className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center"
+        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple-500 flex items-center justify-center shadow-md shadow-purple-500/30"
       >
-        <Loader2 className="w-5 h-5 text-white animate-spin" />
+        <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-spin" />
       </motion.div>
     );
   }
   
   if (status === "failed") {
     return (
-      <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center">
-        <AlertCircle className="w-5 h-5 text-white" />
+      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-red-500 flex items-center justify-center shadow-sm">
+        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
       </div>
     );
   }
   
   return (
-    <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-      <div className="w-3 h-3 rounded-full bg-gray-400 dark:bg-gray-500" />
+    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-2 border-gray-300 dark:border-gray-600">
+      <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-gray-400 dark:bg-gray-500" />
     </div>
   );
 }
@@ -262,36 +262,42 @@ export function TransformationTimeline({
   
   return (
     <Card className="w-full" data-testid="transformation-timeline">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 px-3 sm:px-6">
         <div className="flex items-center justify-between mb-2">
-          <CardTitle className="text-lg">Story Transformation</CardTitle>
-          <span className="text-sm text-muted-foreground">{progressPercent}%</span>
+          <CardTitle className="text-base sm:text-lg">Story Transformation</CardTitle>
+          <span className="text-xs sm:text-sm font-medium text-primary">{progressPercent}%</span>
         </div>
         <Progress value={progressPercent} className="h-2" data-testid="progress-bar" />
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-3 sm:px-6">
         <div className="relative">
-          <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
+          {/* Timeline vertical line */}
+          <div className="absolute left-3 sm:left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-green-300 via-gray-200 to-gray-200 dark:from-green-700 dark:via-gray-700 dark:to-gray-700" />
           
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {STAGE_INFO.map((stage, index) => {
               const stageKey = `stage${index}` as keyof StageStatuses;
               const stageStatus = stageStatuses[stageKey];
               const stageArtifact = artifacts[stageKey as keyof StageArtifacts];
               
               return (
-                <div key={index} className="relative pl-12" data-testid={`stage-${index}`}>
-                  <div className="absolute left-0 top-0">
+                <div key={index} className="relative pl-10 sm:pl-12" data-testid={`stage-${index}`}>
+                  <div className="absolute left-0 top-0 -translate-x-0.5">
                     <StageIcon status={stageStatus} />
                   </div>
                   
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className={`font-medium ${stageStatus === "running" ? "text-blue-600" : ""}`}>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <h4 className={`text-sm sm:text-base font-medium uppercase tracking-wide ${
+                        stageStatus === "running" ? "text-purple-600 dark:text-purple-400" : 
+                        stageStatus === "done" ? "text-foreground" : "text-muted-foreground"
+                      }`}>
                         {stage.name}
                       </h4>
                       {stageStatus === "running" && (
-                        <span className="text-xs text-blue-500 animate-pulse">In progress...</span>
+                        <span className="text-xs text-purple-500 dark:text-purple-400 font-medium animate-pulse">
+                          In progress...
+                        </span>
                       )}
                     </div>
                     
@@ -301,6 +307,7 @@ export function TransformationTimeline({
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0 }}
+                          className="mt-1"
                         >
                           <ArtifactSummary stageIndex={index} artifact={stageArtifact} />
                           <ArtifactDetails stageIndex={index} artifact={stageArtifact} />
@@ -331,7 +338,7 @@ export function TransformationTimeline({
                       )}
                       
                       {stageStatus === "pending" && index === currentStage && status === "queued" && (
-                        <p className="text-sm text-muted-foreground mt-1">Waiting to start...</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Waiting to start...</p>
                       )}
                     </AnimatePresence>
                   </div>
@@ -345,14 +352,16 @@ export function TransformationTimeline({
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 text-center"
+            className="mt-5 sm:mt-6 p-4 sm:p-5 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-700 text-center"
             data-testid="completion-message"
           >
-            <Check className="w-10 h-10 mx-auto text-green-500 mb-2" />
-            <h3 className="font-semibold text-green-700 dark:text-green-300">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto bg-green-500 rounded-full flex items-center justify-center mb-3">
+              <Check className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+            </div>
+            <h3 className="text-base sm:text-lg font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide">
               Your story is ready!
             </h3>
-            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+            <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 mt-1.5">
               Your universe has been created with all characters, locations, and cards.
             </p>
           </motion.div>
