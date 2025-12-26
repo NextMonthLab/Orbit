@@ -29,6 +29,12 @@ Preferred communication style: Simple, everyday language.
 - **Daily Drop Engine**: Scheduled release of story cards.
 - **Interactive Chat System (v2)**: Credible, guardrailed AI character chat using a three-layer prompt composition (Universe Policy, Character Profile, Card Overrides) to control personality, knowledge, and conversation flow, preventing hallucination.
 - **Source Guardrails System**: Extracts and enforces `coreThemes`, `toneConstraints`, `factualBoundaries`, `exclusions`, `quotableElements`, `sensitiveTopics`, and `creativeLatitude` from source material to ensure AI accuracy and consistency.
+- **Visual Bible System**: Comprehensive design guide for universe visual consistency. Includes:
+  - **Design Guide Editor**: Art style, color palette, mood/tone, camera style, lighting notes, and quality level settings that apply to all AI generations.
+  - **Prompt Builder**: Automatically merges universe design guide, character visual profiles, location continuity, and card-specific prompts into cohesive generation prompts.
+  - **Reference Asset Library**: Upload and manage reference images for characters, locations, styles, props, and color palettes to maintain visual consistency.
+  - **Quality Levels**: Draft/Standard/High/Ultra settings that adjust generation parameters.
+  - **Negative Prompts & Avoid Lists**: Configure elements to always exclude from generated content.
 - **Export & Distribution**: Supports canonical interactive experience, embeddable interactive experience, and standalone video export with CTAs driving users back to the canonical platform.
 - **Soundtrack Management**: Audio library for background music with batch import, metadata editing, and per-universe audio settings (off, continuous).
 - **Role-Based Access Control**: Three-tier user system (viewer/creator/admin) with subscription-based entitlements.
