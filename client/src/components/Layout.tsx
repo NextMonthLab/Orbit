@@ -15,29 +15,29 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row max-w-md mx-auto md:max-w-4xl border-x border-border shadow-2xl relative">
-      {/* Desktop Sidebar (Hidden on Mobile) */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-border p-6 fixed h-full left-[calc(50%-28rem)] top-0 bg-background/95 backdrop-blur-sm z-50">
-        <h1 className="text-2xl font-display font-bold mb-8 text-primary tracking-widest">STORYFLIX</h1>
-        <nav className="space-y-4">
+    <div className="min-h-screen bg-background text-foreground flex flex-col lg:flex-row max-w-md mx-auto md:max-w-2xl lg:max-w-5xl border-x border-border shadow-2xl relative">
+      {/* Desktop Sidebar (Hidden on Mobile and Tablet) */}
+      <aside className="hidden lg:flex w-56 flex-col border-r border-border p-5 shrink-0 bg-background/95 backdrop-blur-sm">
+        <h1 className="text-xl font-display font-bold mb-6 text-primary tracking-widest">STORYFLIX</h1>
+        <nav className="space-y-3">
           {navItems.map((item) => (
             <Link key={item.href} href={item.href}>
               <div
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-md transition-colors cursor-pointer",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer text-sm",
                   location === item.href
                     ? "bg-primary/10 text-primary font-medium"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <item.icon className="w-5 h-5" />
+                <item.icon className="w-4 h-4" />
                 <span>{item.label}</span>
               </div>
             </Link>
           ))}
           <Link href="/admin">
-             <div className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors cursor-pointer text-muted-foreground hover:bg-muted hover:text-foreground mt-8">
-                <Settings className="w-5 h-5" />
+             <div className="flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer text-muted-foreground hover:bg-muted hover:text-foreground mt-6 text-sm">
+                <Settings className="w-4 h-4" />
                 <span>Admin</span>
              </div>
           </Link>
@@ -45,12 +45,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 pb-20 md:pb-0 md:pl-0 w-full">
+      <main className="flex-1 pb-20 lg:pb-0 w-full">
         {children}
       </main>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-md border-t border-border z-50 px-4 py-3 flex justify-around">
+      {/* Mobile & Tablet Bottom Nav */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-md border-t border-border z-50 px-4 py-3 flex justify-around max-w-2xl mx-auto md:rounded-t-xl">
         {navItems.map((item) => (
           <Link key={item.href} href={item.href}>
             <div
