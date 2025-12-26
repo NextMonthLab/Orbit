@@ -163,6 +163,59 @@ The platform includes a complete audio management system for background music:
 - `DELETE /api/audio/tracks/:id`: Delete track
 - `GET/PATCH /api/universes/:id/audio-settings`: Universe audio configuration
 
+### TTS Narration System
+
+The platform supports AI-generated voice narration for story cards using OpenAI's Text-to-Speech API.
+
+**Narration Workflow:**
+- `none`: No narration configured
+- `text_ready`: Text saved, ready for audio generation
+- `generating`: Audio generation in progress
+- `ready`: Audio generated and available for playback
+- `failed`: Generation failed (error stored)
+
+**Universe-Level Settings:**
+- `defaultNarrationMode`: manual, derive_from_sceneText, derive_from_captions, ai_summarise_from_card
+- `defaultNarrationVoice`: Default voice (alloy, echo, fable, onyx, nova, shimmer)
+- `defaultNarrationSpeed`: Playback speed (0.5x - 2.0x)
+
+**Card-Level Settings:**
+- `narrationEnabled`: Toggle narration on/off
+- `narrationText`: The text to be spoken (max 3000 characters)
+- `narrationVoice`: Override universe default
+- `narrationSpeed`: Override universe default
+- `narrationAudioUrl`: Generated audio URL (stored in R2)
+- `narrationStatus`: Current workflow state
+
+**Auto-Fill Modes:**
+- `manual`: Admin enters text manually
+- `derive_from_sceneText`: Uses card's sceneText field
+- `derive_from_captions`: Joins card's captions array
+- `ai_summarise_from_card`: GPT-4o-mini summarizes card fields (no hallucination - only uses existing data)
+
+**API Endpoints:**
+- `GET /api/tts/voices`: List available voices with descriptions
+- `POST /api/cards/:id/narration/text`: Save narration settings and text
+- `POST /api/cards/:id/narration/preview`: Generate short preview (first 300 chars)
+- `POST /api/cards/:id/narration/generate`: Generate full audio and store in R2
+- `DELETE /api/cards/:id/narration`: Delete audio and reset status
+
+**Frontend Playback:**
+- Audio plays automatically during cinematic phase
+- Mute/unmute toggle in top-right corner
+- Audio pauses when transitioning to context phase
+- Cleanup on component unmount
+
+**Storage:**
+- Audio files stored in R2/S3-compatible object storage
+- Key pattern: `narration/{universeId}/{cardId}/{timestamp}.mp3`
+- Requires: R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_BASE_URL
+
+**Usage Tracking:**
+- `tts_usage` table logs all generations
+- Tracks: userId, universeId, cardId, charsCount, voiceId, createdAt
+- Preparation for billing integration
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
