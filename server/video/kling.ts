@@ -1,4 +1,6 @@
 import jwt from "jsonwebtoken";
+import fs from "fs";
+import path from "path";
 
 export interface KlingConfig {
   accessKey: string;
@@ -137,12 +139,38 @@ export async function startTextToVideoGeneration(
   return response.data.task_id;
 }
 
+function getImageBase64(imagePath: string): string {
+  let filePath = imagePath;
+  
+  if (imagePath.startsWith("/uploads/")) {
+    filePath = path.join(process.cwd(), "public", imagePath);
+  } else if (!path.isAbsolute(imagePath)) {
+    filePath = path.join(process.cwd(), imagePath);
+  }
+  
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Image file not found: ${filePath}`);
+  }
+  
+  const fileBuffer = fs.readFileSync(filePath);
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeType = ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg";
+  
+  return `data:${mimeType};base64,${fileBuffer.toString("base64")}`;
+}
+
 export async function startImageToVideoGeneration(
   request: ImageToVideoRequest
 ): Promise<string> {
+  let imageData = request.imageUrl;
+  
+  if (!imageData.startsWith("http://") && !imageData.startsWith("https://") && !imageData.startsWith("data:")) {
+    imageData = getImageBase64(imageData);
+  }
+  
   const payload = {
     model_name: request.model || "kling-v2",
-    image: request.imageUrl,
+    image: imageData,
     prompt: request.prompt || "",
     negative_prompt: request.negativePrompt || "blurry, low quality, distorted",
     aspect_ratio: request.aspectRatio || "9:16",
