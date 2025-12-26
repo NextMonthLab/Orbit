@@ -224,7 +224,7 @@ export default function CardPlayer({
             className="absolute inset-0 flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={`relative overflow-hidden ${fullScreen && isTabletLandscape ? 'h-1/3 flex items-center justify-center bg-black' : 'h-2/5'}`}>
+            <div className={`relative overflow-hidden shrink-0 ${fullScreen && isTabletLandscape ? 'h-1/3 flex items-center justify-center bg-black' : 'h-2/5'}`}>
               {card.image ? (
                 <img
                   src={card.image}
@@ -247,7 +247,7 @@ export default function CardPlayer({
               </button>
             </div>
 
-            <div className="flex-1 bg-gradient-to-b from-black via-zinc-900 to-zinc-900 p-5 flex flex-col">
+            <div className="flex-1 min-h-0 bg-gradient-to-b from-black via-zinc-900 to-zinc-900 p-5 pb-28 flex flex-col overflow-y-auto">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <span className="text-xs font-mono text-primary/80">DAY {card.dayIndex}</span>
@@ -273,7 +273,7 @@ export default function CardPlayer({
               <div className="flex-1" />
 
               {primaryCharacter ? (
-                <div className="space-y-3">
+                <div className="space-y-3 mb-4">
                   <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/50 to-primary/20 flex items-center justify-center overflow-hidden">
                       {primaryCharacter.avatar ? (
@@ -309,7 +309,7 @@ export default function CardPlayer({
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 mb-4">
                   <Link href="/journal">
                     <Button 
                       size="lg" 

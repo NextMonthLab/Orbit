@@ -329,14 +329,64 @@ export async function stage5_craftExperience(ctx: PipelineContext): Promise<numb
       introCardsCount: ctx.hookPackCount || 3,
     });
 
+    // Generate AI chat profiles for characters
+    const characterIdMap: Record<string, number> = {};
     for (const char of ctx.characters || []) {
-      await storage.createCharacter({
+      // Generate a system prompt for this character
+      const chatPromptResponse = await callAI(
+        `You are an expert at creating AI character personas for interactive storytelling.
+Generate a system prompt for an AI to roleplay as this character.`,
+        `Character: ${char.name}
+Role: ${char.role || "Character"}
+Description: ${char.description || "A character in this story"}
+Story: ${ctx.storyTitle || "Untitled"} - ${ctx.themeStatement || "A dramatic story"}
+Genre: ${ctx.genreGuess || "Drama"}
+
+Create a JSON response with:
+{
+  "system_prompt": "A detailed system prompt that defines how this AI should behave as this character, including personality, speech patterns, knowledge limits, and emotional state",
+  "voice": "Brief description of how they speak",
+  "secrets": ["Things this character knows but won't easily reveal"],
+  "goals": ["What this character wants in conversations"]
+}`,
+        true
+      );
+      
+      let systemPrompt = `You are ${char.name}, a character in "${ctx.storyTitle || "this story"}". Stay in character at all times. Be engaging and reveal story details gradually through natural conversation. Speak naturally as this character would, with their personality and perspective.`;
+      let secrets: string[] = [];
+      let chatProfile: any = {
+        voice: "Natural conversational tone fitting this character",
+        goals: ["Engage the viewer authentically", "Reveal story details naturally through conversation"],
+        speech_style: "Natural and in-character",
+      };
+      
+      try {
+        const chatData = JSON.parse(chatPromptResponse);
+        if (chatData.system_prompt) systemPrompt = chatData.system_prompt;
+        if (chatData.secrets && Array.isArray(chatData.secrets)) secrets = chatData.secrets;
+        if (chatData.voice || chatData.goals) {
+          chatProfile = {
+            voice: chatData.voice || chatProfile.voice,
+            goals: chatData.goals || chatProfile.goals,
+            speech_style: chatData.voice || chatProfile.speech_style,
+          };
+        }
+      } catch {
+        // Use defaults if parsing fails - chatProfile is already set
+      }
+
+      const createdChar = await storage.createCharacter({
         universeId: universe.id,
         characterSlug: char.id,
         name: char.name,
         role: char.role || "Character",
         description: char.description || "",
+        systemPrompt,
+        secretsJson: secrets,
+        chatProfile,
       });
+      
+      characterIdMap[char.id] = createdChar.id;
     }
 
     for (const loc of ctx.locations || []) {
@@ -346,6 +396,9 @@ export async function stage5_craftExperience(ctx: PipelineContext): Promise<numb
         name: loc.name,
       });
     }
+
+    // Get the primary character (first one created) for linking to cards
+    const primaryCharacterId = Object.values(characterIdMap)[0] || null;
 
     const now = new Date();
     for (let i = 0; i < (ctx.cardPlan || []).length; i++) {
@@ -372,6 +425,7 @@ export async function stage5_craftExperience(ctx: PipelineContext): Promise<numb
           shotType: "medium",
           lighting: "natural",
         } : undefined,
+        primaryCharacterIds: primaryCharacterId ? [primaryCharacterId] : null,
       });
     }
 
@@ -379,7 +433,7 @@ export async function stage5_craftExperience(ctx: PipelineContext): Promise<numb
       stage5: {
         cards_drafted: true,
         image_prompts_ready: true,
-        chat_prompts_ready: false,
+        chat_prompts_ready: true,
         discussion_prompts_ready: false,
       },
     });
