@@ -11,6 +11,7 @@ import AdmZip from "adm-zip";
 import path from "path";
 import fs from "fs";
 import OpenAI from "openai";
+import dns from "dns/promises";
 
 // OpenAI client for image generation - uses Replit AI Integrations (no API key needed)
 // Charges are billed to your Replit credits
@@ -2632,13 +2633,209 @@ export async function registerRoutes(
   // Create a new transformation job
   app.post("/api/transformations", requireAuth, upload.single("file"), async (req, res) => {
     try {
-      const { text, hookPackCount, releaseMode, startDate } = req.body;
+      const { text, hookPackCount, releaseMode, startDate, sourceUrl, contentSourceType, contentIndustry, contentCategory, contentGoal } = req.body;
       
       let sourceText = text || "";
       let sourceFileName = "text-input.txt";
       let sourceFilePath: string | null = null;
+      let detectedSourceType: "script" | "pdf" | "ppt" | "article" | "transcript" | "url" | "unknown" = "unknown";
       
-      if (req.file) {
+      // Valid enum values for metadata fields
+      const VALID_CONTENT_SOURCE_TYPES = ['website', 'blog_post', 'news_article', 'documentation', 'social_media', 'press_release', 'other'];
+      const VALID_CONTENT_INDUSTRIES = ['technology', 'healthcare', 'finance', 'entertainment', 'education', 'retail', 'travel', 'food', 'sports', 'real_estate', 'other'];
+      const VALID_CONTENT_CATEGORIES = ['news', 'narrative', 'marketing', 'educational', 'entertainment', 'documentary', 'promotional', 'other'];
+      const VALID_CONTENT_GOALS = ['brand_awareness', 'lead_generation', 'audience_engagement', 'product_launch', 'thought_leadership', 'storytelling', 'education', 'other'];
+      
+      // Handle URL-based transformation
+      if (sourceUrl && typeof sourceUrl === "string" && sourceUrl.trim()) {
+        // URL validation and SSRF protection
+        let parsedUrl: URL;
+        try {
+          parsedUrl = new URL(sourceUrl.trim());
+        } catch {
+          return res.status(400).json({ message: "Invalid URL format" });
+        }
+        
+        // Only allow https
+        if (parsedUrl.protocol !== "https:") {
+          return res.status(400).json({ message: "Only HTTPS URLs are allowed for security" });
+        }
+        
+        // Block internal/private hostnames and IPs
+        const hostname = parsedUrl.hostname.toLowerCase();
+        const blockedPatterns = [
+          /^localhost$/i,
+          /^127\./,
+          /^10\./,
+          /^192\.168\./,
+          /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+          /^169\.254\./,
+          /^0\./,
+          /\.local$/i,
+          /\.internal$/i,
+          /\.localhost$/i,
+          /^metadata\./i,
+          /^169\.254\.169\.254$/,
+        ];
+        
+        if (blockedPatterns.some(pattern => pattern.test(hostname))) {
+          return res.status(400).json({ message: "URLs to internal or private networks are not allowed" });
+        }
+        
+        // Block IPv4 address literals
+        if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+          return res.status(400).json({ message: "Direct IP addresses are not allowed. Please use a domain name." });
+        }
+        
+        // Block IPv6 address literals (URLs use [::1] format)
+        if (hostname.startsWith('[') || /^[0-9a-f:]+$/i.test(hostname)) {
+          return res.status(400).json({ message: "IPv6 addresses are not allowed. Please use a domain name." });
+        }
+        
+        // DNS resolution check - verify the resolved IP is public (prevents DNS rebinding)
+        try {
+          const addresses = await dns.lookup(hostname, { all: true });
+          for (const addr of addresses) {
+            const ip = addr.address;
+            // Check IPv4 private/internal ranges
+            if (addr.family === 4) {
+              if (
+                ip.startsWith('127.') ||
+                ip.startsWith('10.') ||
+                ip.startsWith('192.168.') ||
+                /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip) ||
+                ip.startsWith('169.254.') ||
+                ip.startsWith('0.') ||
+                ip === '255.255.255.255'
+              ) {
+                return res.status(400).json({ message: "URL resolves to a private or internal network address" });
+              }
+            }
+            // Check IPv6 loopback, private ranges, and IPv4-mapped/translated addresses
+            if (addr.family === 6) {
+              const ipLower = ip.toLowerCase();
+              
+              // Helper to check if an IPv4 address is private/internal
+              const isPrivateIPv4 = (ipv4: string): boolean => {
+                return (
+                  ipv4.startsWith('127.') ||
+                  ipv4.startsWith('10.') ||
+                  ipv4.startsWith('192.168.') ||
+                  /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ipv4) ||
+                  ipv4.startsWith('169.254.') ||
+                  ipv4.startsWith('0.') ||
+                  ipv4 === '255.255.255.255'
+                );
+              };
+              
+              // Extract IPv4 from various mapped/translated formats:
+              // - ::ffff:a.b.c.d (IPv4-mapped)
+              // - ::ffff:0:a.b.c.d (IPv4-translated)
+              // - 64:ff9b::a.b.c.d (NAT64)
+              const ipv4Patterns = [
+                /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i,
+                /^::ffff:0:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i,
+                /^64:ff9b::(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i,
+                /^::ffff:0:0:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i,
+              ];
+              
+              for (const pattern of ipv4Patterns) {
+                const match = ipLower.match(pattern);
+                if (match && isPrivateIPv4(match[1])) {
+                  return res.status(400).json({ message: "URL resolves to a private or internal network address" });
+                }
+              }
+              
+              // Also check if IPv4 is embedded as hex octets (::ffff:7f00:1 = 127.0.0.1)
+              const hexMappedMatch = ipLower.match(/^::ffff:([0-9a-f]+):([0-9a-f]+)$/i);
+              if (hexMappedMatch) {
+                const high = parseInt(hexMappedMatch[1], 16);
+                const low = parseInt(hexMappedMatch[2], 16);
+                const embeddedIpv4 = `${(high >> 8) & 0xff}.${high & 0xff}.${(low >> 8) & 0xff}.${low & 0xff}`;
+                if (isPrivateIPv4(embeddedIpv4)) {
+                  return res.status(400).json({ message: "URL resolves to a private or internal network address" });
+                }
+              }
+              
+              // Block pure IPv6 private/loopback/link-local
+              // fe80::/10 range check (link-local: fe80::-febf::)
+              const isLinkLocal = /^fe[89ab][0-9a-f]:/i.test(ipLower);
+              if (
+                ipLower === '::1' ||
+                ipLower === '::' ||
+                ipLower.startsWith('fc') ||
+                ipLower.startsWith('fd') ||
+                isLinkLocal
+              ) {
+                return res.status(400).json({ message: "URL resolves to a private or internal network address" });
+              }
+            }
+          }
+        } catch (dnsError: any) {
+          console.error("DNS lookup error:", dnsError);
+          return res.status(400).json({ message: "Could not resolve URL hostname" });
+        }
+        
+        // Validate metadata fields against enums
+        if (contentSourceType && !VALID_CONTENT_SOURCE_TYPES.includes(contentSourceType)) {
+          return res.status(400).json({ message: "Invalid content source type" });
+        }
+        if (contentIndustry && !VALID_CONTENT_INDUSTRIES.includes(contentIndustry)) {
+          return res.status(400).json({ message: "Invalid content industry" });
+        }
+        if (contentCategory && !VALID_CONTENT_CATEGORIES.includes(contentCategory)) {
+          return res.status(400).json({ message: "Invalid content category" });
+        }
+        if (contentGoal && !VALID_CONTENT_GOALS.includes(contentGoal)) {
+          return res.status(400).json({ message: "Invalid content goal" });
+        }
+        
+        try {
+          const urlResponse = await fetch(parsedUrl.toString(), {
+            headers: {
+              "User-Agent": "StoryFlix-Bot/1.0 (Content Transformer)",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            },
+            signal: AbortSignal.timeout(30000), // 30s timeout
+            redirect: "manual", // Block redirects to prevent SSRF via redirect to internal networks
+          });
+          
+          // Reject redirects - they could point to internal resources
+          if (urlResponse.status >= 300 && urlResponse.status < 400) {
+            return res.status(400).json({ message: "URL redirects are not supported. Please provide the final destination URL." });
+          }
+          
+          if (!urlResponse.ok) {
+            return res.status(400).json({ message: `Failed to fetch URL: ${urlResponse.status} ${urlResponse.statusText}` });
+          }
+          
+          const contentType = urlResponse.headers.get("content-type") || "";
+          const htmlContent = await urlResponse.text();
+          
+          // Basic HTML to text extraction (strip tags, normalize whitespace)
+          sourceText = htmlContent
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+            .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+            .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
+            .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+            .replace(/<[^>]+>/g, " ")
+            .replace(/&nbsp;/g, " ")
+            .replace(/&amp;/g, "&")
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/\s+/g, " ")
+            .trim();
+          
+          detectedSourceType = "url";
+          sourceFileName = parsedUrl.hostname;
+        } catch (fetchError: any) {
+          console.error("URL fetch error:", fetchError);
+          return res.status(400).json({ message: `Failed to fetch URL: ${fetchError.message || "Network error"}` });
+        }
+      } else if (req.file) {
         sourceFileName = req.file.originalname;
         
         // Save file for later reference
@@ -2653,20 +2850,26 @@ export async function registerRoutes(
         const ext = path.extname(sourceFileName).toLowerCase();
         if (ext === ".pdf") {
           sourceText = await extractTextFromFile(sourceFilePath);
+          detectedSourceType = "pdf";
         } else {
           sourceText = req.file.buffer.toString("utf8");
         }
       }
       
       if (!sourceText || sourceText.trim().length === 0) {
-        return res.status(400).json({ message: "No content provided. Upload a file or provide text." });
+        return res.status(400).json({ message: "No content provided. Upload a file, provide text, or enter a URL." });
       }
       
       const job = await storage.createTransformationJob({
         userId: req.user!.id,
-        sourceType: "unknown",
+        sourceType: detectedSourceType,
         sourceFileName,
         sourceFilePath,
+        sourceUrl: sourceUrl?.trim() || null,
+        contentSourceType: contentSourceType || null,
+        contentIndustry: contentIndustry || null,
+        contentCategory: contentCategory || null,
+        contentGoal: contentGoal || null,
         status: "queued",
         currentStage: 0,
         stageStatuses: {

@@ -11,7 +11,8 @@ import {
   Check, 
   Clock, 
   Loader2,
-  Download
+  Download,
+  Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,6 +90,11 @@ function StatusBadge({ status }: { status: TransformationJob["status"] }) {
 function CreateTransformationForm({ onSuccess }: { onSuccess: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [contentSourceType, setContentSourceType] = useState("");
+  const [contentIndustry, setContentIndustry] = useState("");
+  const [contentCategory, setContentCategory] = useState("");
+  const [contentGoal, setContentGoal] = useState("");
   const [hookPackCount, setHookPackCount] = useState("3");
   const [releaseMode, setReleaseMode] = useState("hybrid");
   const { toast } = useToast();
@@ -110,6 +116,11 @@ function CreateTransformationForm({ onSuccess }: { onSuccess: () => void }) {
       toast({ title: "Transformation started", description: "Your story is being processed." });
       setFile(null);
       setText("");
+      setSourceUrl("");
+      setContentSourceType("");
+      setContentIndustry("");
+      setContentCategory("");
+      setContentGoal("");
       onSuccess();
     },
     onError: (err: Error) => {
@@ -121,12 +132,18 @@ function CreateTransformationForm({ onSuccess }: { onSuccess: () => void }) {
     e.preventDefault();
     const formData = new FormData();
     
-    if (file) {
+    if (sourceUrl.trim()) {
+      formData.append("sourceUrl", sourceUrl.trim());
+      if (contentSourceType) formData.append("contentSourceType", contentSourceType);
+      if (contentIndustry) formData.append("contentIndustry", contentIndustry);
+      if (contentCategory) formData.append("contentCategory", contentCategory);
+      if (contentGoal) formData.append("contentGoal", contentGoal);
+    } else if (file) {
       formData.append("file", file);
     } else if (text.trim()) {
       formData.append("text", text);
     } else {
-      toast({ title: "Error", description: "Please upload a file or enter text", variant: "destructive" });
+      toast({ title: "Error", description: "Please enter a URL, upload a file, or enter text", variant: "destructive" });
       return;
     }
     
@@ -150,6 +167,110 @@ function CreateTransformationForm({ onSuccess }: { onSuccess: () => void }) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="sourceUrl">Import from URL</Label>
+            <Input
+              id="sourceUrl"
+              type="url"
+              placeholder="https://example.com/article..."
+              value={sourceUrl}
+              onChange={(e) => setSourceUrl(e.target.value)}
+              disabled={!!file || !!text.trim()}
+              data-testid="input-source-url"
+            />
+            <p className="text-xs text-muted-foreground">
+              Enter a website, blog post, or article URL to transform into a story
+            </p>
+          </div>
+          
+          {sourceUrl.trim() && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-muted/50 rounded-lg">
+              <div className="space-y-1">
+                <Label htmlFor="contentSourceType" className="text-xs">Source Type</Label>
+                <Select value={contentSourceType} onValueChange={setContentSourceType}>
+                  <SelectTrigger className="h-8 text-sm" data-testid="select-content-source-type">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="website">Website</SelectItem>
+                    <SelectItem value="blog_post">Blog Post</SelectItem>
+                    <SelectItem value="news_article">News Article</SelectItem>
+                    <SelectItem value="documentation">Documentation</SelectItem>
+                    <SelectItem value="social_media">Social Media</SelectItem>
+                    <SelectItem value="press_release">Press Release</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="contentIndustry" className="text-xs">Industry</Label>
+                <Select value={contentIndustry} onValueChange={setContentIndustry}>
+                  <SelectTrigger className="h-8 text-sm" data-testid="select-content-industry">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="technology">Technology</SelectItem>
+                    <SelectItem value="healthcare">Healthcare</SelectItem>
+                    <SelectItem value="finance">Finance</SelectItem>
+                    <SelectItem value="entertainment">Entertainment</SelectItem>
+                    <SelectItem value="education">Education</SelectItem>
+                    <SelectItem value="retail">Retail</SelectItem>
+                    <SelectItem value="travel">Travel</SelectItem>
+                    <SelectItem value="food">Food & Beverage</SelectItem>
+                    <SelectItem value="sports">Sports</SelectItem>
+                    <SelectItem value="real_estate">Real Estate</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="contentCategory" className="text-xs">Category</Label>
+                <Select value={contentCategory} onValueChange={setContentCategory}>
+                  <SelectTrigger className="h-8 text-sm" data-testid="select-content-category">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="news">News</SelectItem>
+                    <SelectItem value="narrative">Narrative</SelectItem>
+                    <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="educational">Educational</SelectItem>
+                    <SelectItem value="entertainment">Entertainment</SelectItem>
+                    <SelectItem value="documentary">Documentary</SelectItem>
+                    <SelectItem value="promotional">Promotional</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="contentGoal" className="text-xs">Goal</Label>
+                <Select value={contentGoal} onValueChange={setContentGoal}>
+                  <SelectTrigger className="h-8 text-sm" data-testid="select-content-goal">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="brand_awareness">Brand Awareness</SelectItem>
+                    <SelectItem value="lead_generation">Lead Generation</SelectItem>
+                    <SelectItem value="audience_engagement">Audience Engagement</SelectItem>
+                    <SelectItem value="product_launch">Product Launch</SelectItem>
+                    <SelectItem value="thought_leadership">Thought Leadership</SelectItem>
+                    <SelectItem value="storytelling">Storytelling</SelectItem>
+                    <SelectItem value="education">Education</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          
+          <div className="relative flex items-center py-2">
+            <div className="flex-grow border-t border-muted-foreground/20"></div>
+            <span className="flex-shrink mx-4 text-xs text-muted-foreground uppercase">or</span>
+            <div className="flex-grow border-t border-muted-foreground/20"></div>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="file">Upload File</Label>
@@ -158,6 +279,7 @@ function CreateTransformationForm({ onSuccess }: { onSuccess: () => void }) {
                 type="file"
                 accept=".txt,.pdf,.md,.json"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
+                disabled={!!sourceUrl.trim()}
                 data-testid="input-file"
               />
               <p className="text-xs text-muted-foreground">
@@ -186,7 +308,7 @@ function CreateTransformationForm({ onSuccess }: { onSuccess: () => void }) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={6}
-              disabled={!!file}
+              disabled={!!file || !!sourceUrl.trim()}
               data-testid="input-text"
             />
           </div>
@@ -230,7 +352,7 @@ function CreateTransformationForm({ onSuccess }: { onSuccess: () => void }) {
           
           <Button
             type="submit"
-            disabled={createMutation.isPending || (!file && !text.trim())}
+            disabled={createMutation.isPending || (!file && !text.trim() && !sourceUrl.trim())}
             className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white h-12"
             data-testid="button-start-transformation"
           >
