@@ -52,6 +52,7 @@ export default function Admin() {
   const [newUniverseDescription, setNewUniverseDescription] = useState("");
   const [previewCard, setPreviewCard] = useState<any>(null);
   const [generatingCardId, setGeneratingCardId] = useState<number | null>(null);
+  const [generatingVideoCardId, setGeneratingVideoCardId] = useState<number | null>(null);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [showDeleteUniverseDialog, setShowDeleteUniverseDialog] = useState(false);
   const [showEditUniverseDialog, setShowEditUniverseDialog] = useState(false);
@@ -165,6 +166,29 @@ export default function Admin() {
       toast({
         title: "Generation Failed",
         description: error.message || "Failed to generate image",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const generateVideoMutation = useMutation({
+    mutationFn: (cardId: number) => api.generateCardVideo(cardId),
+    onMutate: (cardId) => {
+      setGeneratingVideoCardId(cardId);
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["cards", selectedUniverse?.id] });
+      setGeneratingVideoCardId(null);
+      toast({
+        title: "Video Generated",
+        description: `Video created for "${result.cardTitle}"`,
+      });
+    },
+    onError: (error: any, cardId) => {
+      setGeneratingVideoCardId(null);
+      toast({
+        title: "Video Generation Failed",
+        description: error.message || "Failed to generate video",
         variant: "destructive",
       });
     },
@@ -660,6 +684,31 @@ export default function Admin() {
                                              )}
                                              <span className="hidden sm:inline">
                                                {isGenerating ? 'Generating...' : card.imageGenerated ? 'Regenerate' : 'Generate AI Image'}
+                                             </span>
+                                           </Button>
+                                         )}
+                                         
+                                         {/* Video generation button - only show when image is available */}
+                                         {isEngineGenerated && displayImage && (
+                                           <Button 
+                                             variant="outline" 
+                                             size="sm" 
+                                             className={`h-7 text-xs gap-1 ${
+                                               card.videoGenerated 
+                                                 ? 'border-green-500/30 text-green-600 hover:bg-green-500/10'
+                                                 : 'border-blue-500/30 text-blue-600 hover:bg-blue-500/10'
+                                             }`}
+                                             onClick={() => generateVideoMutation.mutate(card.id)}
+                                             disabled={generatingVideoCardId === card.id}
+                                             data-testid={`button-generate-video-${card.id}`}
+                                           >
+                                             {generatingVideoCardId === card.id ? (
+                                               <Loader2 className="w-3 h-3 animate-spin" />
+                                             ) : (
+                                               <Video className="w-3 h-3" />
+                                             )}
+                                             <span className="hidden sm:inline">
+                                               {generatingVideoCardId === card.id ? 'Generating...' : card.videoGenerated ? 'Regenerate Video' : 'Generate Video'}
                                              </span>
                                            </Button>
                                          )}
