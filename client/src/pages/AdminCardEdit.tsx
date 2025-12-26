@@ -45,6 +45,8 @@ export default function AdminCardEdit() {
   
   const [previewPlaying, setPreviewPlaying] = useState(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [videoGenStartTime, setVideoGenStartTime] = useState<number | null>(null);
+  const [videoGenElapsed, setVideoGenElapsed] = useState(0);
 
   const { data: card, isLoading: cardLoading } = useQuery({
     queryKey: ["card", cardId],
@@ -91,6 +93,21 @@ export default function AdminCardEdit() {
       setVideoModel(videoConfig.models[0].id);
     }
   }, [videoConfig, videoModel]);
+  
+  useEffect(() => {
+    if (card?.videoGenerationStatus === "processing") {
+      if (!videoGenStartTime) {
+        setVideoGenStartTime(Date.now());
+      }
+      const interval = setInterval(() => {
+        setVideoGenElapsed(Math.floor((Date.now() - (videoGenStartTime || Date.now())) / 1000));
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setVideoGenStartTime(null);
+      setVideoGenElapsed(0);
+    }
+  }, [card?.videoGenerationStatus, videoGenStartTime]);
 
   useEffect(() => {
     if (card) {
@@ -293,6 +310,7 @@ export default function AdminCardEdit() {
   
   const generateVideoMutation = useMutation({
     mutationFn: async () => {
+      setVideoGenStartTime(Date.now());
       const res = await fetch(`/api/cards/${cardId}/video/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1002,10 +1020,59 @@ export default function AdminCardEdit() {
                       )}
 
                       {card.videoGenerationStatus === "processing" && (
-                        <p className="text-sm text-muted-foreground flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Video is being generated... This typically takes 5-14 minutes.
-                        </p>
+                        <div className="space-y-3 p-3 bg-muted/50 rounded-lg border">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium flex items-center gap-2">
+                              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                              Generating video...
+                            </p>
+                            <span className="text-sm font-mono text-muted-foreground">
+                              {Math.floor(videoGenElapsed / 60)}:{(videoGenElapsed % 60).toString().padStart(2, '0')}
+                            </span>
+                          </div>
+                          
+                          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-1000"
+                              style={{ width: `${Math.min(95, (videoGenElapsed / 600) * 100)}%` }}
+                            />
+                          </div>
+                          
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className={videoGenElapsed < 30 ? "text-primary font-medium" : ""}>
+                              {videoGenElapsed < 30 ? "→ " : "✓ "}Preparing
+                            </span>
+                            <span className="text-muted-foreground/50">•</span>
+                            <span className={videoGenElapsed >= 30 && videoGenElapsed < 180 ? "text-primary font-medium" : ""}>
+                              {videoGenElapsed >= 30 && videoGenElapsed < 180 ? "→ " : videoGenElapsed >= 180 ? "✓ " : ""}Processing scene
+                            </span>
+                            <span className="text-muted-foreground/50">•</span>
+                            <span className={videoGenElapsed >= 180 && videoGenElapsed < 480 ? "text-primary font-medium" : ""}>
+                              {videoGenElapsed >= 180 && videoGenElapsed < 480 ? "→ " : videoGenElapsed >= 480 ? "✓ " : ""}Rendering frames
+                            </span>
+                            <span className="text-muted-foreground/50">•</span>
+                            <span className={videoGenElapsed >= 480 ? "text-primary font-medium" : ""}>
+                              {videoGenElapsed >= 480 ? "→ " : ""}Finalizing
+                            </span>
+                          </div>
+                          
+                          <p className="text-xs text-muted-foreground">
+                            Typically completes in 5-10 minutes. You can leave this page - we'll keep generating.
+                          </p>
+                          
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => checkVideoStatusMutation.mutate()}
+                            disabled={checkVideoStatusMutation.isPending}
+                            className="gap-2 w-full"
+                            data-testid="button-check-video-status-inline"
+                          >
+                            {checkVideoStatusMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                            Check for updates
+                          </Button>
+                        </div>
                       )}
                     </div>
                   )}
