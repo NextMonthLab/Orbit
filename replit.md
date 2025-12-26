@@ -27,6 +27,14 @@ Preferred communication style: Simple, everyday language.
 - **Source Guardrails System**: Extracts and enforces `coreThemes`, `toneConstraints`, `factualBoundaries`, `exclusions`, `quotableElements`, `sensitiveTopics`, and `creativeLatitude` from source material to ensure AI accuracy and consistency.
 - **Export & Distribution**: Supports canonical interactive experience, embeddable interactive experience, and standalone video export with CTAs driving users back to the canonical platform.
 - **Soundtrack Management**: Audio library for background music with batch import, metadata editing, and per-universe audio settings (off, continuous).
+- **Role-Based Access Control**: Three-tier user system (viewer/creator/admin) with subscription-based entitlements.
+  - **Viewer**: Default role, can consume stories and chat with characters.
+  - **Creator**: Can build stories via Transform feature, with tiered capabilities based on subscription.
+  - **Admin**: Full platform access.
+- **Subscription Tiers**: Free, Pro ($19/mo), and Business ($49/mo) with differentiated feature access:
+  - **Free**: 1 universe, 5 cards, basic story creation.
+  - **Pro**: Unlimited universes, 50 cards/story, custom characters, AI images, voice narration, analytics.
+  - **Business**: Everything in Pro plus unlimited cards, AI video generation, export/distribution.
 
 ### System Design Choices
 - **Monorepo Structure**: Client, server, and shared code managed within a single repository for streamlined development.
