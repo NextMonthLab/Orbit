@@ -143,7 +143,7 @@ function getImageBase64(imagePath: string): string {
   let filePath = imagePath;
   
   if (imagePath.startsWith("/uploads/")) {
-    filePath = path.join(process.cwd(), "public", imagePath);
+    filePath = path.join(process.cwd(), imagePath.substring(1));
   } else if (!path.isAbsolute(imagePath)) {
     filePath = path.join(process.cwd(), imagePath);
   }
