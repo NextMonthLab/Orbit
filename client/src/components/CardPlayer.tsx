@@ -324,7 +324,7 @@ export default function CardPlayer({
               </div>
 
               {card.sceneText && (
-                <p className="text-sm text-white/70 leading-relaxed mb-4 line-clamp-3 italic border-l-2 border-primary/50 pl-3">
+                <p className="text-sm text-white/70 leading-relaxed mb-4 italic border-l-2 border-primary/50 pl-3">
                   "{card.sceneText}"
                 </p>
               )}
