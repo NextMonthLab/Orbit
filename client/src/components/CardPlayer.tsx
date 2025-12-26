@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Card } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, ChevronUp, Share2, BookOpen, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import { MessageSquare, ChevronUp, Share2, BookOpen, RotateCcw, Volume2, VolumeX, Film, Image } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import MessageBoard from "@/components/MessageBoard";
 
@@ -63,10 +63,15 @@ export default function CardPlayer({
   const [showSwipeHint, setShowSwipeHint] = useState(false);
   const [dismissedRotateHint, setDismissedRotateHint] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const isTabletLandscape = useIsTabletLandscape();
   
   const hasNarration = card.narrationEnabled && card.narrationStatus === "ready" && card.narrationAudioUrl;
+  const hasVideo = card.videoGenerated && card.generatedVideoUrl && card.videoGenerationStatus === "completed";
+  const hasImage = !!card.image;
+  const hasBothMediaTypes = hasImage && hasVideo;
 
   // Reset all state when card changes
   useEffect(() => {
@@ -74,13 +79,24 @@ export default function CardPlayer({
     setCaptionIndex(0);
     setShowSwipeHint(false);
     setIsPlaying(autoplay);
+    setShowVideo(!!hasVideo); // Default to video if available
     
     // Stop any playing audio when card changes
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-  }, [card.id, autoplay]);
+    // Stop any playing video when card changes
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }, [card.id, autoplay, hasVideo]);
+  
+  const toggleMediaType = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowVideo(prev => !prev);
+  }, []);
   
   // Play/pause audio based on phase
   useEffect(() => {
@@ -191,10 +207,23 @@ export default function CardPlayer({
             <motion.div 
               className="absolute inset-0 w-full h-full flex items-center justify-center"
               initial={{ scale: 1 }}
-              animate={{ scale: isPlaying && !isTabletLandscape ? 1.15 : 1 }}
+              animate={{ scale: isPlaying && !isTabletLandscape && !showVideo ? 1.15 : 1 }}
               transition={{ duration: 20, ease: "linear" }}
             >
-              {card.image ? (
+              {showVideo && hasVideo ? (
+                <video
+                  ref={videoRef}
+                  src={card.generatedVideoUrl!}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className={fullScreen && isTabletLandscape 
+                    ? "max-w-full max-h-full object-contain" 
+                    : "w-full h-full object-cover"}
+                  data-testid="video-player"
+                />
+              ) : card.image ? (
                 <img
                   src={card.image}
                   alt={card.title}
@@ -213,19 +242,40 @@ export default function CardPlayer({
               <span className="text-xs font-mono text-white/60 bg-black/30 px-2 py-1 rounded backdrop-blur-sm">
                 DAY {card.dayIndex}
               </span>
-              {hasNarration && (
-                <button
-                  onClick={toggleAudioMute}
-                  className="p-2 bg-black/30 rounded-full backdrop-blur-sm hover:bg-black/50 transition-colors"
-                  data-testid="button-toggle-audio"
-                >
-                  {audioMuted ? (
-                    <VolumeX className="w-4 h-4 text-white/70" />
-                  ) : (
-                    <Volume2 className="w-4 h-4 text-white/70" />
-                  )}
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {hasBothMediaTypes && (
+                  <button
+                    onClick={toggleMediaType}
+                    className="p-2 bg-black/30 rounded-full backdrop-blur-sm hover:bg-black/50 transition-colors flex items-center gap-1"
+                    data-testid="button-toggle-media"
+                  >
+                    {showVideo ? (
+                      <>
+                        <Image className="w-4 h-4 text-white/70" />
+                        <span className="text-xs text-white/70">Image</span>
+                      </>
+                    ) : (
+                      <>
+                        <Film className="w-4 h-4 text-white/70" />
+                        <span className="text-xs text-white/70">Video</span>
+                      </>
+                    )}
+                  </button>
+                )}
+                {hasNarration && (
+                  <button
+                    onClick={toggleAudioMute}
+                    className="p-2 bg-black/30 rounded-full backdrop-blur-sm hover:bg-black/50 transition-colors"
+                    data-testid="button-toggle-audio"
+                  >
+                    {audioMuted ? (
+                      <VolumeX className="w-4 h-4 text-white/70" />
+                    ) : (
+                      <Volume2 className="w-4 h-4 text-white/70" />
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
             
             {hasNarration && (

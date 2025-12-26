@@ -14,6 +14,9 @@ export interface Card {
   narrationAudioUrl?: string | null;
   narrationText?: string | null;
   narrationStatus?: string | null;
+  generatedVideoUrl?: string | null;
+  videoGenerated?: boolean;
+  videoGenerationStatus?: string | null;
 }
 
 export interface Character {
