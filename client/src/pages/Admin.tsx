@@ -61,6 +61,7 @@ export default function Admin() {
   const [editIntroCardsCount, setEditIntroCardsCount] = useState(3);
   const [editTimezone, setEditTimezone] = useState("UTC");
   const [generatingAllImages, setGeneratingAllImages] = useState(false);
+  const [generatingAllVideos, setGeneratingAllVideos] = useState(false);
   const [editAudioMode, setEditAudioMode] = useState<string>("off");
   const [editDefaultTrackId, setEditDefaultTrackId] = useState<number | null>(null);
   const [editFadeInMs, setEditFadeInMs] = useState(500);
@@ -224,6 +225,44 @@ export default function Admin() {
     toast({
       title: "Bulk generation complete",
       description: `Generated ${successCount} images${errorCount > 0 ? `, ${errorCount} failed` : ''}.`,
+    });
+  };
+
+  const handleGenerateAllVideos = async () => {
+    if (!cards || !selectedUniverse) return;
+    
+    const pendingCards = cards.filter(c => {
+      const hasImage = !!(c.generatedImageUrl || c.imagePath);
+      return hasImage && !c.videoGenerated;
+    });
+    
+    if (pendingCards.length === 0) {
+      toast({
+        title: "No videos to generate",
+        description: "All cards with images already have videos, or no images are available.",
+      });
+      return;
+    }
+    
+    setGeneratingAllVideos(true);
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const card of pendingCards) {
+      try {
+        await api.generateCardVideo(card.id);
+        successCount++;
+      } catch (error) {
+        errorCount++;
+      }
+    }
+    
+    queryClient.invalidateQueries({ queryKey: ["cards", selectedUniverse.id] });
+    setGeneratingAllVideos(false);
+    
+    toast({
+      title: "Video generation complete",
+      description: `Generated ${successCount} videos${errorCount > 0 ? `, ${errorCount} failed` : ''}.`,
     });
   };
 
@@ -439,17 +478,17 @@ export default function Admin() {
                 </Button>
               </div>
               
-              {/* Generate AI Images - Prominent action for engine-generated universes */}
+              {/* Generate AI Content - Prominent actions for engine-generated universes */}
               {isEngineGenerated && (
                 <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg p-3">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                       <p className="font-medium flex items-center gap-2">
-                        <PhotoIcon className="w-4 h-4 text-purple-500" />
-                        Generate AI Images
+                        <Clapperboard className="w-4 h-4 text-purple-500" />
+                        Generate AI Content
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Generate missing images for published cards using the composed prompt.
+                        Generate missing images and videos for cards using AI.
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -458,7 +497,7 @@ export default function Admin() {
                         size="sm" 
                         className="gap-1.5 border-purple-500/50 text-purple-600 hover:bg-purple-500/10"
                         onClick={handleGenerateAllImages}
-                        disabled={generatingAllImages}
+                        disabled={generatingAllImages || generatingAllVideos}
                         data-testid="button-generate-all-images"
                       >
                         {generatingAllImages ? (
@@ -466,7 +505,22 @@ export default function Admin() {
                         ) : (
                           <PhotoIcon className="w-3.5 h-3.5" />
                         )}
-                        {generatingAllImages ? 'Generating...' : 'Generate All Missing'}
+                        {generatingAllImages ? 'Generating...' : 'Generate Images'}
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="sm" 
+                        className="gap-1.5 border-blue-500/50 text-blue-600 hover:bg-blue-500/10"
+                        onClick={handleGenerateAllVideos}
+                        disabled={generatingAllVideos || generatingAllImages}
+                        data-testid="button-generate-all-videos"
+                      >
+                        {generatingAllVideos ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Video className="w-3.5 h-3.5" />
+                        )}
+                        {generatingAllVideos ? 'Generating...' : 'Generate Videos'}
                       </Button>
                     </div>
                   </div>
