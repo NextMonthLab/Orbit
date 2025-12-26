@@ -62,7 +62,7 @@ export default function ForBrands() {
             <img 
               src="https://res.cloudinary.com/drl0fxrkq/image/upload/c_crop,w_1920,h_500/v1766782089/18477D76-902C-4604-95AA-121B881D0618_xwlgoc.png" 
               alt="NextScene" 
-              className="h-[100px] cursor-pointer" 
+              className="h-[75px] cursor-pointer" 
               data-testid="link-logo"
             />
           </Link>
@@ -247,7 +247,7 @@ export default function ForBrands() {
             <img 
               src="https://res.cloudinary.com/drl0fxrkq/image/upload/c_crop,w_1920,h_500/v1766782089/18477D76-902C-4604-95AA-121B881D0618_xwlgoc.png" 
               alt="NextScene" 
-              className="h-20"
+              className="h-[60px]"
             />
             <div className="flex items-center gap-8">
               <Link href="/for/brands" className="text-white text-sm transition-colors">Brands</Link>
