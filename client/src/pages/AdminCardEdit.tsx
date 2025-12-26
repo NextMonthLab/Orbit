@@ -1064,7 +1064,7 @@ export default function AdminCardEdit() {
                   {/* Uploaded media list */}
                   {cardMedia && cardMedia.length > 0 && (
                     <div className="space-y-2">
-                      <Label>Uploaded Media</Label>
+                      <Label>Card Media</Label>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {cardMedia.map((asset: any) => (
                           <div 
@@ -1075,7 +1075,7 @@ export default function AdminCardEdit() {
                             {asset.mediaType === 'image' ? (
                               <img 
                                 src={asset.storageKey} 
-                                alt={asset.originalFilename || 'Uploaded image'}
+                                alt={asset.altText || asset.originalFilename || 'Card image'}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -1085,6 +1085,23 @@ export default function AdminCardEdit() {
                                 muted
                               />
                             )}
+                            {/* Source badge */}
+                            <div className="absolute top-1 left-1">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                asset.source === 'scraped' 
+                                  ? 'bg-blue-500/90 text-white' 
+                                  : asset.source === 'ai_generated'
+                                  ? 'bg-purple-500/90 text-white'
+                                  : 'bg-green-500/90 text-white'
+                              }`}>
+                                {asset.source === 'scraped' ? 'Scraped' : asset.source === 'ai_generated' ? 'AI' : 'Uploaded'}
+                              </span>
+                              {asset.relevanceScore && (
+                                <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-black/70 text-white">
+                                  {asset.relevanceScore}%
+                                </span>
+                              )}
+                            </div>
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <Button
                                 type="button"
@@ -1100,7 +1117,20 @@ export default function AdminCardEdit() {
                               </Button>
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1">
-                              <p className="text-xs text-white truncate">{asset.originalFilename}</p>
+                              <p className="text-xs text-white truncate">
+                                {asset.source === 'scraped' && asset.sourceUrl 
+                                  ? asset.altText || asset.caption || 'Scraped image'
+                                  : asset.originalFilename}
+                              </p>
+                              {asset.source === 'scraped' && asset.sourceUrl && (() => {
+                                try {
+                                  return (
+                                    <p className="text-[10px] text-gray-300 truncate">
+                                      From: {new URL(asset.sourceUrl).hostname}
+                                    </p>
+                                  );
+                                } catch { return null; }
+                              })()}
                             </div>
                           </div>
                         ))}

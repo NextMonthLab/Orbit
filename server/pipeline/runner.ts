@@ -629,7 +629,7 @@ async function harvestAndAssignImages(
       
       let relevanceScore = image.relevanceScore;
       
-      const cardText = `${card.title} ${card.sceneText || ''} ${(card.captions || []).join(' ')}`.toLowerCase();
+      const cardText = `${card.title} ${card.sceneText || ''} ${(card.captionsJson || []).join(' ')}`.toLowerCase();
       const imageText = `${image.altText || ''} ${image.caption || ''}`.toLowerCase();
       
       if (imageText && cardText) {
