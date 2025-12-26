@@ -360,6 +360,119 @@ export async function registerRoutes(
     }
   });
   
+  // Create custom character with knowledge source (Pro/Business feature)
+  app.post("/api/characters/custom", requireAdmin, upload.single("knowledgeFile"), async (req, res) => {
+    try {
+      const { name, role, description, systemPrompt, guardrails, universeId, knowledgeSourceUrl } = req.body;
+      
+      if (!name || !role || !universeId) {
+        return res.status(400).json({ message: "Name, role, and universe are required" });
+      }
+      
+      // Generate slug from name
+      const characterSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      
+      let knowledgeContent = "";
+      let knowledgeDocuments: any[] = [];
+      let trainingStatus: "pending" | "processing" | "ready" | "failed" = "ready";
+      
+      // Process knowledge source URL if provided
+      if (knowledgeSourceUrl) {
+        trainingStatus = "processing";
+        try {
+          // Fetch URL content
+          const response = await fetch(knowledgeSourceUrl, {
+            headers: { "User-Agent": "StoryFlix-Bot/1.0" },
+          });
+          if (response.ok) {
+            const html = await response.text();
+            // Extract text content (simple HTML stripping)
+            knowledgeContent = html
+              .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .slice(0, 50000); // Limit to 50k chars
+            
+            knowledgeDocuments.push({
+              fileName: new URL(knowledgeSourceUrl).hostname,
+              fileType: "url",
+              uploadedAt: new Date().toISOString(),
+              sourceUrl: knowledgeSourceUrl,
+              contentPreview: knowledgeContent.slice(0, 200),
+            });
+            trainingStatus = "ready";
+          }
+        } catch (err) {
+          console.error("Error fetching knowledge URL:", err);
+          trainingStatus = "failed";
+        }
+      }
+      
+      // Process uploaded file if provided
+      if (req.file) {
+        trainingStatus = "processing";
+        try {
+          let fileContent = "";
+          
+          if (req.file.mimetype === "application/pdf") {
+            // Parse PDF
+            const pdfParseModule = await import("pdf-parse") as any;
+            const pdfParse = pdfParseModule.default || pdfParseModule;
+            const pdfData = await pdfParse(req.file.buffer);
+            fileContent = pdfData.text.slice(0, 50000);
+          } else {
+            // Plain text files
+            fileContent = req.file.buffer.toString("utf-8").slice(0, 50000);
+          }
+          
+          knowledgeContent += (knowledgeContent ? "\n\n" : "") + fileContent;
+          knowledgeDocuments.push({
+            fileName: req.file.originalname,
+            fileType: req.file.originalname.split('.').pop() || "txt",
+            uploadedAt: new Date().toISOString(),
+            contentPreview: fileContent.slice(0, 200),
+          });
+          trainingStatus = "ready";
+        } catch (err) {
+          console.error("Error processing uploaded file:", err);
+          trainingStatus = "failed";
+        }
+      }
+      
+      // Build enhanced system prompt with knowledge
+      let enhancedSystemPrompt = systemPrompt || `You are ${name}, a ${role}.`;
+      if (knowledgeContent) {
+        enhancedSystemPrompt += `\n\n## Your Knowledge Base\nUse the following information to inform your responses:\n\n${knowledgeContent.slice(0, 30000)}`;
+      }
+      if (guardrails) {
+        enhancedSystemPrompt += `\n\n## Important Rules\n${guardrails}`;
+      }
+      
+      const character = await storage.createCharacter({
+        universeId: parseInt(universeId),
+        characterSlug,
+        name,
+        role,
+        description: description || null,
+        systemPrompt: enhancedSystemPrompt,
+        isCustomCharacter: true,
+        knowledgeSourceUrl: knowledgeSourceUrl || null,
+        knowledgeDocuments: knowledgeDocuments.length > 0 ? knowledgeDocuments : null,
+        knowledgeContent: knowledgeContent || null,
+        trainingStatus,
+        guardrails: guardrails || null,
+        isActive: true,
+      });
+      
+      res.json(character);
+    } catch (error) {
+      console.error("Error creating custom character:", error);
+      res.status(500).json({ message: "Error creating character" });
+    }
+  });
+  
   // ============ CARD ROUTES ============
   
   app.get("/api/cards", async (req, res) => {

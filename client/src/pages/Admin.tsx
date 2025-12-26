@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, ImageIcon, CheckCircle, Trash2, Settings, Image as PhotoIcon, Clapperboard, ExternalLink, Music, Wand2 } from "lucide-react";
+import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, ImageIcon, CheckCircle, Trash2, Settings, Image as PhotoIcon, Clapperboard, ExternalLink, Music, Wand2, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -376,6 +376,13 @@ export default function Admin() {
                     <Button className="gap-2 h-12 sm:h-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white col-span-2 sm:col-span-1" data-testid="button-create-story">
                         <Wand2 className="w-4 h-4" /> 
                         <span>Create Story</span>
+                    </Button>
+                </Link>
+                <Link href="/admin/characters/new" className="contents">
+                    <Button className="gap-2 h-12 sm:h-10" variant="outline" data-testid="button-create-character">
+                        <User className="w-4 h-4" /> 
+                        <span className="hidden sm:inline">Create Character</span>
+                        <span className="sm:hidden">Character</span>
                     </Button>
                 </Link>
                 <Link href="/admin/create" className="contents">

@@ -19,6 +19,7 @@ import AdminCardEdit from "@/pages/AdminCardEdit";
 import AdminAudio from "@/pages/AdminAudio";
 import TransformationsPage from "@/pages/admin/TransformationsPage";
 import TransformationDetailPage from "@/pages/admin/TransformationDetailPage";
+import CharacterCreatorPage from "@/pages/admin/CharacterCreatorPage";
 import AdminUniverseDetail from "@/pages/AdminUniverseDetail";
 import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/admin/cards/:id/edit" component={AdminCardEdit} />
       <Route path="/admin/transformations" component={TransformationsPage} />
       <Route path="/admin/transformations/:id" component={TransformationDetailPage} />
+      <Route path="/admin/characters/new" component={CharacterCreatorPage} />
       <Route path="/admin/universes/:id" component={AdminUniverseDetail} />
       <Route path="/admin/universes/:id/export" component={ExportPage} />
       <Route component={NotFound} />

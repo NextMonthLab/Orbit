@@ -226,6 +226,21 @@ export const imageGenerationSchema = z.object({
 
 export type ImageGeneration = z.infer<typeof imageGenerationSchema>;
 
+// Character knowledge document reference
+export const characterKnowledgeDocSchema = z.object({
+  fileName: z.string(),
+  fileType: z.string(), // "pdf", "txt", "md", "url"
+  uploadedAt: z.string(),
+  storagePath: z.string().optional(), // R2 path for uploaded files
+  sourceUrl: z.string().optional(), // Original URL if scraped
+  contentPreview: z.string().optional(), // First ~200 chars for display
+});
+
+export type CharacterKnowledgeDoc = z.infer<typeof characterKnowledgeDocSchema>;
+
+// Training status for custom characters
+export type CharacterTrainingStatus = 'pending' | 'processing' | 'ready' | 'failed';
+
 // Characters
 export const characters = pgTable("characters", {
   id: serial("id").primaryKey(),
@@ -241,6 +256,13 @@ export const characters = pgTable("characters", {
   chatProfile: jsonb("chat_profile").$type<ChatProfile>(), // How character speaks + goals + limits
   isPublicFigureSimulation: boolean("is_public_figure_simulation").default(false), // Legal clearance for real individuals
   isActive: boolean("is_active").default(true).notNull(),
+  // Custom character training fields (Pro/Business feature)
+  isCustomCharacter: boolean("is_custom_character").default(false), // True for user-created characters
+  knowledgeSourceUrl: text("knowledge_source_url"), // URL to scrape for training
+  knowledgeDocuments: jsonb("knowledge_documents").$type<CharacterKnowledgeDoc[]>(), // Uploaded docs
+  knowledgeContent: text("knowledge_content"), // Extracted text content for context
+  trainingStatus: text("training_status").$type<CharacterTrainingStatus>().default("ready"),
+  guardrails: text("guardrails"), // Custom guardrails/rules for the character
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
