@@ -19,6 +19,7 @@ import AdminCardEdit from "@/pages/AdminCardEdit";
 import AdminAudio from "@/pages/AdminAudio";
 import TransformationsPage from "@/pages/admin/TransformationsPage";
 import TransformationDetailPage from "@/pages/admin/TransformationDetailPage";
+import AdminUniverseDetail from "@/pages/AdminUniverseDetail";
 import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
 
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/admin/cards/:id/edit" component={AdminCardEdit} />
       <Route path="/admin/transformations" component={TransformationsPage} />
       <Route path="/admin/transformations/:id" component={TransformationDetailPage} />
+      <Route path="/admin/universes/:id" component={AdminUniverseDetail} />
       <Route component={NotFound} />
     </Switch>
   );
