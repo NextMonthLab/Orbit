@@ -35,32 +35,34 @@
 :root {
   /* Dark Mode Default - Cinematic Noir */
   --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
+  --foreground: 0 0% 95%;
 
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
+  --card: 240 10% 5%;
+  --card-foreground: 0 0% 95%;
 
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
+  --popover: 240 10% 5%;
+  --popover-foreground: 0 0% 95%;
 
-  --primary: 263 70% 50%; /* Deep Purple */
-  --primary-foreground: 210 40% 98%;
+  /* Refined Purple - desaturated, slightly darker, more authoritative */
+  --primary: 263 50% 45%;
+  --primary-foreground: 0 0% 98%;
 
   --secondary: 240 4% 12%;
-  --secondary-foreground: 0 0% 98%;
+  --secondary-foreground: 0 0% 95%;
 
-  --muted: 240 4% 16%;
-  --muted-foreground: 240 5% 65%;
+  --muted: 240 4% 14%;
+  --muted-foreground: 240 5% 60%;
 
-  --accent: 263 70% 50%;
+  /* Accent matches primary for consistency */
+  --accent: 263 50% 45%;
   --accent-foreground: 0 0% 98%;
 
-  --destructive: 0 62.8% 30.6%;
+  --destructive: 0 55% 35%;
   --destructive-foreground: 0 0% 98%;
 
   --border: 240 4% 16%;
   --input: 240 4% 16%;
-  --ring: 263 70% 50%;
+  --ring: 263 50% 45%;
 
   --radius: 0.5rem;
 }
@@ -74,8 +76,16 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
 }
 
-h1, h2, h3, h4, h5, h6 {
+/* Cinematic serif for hero headlines only */
+h1.font-display,
+.font-display {
   font-family: var(--font-display);
+}
+
+/* Clean sans-serif for all other headings - authoritative, not theatrical */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  font-weight: 600;
 }
 
 .ken-burns {
