@@ -1,0 +1,194 @@
+REPLIT PROMPT — StoryFlix Local LLM Task Map + Stripe Upgrade Path
+
+Context
+We are building StoryFlix: users upload media (PDF, doc, text) and the app transforms it into an interactive card story with optional AI characters, image generation, exports, and add-ons like video + voice.
+
+Key constraints
+- We must reduce costs using local LLMs in-browser whenever possible.
+- We must minimise hallucinations: outputs must stay grounded in the user’s uploaded material.
+- Cloud AI calls are paywalled and/or metered.
+- We deploy to Render with Postgres. Stripe handles subscriptions + add-on credits.
+- Admin creators must be able to edit: prompt, negative prompt, guardrails, and the “grounded references” extracted from the source.
+
+Mission
+Implement:
+(A) A Local LLM “task router” that selects the best local model for each step, with a safe fallback policy.
+(B) A Stripe-based upgrade + entitlements system with a clear user journey.
+
+========================================================
+A) LOCAL LLM PLAN (Browser) — Task Router
+========================================================
+
+1) Add a new module:
+- client/src/ai/local/taskRouter.ts
+
+Export:
+- runLocalTask(task: LocalTask, input: LocalTaskInput): Promise<LocalTaskOutput>
+- getTaskModel(task): { modelId, reasoning, limits }
+
+2) Supported tasks (LocalTask enum)
+- PASS0_NORMALISE_INPUT
+- PASS1_THEME_AND_INTENT
+- PASS2_ENTITIES_CHARACTERS_LOCATIONS
+- PASS3_CARD_OUTLINE_AND_ORDER
+- PASS4_CARD_COPY_DRAFT
+- PASS5_QA_AND_GUARDRAILS_CHECK
+- MICRO_COPY_TITLES_CAPTIONS
+- SUMMARISE_SECTION
+- EXTRACT_QUOTES_AND_CITATIONS
+- SAFE_CHAT_GUARDRAILS_TEMPLATE
+- JSON_SCHEMA_VALIDATION_HELPER
+
+3) “Best-fit” local models per task (pick from what’s realistically available in browser)
+Implement as a priority list; choose the best that is available on the user’s device:
+
+- Default small + fast:
+  - “Llama 3.2 3B Instruct” (or closest available in your local inference stack)
+  - Use for: PASS0_NORMALISE_INPUT, SUMMARISE_SECTION, MICRO_COPY_TITLES_CAPTIONS, JSON_SCHEMA_VALIDATION_HELPER
+
+- Default higher quality reasoning (still feasible local):
+  - “Qwen2.5 7B Instruct” (or closest available)
+  - Use for: PASS1_THEME_AND_INTENT, PASS2_ENTITIES_CHARACTERS_LOCATIONS, PASS3_CARD_OUTLINE_AND_ORDER
+
+- Copywriting polish / tone control:
+  - Prefer Qwen2.5 7B if available
+  - Otherwise Llama 3.2 3B
+  - Use for: PASS4_CARD_COPY_DRAFT
+
+- QA pass (strict, conservative):
+  - Qwen2.5 7B if available
+  - Otherwise fallback to “cloud QA” ONLY for Pro/Business
+  - Use for: PASS5_QA_AND_GUARDRAILS_CHECK
+
+Important: This must be implemented as “best available” with graceful fallback.
+If no local model is available (device incompatible), show a UI notice:
+“Local AI unavailable on this device. Some features require Pro cloud processing.”
+
+4) Grounding / anti-hallucination rules
+Every task must receive a “grounding pack”:
+- extracted_text_chunks[] (the specific sections used)
+- citations[] with offsets or chunk ids
+- forbidden: inventing facts not present in extracted chunks
+- output must include:
+  - used_chunk_ids[]
+  - confidence rating
+  - “unsupported_claims” array (if it tried to add something not evidenced)
+
+If the QA task finds unsupported claims:
+- mark the card draft as “needs_review”
+- show the creator a diff-style warning:
+  “This sentence is not supported by source chunk #X.”
+
+5) Streaming UX
+While the pipeline runs, show a simple step visualiser (no spoilers):
+- “Preparing”
+- “Finding theme”
+- “Extracting characters and places”
+- “Planning cards”
+- “Drafting”
+- “Quality check”
+Each step should animate and show progress.
+
+6) Cloud fallbacks
+Only allow cloud fallback when:
+- User is Pro or Business
+- AND local model is missing or insufficient for the task
+- AND the user explicitly triggers “Use Cloud” on failure
+Never silently switch to cloud.
+
+========================================================
+B) STRIPE UPGRADE PATH + ENTITLEMENTS
+========================================================
+
+Goal
+Implement Free / Pro / Business subscriptions plus metered add-ons:
+- Video generation credits
+- Voice generation credits
+
+1) Data model
+Add tables:
+- plans: id, name (free/pro/business), monthly_price, features_json
+- subscriptions: user_id, stripe_customer_id, stripe_subscription_id, plan_id, status, current_period_end
+- entitlements: user_id, can_use_cloud_llm, can_generate_images, can_export, max_cards_per_story, storage_days, etc
+- credit_wallets: user_id, video_credits, voice_credits
+- credit_events: id, user_id, type (purchase/spend/refund), amount, meta_json, created_at
+
+2) Plans and rules
+Free:
+- max_cards_per_story: 5
+- storage_days: 7 (temporary)
+- cloud_llm: false
+- generate_images: false
+- export: false
+- character_chat: false (or local-only limited if implemented)
+
+Pro:
+- max_cards_per_story: generous (eg 100)
+- storage_days: 365 or “hosted”
+- cloud_llm: true (for pipeline fallback + character chat)
+- generate_images: true (included but rate-limited)
+- export: true (video export of still-based experience, QR overlay)
+- add-ons: video_credits and voice_credits are paid packs
+
+Business:
+- max_cards_per_story: higher/unlimited
+- cloud_llm: true
+- generate_images: true (higher limits)
+- export: true
+- includes monthly allowances:
+  - video_credits monthly allowance
+  - voice_credits monthly allowance
+- collaboration roles (if already planned)
+
+3) Stripe integration
+Implement:
+- Stripe Checkout for subscription purchase/upgrade
+- Stripe Customer Portal for managing/cancelling
+- Webhook handler:
+  - checkout.session.completed
+  - customer.subscription.created/updated/deleted
+  - invoice.paid
+  - invoice.payment_failed
+
+On webhook:
+- update subscriptions table
+- recompute entitlements
+- for Business, top-up monthly included credits at period start
+- log everything in credit_events and activity log
+
+4) UI upgrade path
+Add a clear Upgrade CTA:
+- If Free user hits a gated feature:
+  Show modal:
+  “This needs Pro” with 2 buttons:
+  - Upgrade to Pro
+  - View plans
+Include a plan comparison.
+
+For add-ons (video/voice credits):
+- Show “Buy credits” modal
+- Use Stripe Checkout for one-time purchases (credit packs)
+- After webhook confirms, update wallet
+
+5) Feature gating implementation
+Create a single guard:
+- server/auth/entitlements.ts: requireEntitlement(user, key)
+Use it in:
+- image generation endpoint
+- character chat endpoint (cloud)
+- export endpoint
+- any cloud fallback endpoints
+
+Client should also grey-out buttons with tooltips, but server is source of truth.
+
+6) Safety & compliance
+- Never allow AI chat to impersonate real victims or real people from news stories.
+- If content is classified as “news” or “real-world tragedy”, disable character chat by default unless creator explicitly selects a safe role (“Reporter”, “Analyst”, “Doctor (general info)”) and adds disclaimers.
+- Store prompt + negative prompt + guardrails per universe AND allow per-card overrides, all editable in Admin.
+
+Deliverables
+- Task router implemented with model selection + grounding pack enforcement
+- Step visualiser UI during processing
+- Stripe subscriptions + credit packs fully wired (webhooks + entitlements)
+- Gated feature UX flows with clear upgrade path
+- Server-side enforcement for all paid features
