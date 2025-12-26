@@ -25,9 +25,12 @@ export type User = typeof users.$inferSelect;
 export const creatorProfiles = pgTable("creator_profiles", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull().unique(),
+  slug: text("slug").unique(), // URL-friendly identifier for public profile
   displayName: text("display_name").notNull(),
+  headline: text("headline"), // Short tagline like "Tech Journalist" or "History Educator"
   bio: text("bio"),
   avatarUrl: text("avatar_url"),
+  externalLink: text("external_link"), // Link to creator's website or social profile
   planId: integer("plan_id").references(() => plans.id), // Current subscription tier
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),

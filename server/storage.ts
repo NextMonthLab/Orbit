@@ -21,8 +21,12 @@ export interface IStorage {
   
   // Creator Profiles
   getCreatorProfile(userId: number): Promise<schema.CreatorProfile | undefined>;
+  getCreatorProfileBySlug(slug: string): Promise<schema.CreatorProfile | undefined>;
+  getCreatorWithUser(userId: number): Promise<{ profile: schema.CreatorProfile; user: schema.User } | undefined>;
   createCreatorProfile(profile: schema.InsertCreatorProfile): Promise<schema.CreatorProfile>;
   updateCreatorProfile(userId: number, data: Partial<schema.InsertCreatorProfile>): Promise<schema.CreatorProfile | undefined>;
+  getUniversesByCreator(userId: number): Promise<schema.Universe[]>;
+  getCreatorForUniverse(universeId: number): Promise<schema.CreatorProfile | undefined>;
   
   // Universe
   getUniverse(id: number): Promise<schema.Universe | undefined>;
@@ -188,6 +192,44 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.creatorProfiles.userId, userId))
       .returning();
     return result;
+  }
+  
+  async getCreatorProfileBySlug(slug: string): Promise<schema.CreatorProfile | undefined> {
+    if (!slug) return undefined;
+    const result = await db.query.creatorProfiles.findFirst({
+      where: eq(schema.creatorProfiles.slug, slug),
+    });
+    return result;
+  }
+  
+  async getCreatorWithUser(userId: number): Promise<{ profile: schema.CreatorProfile; user: schema.User } | undefined> {
+    const profile = await this.getCreatorProfile(userId);
+    if (!profile) return undefined;
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+    return { profile, user };
+  }
+  
+  async getUniversesByCreator(userId: number): Promise<schema.Universe[]> {
+    const ownershipRecords = await db.query.universeCreators.findMany({
+      where: eq(schema.universeCreators.userId, userId),
+    });
+    if (ownershipRecords.length === 0) return [];
+    const universeIds = ownershipRecords.map(r => r.universeId);
+    return await db.query.universes.findMany({
+      where: inArray(schema.universes.id, universeIds),
+    });
+  }
+  
+  async getCreatorForUniverse(universeId: number): Promise<schema.CreatorProfile | undefined> {
+    const ownerRecord = await db.query.universeCreators.findFirst({
+      where: and(
+        eq(schema.universeCreators.universeId, universeId),
+        eq(schema.universeCreators.role, 'owner')
+      ),
+    });
+    if (!ownerRecord) return undefined;
+    return await this.getCreatorProfile(ownerRecord.userId);
   }
   
   // Universe
