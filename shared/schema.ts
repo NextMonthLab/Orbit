@@ -84,6 +84,37 @@ export const visualContinuitySchema = z.object({
 
 export type VisualContinuity = z.infer<typeof visualContinuitySchema>;
 
+// Design Guide Schema (comprehensive visual bible for universe consistency)
+export const designGuideSchema = z.object({
+  // Core visual style
+  artStyle: z.string().optional(), // e.g., "cinematic realism", "anime", "watercolor illustration"
+  colorPalette: z.string().optional(), // e.g., "warm earth tones, muted greens, golden hour lighting"
+  moodTone: z.string().optional(), // e.g., "mysterious, atmospheric, melancholic"
+  
+  // Camera and composition
+  cameraStyle: z.string().optional(), // e.g., "handheld documentary", "static composed shots"
+  defaultAspectRatio: z.string().default("9:16"),
+  lightingNotes: z.string().optional(), // e.g., "natural diffused light, avoid harsh shadows"
+  
+  // Prompt construction
+  basePrompt: z.string().optional(), // Always prepended to generation prompts
+  negativePrompt: z.string().optional(), // Things to avoid in generation
+  styleKeywords: z.array(z.string()).optional(), // e.g., ["35mm film grain", "shallow depth of field"]
+  
+  // Quality and technical
+  qualityLevel: z.enum(["draft", "standard", "high", "ultra"]).default("standard"),
+  consistencyPriority: z.enum(["speed", "balanced", "consistency"]).default("balanced"),
+  
+  // Constraints
+  avoidList: z.array(z.string()).optional(), // Things to never show
+  requiredElements: z.array(z.string()).optional(), // Things that should always be present
+}).optional();
+
+export type DesignGuide = z.infer<typeof designGuideSchema>;
+
+// Reference Asset Types for universe visual bible
+export type ReferenceAssetType = 'character' | 'location' | 'style' | 'prop' | 'color_palette';
+
 // Character Visual Profile Schema (for consistent character appearance)
 export const characterVisualProfileSchema = z.object({
   continuityDescription: z.string().optional(),
@@ -228,6 +259,7 @@ export const universes = pgTable("universes", {
   visualMode: text("visual_mode").default("author_supplied"), // "engine_generated" | "author_supplied"
   visualStyle: jsonb("visual_style").$type<VisualStyle>(), // Universe-level style constraints
   visualContinuity: jsonb("visual_continuity").$type<VisualContinuity>(), // Style bible for consistent look
+  designGuide: jsonb("design_guide").$type<DesignGuide>(), // Comprehensive visual bible for generation consistency
   chatPolicy: jsonb("chat_policy").$type<ChatPolicy>(), // Global chat guardrails and safety rules
   sourceGuardrails: jsonb("source_guardrails").$type<SourceGuardrails>(), // Grounding rules from source material
   // Release cadence settings for 3-card hook onboarding
@@ -247,6 +279,27 @@ export const universes = pgTable("universes", {
 export const insertUniverseSchema = createInsertSchema(universes).omit({ id: true, createdAt: true });
 export type InsertUniverse = z.infer<typeof insertUniverseSchema>;
 export type Universe = typeof universes.$inferSelect;
+
+// Reference Assets (visual bible examples for consistent generation)
+export const universeReferenceAssets = pgTable("universe_reference_assets", {
+  id: serial("id").primaryKey(),
+  universeId: integer("universe_id").references(() => universes.id).notNull(),
+  assetType: text("asset_type").$type<ReferenceAssetType>().notNull(), // 'character', 'location', 'style', 'prop', 'color_palette'
+  name: text("name").notNull(), // Display name
+  description: text("description"), // What this asset represents
+  imagePath: text("image_path").notNull(), // Storage path or URL
+  thumbnailPath: text("thumbnail_path"), // Smaller preview version
+  promptNotes: text("prompt_notes"), // Notes to include when using this reference
+  characterId: integer("character_id").references(() => characters.id), // Link to specific character (optional)
+  locationId: integer("location_id").references(() => locations.id), // Link to specific location (optional)
+  priority: integer("priority").default(0), // Higher priority = used first in prompts
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUniverseReferenceAssetSchema = createInsertSchema(universeReferenceAssets).omit({ id: true, createdAt: true });
+export type InsertUniverseReferenceAsset = z.infer<typeof insertUniverseReferenceAssetSchema>;
+export type UniverseReferenceAsset = typeof universeReferenceAssets.$inferSelect;
 
 // Image Generation Schema (for per-card image generation)
 export const imageGenerationSchema = z.object({

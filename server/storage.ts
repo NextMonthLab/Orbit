@@ -108,6 +108,14 @@ export interface IStorage {
   updateTransformationJob(id: number, job: Partial<schema.InsertTransformationJob>): Promise<schema.TransformationJob | undefined>;
   deleteTransformationJob(id: number): Promise<void>;
   
+  // Reference Assets (Visual Bible)
+  getReferenceAsset(id: number): Promise<schema.UniverseReferenceAsset | undefined>;
+  getReferenceAssetsByUniverse(universeId: number): Promise<schema.UniverseReferenceAsset[]>;
+  getReferenceAssetsByType(universeId: number, assetType: schema.ReferenceAssetType): Promise<schema.UniverseReferenceAsset[]>;
+  createReferenceAsset(asset: schema.InsertUniverseReferenceAsset): Promise<schema.UniverseReferenceAsset>;
+  updateReferenceAsset(id: number, asset: Partial<schema.InsertUniverseReferenceAsset>): Promise<schema.UniverseReferenceAsset | undefined>;
+  deleteReferenceAsset(id: number): Promise<void>;
+  
   // Plans & Subscriptions
   getPlan(id: number): Promise<schema.Plan | undefined>;
   getPlanByName(name: string): Promise<schema.Plan | undefined>;
@@ -724,6 +732,48 @@ export class DatabaseStorage implements IStorage {
   
   async deleteTransformationJob(id: number): Promise<void> {
     await db.delete(schema.transformationJobs).where(eq(schema.transformationJobs.id, id));
+  }
+  
+  // Reference Assets (Visual Bible)
+  async getReferenceAsset(id: number): Promise<schema.UniverseReferenceAsset | undefined> {
+    const result = await db.query.universeReferenceAssets.findFirst({
+      where: eq(schema.universeReferenceAssets.id, id),
+    });
+    return result;
+  }
+  
+  async getReferenceAssetsByUniverse(universeId: number): Promise<schema.UniverseReferenceAsset[]> {
+    return await db.query.universeReferenceAssets.findMany({
+      where: eq(schema.universeReferenceAssets.universeId, universeId),
+      orderBy: (assets, { desc }) => [desc(assets.priority)],
+    });
+  }
+  
+  async getReferenceAssetsByType(universeId: number, assetType: schema.ReferenceAssetType): Promise<schema.UniverseReferenceAsset[]> {
+    return await db.query.universeReferenceAssets.findMany({
+      where: and(
+        eq(schema.universeReferenceAssets.universeId, universeId),
+        eq(schema.universeReferenceAssets.assetType, assetType)
+      ),
+      orderBy: (assets, { desc }) => [desc(assets.priority)],
+    });
+  }
+  
+  async createReferenceAsset(asset: schema.InsertUniverseReferenceAsset): Promise<schema.UniverseReferenceAsset> {
+    const [result] = await db.insert(schema.universeReferenceAssets).values(asset).returning();
+    return result;
+  }
+  
+  async updateReferenceAsset(id: number, asset: Partial<schema.InsertUniverseReferenceAsset>): Promise<schema.UniverseReferenceAsset | undefined> {
+    const [result] = await db.update(schema.universeReferenceAssets)
+      .set(asset)
+      .where(eq(schema.universeReferenceAssets.id, id))
+      .returning();
+    return result;
+  }
+  
+  async deleteReferenceAsset(id: number): Promise<void> {
+    await db.delete(schema.universeReferenceAssets).where(eq(schema.universeReferenceAssets.id, id));
   }
   
   // Plans & Subscriptions
