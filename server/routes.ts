@@ -12,6 +12,7 @@ import path from "path";
 import fs from "fs";
 import OpenAI from "openai";
 import dns from "dns/promises";
+import { isKlingConfigured, startImageToVideoGeneration, checkVideoStatus, waitForVideoCompletion } from "./video";
 
 // OpenAI client for image generation - uses Replit AI Integrations (no API key needed)
 // Charges are billed to your Replit credits
@@ -2408,7 +2409,7 @@ export async function registerRoutes(
     }
   });
   
-  // Generate video for a single card (stub - placeholder for future Kling/video AI integration)
+  // Generate video for a single card using Kling AI
   app.post("/api/cards/:id/generate-video", requireAdmin, async (req, res) => {
     try {
       const cardId = parseInt(req.params.id);
@@ -2416,6 +2417,13 @@ export async function registerRoutes(
       
       if (!card) {
         return res.status(404).json({ message: "Card not found" });
+      }
+      
+      // Check if Kling is configured
+      if (!isKlingConfigured()) {
+        return res.status(503).json({ 
+          message: "Video generation is not configured. KLING_ACCESS_KEY and KLING_SECRET_KEY are required.",
+        });
       }
       
       // Check if card has an image to generate video from
@@ -2426,13 +2434,65 @@ export async function registerRoutes(
         });
       }
       
-      // Stub response - video generation not yet implemented
-      // Future: integrate with Kling or other video AI provider
-      return res.status(501).json({
+      // Build a prompt from card content
+      const promptParts: string[] = [];
+      if (card.sceneDescription) {
+        promptParts.push(card.sceneDescription);
+      }
+      if (card.captionsJson && Array.isArray(card.captionsJson)) {
+        const captions = card.captionsJson.map((c: any) => c.text || c).join(" ");
+        if (captions) promptParts.push(captions);
+      }
+      const prompt = promptParts.join(". ") || "Subtle cinematic motion, atmospheric lighting";
+      
+      console.log(`Starting video generation for card ${cardId} with image: ${sourceImage}`);
+      
+      // Start video generation
+      const taskId = await startImageToVideoGeneration({
+        imageUrl: sourceImage,
+        prompt,
+        aspectRatio: "9:16",
+        duration: 5,
+        model: "kling-v2",
+      });
+      
+      console.log(`Video generation task started: ${taskId}`);
+      
+      // Poll for completion (with timeout)
+      const result = await waitForVideoCompletion(taskId, (status) => {
+        console.log(`Video generation status for ${cardId}: ${status.status}`);
+      });
+      
+      if (result.status === "failed") {
+        return res.status(500).json({
+          cardId: card.id,
+          cardTitle: card.title,
+          status: "failed",
+          message: result.error || "Video generation failed",
+        });
+      }
+      
+      if (result.status === "completed" && result.videoUrl) {
+        // Update the card with the video URL
+        await storage.updateCard(cardId, {
+          generatedVideoUrl: result.videoUrl,
+          videoGenerated: true,
+        });
+        
+        return res.json({
+          cardId: card.id,
+          cardTitle: card.title,
+          status: "completed",
+          videoUrl: result.videoUrl,
+          thumbnailUrl: result.thumbnailUrl,
+        });
+      }
+      
+      return res.status(500).json({
         cardId: card.id,
         cardTitle: card.title,
-        status: "not_implemented",
-        message: "Video generation is coming soon. This feature will use the card image and captions to generate a short video clip.",
+        status: result.status,
+        message: "Video generation did not complete successfully",
       });
       
     } catch (error: any) {
