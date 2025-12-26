@@ -248,6 +248,75 @@ export async function registerRoutes(
     }
   });
   
+  // Update creator profile
+  app.patch("/api/me/creator-profile", requireAuth, async (req, res) => {
+    try {
+      const creatorProfile = await storage.getCreatorProfile(req.user!.id);
+      if (!creatorProfile) {
+        return res.status(404).json({ message: "Creator profile not found" });
+      }
+      
+      const { displayName, headline, bio, avatarUrl, externalLink, slug } = req.body;
+      
+      // Validate slug uniqueness if changing
+      if (slug && slug !== creatorProfile.slug) {
+        const existing = await storage.getCreatorProfileBySlug(slug);
+        if (existing) {
+          return res.status(400).json({ message: "This profile URL is already taken" });
+        }
+      }
+      
+      const updated = await storage.updateCreatorProfile(req.user!.id, {
+        displayName: displayName ?? creatorProfile.displayName,
+        headline: headline !== undefined ? headline : creatorProfile.headline,
+        bio: bio !== undefined ? bio : creatorProfile.bio,
+        avatarUrl: avatarUrl !== undefined ? avatarUrl : creatorProfile.avatarUrl,
+        externalLink: externalLink !== undefined ? externalLink : creatorProfile.externalLink,
+        slug: slug !== undefined ? slug : creatorProfile.slug,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating creator profile:", error);
+      res.status(500).json({ message: "Error updating creator profile" });
+    }
+  });
+  
+  // Public: Get creator profile by slug
+  app.get("/api/creators/:slug", async (req, res) => {
+    try {
+      const profile = await storage.getCreatorProfileBySlug(req.params.slug);
+      if (!profile) {
+        return res.status(404).json({ message: "Creator not found" });
+      }
+      
+      // Get universes for this creator
+      const universes = await storage.getUniversesByCreator(profile.userId);
+      
+      // Return public info only (exclude stripe IDs, etc.)
+      res.json({
+        id: profile.id,
+        displayName: profile.displayName,
+        slug: profile.slug,
+        headline: profile.headline,
+        bio: profile.bio,
+        avatarUrl: profile.avatarUrl,
+        externalLink: profile.externalLink,
+        universes: universes.map(u => ({
+          id: u.id,
+          slug: u.slug,
+          title: u.title,
+          description: u.description,
+          coverImageUrl: u.coverImageUrl,
+          genre: u.genre,
+        })),
+      });
+    } catch (error) {
+      console.error("Error fetching public creator profile:", error);
+      res.status(500).json({ message: "Error fetching creator profile" });
+    }
+  });
+  
   // Get user onboarding profile
   app.get("/api/me/onboarding", requireAuth, async (req, res) => {
     try {
