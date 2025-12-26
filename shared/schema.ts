@@ -291,6 +291,7 @@ export const cards = pgTable("cards", {
   generatedVideoUrl: text("generated_video_url"), // URL of engine-generated video
   videoGenerated: boolean("video_generated").default(false), // Whether video has been generated
   videoGenerationTaskId: text("video_generation_task_id"), // Kling task ID for polling
+  videoGenerationMode: text("video_generation_mode").$type<'text-to-video' | 'image-to-video'>(), // Mode used for status polling
   videoGenerationStatus: text("video_generation_status").$type<'none' | 'pending' | 'processing' | 'completed' | 'failed'>().default("none"),
   videoGenerationError: text("video_generation_error"),
   videoGenerationModel: text("video_generation_model"), // e.g., "kling-v2"

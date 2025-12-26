@@ -135,8 +135,12 @@ export async function startImageToVideoGeneration(
   return response.data.task_id;
 }
 
-export async function checkVideoStatus(taskId: string): Promise<KlingVideoResult> {
-  const response = await makeKlingRequest(`/v1/videos/text2video/${taskId}`, "GET");
+export async function checkVideoStatus(taskId: string, mode: "text-to-video" | "image-to-video" = "text-to-video"): Promise<KlingVideoResult> {
+  const endpoint = mode === "image-to-video" 
+    ? `/v1/videos/image2video/${taskId}` 
+    : `/v1/videos/text2video/${taskId}`;
+  
+  const response = await makeKlingRequest(endpoint, "GET");
   
   const data = response.data;
   

@@ -3154,9 +3154,13 @@ Output only the narration paragraph, nothing else.`;
           });
         }
         
-        // Update card with task ID
+        // Determine actual mode used
+        const actualMode = (mode === "image-to-video" && card.generatedImageUrl) ? "image-to-video" : "text-to-video";
+        
+        // Update card with task ID and mode
         const updatedCard = await storage.updateCard(cardId, {
           videoGenerationTaskId: taskId,
+          videoGenerationMode: actualMode,
           videoGenerationStatus: "processing",
         });
         
@@ -3201,7 +3205,8 @@ Output only the narration paragraph, nothing else.`;
       }
       
       const { checkVideoStatus } = await import("./video");
-      const result = await checkVideoStatus(card.videoGenerationTaskId);
+      const mode = (card.videoGenerationMode as "text-to-video" | "image-to-video") || "text-to-video";
+      const result = await checkVideoStatus(card.videoGenerationTaskId, mode);
       
       // Update card if status changed
       if (result.status === "completed" && !card.videoGenerated) {
