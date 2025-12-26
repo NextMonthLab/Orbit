@@ -34,6 +34,7 @@ import ExportPage from "@/pages/ExportPage";
 import Journal from "@/pages/Journal";
 import BecomeCreator from "@/pages/BecomeCreator";
 import Onboarding from "@/pages/Onboarding";
+import CreatorProfile from "@/pages/CreatorProfile";
 import RequireAuth from "@/components/RequireAuth";
 
 function withAuth<P extends object>(Component: React.ComponentType<P>) {
@@ -94,6 +95,7 @@ function Router() {
       <Route path="/chat" component={ProtectedChat} />
       <Route path="/journal" component={ProtectedJournal} />
       <Route path="/story/:slug" component={Experience} />
+      <Route path="/creator/:slug" component={CreatorProfile} />
       <Route path="/become-creator" component={ProtectedBecomeCreator} />
       <Route path="/admin" component={ProtectedAdmin} />
       <Route path="/admin/create" component={ProtectedAdminCreate} />
