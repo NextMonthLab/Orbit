@@ -13,6 +13,7 @@ import fs from "fs";
 import OpenAI from "openai";
 import dns from "dns/promises";
 import { isKlingConfigured, startImageToVideoGeneration, checkVideoStatus, waitForVideoCompletion } from "./video";
+import { ObjectStorageService } from "./replit_integrations/object_storage";
 
 // OpenAI client for image generation - uses Replit AI Integrations (no API key needed)
 // Charges are billed to your Replit credits
@@ -4317,6 +4318,19 @@ Output only the narration paragraph, nothing else.`;
     } catch (error) {
       console.error("Error deleting media:", error);
       res.status(500).json({ message: "Error deleting media" });
+    }
+  });
+  
+  // Serve uploaded objects from storage
+  const objectStorageService = new ObjectStorageService();
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      res.setHeader("Content-Type", objectFile.contentType || "application/octet-stream");
+      res.send(Buffer.from(objectFile.content));
+    } catch (error) {
+      console.error("Error fetching object:", error);
+      res.status(404).json({ message: "Object not found" });
     }
   });
 
