@@ -126,9 +126,12 @@ export default function MarketingHome() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black via-black/90 to-transparent">
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           <Link href="/">
-            <span className="text-2xl font-bold tracking-tight cursor-pointer text-white" data-testid="link-logo">
-              NEXTSCENE
-            </span>
+            <img 
+              src="/attached_assets/70C5E1E7-6EF6-4D4E-B835-33F4C5924FDE_1766780755538.png" 
+              alt="NextScene" 
+              className="h-10 cursor-pointer" 
+              data-testid="link-logo"
+            />
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/login">
@@ -405,9 +408,11 @@ export default function MarketingHome() {
         {/* Footer */}
         <footer className="py-12 px-6 border-t border-white/10 bg-black">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-            <span className="text-xl font-bold tracking-tight text-white">
-              NEXTSCENE
-            </span>
+            <img 
+              src="/attached_assets/70C5E1E7-6EF6-4D4E-B835-33F4C5924FDE_1766780755538.png" 
+              alt="NextScene" 
+              className="h-8"
+            />
             <div className="flex items-center gap-8">
               <Link href="/for/brands" className="text-white/50 hover:text-white text-sm transition-colors">Brands</Link>
               <Link href="/for/creators" className="text-white/50 hover:text-white text-sm transition-colors">Creators</Link>
