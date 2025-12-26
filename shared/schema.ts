@@ -167,6 +167,20 @@ export type ChatOverrides = z.infer<typeof chatOverridesSchema>;
 // Release mode types for universe card visibility
 export type ReleaseMode = 'daily' | 'all_at_once' | 'hybrid_intro_then_daily';
 
+// Source Guardrails Schema (grounding rules extracted from source material)
+export const sourceGuardrailsSchema = z.object({
+  coreThemes: z.array(z.string()),
+  toneConstraints: z.array(z.string()),
+  factualBoundaries: z.array(z.string()),
+  exclusions: z.array(z.string()),
+  quotableElements: z.array(z.string()),
+  sensitiveTopics: z.array(z.string()),
+  creativeLatitude: z.enum(["strict", "moderate", "liberal"]),
+  groundingStatement: z.string(),
+});
+
+export type SourceGuardrails = z.infer<typeof sourceGuardrailsSchema>;
+
 // Universe (Story World)
 export const universes = pgTable("universes", {
   id: serial("id").primaryKey(),
@@ -178,6 +192,7 @@ export const universes = pgTable("universes", {
   visualStyle: jsonb("visual_style").$type<VisualStyle>(), // Universe-level style constraints
   visualContinuity: jsonb("visual_continuity").$type<VisualContinuity>(), // Style bible for consistent look
   chatPolicy: jsonb("chat_policy").$type<ChatPolicy>(), // Global chat guardrails and safety rules
+  sourceGuardrails: jsonb("source_guardrails").$type<SourceGuardrails>(), // Grounding rules from source material
   // Release cadence settings for 3-card hook onboarding
   releaseMode: text("release_mode").$type<ReleaseMode>().default("daily"), // 'daily' | 'all_at_once' | 'hybrid_intro_then_daily'
   introCardsCount: integer("intro_cards_count").default(3), // Number of cards to unlock immediately in hybrid mode
@@ -583,6 +598,7 @@ export const stageArtifactsSchema = z.object({
     tone_tags: z.array(z.string()).optional(),
     genre_guess: z.string().optional(),
     audience_guess: z.string().optional(),
+    guardrails: sourceGuardrailsSchema.optional(),
   }).optional(),
   stage3: z.object({
     characters: z.array(z.object({

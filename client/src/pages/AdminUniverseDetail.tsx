@@ -1,11 +1,12 @@
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Calendar, Eye, ImageIcon, Loader2, Plus, Video } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ArrowLeft, Calendar, Eye, ImageIcon, Loader2, Plus, Video, Shield, AlertTriangle } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import type { SourceGuardrails } from "@shared/schema";
 
 export default function AdminUniverseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -142,6 +143,104 @@ export default function AdminUniverseDetail() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Source Guardrails Section */}
+        {universe.sourceGuardrails && (
+          <Card data-testid="guardrails-section">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-primary" />
+                <CardTitle>Source Guardrails</CardTitle>
+              </div>
+              <CardDescription>
+                These grounding rules were extracted from the source material to prevent AI hallucination.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                <p className="text-sm font-medium text-primary mb-1">Grounding Statement</p>
+                <p className="text-sm">{(universe.sourceGuardrails as SourceGuardrails).groundingStatement}</p>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium mb-2">Creative Latitude</p>
+                  <span className={`inline-flex px-3 py-1 rounded-full text-sm ${
+                    (universe.sourceGuardrails as SourceGuardrails).creativeLatitude === "strict" 
+                      ? "bg-red-500/10 text-red-500" 
+                      : (universe.sourceGuardrails as SourceGuardrails).creativeLatitude === "moderate"
+                      ? "bg-yellow-500/10 text-yellow-500"
+                      : "bg-green-500/10 text-green-500"
+                  }`}>
+                    {(universe.sourceGuardrails as SourceGuardrails).creativeLatitude === "strict" 
+                      ? "Strict - Stay purely factual" 
+                      : (universe.sourceGuardrails as SourceGuardrails).creativeLatitude === "moderate"
+                      ? "Moderate - Interpret but don't invent"
+                      : "Liberal - Allow creative interpretation"}
+                  </span>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium mb-2">Core Themes</p>
+                  <div className="flex flex-wrap gap-1">
+                    {(universe.sourceGuardrails as SourceGuardrails).coreThemes?.map((theme, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">{theme}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium mb-2">Tone Constraints</p>
+                  <div className="flex flex-wrap gap-1">
+                    {(universe.sourceGuardrails as SourceGuardrails).toneConstraints?.map((tone, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-xs">{tone}</span>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium mb-2 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-yellow-500" />
+                    Exclusions (AI Must NOT Introduce)
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {(universe.sourceGuardrails as SourceGuardrails).exclusions?.length > 0 ? (
+                      (universe.sourceGuardrails as SourceGuardrails).exclusions.map((exc, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-red-500/10 text-red-500 rounded text-xs">{exc}</span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No explicit exclusions</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {(universe.sourceGuardrails as SourceGuardrails).quotableElements?.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium mb-2">Quotable Elements from Source</p>
+                  <div className="space-y-1">
+                    {(universe.sourceGuardrails as SourceGuardrails).quotableElements.slice(0, 5).map((quote, i) => (
+                      <p key={i} className="text-xs italic text-muted-foreground pl-3 border-l-2 border-primary/30">"{quote}"</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {(universe.sourceGuardrails as SourceGuardrails).sensitiveTopics?.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium mb-2">Sensitive Topics (Handle with Care)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {(universe.sourceGuardrails as SourceGuardrails).sensitiveTopics.map((topic, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-orange-500/10 text-orange-500 rounded text-xs">{topic}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

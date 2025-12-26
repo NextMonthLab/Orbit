@@ -25,6 +25,36 @@ For engine-generated universes:
 
 Sample manifest available at: `docs/sample-time-spent-manifest.json`
 
+### Source Guardrails System (Grounding & Anti-Hallucination)
+
+The transformation pipeline extracts and enforces grounding rules to prevent AI hallucination. These guardrails ensure the Story Engine stays faithful to the source material.
+
+**Guardrail Extraction (Stage 2)**:
+The pipeline extracts these constraints from the source material:
+- `coreThemes`: Themes explicitly present in the source (not inferred)
+- `toneConstraints`: Rules about tone (e.g., "restrained, not melodramatic")
+- `factualBoundaries`: Facts that must be respected (names, places, events)
+- `exclusions`: Topics/themes the AI must NOT introduce
+- `quotableElements`: Key phrases and concepts directly from the source
+- `sensitiveTopics`: Subjects requiring careful handling
+- `creativeLatitude`: "strict" (factual), "moderate" (interpret), or "liberal" (creative)
+- `groundingStatement`: What this material IS and what it is NOT
+
+**Guardrail Enforcement**:
+- Stage 4 (Card Planning): Guardrails constrain card content generation
+- Stage 5 (Character Chat): Characters are source-bound with explicit deflection rules
+- Character prompts include: "If asked about something not in the source, respond 'That's not something I know about'"
+
+**Admin Visibility**:
+The Admin Universe Detail page shows guardrails for transparency:
+- Grounding statement and creative latitude
+- Core themes and tone constraints
+- Exclusions (what AI must NOT introduce)
+- Quotable elements and sensitive topics
+
+**Design Principle**: "Extract → interpret → structure → elevate, but never replace."
+When there's a trade-off between engagement and accuracy, accuracy wins by default.
+
 ### Chat System v2 (Schema Version 2)
 
 The platform supports credible, guardrailed AI character chat powered by a three-layer prompt composition system:

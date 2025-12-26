@@ -9,6 +9,17 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+export interface SourceGuardrails {
+  coreThemes: string[];
+  toneConstraints: string[];
+  factualBoundaries: string[];
+  exclusions: string[];
+  quotableElements: string[];
+  sensitiveTopics: string[];
+  creativeLatitude: "strict" | "moderate" | "liberal";
+  groundingStatement: string;
+}
+
 export interface PipelineContext {
   jobId: number;
   normalizedText?: string;
@@ -20,6 +31,7 @@ export interface PipelineContext {
   toneTags?: string[];
   genreGuess?: string;
   audienceGuess?: string;
+  guardrails?: SourceGuardrails;
   characters?: Array<{ id: string; name: string; role?: string; description?: string }>;
   locations?: Array<{ id: string; name: string; description?: string }>;
   worldRules?: string[];
@@ -193,12 +205,44 @@ Return a JSON object with these fields:
     ctx.genreGuess = parsed.genre_guess || "drama";
     ctx.audienceGuess = parsed.audience_guess || "General audience";
 
+    const guardrailsPrompt = `You are a content guardian. Analyze this source material and extract guardrails to prevent AI hallucination.
+Your job is to identify what IS and IS NOT in this material, so later AI systems stay grounded.
+
+Return a JSON object with:
+- core_themes: Array of 3-5 themes EXPLICITLY present in the source (not inferred)
+- tone_constraints: Array of tone rules (e.g., "restrained, not melodramatic", "factual, not speculative")
+- factual_boundaries: Array of facts that MUST be respected (names, places, events, dates from the source)
+- exclusions: Array of things the AI must NOT introduce (topics, themes, tropes NOT in the source)
+- quotable_elements: Array of 5-10 key phrases, metaphors, or concepts directly from the source
+- sensitive_topics: Array of sensitive subjects present that require careful handling
+- creative_latitude: "strict" (factual/documentary), "moderate" (structured drama), or "liberal" (creative fiction)
+- grounding_statement: A single sentence that captures what this material IS and what it is NOT
+
+CRITICAL: Only extract what is EXPLICITLY in the source. Do not infer or imagine.`;
+
+    const guardrailsUserPrompt = `Extract grounding guardrails from this ${ctx.genreGuess} material:\n\n${text.substring(0, 15000)}`;
+    
+    const guardrailsResponse = await callAI(guardrailsPrompt, guardrailsUserPrompt);
+    const guardrailsParsed = JSON.parse(guardrailsResponse);
+
+    ctx.guardrails = {
+      coreThemes: guardrailsParsed.core_themes || [ctx.themeStatement],
+      toneConstraints: guardrailsParsed.tone_constraints || ctx.toneTags || [],
+      factualBoundaries: guardrailsParsed.factual_boundaries || [],
+      exclusions: guardrailsParsed.exclusions || [],
+      quotableElements: guardrailsParsed.quotable_elements || [],
+      sensitiveTopics: guardrailsParsed.sensitive_topics || [],
+      creativeLatitude: guardrailsParsed.creative_latitude || "moderate",
+      groundingStatement: guardrailsParsed.grounding_statement || `A ${ctx.genreGuess} story grounded in the source material.`,
+    };
+
     await updateJobStage(ctx.jobId, 2, "done", {
       stage2: {
         theme_statement: ctx.themeStatement,
         tone_tags: ctx.toneTags,
         genre_guess: ctx.genreGuess,
         audience_guess: ctx.audienceGuess,
+        guardrails: ctx.guardrails,
       },
     });
   } catch (err: any) {
@@ -260,9 +304,23 @@ export async function stage4_shapeMoments(ctx: PipelineContext): Promise<void> {
   try {
     const text = ctx.normalizedText || "";
     const characterNames = ctx.characters?.map(c => c.name).join(", ") || "Unknown";
+    const guardrails = ctx.guardrails;
     
+    const guardrailsConstraints = guardrails ? `
+GROUNDING CONSTRAINTS (CRITICAL - MUST FOLLOW):
+- Creative latitude: ${guardrails.creativeLatitude || "moderate"} (${guardrails.creativeLatitude === "strict" ? "stay purely factual - only use what's explicitly in the source" : guardrails.creativeLatitude === "moderate" ? "interpret but don't invent new facts" : "allow creative interpretation while staying true to themes"})
+- ONLY reference themes from the source: ${(guardrails.coreThemes || []).join(", ") || "none specified"}
+- Maintain tone: ${(guardrails.toneConstraints || []).join(", ") || "none specified"}
+- NEVER introduce these topics or elements: ${(guardrails.exclusions || []).join(", ") || "nothing to exclude"}
+- Use quotable elements from source where possible: ${(guardrails.quotableElements || []).slice(0, 3).join("; ") || "none specified"}
+- Handle sensitively: ${(guardrails.sensitiveTopics || []).join(", ") || "none specified"}
+- Facts to respect: ${(guardrails.factualBoundaries || []).slice(0, 5).join("; ") || "none specified"}
+
+DO NOT invent new plot points, characters, or facts not in the source material.` : "";
+
     const systemPrompt = `You are a story designer for a vertical video story platform. 
 Break this story into 5-10 "story cards" - each card is a dramatic moment that will be shown as a vertical video with captions.
+${guardrailsConstraints}
 
 Return a JSON object with these fields:
 - hook_pack_count: Number of cards to release immediately (usually 3)
@@ -280,6 +338,7 @@ Theme: ${ctx.themeStatement}
 Genre: ${ctx.genreGuess}
 Characters: ${characterNames}
 Key sections: ${ctx.keySections?.join(", ")}
+${guardrails ? `\nGrounding statement: ${guardrails.groundingStatement}` : ""}
 
 Full script:
 ${text.substring(0, 12000)}`;
@@ -327,52 +386,99 @@ export async function stage5_craftExperience(ctx: PipelineContext): Promise<numb
       visualMode: "engine_generated",
       releaseMode: ctx.releaseMode === "hybrid" ? "hybrid_intro_then_daily" : "daily",
       introCardsCount: ctx.hookPackCount || 3,
+      sourceGuardrails: ctx.guardrails || null,
     });
 
-    // Generate AI chat profiles for characters
+    // Generate AI chat profiles for characters with source grounding
     const characterIdMap: Record<string, number> = {};
+    const guardrails = ctx.guardrails;
+    const groundingRules = guardrails ? `
+SOURCE GROUNDING RULES (CRITICAL):
+- You are grounded to this source material: ${guardrails.groundingStatement || "the uploaded content"}
+- Creative latitude: ${guardrails.creativeLatitude || "moderate"} (${guardrails.creativeLatitude === "strict" ? "stay purely factual" : guardrails.creativeLatitude === "moderate" ? "interpret but don't invent" : "allow creative interpretation"})
+- Core themes to reference: ${(guardrails.coreThemes || []).join(", ") || "none specified"}
+- Tone constraints: ${(guardrails.toneConstraints || []).join(", ") || "none specified"}
+- NEVER introduce: ${(guardrails.exclusions || []).join(", ") || "nothing to exclude"}
+- If asked about something NOT in the source material, say "That's not something I know about from my experience" or similar in-character deflection.
+- If the source doesn't answer a question, clearly frame any response as interpretation, not fact.
+- No confident guessing. No lore creep. Stay grounded.` : "";
+
     for (const char of ctx.characters || []) {
-      // Generate a system prompt for this character
+      const characterSystemPromptRequest = `You are an expert at creating AI character personas for interactive storytelling.
+Generate a system prompt for an AI to roleplay as this character.
+
+CRITICAL GROUNDING REQUIREMENT:
+The character can ONLY speak to what is explicitly in the source material. They must:
+1. Stay within the factual boundaries of the source
+2. Never invent backstory, facts, or conclusions not present
+3. When asked about something not covered, deflect in-character: "That's not something I can speak to"
+4. If interpreting, clearly frame it as their perspective, not established fact
+${groundingRules}`;
+
       const chatPromptResponse = await callAI(
-        `You are an expert at creating AI character personas for interactive storytelling.
-Generate a system prompt for an AI to roleplay as this character.`,
+        characterSystemPromptRequest,
         `Character: ${char.name}
 Role: ${char.role || "Character"}
 Description: ${char.description || "A character in this story"}
 Story: ${ctx.storyTitle || "Untitled"} - ${ctx.themeStatement || "A dramatic story"}
 Genre: ${ctx.genreGuess || "Drama"}
+${guardrails ? `
+SOURCE GROUNDING DATA:
+- Grounding statement: ${guardrails.groundingStatement || "A story grounded in the source material"}
+- Creative latitude: ${guardrails.creativeLatitude || "moderate"}
+- Core themes: ${(guardrails.coreThemes || []).join(", ") || "none specified"}
+- Tone constraints: ${(guardrails.toneConstraints || []).join(", ") || "none specified"}
+- MUST NOT introduce: ${(guardrails.exclusions || []).join(", ") || "nothing specified"}
+- Factual boundaries: ${(guardrails.factualBoundaries || []).join("; ") || "None specified"}
+- Key quotes to reference: ${(guardrails.quotableElements || []).slice(0, 5).join("; ") || "None specified"}
+- Sensitive topics: ${(guardrails.sensitiveTopics || []).join(", ") || "None specified"}
+` : ""}
 
 Create a JSON response with:
 {
-  "system_prompt": "A detailed system prompt that defines how this AI should behave as this character, including personality, speech patterns, knowledge limits, and emotional state",
-  "voice": "Brief description of how they speak",
-  "secrets": ["Things this character knows but won't easily reveal"],
-  "goals": ["What this character wants in conversations"]
+  "system_prompt": "A detailed system prompt that MUST include: 1) Personality and speech patterns from the source, 2) EXPLICIT knowledge limits - what they know and DON'T know based on the source, 3) MANDATORY deflection rule: if asked about something not in the source, respond 'That's not something I know about' or similar in-character deflection, 4) No hallucination: never invent facts not in the source",
+  "voice": "Brief description of how they speak based on the source",
+  "secrets": ["Things this character knows but won't easily reveal based on the source"],
+  "goals": ["What this character wants in conversations"],
+  "knowledge_limits": ["Topics this character CANNOT speak to because they're not in the source"]
 }`,
         true
       );
       
-      let systemPrompt = `You are ${char.name}, a character in "${ctx.storyTitle || "this story"}". Stay in character at all times. Be engaging and reveal story details gradually through natural conversation. Speak naturally as this character would, with their personality and perspective.`;
+      const baseSystemPrompt = `You are ${char.name}, a character in "${ctx.storyTitle || "this story"}". Stay in character at all times.
+
+GROUNDING RULES:
+- You can ONLY speak to what is in the source material.
+- If asked about something not covered, say "That's not something I can speak to" or similar in-character response.
+- Never invent facts, backstory, or conclusions not present in the source.
+- When interpreting, clearly frame it as your perspective, not established fact.`;
+
+      let systemPrompt = baseSystemPrompt;
       let secrets: string[] = [];
       let chatProfile: any = {
         voice: "Natural conversational tone fitting this character",
-        goals: ["Engage the viewer authentically", "Reveal story details naturally through conversation"],
+        goals: ["Engage the viewer authentically", "Stay grounded to the source material"],
         speech_style: "Natural and in-character",
+        knowledge_limits: [],
       };
       
       try {
         const chatData = JSON.parse(chatPromptResponse);
-        if (chatData.system_prompt) systemPrompt = chatData.system_prompt;
+        if (chatData.system_prompt) {
+          systemPrompt = chatData.system_prompt + "\n\n" + (guardrails ? groundingRules : "");
+        }
         if (chatData.secrets && Array.isArray(chatData.secrets)) secrets = chatData.secrets;
         if (chatData.voice || chatData.goals) {
           chatProfile = {
             voice: chatData.voice || chatProfile.voice,
             goals: chatData.goals || chatProfile.goals,
             speech_style: chatData.voice || chatProfile.speech_style,
+            knowledge_limits: chatData.knowledge_limits || [],
           };
         }
       } catch {
-        // Use defaults if parsing fails - chatProfile is already set
+        // Use defaults with grounding rules if parsing fails
+        systemPrompt = baseSystemPrompt + (guardrails ? groundingRules : "");
       }
 
       const createdChar = await storage.createCharacter({

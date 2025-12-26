@@ -1,0 +1,85 @@
+Absolutely. What Ratplet needs here is conceptual clarity + non-negotiable rules, expressed in a way that can be turned into architecture, not just vibes.
+
+Below is a clean explanation you can paste directly to Ratplet. It frames this as a design invariant, not a preference.
+
+⸻
+
+Message to Ratplet: Grounding, Guardrails, and Creator Control in the Story Engine
+
+When the Story Engine transforms a PDF (or any source media) into a card-based story and optional AI character chat, the highest priority is fidelity to the source material. This is non-negotiable.
+
+This is not a “creative writing” system first.
+It is a grounded transformation system that may elevate tone and structure, but must never invent, drift, or hallucinate beyond the uploaded material unless explicitly allowed by the creator.
+
+1. Strong grounding from the source (critical)
+The transformation must:
+	•	Anchor the story to explicit references, themes, language, and intent found in the uploaded content
+	•	Treat the uploaded media as the single source of truth
+	•	Prefer quotable phrasing, concepts, metaphors, and framing already present in the material
+
+The AI must not:
+	•	Introduce new facts, motivations, or interpretations not supported by the content
+	•	“Improve” the story by adding imagined subtext unless the creator opts in
+	•	Drift into generic tropes just because they are narratively convenient
+
+Think of this as:
+“Extract → interpret → structure → elevate, but never replace.”
+
+2. Insight extraction feeds guardrails (not vibes)
+Early in the pipeline (Pass 1 / Pass 2), the system must extract:
+	•	Core themes
+	•	Tone and emotional intent
+	•	Explicit constraints (what the content is and is not about)
+	•	Sensitive or factual boundaries
+
+These outputs are not disposable. They must:
+	•	Persist through all later stages
+	•	Act as guardrails for card writing, image generation, and AI character chat
+	•	Be referenced explicitly by later prompts (even if abstracted)
+
+Example:
+If the source is restrained, factual, or reflective, the system must not become dramatic, speculative, or sensational later just to “make it engaging”.
+
+3. AI character chat must be source-bound
+If an AI character chat is enabled:
+	•	The character’s knowledge, opinions, and personality must be bounded by the source content
+	•	The character may explain, contextualise, or rephrase the material
+	•	The character must not invent backstory, facts, or conclusions
+
+If the source does not answer a question, the character should:
+	•	Say it’s not covered in the material
+	•	Or clearly frame responses as interpretation, not fact
+
+No confident guessing. No lore creep.
+
+4. Creator-editable prompts and guardrails (essential)
+In the Admin interface, creators must be able to see and edit:
+	•	The system prompt used for transformation
+	•	The negative prompt (what the AI must avoid)
+	•	The guardrails derived from the source (themes, tone constraints, exclusions)
+
+This serves three purposes:
+	1.	Trust – creators can see why the output behaves the way it does
+	2.	Control – creators can tighten or loosen creativity
+	3.	Accountability – hallucinations become traceable and correctable
+
+Default behaviour should be conservative and faithful.
+Creativity only increases when the creator explicitly allows it.
+
+5. Mental model
+This system should behave less like:
+
+“Write me a story inspired by this PDF”
+
+And more like:
+
+“Turn this material into a cinematic, structured experience without betraying it.”
+
+If there is ever a trade-off between engagement and accuracy, accuracy wins by default.
+
+⸻
+
+If you want, next I can:
+	•	Turn this into a formal system contract Ratplet can literally enforce
+	•	Write the exact admin UI copy explaining this to creators
+	•	Or produce a “hallucination prevention checklist” per pipeline stage
