@@ -19,14 +19,8 @@ export default function Onboarding() {
   });
 
   useEffect(() => {
-    if (!user) {
-      setLocation("/login");
-    }
-  }, [user, setLocation]);
-
-  useEffect(() => {
     if (onboardingProfile?.onboardingCompleted) {
-      setLocation("/");
+      setLocation("/app");
     }
   }, [onboardingProfile, setLocation]);
 
@@ -38,14 +32,10 @@ export default function Onboarding() {
     );
   }
 
-  if (!user) {
-    return null;
-  }
-
   return (
     <OnboardingWizard 
       onComplete={() => {
-        setLocation("/");
+        setLocation("/app");
       }} 
     />
   );

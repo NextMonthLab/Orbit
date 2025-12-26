@@ -22,6 +22,10 @@ Preferred communication style: Simple, everyday language.
     - **TTS Narration**: AI-generated voice narration using OpenAI's TTS API, with configurable voices, speeds, and auto-fill modes (manual, derive from text/captions, AI summarization).
 
 ### Feature Specifications
+- **Marketing Homepage**: Public landing page with persona-specific CTAs for news outlets, businesses, influencers, and educators. Authenticated users are automatically redirected to the app dashboard.
+- **Persona-Specific Pages**: Dedicated landing pages at `/for/news`, `/for/business`, `/for/influencer`, `/for/educator` with tailored messaging and use cases.
+- **User Onboarding Flow**: Multi-step wizard for new users to capture persona, industry, team size, goals, and content frequency. Stored in `user_onboarding_profiles` table for personalization.
+- **Route Protection**: All authenticated routes wrapped with RequireAuth component. Marketing pages remain public while app routes redirect unauthenticated users to login.
 - **Daily Drop Engine**: Scheduled release of story cards.
 - **Interactive Chat System (v2)**: Credible, guardrailed AI character chat using a three-layer prompt composition (Universe Policy, Character Profile, Card Overrides) to control personality, knowledge, and conversation flow, preventing hallucination.
 - **Source Guardrails System**: Extracts and enforces `coreThemes`, `toneConstraints`, `factualBoundaries`, `exclusions`, `quotableElements`, `sensitiveTopics`, and `creativeLatitude` from source material to ensure AI accuracy and consistency.

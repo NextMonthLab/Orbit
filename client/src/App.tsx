@@ -64,6 +64,7 @@ const ProtectedTransformationDetailPage = withAuth(TransformationDetailPage);
 const ProtectedCharacterCreatorPage = withAuth(CharacterCreatorPage);
 const ProtectedAdminUniverseDetail = withAuth(AdminUniverseDetail);
 const ProtectedExportPage = withAuth(ExportPage);
+const ProtectedOnboarding = withAuth(Onboarding);
 
 function Router() {
   const { user, loading } = useAuth();
@@ -78,13 +79,13 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/" component={user ? ProtectedHome : MarketingHome} />
+      <Route path="/" component={MarketingHome} />
       <Route path="/for/news" component={ForNews} />
       <Route path="/for/business" component={ForBusiness} />
       <Route path="/for/influencer" component={ForInfluencer} />
       <Route path="/for/educator" component={ForEducator} />
       <Route path="/app" component={ProtectedHome} />
-      <Route path="/onboarding" component={Onboarding} />
+      <Route path="/onboarding" component={ProtectedOnboarding} />
       <Route path="/login" component={Login} />
       <Route path="/profile" component={ProtectedProfile} />
       <Route path="/today" component={ProtectedToday} />

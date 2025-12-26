@@ -1,8 +1,9 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, Sparkles, Users, Newspaper, Building2, Star, GraduationCap, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 
 const personas = [
   {
@@ -64,6 +65,17 @@ const features = [
 
 export default function MarketingHome() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (user) {
+      setLocation("/app");
+    }
+  }, [user, setLocation]);
+
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
