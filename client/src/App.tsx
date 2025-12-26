@@ -24,6 +24,7 @@ import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
 import Experience from "@/pages/Experience";
 import ExportPage from "@/pages/ExportPage";
+import Journal from "@/pages/Journal";
 
 function Router() {
   return (
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/card/:id" component={Today} />
       <Route path="/catch-up" component={CatchUp} />
       <Route path="/chat" component={Chat} />
+      <Route path="/journal" component={Journal} />
       <Route path="/story/:slug" component={Experience} />
       <Route path="/admin" component={Admin} />
       <Route path="/admin/create" component={AdminCreate} />
