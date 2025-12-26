@@ -81,11 +81,29 @@ export async function generateVideoWithReplicate(
 
     console.log(`[Replicate] Running prediction with input:`, JSON.stringify(input, null, 2).substring(0, 500));
 
-    const output = await replicate.run(modelId as `${string}/${string}`, { input });
-
+    const prediction = await replicate.predictions.create({
+      model: modelId,
+      input,
+    });
+    
+    console.log(`[Replicate] Prediction created:`, prediction.id, prediction.status);
+    
+    let finalPrediction = await replicate.wait(prediction);
+    
     console.log(`[Replicate] Prediction completed`);
-    console.log(`[Replicate] Output type:`, typeof output);
-    console.log(`[Replicate] Output:`, JSON.stringify(output, null, 2).substring(0, 1000));
+    console.log(`[Replicate] Status:`, finalPrediction.status);
+    console.log(`[Replicate] Error:`, finalPrediction.error);
+    console.log(`[Replicate] Output type:`, typeof finalPrediction.output);
+    console.log(`[Replicate] Output:`, JSON.stringify(finalPrediction.output, null, 2)?.substring(0, 1000));
+    
+    if (finalPrediction.status === "failed") {
+      return {
+        status: "failed",
+        error: finalPrediction.error || "Prediction failed",
+      };
+    }
+    
+    const output = finalPrediction.output;
 
     let videoUrl: string | undefined;
     
