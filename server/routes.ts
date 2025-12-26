@@ -3072,5 +3072,199 @@ Output only the narration paragraph, nothing else.`;
     }
   });
 
+  // ============ VIDEO GENERATION (KLING) ROUTES ============
+  
+  // Check if Kling is configured
+  app.get("/api/video/config", async (req, res) => {
+    try {
+      const { isKlingConfigured, getKlingModels } = await import("./video");
+      res.json({
+        configured: isKlingConfigured(),
+        models: isKlingConfigured() ? getKlingModels() : [],
+      });
+    } catch (error) {
+      console.error("Error checking video config:", error);
+      res.status(500).json({ message: "Error checking video configuration" });
+    }
+  });
+  
+  // Start video generation for a card
+  app.post("/api/cards/:id/video/generate", requireAuth, async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      const { mode, model, duration, aspectRatio } = req.body;
+      
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      // Check admin permission
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const { isKlingConfigured, startTextToVideoGeneration, startImageToVideoGeneration, estimateVideoCredits } = await import("./video");
+      
+      if (!isKlingConfigured()) {
+        return res.status(503).json({ message: "Video generation not configured: KLING_API_KEY is missing" });
+      }
+      
+      // Check video credits
+      const wallet = await storage.getCreditWallet(req.user.id);
+      const creditsNeeded = estimateVideoCredits(duration || 5, model || "kling-v2");
+      
+      if (!wallet || wallet.videoCredits < creditsNeeded) {
+        return res.status(402).json({ 
+          message: `Insufficient video credits. Need ${creditsNeeded}, have ${wallet?.videoCredits || 0}`,
+          creditsNeeded,
+          creditsAvailable: wallet?.videoCredits || 0,
+        });
+      }
+      
+      // Set status to pending
+      await storage.updateCard(cardId, {
+        videoGenerationStatus: "pending",
+        videoGenerationError: null,
+        videoGenerationModel: model || "kling-v2",
+      });
+      
+      let taskId: string;
+      
+      try {
+        if (mode === "image-to-video" && card.generatedImageUrl) {
+          // Use image-to-video if card has a generated image
+          taskId = await startImageToVideoGeneration({
+            imageUrl: card.generatedImageUrl,
+            prompt: card.sceneDescription || card.title,
+            negativePrompt: "blurry, low quality, distorted, watermark, text overlay",
+            aspectRatio: aspectRatio || "9:16",
+            duration: duration || 5,
+            model: model || "kling-v2",
+          });
+        } else {
+          // Use text-to-video
+          const prompt = card.sceneDescription || `${card.title}. ${card.sceneText}`;
+          taskId = await startTextToVideoGeneration({
+            prompt,
+            negativePrompt: "blurry, low quality, distorted, watermark, text overlay",
+            aspectRatio: aspectRatio || "9:16",
+            duration: duration || 5,
+            model: model || "kling-v2",
+          });
+        }
+        
+        // Update card with task ID
+        const updatedCard = await storage.updateCard(cardId, {
+          videoGenerationTaskId: taskId,
+          videoGenerationStatus: "processing",
+        });
+        
+        // Deduct credits
+        await storage.spendCredits(req.user.id, "video", creditsNeeded);
+        
+        res.json({
+          taskId,
+          card: updatedCard,
+          creditsUsed: creditsNeeded,
+        });
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to start video generation";
+        await storage.updateCard(cardId, {
+          videoGenerationStatus: "failed",
+          videoGenerationError: errorMessage,
+        });
+        throw err;
+      }
+    } catch (error) {
+      console.error("Error starting video generation:", error);
+      res.status(500).json({ message: "Error starting video generation" });
+    }
+  });
+  
+  // Check video generation status
+  app.get("/api/cards/:id/video/status", requireAuth, async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      if (!card.videoGenerationTaskId) {
+        return res.json({
+          status: card.videoGenerationStatus || "none",
+          videoUrl: card.generatedVideoUrl,
+          thumbnailUrl: card.videoThumbnailUrl,
+        });
+      }
+      
+      const { checkVideoStatus } = await import("./video");
+      const result = await checkVideoStatus(card.videoGenerationTaskId);
+      
+      // Update card if status changed
+      if (result.status === "completed" && !card.videoGenerated) {
+        await storage.updateCard(cardId, {
+          videoGenerationStatus: "completed",
+          generatedVideoUrl: result.videoUrl,
+          videoThumbnailUrl: result.thumbnailUrl,
+          videoDurationSec: result.duration,
+          videoGenerated: true,
+          videoGeneratedAt: new Date(),
+          videoGenerationError: null,
+        });
+      } else if (result.status === "failed" && card.videoGenerationStatus !== "failed") {
+        await storage.updateCard(cardId, {
+          videoGenerationStatus: "failed",
+          videoGenerationError: result.error || "Video generation failed",
+        });
+      }
+      
+      res.json({
+        status: result.status,
+        videoUrl: result.videoUrl,
+        thumbnailUrl: result.thumbnailUrl,
+        duration: result.duration,
+        error: result.error,
+      });
+    } catch (error) {
+      console.error("Error checking video status:", error);
+      res.status(500).json({ message: "Error checking video status" });
+    }
+  });
+  
+  // Delete generated video
+  app.delete("/api/cards/:id/video", requireAuth, async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const updatedCard = await storage.updateCard(cardId, {
+        generatedVideoUrl: null,
+        videoGenerated: false,
+        videoGenerationTaskId: null,
+        videoGenerationStatus: "none",
+        videoGenerationError: null,
+        videoThumbnailUrl: null,
+        videoDurationSec: null,
+        videoGeneratedAt: null,
+      });
+      
+      res.json(updatedCard);
+    } catch (error) {
+      console.error("Error deleting video:", error);
+      res.status(500).json({ message: "Error deleting video" });
+    }
+  });
+
   return httpServer;
 }

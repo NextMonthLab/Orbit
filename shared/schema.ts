@@ -290,6 +290,13 @@ export const cards = pgTable("cards", {
   // Engine-generated video fields
   generatedVideoUrl: text("generated_video_url"), // URL of engine-generated video
   videoGenerated: boolean("video_generated").default(false), // Whether video has been generated
+  videoGenerationTaskId: text("video_generation_task_id"), // Kling task ID for polling
+  videoGenerationStatus: text("video_generation_status").$type<'none' | 'pending' | 'processing' | 'completed' | 'failed'>().default("none"),
+  videoGenerationError: text("video_generation_error"),
+  videoGenerationModel: text("video_generation_model"), // e.g., "kling-v2"
+  videoThumbnailUrl: text("video_thumbnail_url"),
+  videoDurationSec: real("video_duration_sec"),
+  videoGeneratedAt: timestamp("video_generated_at"),
   
   // Visual continuity references (for prompt composition)
   primaryCharacterIds: jsonb("primary_character_ids").$type<number[]>(), // Characters in this scene
