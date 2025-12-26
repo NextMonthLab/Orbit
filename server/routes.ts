@@ -2372,7 +2372,7 @@ export async function registerRoutes(
 
   // ============ TRANSFORMATION PIPELINE ROUTES ============
   
-  const { runPipeline, resumeStaleJobs } = await import("./pipeline/runner");
+  const { runPipeline, resumeStaleJobs, extractTextFromFile } = await import("./pipeline/runner");
   
   // Resume any stale jobs on server start
   resumeStaleJobs().catch(console.error);
@@ -2388,7 +2388,6 @@ export async function registerRoutes(
       
       if (req.file) {
         sourceFileName = req.file.originalname;
-        sourceText = req.file.buffer.toString("utf8");
         
         // Save file for later reference
         const uploadDir = path.join(process.cwd(), "uploads", "transformations");
@@ -2397,6 +2396,14 @@ export async function registerRoutes(
         }
         sourceFilePath = path.join(uploadDir, `${Date.now()}-${sourceFileName}`);
         fs.writeFileSync(sourceFilePath, req.file.buffer);
+        
+        // Extract text from file (handles PDFs, text files, etc.)
+        const ext = path.extname(sourceFileName).toLowerCase();
+        if (ext === ".pdf") {
+          sourceText = await extractTextFromFile(sourceFilePath);
+        } else {
+          sourceText = req.file.buffer.toString("utf8");
+        }
       }
       
       if (!sourceText || sourceText.trim().length === 0) {
@@ -2502,7 +2509,12 @@ export async function registerRoutes(
       // Re-read source and restart pipeline
       let sourceText = "";
       if (job.sourceFilePath && fs.existsSync(job.sourceFilePath)) {
-        sourceText = fs.readFileSync(job.sourceFilePath, "utf8");
+        const ext = path.extname(job.sourceFilePath).toLowerCase();
+        if (ext === ".pdf") {
+          sourceText = await extractTextFromFile(job.sourceFilePath);
+        } else {
+          sourceText = fs.readFileSync(job.sourceFilePath, "utf8");
+        }
       }
       
       if (sourceText) {
