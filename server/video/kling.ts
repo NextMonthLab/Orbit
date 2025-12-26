@@ -162,8 +162,13 @@ export async function startImageToVideoGeneration(
 ): Promise<string> {
   let imageData = request.imageUrl;
   
+  console.log(`[Kling] Starting image-to-video generation`);
+  console.log(`[Kling] Original image path: ${request.imageUrl}`);
+  
   if (!imageData.startsWith("http://") && !imageData.startsWith("https://") && !imageData.startsWith("data:")) {
+    console.log(`[Kling] Converting local file to base64...`);
     imageData = getImageBase64(imageData);
+    console.log(`[Kling] Base64 length: ${imageData.length} chars`);
   }
   
   const payload = {
@@ -177,12 +182,18 @@ export async function startImageToVideoGeneration(
     mode: "std",
   };
   
+  console.log(`[Kling] Sending request with model: ${payload.model_name}, aspect: ${payload.aspect_ratio}, duration: ${payload.duration}`);
+  console.log(`[Kling] Prompt: ${payload.prompt.substring(0, 100)}...`);
+  
   const response = await makeKlingRequest("/v1/videos/image2video", "POST", payload);
+  
+  console.log(`[Kling] API Response:`, JSON.stringify(response, null, 2));
   
   if (!response.data?.task_id) {
     throw new Error("Failed to start video generation: No task ID returned");
   }
   
+  console.log(`[Kling] Task started successfully: ${response.data.task_id}`);
   return response.data.task_id;
 }
 

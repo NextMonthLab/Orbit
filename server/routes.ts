@@ -3723,16 +3723,18 @@ Output only the narration paragraph, nothing else.`;
         return res.status(503).json({ message: "Video generation not configured: KLING_API_KEY is missing" });
       }
       
-      // Check video credits
-      const wallet = await storage.getCreditWallet(req.user.id);
-      const creditsNeeded = estimateVideoCredits(duration || 5, model || "kling-v2");
-      
-      if (!wallet || wallet.videoCredits < creditsNeeded) {
-        return res.status(402).json({ 
-          message: `Insufficient video credits. Need ${creditsNeeded}, have ${wallet?.videoCredits || 0}`,
-          creditsNeeded,
-          creditsAvailable: wallet?.videoCredits || 0,
-        });
+      // Skip credit check for admin users (they use their own Kling API subscription)
+      if (!req.user?.isAdmin) {
+        const wallet = await storage.getCreditWallet(req.user.id);
+        const creditsNeeded = estimateVideoCredits(duration || 5, model || "kling-v2");
+        
+        if (!wallet || wallet.videoCredits < creditsNeeded) {
+          return res.status(402).json({ 
+            message: `Insufficient video credits. Need ${creditsNeeded}, have ${wallet?.videoCredits || 0}`,
+            creditsNeeded,
+            creditsAvailable: wallet?.videoCredits || 0,
+          });
+        }
       }
       
       // Set status to pending
