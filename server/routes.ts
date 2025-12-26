@@ -403,6 +403,9 @@ export async function registerRoutes(
               contentPreview: knowledgeContent.slice(0, 200),
             });
             trainingStatus = "ready";
+          } else {
+            console.error("Failed to fetch knowledge URL:", response.status, response.statusText);
+            trainingStatus = "failed";
           }
         } catch (err) {
           console.error("Error fetching knowledge URL:", err);
