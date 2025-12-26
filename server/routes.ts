@@ -183,6 +183,70 @@ export async function registerRoutes(
     }
   });
   
+  // ============ CREATOR ROUTES ============
+  
+  // Get user's entitlements (subscription-based access)
+  app.get("/api/me/entitlements", requireAuth, async (req, res) => {
+    try {
+      const { getFullEntitlements } = await import("./entitlements");
+      const entitlements = await getFullEntitlements(req.user!.id);
+      res.json(entitlements);
+    } catch (error) {
+      console.error("Error fetching entitlements:", error);
+      res.status(500).json({ message: "Error fetching entitlements" });
+    }
+  });
+  
+  // Become a creator (upgrade from viewer to creator role)
+  app.post("/api/me/become-creator", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      if (user.role === 'admin' || user.isAdmin) {
+        return res.json({ message: "Already an admin", user });
+      }
+      
+      if (user.role === 'creator') {
+        const creatorProfile = await storage.getCreatorProfile(user.id);
+        return res.json({ message: "Already a creator", user, creatorProfile });
+      }
+      
+      // Upgrade user to creator role
+      const updatedUser = await storage.updateUser(user.id, { role: 'creator' as any });
+      
+      // Create creator profile with free tier
+      const creatorProfile = await storage.createCreatorProfile({
+        userId: user.id,
+        displayName: user.username,
+        subscriptionStatus: 'inactive', // Free tier
+      });
+      
+      const { password: _, ...userWithoutPassword } = updatedUser!;
+      res.json({ 
+        message: "You are now a creator!", 
+        user: userWithoutPassword,
+        creatorProfile 
+      });
+    } catch (error) {
+      console.error("Error becoming creator:", error);
+      res.status(500).json({ message: "Error updating account" });
+    }
+  });
+  
+  // Get creator profile
+  app.get("/api/me/creator-profile", requireAuth, async (req, res) => {
+    try {
+      const creatorProfile = await storage.getCreatorProfile(req.user!.id);
+      if (!creatorProfile) {
+        return res.status(404).json({ message: "Creator profile not found" });
+      }
+      res.json(creatorProfile);
+    } catch (error) {
+      console.error("Error fetching creator profile:", error);
+      res.status(500).json({ message: "Error fetching creator profile" });
+    }
+  });
+  
   // ============ UNIVERSE ROUTES ============
   
   app.get("/api/universes", async (req, res) => {

@@ -4,18 +4,49 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Users
+// User roles: viewer (default), creator (storytellers), admin (full access)
+export type UserRole = 'viewer' | 'creator' | 'admin';
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").unique(),
   username: text("username").notNull().unique(),
   password: text("password"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  isAdmin: boolean("is_admin").default(false).notNull(),
+  isAdmin: boolean("is_admin").default(false).notNull(), // Legacy, use role instead
+  role: text("role").$type<UserRole>().default("viewer").notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Creator profiles for storytellers (linked to subscription tiers)
+export const creatorProfiles = pgTable("creator_profiles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull().unique(),
+  displayName: text("display_name").notNull(),
+  bio: text("bio"),
+  avatarUrl: text("avatar_url"),
+  planId: integer("plan_id").references(() => plans.id), // Current subscription tier
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  subscriptionStatus: text("subscription_status").default("inactive"), // 'active', 'past_due', 'cancelled', 'inactive'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCreatorProfileSchema = createInsertSchema(creatorProfiles).omit({ id: true, createdAt: true });
+export type InsertCreatorProfile = z.infer<typeof insertCreatorProfileSchema>;
+export type CreatorProfile = typeof creatorProfiles.$inferSelect;
+
+// Universe ownership mapping (which creator owns which universes)
+export const universeCreators = pgTable("universe_creators", {
+  id: serial("id").primaryKey(),
+  universeId: integer("universe_id").references(() => universes.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  role: text("role").default("owner").notNull(), // 'owner', 'collaborator'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 // Visual Style Schema (for universe-level style constraints)
 export const visualStyleSchema = z.object({

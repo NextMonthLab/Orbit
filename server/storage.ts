@@ -17,6 +17,12 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<schema.User | undefined>;
   getUserByEmail(email: string): Promise<schema.User | undefined>;
   createUser(user: schema.InsertUser): Promise<schema.User>;
+  updateUser(id: number, data: Partial<schema.InsertUser>): Promise<schema.User | undefined>;
+  
+  // Creator Profiles
+  getCreatorProfile(userId: number): Promise<schema.CreatorProfile | undefined>;
+  createCreatorProfile(profile: schema.InsertCreatorProfile): Promise<schema.CreatorProfile>;
+  updateCreatorProfile(userId: number, data: Partial<schema.InsertCreatorProfile>): Promise<schema.CreatorProfile | undefined>;
   
   // Universe
   getUniverse(id: number): Promise<schema.Universe | undefined>;
@@ -152,6 +158,32 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: schema.InsertUser): Promise<schema.User> {
     const [user] = await db.insert(schema.users).values(insertUser).returning();
     return user;
+  }
+  
+  async updateUser(id: number, data: Partial<schema.InsertUser>): Promise<schema.User | undefined> {
+    const [user] = await db.update(schema.users).set(data).where(eq(schema.users.id, id)).returning();
+    return user;
+  }
+  
+  // Creator Profiles
+  async getCreatorProfile(userId: number): Promise<schema.CreatorProfile | undefined> {
+    const result = await db.query.creatorProfiles.findFirst({
+      where: eq(schema.creatorProfiles.userId, userId),
+    });
+    return result;
+  }
+  
+  async createCreatorProfile(profile: schema.InsertCreatorProfile): Promise<schema.CreatorProfile> {
+    const [result] = await db.insert(schema.creatorProfiles).values(profile).returning();
+    return result;
+  }
+  
+  async updateCreatorProfile(userId: number, data: Partial<schema.InsertCreatorProfile>): Promise<schema.CreatorProfile | undefined> {
+    const [result] = await db.update(schema.creatorProfiles)
+      .set(data)
+      .where(eq(schema.creatorProfiles.userId, userId))
+      .returning();
+    return result;
   }
   
   // Universe
