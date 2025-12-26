@@ -26,6 +26,7 @@ import Profile from "@/pages/Profile";
 import Experience from "@/pages/Experience";
 import ExportPage from "@/pages/ExportPage";
 import Journal from "@/pages/Journal";
+import BecomeCreator from "@/pages/BecomeCreator";
 
 function Router() {
   return (
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/chat" component={Chat} />
       <Route path="/journal" component={Journal} />
       <Route path="/story/:slug" component={Experience} />
+      <Route path="/become-creator" component={BecomeCreator} />
       <Route path="/admin" component={Admin} />
       <Route path="/admin/create" component={AdminCreate} />
       <Route path="/admin/import" component={AdminImport} />

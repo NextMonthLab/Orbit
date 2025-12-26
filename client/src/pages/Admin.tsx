@@ -297,15 +297,20 @@ export default function Admin() {
   };
 
   const isEngineGenerated = selectedUniverse?.visualMode === 'engine_generated';
+  const isCreatorOrAdmin = user?.isAdmin || user?.role === 'admin' || user?.role === 'creator';
 
-  if (!user?.isAdmin) {
+  if (!isCreatorOrAdmin) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
-          <h2 className="text-2xl font-display font-bold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">You need admin privileges to access this page.</p>
-          <Link href="/">
-            <Button>Go Home</Button>
+          <h2 className="text-2xl font-display font-bold mb-4">Creator Access Required</h2>
+          <p className="text-muted-foreground mb-6">
+            Become a creator to start building your own stories and universes.
+          </p>
+          <Link href="/become-creator">
+            <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+              Become a Creator
+            </Button>
           </Link>
         </div>
       </Layout>

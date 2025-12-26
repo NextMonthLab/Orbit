@@ -34,6 +34,70 @@ export interface FullEntitlements {
   isCreator: boolean;
 }
 
+function detectTierFromSlug(slug: string | null | undefined): string {
+  if (!slug) return 'free';
+  const normalizedSlug = slug.toLowerCase();
+  
+  if (normalizedSlug.includes('business') || normalizedSlug.includes('enterprise')) {
+    return 'business';
+  }
+  if (normalizedSlug.includes('pro') || normalizedSlug.includes('premium')) {
+    return 'pro';
+  }
+  return 'free';
+}
+
+const TIER_DEFAULTS: Record<string, Partial<FullEntitlements>> = {
+  free: {
+    canCreateStory: true,
+    canCreateCharacter: false,
+    canUploadAudio: false,
+    canGenerateImages: false,
+    canGenerateVideos: false,
+    canExport: false,
+    canUseCharacterChat: false,
+    canUseCloudLlm: false,
+    canViewAnalytics: false,
+    canViewEngagement: true,
+    maxUniverses: 1,
+    maxCardsPerStory: 5,
+    monthlyVideoCredits: 0,
+    monthlyVoiceCredits: 0,
+  },
+  pro: {
+    canCreateStory: true,
+    canCreateCharacter: true,
+    canUploadAudio: true,
+    canGenerateImages: true,
+    canGenerateVideos: false,
+    canExport: true,
+    canUseCharacterChat: true,
+    canUseCloudLlm: true,
+    canViewAnalytics: true,
+    canViewEngagement: true,
+    maxUniverses: -1,
+    maxCardsPerStory: 50,
+    monthlyVideoCredits: 0,
+    monthlyVoiceCredits: 100,
+  },
+  business: {
+    canCreateStory: true,
+    canCreateCharacter: true,
+    canUploadAudio: true,
+    canGenerateImages: true,
+    canGenerateVideos: true,
+    canExport: true,
+    canUseCharacterChat: true,
+    canUseCloudLlm: true,
+    canViewAnalytics: true,
+    canViewEngagement: true,
+    maxUniverses: -1,
+    maxCardsPerStory: -1,
+    monthlyVideoCredits: 50,
+    monthlyVoiceCredits: 500,
+  },
+};
+
 export async function getFullEntitlements(userId: number): Promise<FullEntitlements> {
   const user = await storage.getUser(userId);
   if (!user) {
@@ -48,22 +112,26 @@ export async function getFullEntitlements(userId: number): Promise<FullEntitleme
     const creatorProfile = await storage.getCreatorProfile(userId);
     if (creatorProfile && creatorProfile.planId && creatorProfile.subscriptionStatus === 'active') {
       const plan = await storage.getPlan(creatorProfile.planId);
-      if (plan?.features) {
+      if (plan) {
+        const tierSlug = detectTierFromSlug(plan.slug);
+        const tierDefaults = TIER_DEFAULTS[tierSlug] || TIER_DEFAULTS.free;
+        const features = (plan.features as Record<string, any>) || {};
+        
         return {
           canCreateStory: true,
-          canCreateCharacter: plan.features.canUseCharacterChat ?? false,
-          canUploadAudio: (plan.features.monthlyVoiceCredits ?? 0) > 0,
-          canGenerateImages: plan.features.canGenerateImages ?? false,
-          canGenerateVideos: (plan.features.monthlyVideoCredits ?? 0) > 0,
-          canExport: plan.features.canExport ?? false,
-          canUseCharacterChat: plan.features.canUseCharacterChat ?? false,
-          canUseCloudLlm: plan.features.canUseCloudLlm ?? false,
-          canViewAnalytics: false,
+          canCreateCharacter: features.canCreateCharacter ?? tierDefaults.canCreateCharacter ?? false,
+          canUploadAudio: features.canUploadAudio ?? tierDefaults.canUploadAudio ?? false,
+          canGenerateImages: features.canGenerateImages ?? tierDefaults.canGenerateImages ?? false,
+          canGenerateVideos: features.canGenerateVideos ?? tierDefaults.canGenerateVideos ?? false,
+          canExport: features.canExport ?? tierDefaults.canExport ?? false,
+          canUseCharacterChat: features.canUseCharacterChat ?? tierDefaults.canUseCharacterChat ?? false,
+          canUseCloudLlm: features.canUseCloudLlm ?? tierDefaults.canUseCloudLlm ?? false,
+          canViewAnalytics: features.canViewAnalytics ?? tierDefaults.canViewAnalytics ?? false,
           canViewEngagement: true,
-          maxUniverses: 5,
-          maxCardsPerStory: plan.features.maxCardsPerStory ?? 5,
-          monthlyVideoCredits: plan.features.monthlyVideoCredits ?? 0,
-          monthlyVoiceCredits: plan.features.monthlyVoiceCredits ?? 0,
+          maxUniverses: features.maxUniverses ?? tierDefaults.maxUniverses ?? 1,
+          maxCardsPerStory: features.maxCardsPerStory ?? tierDefaults.maxCardsPerStory ?? 5,
+          monthlyVideoCredits: features.monthlyVideoCredits ?? tierDefaults.monthlyVideoCredits ?? 0,
+          monthlyVoiceCredits: features.monthlyVoiceCredits ?? tierDefaults.monthlyVoiceCredits ?? 0,
           planName: plan.displayName,
           isAdmin: false,
           isCreator: true,
