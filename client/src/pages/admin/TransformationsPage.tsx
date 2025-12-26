@@ -87,14 +87,66 @@ function StatusBadge({ status }: { status: TransformationJob["status"] }) {
   );
 }
 
-function CreateTransformationForm({ onSuccess }: { onSuccess: () => void }) {
+// Lens-based defaults for the transformation form
+type Lens = 'brand' | 'creator' | 'knowledge';
+
+const LENS_DEFAULTS: Record<Lens, {
+  headerTitle: string;
+  headerDescription: string;
+  urlLabel: string;
+  urlPlaceholder: string;
+  urlHelp: string;
+  sourceType: string;
+  category: string;
+  goal: string;
+  showUrlFirst: boolean;
+}> = {
+  brand: {
+    headerTitle: "Transform Your Brand Story",
+    headerDescription: "Upload a website, product page, or case study. We'll create an interactive experience that explains what you do.",
+    urlLabel: "Your Website or Landing Page",
+    urlPlaceholder: "https://yourcompany.com",
+    urlHelp: "Enter your website URL to create an interactive walkthrough",
+    sourceType: "website",
+    category: "marketing",
+    goal: "brand_awareness",
+    showUrlFirst: true,
+  },
+  creator: {
+    headerTitle: "Bring Your Story to Life",
+    headerDescription: "Upload a script, treatment, or story outline. We'll transform it into an immersive cinematic experience.",
+    urlLabel: "Story Source (optional)",
+    urlPlaceholder: "https://docs.google.com/...",
+    urlHelp: "Link to an online document or skip to upload a file",
+    sourceType: "other",
+    category: "narrative",
+    goal: "storytelling",
+    showUrlFirst: false,
+  },
+  knowledge: {
+    headerTitle: "Make Learning Stick",
+    headerDescription: "Upload a PDF, deck, or document. We'll transform it into memorable moments people actually retain.",
+    urlLabel: "Document Link (optional)",
+    urlPlaceholder: "https://notion.so/...",
+    urlHelp: "Link to an online document or skip to upload a file",
+    sourceType: "documentation",
+    category: "educational",
+    goal: "education",
+    showUrlFirst: false,
+  },
+};
+
+function CreateTransformationForm({ onSuccess, userLens }: { onSuccess: () => void; userLens?: Lens }) {
+  const lens = userLens || 'brand';
+  const defaults = LENS_DEFAULTS[lens];
+  
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
-  const [contentSourceType, setContentSourceType] = useState("");
+  const [contentSourceType, setContentSourceType] = useState(defaults.sourceType);
   const [contentIndustry, setContentIndustry] = useState("");
-  const [contentCategory, setContentCategory] = useState("");
-  const [contentGoal, setContentGoal] = useState("");
+  const [contentCategory, setContentCategory] = useState(defaults.category);
+  const [contentGoal, setContentGoal] = useState(defaults.goal);
   const [hookPackCount, setHookPackCount] = useState("3");
   const [releaseMode, setReleaseMode] = useState("hybrid");
   const [storyLength, setStoryLength] = useState("medium");
@@ -118,10 +170,10 @@ function CreateTransformationForm({ onSuccess }: { onSuccess: () => void }) {
       setFile(null);
       setText("");
       setSourceUrl("");
-      setContentSourceType("");
+      setContentSourceType(defaults.sourceType);
       setContentIndustry("");
-      setContentCategory("");
-      setContentGoal("");
+      setContentCategory(defaults.category);
+      setContentGoal(defaults.goal);
       onSuccess();
     },
     onError: (err: Error) => {
@@ -161,27 +213,26 @@ function CreateTransformationForm({ onSuccess }: { onSuccess: () => void }) {
         <div className="w-14 h-14 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center mx-auto mb-3">
           <Upload className="w-7 h-7 text-white" />
         </div>
-        <CardTitle className="text-xl">Create Your Story</CardTitle>
+        <CardTitle className="text-xl">{defaults.headerTitle}</CardTitle>
         <CardDescription className="max-w-md mx-auto">
-          Upload a script, PDF, or paste your story text. Our AI will analyze it and create 
-          an interactive universe with characters, scenes, and daily story drops.
+          {defaults.headerDescription}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="sourceUrl">Import from URL</Label>
+            <Label htmlFor="sourceUrl">{defaults.urlLabel}</Label>
             <Input
               id="sourceUrl"
               type="url"
-              placeholder="https://example.com/article..."
+              placeholder={defaults.urlPlaceholder}
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
               disabled={!!file || !!text.trim()}
               data-testid="input-source-url"
             />
             <p className="text-xs text-muted-foreground">
-              Enter a website, blog post, or article URL to transform into a story
+              {defaults.urlHelp}
             </p>
           </div>
           
@@ -478,6 +529,16 @@ export default function TransformationsPage() {
     refetchInterval: 3000,
   });
   
+  const { data: onboardingProfile } = useQuery<{ persona?: string }>({
+    queryKey: ["onboarding"],
+    queryFn: async () => {
+      const res = await fetch("/api/me/onboarding", { credentials: "include" });
+      if (!res.ok) return {};
+      return res.json();
+    },
+  });
+  
+  const userLens = onboardingProfile?.persona as Lens | undefined;
   const hasJobs = jobs && jobs.length > 0;
   
   return (
@@ -494,7 +555,7 @@ export default function TransformationsPage() {
         </div>
         
         {/* Main Create Form */}
-        <CreateTransformationForm onSuccess={() => refetch()} />
+        <CreateTransformationForm onSuccess={() => refetch()} userLens={userLens} />
         
         {/* Previous Transformations - Only show if there are jobs */}
         {hasJobs && (
