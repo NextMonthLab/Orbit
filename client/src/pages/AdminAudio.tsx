@@ -277,24 +277,24 @@ export default function AdminAudio() {
         </div>
 
         <div className="flex gap-3 flex-wrap">
-          <Select value={moodFilter} onValueChange={setMoodFilter}>
+          <Select value={moodFilter || "all"} onValueChange={(v) => setMoodFilter(v === "all" ? "" : v)}>
             <SelectTrigger className="w-36" data-testid="select-mood-filter">
               <SelectValue placeholder="All moods" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All moods</SelectItem>
+              <SelectItem value="all">All moods</SelectItem>
               {MOOD_OPTIONS.map(mood => (
                 <SelectItem key={mood} value={mood}>{mood}</SelectItem>
               ))}
             </SelectContent>
           </Select>
           
-          <Select value={genreFilter} onValueChange={setGenreFilter}>
+          <Select value={genreFilter || "all"} onValueChange={(v) => setGenreFilter(v === "all" ? "" : v)}>
             <SelectTrigger className="w-36" data-testid="select-genre-filter">
               <SelectValue placeholder="All genres" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All genres</SelectItem>
+              <SelectItem value="all">All genres</SelectItem>
               {GENRE_OPTIONS.map(genre => (
                 <SelectItem key={genre} value={genre}>{genre}</SelectItem>
               ))}
