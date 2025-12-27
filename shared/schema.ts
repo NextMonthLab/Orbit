@@ -1043,5 +1043,62 @@ export const insertUserOnboardingProfileSchema = createInsertSchema(userOnboardi
 export type InsertUserOnboardingProfile = z.infer<typeof insertUserOnboardingProfileSchema>;
 export type UserOnboardingProfile = typeof userOnboardingProfiles.$inferSelect;
 
+// Preview Instances for Micro Smart Site previews
+export type PreviewStatus = 'active' | 'archived' | 'claimed';
+
+export const previewInstances = pgTable("preview_instances", {
+  id: text("id").primaryKey(), // UUID
+  ownerUserId: integer("owner_user_id").references(() => users.id), // Nullable for anonymous previews
+  ownerIp: text("owner_ip"), // For rate limiting anonymous previews
+  sourceUrl: text("source_url").notNull(),
+  sourceDomain: text("source_domain").notNull(),
+  status: text("status").$type<PreviewStatus>().default("active").notNull(),
+
+  // Site summary for chat context
+  siteTitle: text("site_title"),
+  siteSummary: text("site_summary"), // 1-3 paragraphs
+  keyServices: text("key_services").array(), // Array of services/products
+  contactInfo: jsonb("contact_info"), // Optional contact details
+
+  // Usage caps
+  messageCount: integer("message_count").default(0).notNull(),
+  maxMessages: integer("max_messages").default(25).notNull(),
+  ingestedPagesCount: integer("ingested_pages_count").default(0).notNull(),
+  maxPages: integer("max_pages").default(4).notNull(),
+  totalCharsIngested: integer("total_chars_ingested").default(0).notNull(),
+
+  // Cost tracking
+  costEstimatePence: integer("cost_estimate_pence").default(0),
+  llmCallCount: integer("llm_call_count").default(0),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(), // createdAt + 48h
+  lastActiveAt: timestamp("last_active_at").defaultNow().notNull(),
+  archivedAt: timestamp("archived_at"),
+  claimedAt: timestamp("claimed_at"),
+
+  // Claim details
+  claimedPlanId: integer("claimed_plan_id").references(() => plans.id),
+  stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+});
+
+export const insertPreviewInstanceSchema = createInsertSchema(previewInstances).omit({ createdAt: true, lastActiveAt: true });
+export type InsertPreviewInstance = z.infer<typeof insertPreviewInstanceSchema>;
+export type PreviewInstance = typeof previewInstances.$inferSelect;
+
+// Preview chat messages (lightweight conversation history)
+export const previewChatMessages = pgTable("preview_chat_messages", {
+  id: serial("id").primaryKey(),
+  previewId: text("preview_id").references(() => previewInstances.id, { onDelete: "cascade" }).notNull(),
+  role: text("role").notNull(), // 'user' or 'assistant'
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPreviewChatMessageSchema = createInsertSchema(previewChatMessages).omit({ id: true, createdAt: true });
+export type InsertPreviewChatMessage = z.infer<typeof insertPreviewChatMessageSchema>;
+export type PreviewChatMessage = typeof previewChatMessages.$inferSelect;
+
 // Export chat models for AI integrations
 export * from "./models/chat";

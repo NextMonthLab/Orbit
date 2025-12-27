@@ -14,6 +14,7 @@ import OpenAI from "openai";
 import dns from "dns/promises";
 import { isKlingConfigured, startImageToVideoGeneration, checkVideoStatus, waitForVideoCompletion } from "./video";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
+import { startArchiveExpiredPreviewsJob } from "./jobs/archiveExpiredPreviews";
 
 // OpenAI client for image generation - uses Replit AI Integrations (no API key needed)
 // Charges are billed to your Replit credits
@@ -4382,6 +4383,312 @@ Output only the narration paragraph, nothing else.`;
       res.status(404).json({ message: "Object not found" });
     }
   });
+
+  // ============ PREVIEW INSTANCES (Micro Smart Site) ============
+  const { validateUrlSafety, ingestSitePreview, generatePreviewId, calculateExpiresAt } = await import("./previewHelpers");
+
+  // Create a preview instance
+  app.post("/api/previews", async (req, res) => {
+    try {
+      const { url } = req.body;
+
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({ message: "URL is required" });
+      }
+
+      // Get user ID and IP for rate limiting
+      const userId = req.user?.id;
+      const userIp = req.ip || req.socket.remoteAddress || "unknown";
+
+      // Rate limiting: check daily caps
+      if (userId) {
+        const userCount = await storage.countUserPreviewsToday(userId);
+        if (userCount >= 2) {
+          return res.status(429).json({ message: "Daily limit reached (2 previews per day)" });
+        }
+      } else {
+        const ipCount = await storage.countIpPreviewsToday(userIp);
+        if (ipCount >= 3) {
+          return res.status(429).json({ message: "Daily limit reached (3 previews per IP per day)" });
+        }
+      }
+
+      // Validate URL (SSRF protection)
+      const validation = await validateUrlSafety(url.trim());
+      if (!validation.safe) {
+        return res.status(400).json({ message: validation.error });
+      }
+
+      // Ingest site (lightweight, max 4 pages, 80k chars)
+      let siteData;
+      try {
+        siteData = await ingestSitePreview(url.trim());
+      } catch (err: any) {
+        return res.status(400).json({ message: `Could not access website: ${err.message}` });
+      }
+
+      // Create preview instance
+      const preview = await storage.createPreviewInstance({
+        id: generatePreviewId(),
+        ownerUserId: userId || null,
+        ownerIp: userId ? null : userIp,
+        sourceUrl: url.trim(),
+        sourceDomain: validation.domain!,
+        siteTitle: siteData.title,
+        siteSummary: siteData.summary,
+        keyServices: siteData.keyServices,
+        contactInfo: null,
+        expiresAt: calculateExpiresAt(),
+        ingestedPagesCount: siteData.pagesIngested,
+        totalCharsIngested: siteData.totalChars,
+        status: "active",
+      });
+
+      res.json({
+        previewId: preview.id,
+        expiresAt: preview.expiresAt,
+        status: preview.status,
+        siteTitle: preview.siteTitle,
+      });
+    } catch (error) {
+      console.error("Error creating preview:", error);
+      res.status(500).json({ message: "Error creating preview" });
+    }
+  });
+
+  // Get preview metadata
+  app.get("/api/previews/:id", async (req, res) => {
+    try {
+      const preview = await storage.getPreviewInstance(req.params.id);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+
+      // Check if expired
+      if (preview.status === "active" && new Date() > new Date(preview.expiresAt)) {
+        await storage.archivePreviewInstance(preview.id);
+        preview.status = "archived";
+      }
+
+      res.json({
+        id: preview.id,
+        status: preview.status,
+        siteTitle: preview.siteTitle,
+        siteSummary: preview.siteSummary,
+        keyServices: preview.keyServices,
+        messageCount: preview.messageCount,
+        maxMessages: preview.maxMessages,
+        expiresAt: preview.expiresAt,
+        createdAt: preview.createdAt,
+      });
+    } catch (error) {
+      console.error("Error getting preview:", error);
+      res.status(500).json({ message: "Error getting preview" });
+    }
+  });
+
+  // Chat with preview
+  app.post("/api/previews/:id/chat", async (req, res) => {
+    try {
+      const { message } = req.body;
+
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      const preview = await storage.getPreviewInstance(req.params.id);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+
+      // Check if expired
+      if (new Date() > new Date(preview.expiresAt)) {
+        await storage.archivePreviewInstance(preview.id);
+        return res.json({
+          capped: true,
+          reason: "expired",
+          message: "This preview has expired. Claim it to keep chatting.",
+        });
+      }
+
+      // Check status
+      if (preview.status !== "active") {
+        return res.json({
+          capped: true,
+          reason: preview.status,
+          message: `This preview is ${preview.status}.`,
+        });
+      }
+
+      // Check message cap
+      if (preview.messageCount >= preview.maxMessages) {
+        return res.json({
+          capped: true,
+          reason: "message_limit",
+          message: "You've reached the message limit for this preview. Claim it to continue.",
+          messageCount: preview.messageCount,
+        });
+      }
+
+      // Get conversation history (last 10 messages for context)
+      const history = await storage.getPreviewChatMessages(preview.id, 10);
+
+      // Save user message
+      await storage.addPreviewChatMessage({
+        previewId: preview.id,
+        role: "user",
+        content: message,
+      });
+
+      // Call LLM with site context
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+
+      const systemPrompt = `You are a helpful AI assistant representing ${preview.siteTitle}.
+
+Site Summary:
+${preview.siteSummary}
+
+${preview.keyServices && preview.keyServices.length > 0 ? `Key Services/Products:
+${preview.keyServices.map((s: string) => `- ${s}`).join('\n')}` : ''}
+
+Your role:
+- Answer questions about the business, its services, and offerings
+- Be helpful, professional, and conversational
+- Qualify leads by understanding their needs
+- If asked about something not in the summary, politely say you don't have that specific information but would be happy to connect them with the team
+
+Keep responses concise (2-3 sentences maximum).`;
+
+      const messages = [
+        { role: "system" as const, content: systemPrompt },
+        ...history.map((m: any) => ({ role: m.role as any, content: m.content })),
+        { role: "user" as const, content: message },
+      ];
+
+      const aiResponse = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages,
+        max_tokens: 200,
+        temperature: 0.7,
+      });
+
+      const reply = aiResponse.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+
+      // Save assistant message
+      await storage.addPreviewChatMessage({
+        previewId: preview.id,
+        role: "assistant",
+        content: reply,
+      });
+
+      // Increment message count
+      await storage.incrementPreviewMessageCount(preview.id);
+
+      // Update cost estimate (rough: ~0.01p per message for mini model)
+      const newMessageCount = preview.messageCount + 1;
+      await storage.updatePreviewInstance(preview.id, {
+        costEstimatePence: preview.costEstimatePence + 1,
+        llmCallCount: preview.llmCallCount + 1,
+      });
+
+      res.json({
+        reply,
+        messageCount: newMessageCount,
+        capped: newMessageCount >= preview.maxMessages,
+      });
+    } catch (error) {
+      console.error("Error in preview chat:", error);
+      res.status(500).json({ message: "Error processing chat" });
+    }
+  });
+
+  // Archive preview
+  app.post("/api/previews/:id/archive", async (req, res) => {
+    try {
+      const preview = await storage.getPreviewInstance(req.params.id);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+
+      await storage.archivePreviewInstance(preview.id);
+      res.json({ success: true, message: "Preview archived" });
+    } catch (error) {
+      console.error("Error archiving preview:", error);
+      res.status(500).json({ message: "Error archiving preview" });
+    }
+  });
+
+  // Claim preview (start checkout)
+  app.post("/api/previews/:id/claim", requireAuth, async (req, res) => {
+    try {
+      const preview = await storage.getPreviewInstance(req.params.id);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+
+      if (preview.status === "claimed") {
+        return res.status(400).json({ message: "Preview already claimed" });
+      }
+
+      // Get Business plan
+      const plan = await storage.getPlanByName("Business");
+      if (!plan) {
+        return res.status(500).json({ message: "Business plan not found" });
+      }
+
+      const { getUncachableStripeClient } = await import("./stripeClient");
+      const stripe = await getUncachableStripeClient();
+
+      // Create or get customer
+      let customerId: string | undefined;
+      const subscription = await storage.getSubscription(req.user!.id);
+      if (subscription?.stripeCustomerId) {
+        customerId = subscription.stripeCustomerId;
+      } else {
+        const customer = await stripe.customers.create({
+          email: req.user!.email || undefined,
+          metadata: { userId: String(req.user!.id) },
+        });
+        customerId = customer.id;
+      }
+
+      // Create checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        mode: "subscription",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price: plan.stripePriceId!,
+            quantity: 1,
+          },
+        ],
+        success_url: `${req.protocol}://${req.get("host")}/preview/${preview.id}?claimed=true`,
+        cancel_url: `${req.protocol}://${req.get("host")}/preview/${preview.id}`,
+        metadata: {
+          userId: String(req.user!.id),
+          previewId: preview.id,
+          planId: String(plan.id),
+        },
+      });
+
+      // Update preview with checkout session ID
+      await storage.updatePreviewInstance(preview.id, {
+        stripeCheckoutSessionId: session.id,
+      });
+
+      res.json({ checkoutUrl: session.url });
+    } catch (error) {
+      console.error("Error claiming preview:", error);
+      res.status(500).json({ message: "Error creating checkout session" });
+    }
+  });
+
+  // Start background jobs
+  startArchiveExpiredPreviewsJob(storage);
 
   return httpServer;
 }

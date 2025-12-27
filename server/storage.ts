@@ -157,6 +157,20 @@ export interface IStorage {
   getUserStorageUsage(userId: number): Promise<schema.UserStorageUsage | undefined>;
   getOrCreateUserStorageUsage(userId: number): Promise<schema.UserStorageUsage>;
   updateStorageUsage(userId: number, deltaBytes: number, deltaImages: number, deltaVideos: number): Promise<schema.UserStorageUsage>;
+
+  // Preview Instances
+  getPreviewInstance(id: string): Promise<schema.PreviewInstance | undefined>;
+  createPreviewInstance(preview: schema.InsertPreviewInstance): Promise<schema.PreviewInstance>;
+  updatePreviewInstance(id: string, data: Partial<schema.InsertPreviewInstance>): Promise<schema.PreviewInstance | undefined>;
+  archivePreviewInstance(id: string): Promise<void>;
+  getExpiredPreviews(): Promise<schema.PreviewInstance[]>;
+  countUserPreviewsToday(userId: number): Promise<number>;
+  countIpPreviewsToday(ip: string): Promise<number>;
+
+  // Preview Chat Messages
+  getPreviewChatMessages(previewId: string, limit?: number): Promise<schema.PreviewChatMessage[]>;
+  addPreviewChatMessage(message: schema.InsertPreviewChatMessage): Promise<schema.PreviewChatMessage>;
+  incrementPreviewMessageCount(previewId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1060,6 +1074,87 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.userStorageUsage.userId, userId))
       .returning();
     return result;
+  }
+
+  // Preview Instances
+  async getPreviewInstance(id: string): Promise<schema.PreviewInstance | undefined> {
+    const result = await db.query.previewInstances.findFirst({
+      where: eq(schema.previewInstances.id, id),
+    });
+    return result;
+  }
+
+  async createPreviewInstance(preview: schema.InsertPreviewInstance): Promise<schema.PreviewInstance> {
+    const [result] = await db.insert(schema.previewInstances).values(preview as any).returning();
+    return result;
+  }
+
+  async updatePreviewInstance(id: string, data: Partial<schema.InsertPreviewInstance>): Promise<schema.PreviewInstance | undefined> {
+    const [result] = await db.update(schema.previewInstances)
+      .set({...data, lastActiveAt: new Date()})
+      .where(eq(schema.previewInstances.id, id))
+      .returning();
+    return result;
+  }
+
+  async archivePreviewInstance(id: string): Promise<void> {
+    await db.update(schema.previewInstances)
+      .set({ status: 'archived', archivedAt: new Date() })
+      .where(eq(schema.previewInstances.id, id));
+  }
+
+  async getExpiredPreviews(): Promise<schema.PreviewInstance[]> {
+    const result = await db.query.previewInstances.findMany({
+      where: and(
+        eq(schema.previewInstances.status, 'active'),
+        // expiresAt < now
+        sql`${schema.previewInstances.expiresAt} < NOW()`
+      ),
+    });
+    return result;
+  }
+
+  async countUserPreviewsToday(userId: number): Promise<number> {
+    const result = await db.query.previewInstances.findMany({
+      where: and(
+        eq(schema.previewInstances.ownerUserId, userId),
+        // createdAt > start of today
+        sql`${schema.previewInstances.createdAt} > CURRENT_DATE`
+      ),
+    });
+    return result.length;
+  }
+
+  async countIpPreviewsToday(ip: string): Promise<number> {
+    const result = await db.query.previewInstances.findMany({
+      where: and(
+        eq(schema.previewInstances.ownerIp, ip),
+        // createdAt > start of today
+        sql`${schema.previewInstances.createdAt} > CURRENT_DATE`
+      ),
+    });
+    return result.length;
+  }
+
+  // Preview Chat Messages
+  async getPreviewChatMessages(previewId: string, limit: number = 50): Promise<schema.PreviewChatMessage[]> {
+    const result = await db.query.previewChatMessages.findMany({
+      where: eq(schema.previewChatMessages.previewId, previewId),
+      orderBy: desc(schema.previewChatMessages.createdAt),
+      limit,
+    });
+    return result.reverse(); // Oldest first
+  }
+
+  async addPreviewChatMessage(message: schema.InsertPreviewChatMessage): Promise<schema.PreviewChatMessage> {
+    const [result] = await db.insert(schema.previewChatMessages).values(message as any).returning();
+    return result;
+  }
+
+  async incrementPreviewMessageCount(previewId: string): Promise<void> {
+    await db.update(schema.previewInstances)
+      .set({ messageCount: sql`${schema.previewInstances.messageCount} + 1` })
+      .where(eq(schema.previewInstances.id, previewId));
   }
 }
 
