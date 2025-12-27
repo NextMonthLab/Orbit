@@ -16,6 +16,16 @@ import {
 } from "@/components/ui/dialog";
 import { PreviewExperienceOrchestrator } from "@/components/preview/PreviewExperienceOrchestrator";
 import { BrandCustomizationScreen, type BrandPreferences } from "@/components/preview/BrandCustomizationScreen";
+import { SpatialSmartSite } from "@/components/spatial";
+
+interface ValidatedContent {
+  overview: string;
+  whatWeDo: string[];
+  commonQuestions: { question: string; contextPrompt: string }[];
+  brandName: string;
+  passed: boolean;
+  issues: string[];
+}
 
 interface SiteIdentity {
   sourceDomain: string;
@@ -31,6 +41,7 @@ interface SiteIdentity {
   faqCandidates: string[];
   extractedAt: string;
   imagePool?: string[];
+  validatedContent?: ValidatedContent;
 }
 
 interface PreviewInstance {
@@ -433,9 +444,11 @@ export default function PreviewPage() {
   const [experienceMode, setExperienceMode] = useState<'cinematic' | 'interactive'>('cinematic');
   const [showCustomization, setShowCustomization] = useState(true);
   const [brandPreferences, setBrandPreferences] = useState<BrandPreferences | null>(null);
+  const [useSpatialExperience, setUseSpatialExperience] = useState(true);
 
-  const handleCustomizationConfirm = (prefs: BrandPreferences) => {
+  const handleCustomizationConfirm = (prefs: BrandPreferences, spatial?: boolean) => {
     setBrandPreferences(prefs);
+    if (spatial !== undefined) setUseSpatialExperience(spatial);
     setShowCustomization(false);
   };
 
@@ -651,7 +664,39 @@ export default function PreviewPage() {
         />
       )}
 
-      {preview.siteIdentity && !showCustomization && (
+      {preview.siteIdentity && !showCustomization && useSpatialExperience && (
+        <SpatialSmartSite
+          siteIdentity={{
+            sourceDomain: preview.siteIdentity.sourceDomain,
+            title: preview.siteIdentity.title,
+            logoUrl: preview.siteIdentity.logoUrl,
+            faviconUrl: preview.siteIdentity.faviconUrl,
+            heroDescription: preview.siteIdentity.heroDescription,
+            primaryColour: preview.siteIdentity.primaryColour,
+            serviceBullets: preview.siteIdentity.serviceBullets,
+            faqCandidates: preview.siteIdentity.faqCandidates,
+          }}
+          validatedContent={preview.siteIdentity.validatedContent ? {
+            overview: preview.siteIdentity.validatedContent.overview,
+            whatWeDo: preview.siteIdentity.validatedContent.whatWeDo,
+            commonQuestions: preview.siteIdentity.validatedContent.commonQuestions,
+            brandName: preview.siteIdentity.validatedContent.brandName,
+          } : null}
+          brandPreferences={brandPreferences}
+          onSendMessage={async (message) => {
+            const response = await fetch(`/api/previews/${previewId}/chat`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message }),
+            });
+            if (!response.ok) throw new Error("Failed");
+            const data = await response.json();
+            return data.reply;
+          }}
+        />
+      )}
+
+      {preview.siteIdentity && !showCustomization && !useSpatialExperience && (
         <PreviewExperienceOrchestrator
           siteIdentity={preview.siteIdentity}
           siteTitle={preview.siteTitle}
@@ -663,7 +708,7 @@ export default function PreviewPage() {
         />
       )}
 
-      {experienceMode === 'interactive' && !showCustomization && (
+      {experienceMode === 'interactive' && !showCustomization && !useSpatialExperience && (
         <ChatOverlay
           isOpen={chatOpen}
           onClose={() => setChatOpen(false)}

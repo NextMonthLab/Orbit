@@ -1,0 +1,348 @@
+# Replit Prompt: Micro Smart Site vNext — Spatial + Conversational Interface (MVP)
+
+## Goal
+Build a **next-gen Micro Smart Site** experience that feels like a living “business interface”, not a traditional page.
+
+The interface must be:
+- **Conversation-first** (AI concierge leads the experience)
+- **Spatial** (content exists as a scrollable, explorable layer behind chat)
+- **Trustworthy** (cards are derived from real pages and clearly sourced)
+- **Actionable** (contextual “launch pad” actions: call, SMS, email, video reply, video call)
+- **Shareable** (share the *experience state*, not just a URL)
+
+This replaces “Overview / What we do / Common Questions” sections with:
+- A floating chat concierge
+- A behind-the-scenes “content space” of cards (real pages, images, people)
+
+Do NOT rush generation. This system assumes the site has already been catalogued by a scan pipeline (crawl → map → validate). If scan results are missing, stub them with mock JSON but keep the structure real.
+
+---
+
+## Product Concept
+Think: **“You’re standing in the lobby of the business.”**
+- The **chat** is the concierge desk.
+- The **space behind** is the building: services, proof, people, processes, contact routes.
+
+Visitors can:
+- Scroll vertically through curated cards
+- Swipe horizontally through themed “rows” (like Netflix) or “lanes” (like a gallery)
+- Jump into any card at any time
+- Ask the concierge questions or let it proactively explore intent
+- Share the current “state” with a colleague
+- Escalate to a human via **personalised video reply** or **live video call** (UI only; backend can be stubbed)
+
+---
+
+## Non-Negotiables (Hard Rules)
+
+### 1) Conversation-First, Proactive, Permission-Based
+The AI must not be purely reactive.
+It should open with a lightweight intent question + quick options:
+- “Just browsing”
+- “Comparing providers”
+- “Existing customer”
+- “Need help urgently”
+- “Research / academic”
+- “Not sure yet”
+
+Ask at most **3 qualification questions** before offering a next step.
+
+### 2) Cards are Real and Sourced
+Every card must show provenance:
+- Title
+- Source domain
+- URL (external link)
+- “From {domain}” label
+
+No invented pages.
+
+### 3) Launch Pad Actions are Contextual
+Actions should appear based on intent + card context:
+- Call
+- SMS
+- Email
+- Share
+- Request video reply
+- Video call (if available)
+
+Never show all actions all the time.
+
+### 4) Sharing Shares State
+Sharing should create a link that includes:
+- Selected intent (if known)
+- Active card / lane
+- Key conversation summary (short)
+- Optional “question being investigated”
+
+### 5) Theme Safety
+Default to **monochrome tones** unless brand colours are verified.
+No guessing accent colours.
+
+---
+
+## UX / UI Requirements
+
+### Layout
+- Full screen “space” canvas behind
+- Floating chat panel (dockable bottom sheet on mobile, side panel on desktop)
+- Top bar with:
+  - Brand avatar/logo
+  - Business name + domain
+  - Share icon
+
+### Spatial Content Layer (“Space”)
+Implement a two-axis browsing model:
+- **Vertical scroll** = overall journey (cards stacked)
+- **Horizontal swipe rows** = categories/lenses (Services, Proof, People, Process, FAQs)
+
+Option A (recommended MVP): “Rows” UI
+- Like Netflix: each row scrolls horizontally
+- Whole page scrolls vertically
+
+Rows (minimum):
+1. Start here (curated)
+2. Services (real service pages)
+3. People (team members, if detected)
+4. Proof (case studies/testimonials if detected)
+5. How it works (process pages)
+6. Contact & next steps (contact page, booking, forms)
+
+Each row is composed of **Cards**.
+
+### Card Types (MVP)
+- `page_card`: title, excerpt, url, tags, hero_image(optional)
+- `image_card`: image, caption, source_url
+- `person_card`: name, role, email/phone if found, source_url
+- `cta_card`: “Talk to us”, “Request video reply”, “Book a call” (still sourced to contact page)
+
+Each card has:
+- `id`
+- `type`
+- `title`
+- `summary` (1–2 lines)
+- `source: { domain, url }`
+- `signals: { intentTags[], confidence }`
+
+### “Open Card”
+Tapping a card opens a focused “Card Viewer”:
+- Shows more detail
+- Shows external link button
+- Shows contextual actions (launch pad)
+- Shows “Ask about this card” (sends context to concierge)
+
+---
+
+## Concierge Behaviour (AI Layer)
+
+### Modes
+- **Concierge Mode** (default): proactive guidance, intent discovery
+- **Explain Mode**: answer a direct question, cite relevant card(s)
+- **Route Mode**: offer best next action, link to page, or suggest a person
+- **Handoff Mode**: escalate to human (video reply / call)
+
+### Mandatory Skills
+- Always tie answers back to the site catalogue:
+  - “There’s more detail on this page…” + link to the relevant card’s URL
+- If people exist in the catalogue:
+  - “You may want to speak to {Name} ({Role}). Want their details?”
+- End responses with one of:
+  - a next step
+  - a suggested card to open
+  - a question to clarify intent
+
+### Proactive Triggers
+- After 8 seconds idle: “Want help finding the right info?”
+- After opening 2+ cards without chat: “Are you researching options or solving something urgent?”
+- After user indicates urgency: offer human options sooner
+
+### Logging (for owner intelligence)
+Log these events locally (MVP) to simulate analytics:
+- intent_selected
+- card_opened
+- question_asked
+- link_clicked
+- handoff_requested
+- action_clicked (call/sms/email/share/video)
+
+Store as JSON in local storage or a simple in-memory store.
+
+---
+
+## Video Reply and Video Call (MVP Implementation)
+We are not building a full comms platform in MVP.
+
+### Video Reply
+Implement a UI flow:
+- “Request a video reply”
+- Collect:
+  - name (optional)
+  - email or phone (required)
+  - short question / summary (pre-filled from chat)
+- Submit to a stub endpoint or log locally.
+
+### Video Call
+Implement:
+- “Video call available” badge if a mock `availability` flag is true.
+- If clicked, show:
+  - “Connecting…” screen
+  - fallback message:
+    “No one is available right now — want a video reply instead?”
+
+(Real WebRTC can be Phase 2; keep MVP as believable UI with stubs.)
+
+---
+
+## Data Contract (Use this JSON shape)
+Create a file: `mock/siteCatalogue.json` (or fetch from API later)
+
+```json
+{
+  "brand": {
+    "name": "Assure UK",
+    "domain": "assureuk.co.uk",
+    "logoUrl": "/mock/logo.png",
+    "theme": { "mode": "monochrome", "verified": false }
+  },
+  "lanes": [
+    {
+      "id": "start",
+      "title": "Start here",
+      "cards": [
+        {
+          "id": "home",
+          "type": "page_card",
+          "title": "Assure UK",
+          "summary": "Pension scheme audits and assurance experts.",
+          "source": { "domain": "assureuk.co.uk", "url": "https://assureuk.co.uk/" },
+          "signals": { "intentTags": ["overview"], "confidence": 0.9 }
+        }
+      ]
+    },
+    {
+      "id": "services",
+      "title": "Services",
+      "cards": []
+    },
+    {
+      "id": "people",
+      "title": "People",
+      "cards": []
+    },
+    {
+      "id": "proof",
+      "title": "Proof",
+      "cards": []
+    },
+    {
+      "id": "process",
+      "title": "How it works",
+      "cards": []
+    },
+    {
+      "id": "contact",
+      "title": "Contact",
+      "cards": []
+    }
+  ],
+  "peopleIndex": [
+    {
+      "id": "person_1",
+      "name": "John Example",
+      "role": "Pension Audit Lead",
+      "email": "john@example.com",
+      "phone": "+44 0000 000000",
+      "source": { "domain": "assureuk.co.uk", "url": "https://assureuk.co.uk/team" }
+    }
+  ],
+  "availability": {
+    "videoCall": false
+  }
+}
+
+
+⸻
+
+Engineering Tasks (Implementation)
+
+Frontend Pages
+	•	/ → loads Micro Smart Site vNext
+	•	Optional /share/:stateId → loads a shared state snapshot
+
+Core Components
+	•	SpatialShell
+	•	hosts lanes + background scroll experience
+	•	LaneRow (horizontal scroll)
+	•	Card
+	•	CardViewer (modal)
+	•	ChatDock (floating panel)
+	•	LaunchPadActions (contextual buttons)
+	•	ShareStateModal
+	•	VideoReplyRequestModal
+	•	VideoCallModal (stub)
+
+State Management
+
+Use a simple store (Context + reducer or Zustand).
+State should include:
+	•	intent (selected)
+	•	activeLaneId
+	•	activeCardId
+	•	conversation (messages)
+	•	sessionLog (events)
+	•	shareState (serialisable)
+
+Share State
+	•	Serialise minimal state into:
+	•	base64 query string OR
+	•	server-generated short ID (stub)
+	•	Include:
+	•	selected intent
+	•	active card
+	•	1–2 line AI summary
+	•	Provide a “Copy link” button
+
+Concierge Integration
+
+MVP can use a mock AI function that:
+	•	reads intent, activeCard, catalogue
+	•	replies with:
+	•	a helpful answer
+	•	a suggested card to open
+	•	a next step action
+
+If OpenAI/Claude is already wired in the project, use it.
+If not, stub with deterministic responses but keep prompt structure.
+
+⸻
+
+Behavioural Quality Gates (Acceptance Criteria)
+	•	The UI does not look like an FAQ page.
+	•	Visitors can explore visually behind the chat.
+	•	Cards always show real source URLs.
+	•	Concierge asks intent first, then guides.
+	•	“Common questions” are not static text blocks; they appear as suggested prompts and trigger chat.
+	•	Share link recreates the same view/context.
+	•	Video reply and video call exist as believable flows (even if stubbed).
+	•	Theme defaults to monochrome and does not invent brand colours.
+
+⸻
+
+What to Deliver
+	1.	Working UI implementing Spatial + Conversational pattern
+	2.	Catalogue JSON + rendering into lanes and cards
+	3.	Concierge with intent flow + contextual suggestions
+	4.	Share experience state flow
+	5.	Launch pad actions + video reply + video call stubs
+	6.	Simple session logging (local) to prove “intelligence capture”
+
+Build it cleanly and modularly so later we can plug in:
+	•	real scan pipeline output
+	•	real AI
+	•	real comms (video call)
+	•	owner analytics dashboard
+
+If you want, I can also write the “Concierge prompt template” (system + few-shot) so Claude/OpenAI consistently:
+- suggests the right card,
+- offers links properly,
+- escalates to human only when appropriate,
+- and logs structured insight.
