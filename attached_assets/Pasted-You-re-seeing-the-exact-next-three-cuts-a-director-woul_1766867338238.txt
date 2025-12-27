@@ -1,0 +1,224 @@
+You’re seeing the exact “next three cuts” a director would call out in an edit suite. The engine’s working, but the art direction rules aren’t locked yet.
+
+Here’s what’s happening, and the concrete fixes to give Replit so it stops guessing.
+
+⸻
+
+The issues you’ve spotted (and what they really mean)
+
+1) Brand colour mismatch (Assure should be blue, it’s purple)
+
+Cause: the extraction is still using a generic fallback (or NextScene accent) instead of a real palette from the source.
+
+Fix: upgrade palette extraction with a strict priority:
+	1.	<meta name="theme-colour">
+	2.	CSS variables on :root (--primary, --brand, etc)
+	3.	Dominant colour from hero image (fast sample)
+	4.	Dominant colour from logo (if logo is usable)
+	5.	Only then fallback to NextScene purple
+
+Also: store brandPalette not just primaryColour:
+	•	primary
+	•	secondary
+	•	textOnPrimary (light/dark)
+	•	neutral background
+
+⸻
+
+2) Logo not showing due to transparent/incorrect background
+
+Cause: it’s grabbing a logo that assumes a coloured backing, then rendering it on black or wrong surface.
+
+Fix: add “logo treatment” logic:
+	•	If logo has transparency OR is dark on dark, render it inside a brand badge:
+	•	rounded rectangle
+	•	background set to brandPalette.primary (or a detected header background colour)
+	•	slight blur/backdrop optional
+	•	Also try logoLight and logoDark detection:
+	•	sample pixels, estimate if the mark is mostly dark or light
+	•	choose the right backing automatically
+
+Fallback: monogram badge using palette.
+
+⸻
+
+3) Same image reused everywhere (mosaic effect)
+
+Cause: it only found one good image and the card builder is reusing it as filler. That screams “template”.
+
+Fix: enforce a rule:
+	•	Never reuse the same image on consecutive cards
+	•	If no new image is available, use:
+	•	full-bleed gradient derived from palette
+	•	subtle texture (noise)
+	•	optional big typographic treatment
+	•	optional small brand mark watermark
+
+Also improve image harvesting:
+	•	capture og:image
+	•	capture first 3–6 “large” images (min width and height)
+	•	exclude icons, logos, sprites, tiny thumbnails
+	•	dedupe by URL and by perceptual hash if feasible
+
+Store imagePool: [] in siteIdentity.
+
+⸻
+
+4) It never quite goes full-screen
+
+Cause: the header plus safe-area plus container sizing is preventing true 100vh and you’ve got competing padding/overlays.
+
+Fix: enforce cinematic sizing rules:
+	•	Cinematic cards live in a dedicated container:
+	•	height: 100svh (new mobile safe viewport)
+	•	scroll-snap-type: y mandatory
+	•	each card height: 100svh; scroll-snap-align: start
+	•	Header should be overlayed, not taking layout height:
+	•	position fixed, translucent, minimal
+	•	Cards should be full-bleed with object-fit: cover
+
+⸻
+
+5) Too much competing text
+
+Cause: it’s rendering site scaffold copy plus story copy plus section headings and labels.
+
+Fix: create strict typography hierarchy per mode:
+
+Cinematic card
+	•	One headline (max 8–10 words)
+	•	Optional subline (max 18–24 words)
+	•	Nothing else
+	•	No “What we do”, “Common questions”, etc on cinematic cards
+
+Interactive contextual card
+	•	Clear title
+	•	2–4 bullets or short paragraph
+	•	One CTA
+	•	Chat prompt as secondary
+
+This is where it becomes “bold, big, minimal”.
+
+⸻
+
+The “Director’s Cut” rules you should lock in
+
+Use these as hard constraints:
+	1.	One image per card OR gradient fallback. No mosaics.
+	2.	One headline per cinematic card. No multiple blocks.
+	3.	Full screen always. No partial frames.
+	4.	Brand palette drives accents. NextScene purple is forbidden unless palette extraction fails.
+	5.	Logo always visible via badge treatment.
+
+⸻
+
+Replit Prompt to fix all of this (paste this)
+
+You are Rapplet inside the NextScene repo.
+
+We have a working Smart Site Preview with Cinematic cards, but it is failing art-direction rules.
+Do NOT add new UI patterns. This is refinement of extraction + rendering.
+
+Goal
+Make cinematic cards feel: simple, bold, full-screen, minimal text.
+Ensure brand fidelity: correct palette, usable logo treatment, varied imagery.
+
+Non negotiables
+- No mosaics
+- No repeated hero image across multiple cards unless there are zero alternatives, and even then avoid consecutive reuse
+- Full-screen cards (100svh) with snap
+- Cinematic cards must show minimal text only (headline + optional subline)
+- Use brand palette, not NextScene purple
+
+A) Brand colour extraction upgrade
+Implement brandPalette extraction and store in siteIdentity:
+Priority:
+1. meta[name="theme-color"]
+2. CSS variables from :root (common names: --primary, --brand, --color-primary, --accent)
+3. Derive dominant colour from hero image (sample pixels quickly, no heavy libs)
+4. Derive dominant colour from logo/fav if available
+5. Fallback: existing default
+Store:
+{
+  primary,
+  secondary (optional),
+  background,
+  textOnPrimary (light/dark),
+  textOnBackground
+}
+Update UI to use palette.primary for buttons, highlights, progress dots, badges.
+
+B) Logo rendering treatment
+If logo is missing or illegible:
+- always show a brand badge:
+  - rounded rectangle, padding
+  - background: palette.primary (or palette.background if primary is too bright)
+  - if logo exists, render inside badge
+  - else monogram
+Add simple contrast detection:
+- if logo appears dark, use light badge background
+- if logo appears light, use dark badge background
+Do not allow invisible logo on dark backgrounds.
+
+C) Image pool extraction and dedupe
+Update ingestion to collect imagePool:
+- og:image (if valid)
+- first N large images (min width 800 or best available)
+- exclude data URIs, icons, logos, sprites, very small images
+- dedupe by URL
+Store imagePool in siteIdentity.
+Rendering rule:
+- choose different image per cinematic card where possible
+- never reuse same image on consecutive cards
+Fallback if no image:
+- full-bleed gradient derived from palette.primary + subtle noise
+
+D) Full-screen cinematic layout
+Refactor cinematic container:
+- height: 100svh
+- scroll-snap-type: y mandatory
+Each card:
+- height: 100svh
+- background image full-bleed object-fit: cover
+Header must be overlay (fixed) and not reduce card height.
+
+E) Text minimisation and hierarchy
+Cinematic card content:
+- headline max 10 words
+- subline max 24 words
+- remove any extra labels like “What we do”, “Common questions” within cinematic view
+Interactive view can remain detailed but avoid duplicating the cinematic text blocks.
+
+F) Prevent competing overlays
+The “Ask about this page” button should not cover key headline text.
+Move it lower, reduce size, or only show after a short delay.
+Ensure safe-area padding for iOS.
+
+Acceptance tests
+1) Assure UK preview uses blue palette accents (not purple) where brand extraction succeeds.
+2) Logo is visible via badge treatment even if original mark needs a background.
+3) Cinematic cards are true full-screen and snap cleanly.
+4) No mosaic / collage behaviour.
+5) Minimal text on cinematic cards, no competing blocks.
+6) Image variety: uses imagePool or gradient fallbacks without repeating the same photo across multiple cards.
+
+Implement now, commit with a clear message, and provide quick test steps.
+
+
+⸻
+
+One extra suggestion (small change, big impact)
+
+Add a single switch in the cinematic renderer:
+
+“Cinematic Mode strict”
+When on, it enforces:
+	•	max 2 lines of text
+	•	no section headings
+	•	no extra UI elements
+
+That’s how you stop regression when new content types appear.
+
+⸻
+
+If you send one more screenshot after these refinements, I’ll tell you if it’s hit the “Netflix title card” vibe or if we still need to tighten pacing and copy selection.

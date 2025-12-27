@@ -227,22 +227,122 @@ function extractHeroImageUrl(html: string, baseUrl: string): string | null {
   return null;
 }
 
-// Extract primary colour from theme-color or CSS
+// Extract primary colour from theme-color, CSS variables, or computed sources
 function extractPrimaryColour(html: string): string {
-  // theme-color meta tag
+  // 1. theme-color meta tag (highest priority)
   const themeColorMatch = html.match(/<meta[^>]*name=["']theme-color["'][^>]*content=["']([^"']+)["']/i);
-  if (themeColorMatch) {
+  if (themeColorMatch && isValidColour(themeColorMatch[1])) {
     return themeColorMatch[1];
   }
   
-  // msapplication-TileColor
+  // 2. msapplication-TileColor
   const tileColorMatch = html.match(/<meta[^>]*name=["']msapplication-TileColor["'][^>]*content=["']([^"']+)["']/i);
-  if (tileColorMatch) {
+  if (tileColorMatch && isValidColour(tileColorMatch[1])) {
     return tileColorMatch[1];
   }
   
-  // Default purple
+  // 3. CSS variables in :root (common naming patterns)
+  const cssVarPatterns = [
+    /--primary[^:]*:\s*([#][0-9a-fA-F]{3,8})/i,
+    /--brand[^:]*:\s*([#][0-9a-fA-F]{3,8})/i,
+    /--accent[^:]*:\s*([#][0-9a-fA-F]{3,8})/i,
+    /--color-primary[^:]*:\s*([#][0-9a-fA-F]{3,8})/i,
+    /--main[^:]*:\s*([#][0-9a-fA-F]{3,8})/i,
+  ];
+  
+  for (const pattern of cssVarPatterns) {
+    const match = html.match(pattern);
+    if (match && isValidColour(match[1])) {
+      return match[1];
+    }
+  }
+  
+  // 4. Look for inline styles on buttons/links with explicit colours
+  const buttonColorMatch = html.match(/<(?:button|a)[^>]*style=["'][^"']*background(?:-color)?:\s*([#][0-9a-fA-F]{3,8})/i);
+  if (buttonColorMatch && isValidColour(buttonColorMatch[1])) {
+    return buttonColorMatch[1];
+  }
+  
+  // 5. Default fallback
   return '#7c3aed';
+}
+
+// Validate colour format
+function isValidColour(colour: string): boolean {
+  if (!colour) return false;
+  // Check hex format
+  if (/^#[0-9a-fA-F]{3,8}$/.test(colour)) return true;
+  // Check rgb/rgba format
+  if (/^rgba?\s*\(/.test(colour)) return true;
+  // Check named colours (basic)
+  const namedColours = ['blue', 'red', 'green', 'purple', 'orange', 'yellow', 'pink', 'teal', 'navy', 'black', 'white'];
+  if (namedColours.includes(colour.toLowerCase())) return true;
+  return false;
+}
+
+// Extract image pool for variety across cards
+function extractImagePool(html: string, baseUrl: string): string[] {
+  const images: string[] = [];
+  const seenUrls = new Set<string>();
+  
+  // 1. og:image first
+  const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+  if (ogImageMatch) {
+    const url = resolveUrl(ogImageMatch[1], baseUrl);
+    if (!seenUrls.has(url)) {
+      images.push(url);
+      seenUrls.add(url);
+    }
+  }
+  
+  // 2. twitter:image
+  const twitterImageMatch = html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i);
+  if (twitterImageMatch) {
+    const url = resolveUrl(twitterImageMatch[1], baseUrl);
+    if (!seenUrls.has(url)) {
+      images.push(url);
+      seenUrls.add(url);
+    }
+  }
+  
+  // 3. Main content images (skip nav/header/footer)
+  const mainContent = html
+    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "");
+  
+  const imgMatches = mainContent.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi) || [];
+  for (const img of imgMatches) {
+    if (images.length >= 6) break;
+    
+    const srcMatch = img.match(/src=["']([^"']+)["']/i);
+    if (!srcMatch) continue;
+    
+    const src = srcMatch[1];
+    
+    // Skip unsuitable images
+    if (src.startsWith('data:')) continue;
+    if (src.includes('icon')) continue;
+    if (src.includes('logo')) continue;
+    if (src.includes('avatar')) continue;
+    if (src.includes('sprite')) continue;
+    if (src.includes('1x1')) continue;
+    if (src.length < 20) continue;
+    
+    // Check for size hints in attributes
+    const widthMatch = img.match(/width=["']?(\d+)/i);
+    const heightMatch = img.match(/height=["']?(\d+)/i);
+    if (widthMatch && parseInt(widthMatch[1]) < 200) continue;
+    if (heightMatch && parseInt(heightMatch[1]) < 150) continue;
+    
+    const url = resolveUrl(src, baseUrl);
+    if (!seenUrls.has(url)) {
+      images.push(url);
+      seenUrls.add(url);
+    }
+  }
+  
+  return images;
 }
 
 // Extract service headings (h2/h3 elements)
@@ -377,6 +477,7 @@ export async function extractSiteIdentity(url: string, html: string): Promise<Si
     serviceHeadings: extractServiceHeadings(html),
     serviceBullets: extractServiceBullets(html),
     faqCandidates: extractFaqCandidates(html),
+    imagePool: extractImagePool(html, url),
     extractedAt: new Date().toISOString(),
   };
 }

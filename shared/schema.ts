@@ -1058,6 +1058,7 @@ export const siteIdentitySchema = z.object({
   serviceHeadings: z.array(z.string()).default([]),
   serviceBullets: z.array(z.string()).default([]),
   faqCandidates: z.array(z.string()).default([]),
+  imagePool: z.array(z.string()).default([]),
   extractedAt: z.string(),
 });
 
