@@ -99,7 +99,7 @@ export default function ForBusiness() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/">
-            <img src="https://res.cloudinary.com/dvudlkqip/image/upload/v1766825430/6F55E75F-5FC8-4488-BC3C-7FCA7EC0DB45_tevybh.jpg" alt="NextScene" className="h-5 cursor-pointer" data-testid="link-logo" />
+            <img src="https://res.cloudinary.com/drl0fxrkq/image/upload/v1766875394/6D8AC1E3-D35E-4435-9DBE-E9F573A97A8D_znzy2e.jpg" alt="NextScene" className="h-5 cursor-pointer" data-testid="link-logo" />
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/login">

@@ -4,7 +4,7 @@ import { ArrowRight, Play, Sparkles, Building2, Film, GraduationCap, Upload, Wan
 import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
-const LOGO_URL = "https://res.cloudinary.com/dvudlkqip/image/upload/v1766825430/6F55E75F-5FC8-4488-BC3C-7FCA7EC0DB45_tevybh.jpg";
+const LOGO_URL = "https://res.cloudinary.com/drl0fxrkq/image/upload/v1766875394/6D8AC1E3-D35E-4435-9DBE-E9F573A97A8D_znzy2e.jpg";
 
 const useCases = [
   {
