@@ -1046,6 +1046,23 @@ export type UserOnboardingProfile = typeof userOnboardingProfiles.$inferSelect;
 // Preview Instances for Micro Smart Site previews
 export type PreviewStatus = 'active' | 'archived' | 'claimed';
 
+export const siteIdentitySchema = z.object({
+  sourceDomain: z.string(),
+  title: z.string().nullable(),
+  heroHeadline: z.string().nullable(),
+  heroDescription: z.string().nullable(),
+  logoUrl: z.string().nullable(),
+  faviconUrl: z.string().nullable(),
+  heroImageUrl: z.string().nullable(),
+  primaryColour: z.string().default('#7c3aed'),
+  serviceHeadings: z.array(z.string()).default([]),
+  serviceBullets: z.array(z.string()).default([]),
+  faqCandidates: z.array(z.string()).default([]),
+  extractedAt: z.string(),
+});
+
+export type SiteIdentity = z.infer<typeof siteIdentitySchema>;
+
 export const previewInstances = pgTable("preview_instances", {
   id: text("id").primaryKey(), // UUID
   ownerUserId: integer("owner_user_id").references(() => users.id), // Nullable for anonymous previews
@@ -1054,7 +1071,10 @@ export const previewInstances = pgTable("preview_instances", {
   sourceDomain: text("source_domain").notNull(),
   status: text("status").$type<PreviewStatus>().default("active").notNull(),
 
-  // Site summary for chat context
+  // Site identity for brand continuity
+  siteIdentity: jsonb("site_identity").$type<SiteIdentity>(),
+
+  // Legacy site summary fields (kept for compatibility)
   siteTitle: text("site_title"),
   siteSummary: text("site_summary"), // 1-3 paragraphs
   keyServices: text("key_services").array(), // Array of services/products

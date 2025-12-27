@@ -1,5 +1,6 @@
 import dns from "dns/promises";
 import { randomUUID } from "crypto";
+import type { SiteIdentity } from "@shared/schema";
 
 // SSRF protection: validate URL safety
 export async function validateUrlSafety(url: string): Promise<{ safe: boolean; error?: string; domain?: string }> {
@@ -75,6 +76,311 @@ export async function validateUrlSafety(url: string): Promise<{ safe: boolean; e
   return { safe: true, domain };
 }
 
+// Extract favicon URL using proper hierarchy
+function extractFaviconUrl(html: string, baseUrl: string): string | null {
+  const parsedBase = new URL(baseUrl);
+  
+  // 1. Check for apple-touch-icon (high quality)
+  const appleTouchMatch = html.match(/<link[^>]*rel=["']apple-touch-icon["'][^>]*href=["']([^"']+)["']/i);
+  if (appleTouchMatch) {
+    return resolveUrl(appleTouchMatch[1], baseUrl);
+  }
+  
+  // 2. Check for icon link tags
+  const iconMatch = html.match(/<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*href=["']([^"']+)["']/i);
+  if (iconMatch) {
+    return resolveUrl(iconMatch[1], baseUrl);
+  }
+  
+  // 3. Fallback to /favicon.ico
+  return `${parsedBase.origin}/favicon.ico`;
+}
+
+// Extract logo URL from header/nav with "logo" in class/id/alt/src
+function extractLogoUrl(html: string, baseUrl: string): string | null {
+  // Look for images with "logo" in class, id, alt, or src within header/nav
+  const headerNavPattern = /<(?:header|nav)[^>]*>[\s\S]*?<\/(?:header|nav)>/gi;
+  const headerNavMatches = html.match(headerNavPattern) || [];
+  
+  for (const section of headerNavMatches) {
+    // Find img tags with "logo" in attributes
+    const imgPattern = /<img[^>]*(?:class|id|alt|src)=["'][^"']*logo[^"']*["'][^>]*>/gi;
+    const imgMatches = section.match(imgPattern) || [];
+    
+    for (const img of imgMatches) {
+      const srcMatch = img.match(/src=["']([^"']+)["']/i);
+      if (srcMatch) {
+        const src = srcMatch[1];
+        // Skip tiny icons (data URIs or very short paths likely to be icons)
+        if (!src.startsWith('data:') && src.length > 10) {
+          return resolveUrl(src, baseUrl);
+        }
+      }
+    }
+  }
+  
+  // Broader search: any img with "logo" anywhere on the page
+  const allLogoImgs = html.match(/<img[^>]*(?:class|id|alt|src)=["'][^"']*logo[^"']*["'][^>]*src=["']([^"']+)["']/gi) || [];
+  for (const match of allLogoImgs) {
+    const srcMatch = match.match(/src=["']([^"']+)["']/i);
+    if (srcMatch && !srcMatch[1].startsWith('data:')) {
+      return resolveUrl(srcMatch[1], baseUrl);
+    }
+  }
+  
+  return null;
+}
+
+// Extract hero headline (first h1)
+function extractHeroHeadline(html: string): string | null {
+  // First h1
+  const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+  if (h1Match) {
+    return cleanText(h1Match[1]);
+  }
+  
+  // Fallback to og:title
+  const ogTitleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i);
+  if (ogTitleMatch) {
+    return cleanText(ogTitleMatch[1]);
+  }
+  
+  // Fallback to title tag
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  if (titleMatch) {
+    return cleanText(titleMatch[1]);
+  }
+  
+  return null;
+}
+
+// Extract hero description (meta description or first meaningful paragraph)
+function extractHeroDescription(html: string): string | null {
+  // Meta description
+  const metaDescMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+  if (metaDescMatch) {
+    return cleanText(metaDescMatch[1]);
+  }
+  
+  // og:description fallback
+  const ogDescMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i);
+  if (ogDescMatch) {
+    return cleanText(ogDescMatch[1]);
+  }
+  
+  // First meaningful paragraph (skip navigation/footer areas)
+  const mainContent = html
+    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "");
+  
+  const pMatches = mainContent.match(/<p[^>]*>([^<]{50,300})<\/p>/gi) || [];
+  for (const p of pMatches) {
+    const textMatch = p.match(/<p[^>]*>([^<]+)<\/p>/i);
+    if (textMatch) {
+      const text = cleanText(textMatch[1]);
+      if (text.length > 50 && !text.toLowerCase().includes('cookie') && !text.toLowerCase().includes('privacy')) {
+        return text;
+      }
+    }
+  }
+  
+  return null;
+}
+
+// Extract hero image (og:image or first large image)
+function extractHeroImageUrl(html: string, baseUrl: string): string | null {
+  // og:image first
+  const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+  if (ogImageMatch) {
+    return resolveUrl(ogImageMatch[1], baseUrl);
+  }
+  
+  // twitter:image fallback
+  const twitterImageMatch = html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i);
+  if (twitterImageMatch) {
+    return resolveUrl(twitterImageMatch[1], baseUrl);
+  }
+  
+  // First large image in main content (skip header/nav/footer)
+  const mainContent = html
+    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "");
+  
+  const imgMatches = mainContent.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi) || [];
+  for (const img of imgMatches) {
+    const srcMatch = img.match(/src=["']([^"']+)["']/i);
+    if (srcMatch) {
+      const src = srcMatch[1];
+      // Skip small images, icons, data URIs
+      if (!src.startsWith('data:') && 
+          !src.includes('icon') && 
+          !src.includes('logo') &&
+          !src.includes('avatar') &&
+          src.length > 20) {
+        return resolveUrl(src, baseUrl);
+      }
+    }
+  }
+  
+  return null;
+}
+
+// Extract primary colour from theme-color or CSS
+function extractPrimaryColour(html: string): string {
+  // theme-color meta tag
+  const themeColorMatch = html.match(/<meta[^>]*name=["']theme-color["'][^>]*content=["']([^"']+)["']/i);
+  if (themeColorMatch) {
+    return themeColorMatch[1];
+  }
+  
+  // msapplication-TileColor
+  const tileColorMatch = html.match(/<meta[^>]*name=["']msapplication-TileColor["'][^>]*content=["']([^"']+)["']/i);
+  if (tileColorMatch) {
+    return tileColorMatch[1];
+  }
+  
+  // Default purple
+  return '#7c3aed';
+}
+
+// Extract service headings (h2/h3 elements)
+function extractServiceHeadings(html: string): string[] {
+  const headings: string[] = [];
+  
+  // Remove nav, header, footer to focus on main content
+  const mainContent = html
+    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "");
+  
+  // Extract h2 and h3 headings
+  const h2Matches = mainContent.match(/<h2[^>]*>([^<]+)<\/h2>/gi) || [];
+  const h3Matches = mainContent.match(/<h3[^>]*>([^<]+)<\/h3>/gi) || [];
+  
+  for (const h of [...h2Matches, ...h3Matches]) {
+    const textMatch = h.match(/>([^<]+)</);
+    if (textMatch) {
+      const text = cleanText(textMatch[1]);
+      if (text.length > 3 && text.length < 100 && !headings.includes(text)) {
+        headings.push(text);
+        if (headings.length >= 8) break;
+      }
+    }
+  }
+  
+  return headings;
+}
+
+// Extract service bullets (li elements near service headings)
+function extractServiceBullets(html: string): string[] {
+  const bullets: string[] = [];
+  
+  // Remove nav, header, footer
+  const mainContent = html
+    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "");
+  
+  // Extract li items
+  const liMatches = mainContent.match(/<li[^>]*>([^<]{10,100})<\/li>/gi) || [];
+  
+  for (const li of liMatches) {
+    const textMatch = li.match(/>([^<]+)</);
+    if (textMatch) {
+      const text = cleanText(textMatch[1]);
+      if (text.length > 10 && text.length < 100 && !bullets.includes(text)) {
+        bullets.push(text);
+        if (bullets.length >= 10) break;
+      }
+    }
+  }
+  
+  return bullets;
+}
+
+// Extract FAQ candidates (headings with ? or FAQ patterns)
+function extractFaqCandidates(html: string): string[] {
+  const faqs: string[] = [];
+  
+  // Remove nav, header, footer
+  const mainContent = html
+    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "");
+  
+  // Find headings with question marks
+  const headingMatches = mainContent.match(/<h[1-6][^>]*>[^<]*\?[^<]*<\/h[1-6]>/gi) || [];
+  
+  for (const h of headingMatches) {
+    const textMatch = h.match(/>([^<]+)</);
+    if (textMatch) {
+      const text = cleanText(textMatch[1]);
+      if (text.length > 10 && text.length < 150 && !faqs.includes(text)) {
+        faqs.push(text);
+        if (faqs.length >= 6) break;
+      }
+    }
+  }
+  
+  // If no questions found, generate from service headings
+  if (faqs.length === 0) {
+    const serviceHeadings = extractServiceHeadings(html);
+    for (const heading of serviceHeadings.slice(0, 3)) {
+      faqs.push(`What is ${heading}?`);
+    }
+  }
+  
+  return faqs;
+}
+
+// Helper: resolve relative URLs to absolute
+function resolveUrl(url: string, baseUrl: string): string {
+  try {
+    return new URL(url, baseUrl).href;
+  } catch {
+    return url;
+  }
+}
+
+// Helper: clean extracted text
+function cleanText(text: string): string {
+  return text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#\d+;/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Full site identity extraction
+export async function extractSiteIdentity(url: string, html: string): Promise<SiteIdentity> {
+  const parsedUrl = new URL(url);
+  const domain = parsedUrl.hostname.replace(/^www\./, '');
+  
+  // Extract title
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  const title = titleMatch ? cleanText(titleMatch[1]) : null;
+  
+  return {
+    sourceDomain: domain,
+    title,
+    heroHeadline: extractHeroHeadline(html),
+    heroDescription: extractHeroDescription(html),
+    logoUrl: extractLogoUrl(html, url),
+    faviconUrl: extractFaviconUrl(html, url),
+    heroImageUrl: extractHeroImageUrl(html, url),
+    primaryColour: extractPrimaryColour(html),
+    serviceHeadings: extractServiceHeadings(html),
+    serviceBullets: extractServiceBullets(html),
+    faqCandidates: extractFaqCandidates(html),
+    extractedAt: new Date().toISOString(),
+  };
+}
+
 // Lightweight site ingestion (max 4 pages, 80k chars total)
 export async function ingestSitePreview(url: string): Promise<{
   title: string;
@@ -82,15 +388,15 @@ export async function ingestSitePreview(url: string): Promise<{
   keyServices: string[];
   totalChars: number;
   pagesIngested: number;
+  siteIdentity: SiteIdentity;
 }> {
-  const maxPages = 4;
-  const maxChars = 80000;
   const maxCharsPerPage = 20000;
 
   let totalChars = 0;
   let pagesIngested = 0;
   let allText = '';
   let title = '';
+  let siteIdentity: SiteIdentity;
 
   try {
     // Fetch main page
@@ -104,6 +410,9 @@ export async function ingestSitePreview(url: string): Promise<{
     }
 
     const html = await response.text();
+
+    // Extract site identity (for brand continuity)
+    siteIdentity = await extractSiteIdentity(url, html);
 
     // Extract title
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
@@ -131,34 +440,19 @@ export async function ingestSitePreview(url: string): Promise<{
     totalChars += pageText.length;
     pagesIngested = 1;
 
-    // Extract key services (very basic - look for common patterns)
-    const servicePatterns = [
-      /we (offer|provide|deliver|specialize in|help with|support) ([^.!?]{10,80})/gi,
-      /our (services|solutions|products|offerings) (include|are|:) ([^.!?]{10,80})/gi,
-    ];
-
-    const keyServices: Set<string> = new Set();
-    for (const pattern of servicePatterns) {
-      const matches = pageText.matchAll(pattern);
-      for (const match of matches) {
-        if (keyServices.size < 5) {
-          const service = match[2] || match[3];
-          if (service) {
-            keyServices.add(service.trim().substring(0, 80));
-          }
-        }
-      }
-    }
+    // Extract key services from service headings and bullets
+    const keyServices = [...siteIdentity.serviceHeadings.slice(0, 3), ...siteIdentity.serviceBullets.slice(0, 2)];
 
     // Generate summary (first 3 paragraphs or 500 chars)
-    const summary = allText.substring(0, 500).split('\n').slice(0, 3).join('\n').trim();
+    const summary = siteIdentity.heroDescription || allText.substring(0, 500).split('\n').slice(0, 3).join('\n').trim();
 
     return {
       title: title || new URL(url).hostname,
       summary: summary || "Business website",
-      keyServices: Array.from(keyServices).slice(0, 5),
+      keyServices: keyServices.slice(0, 5),
       totalChars,
       pagesIngested,
+      siteIdentity,
     };
   } catch (error: any) {
     console.error("Site ingestion error:", error);
@@ -173,4 +467,30 @@ export function generatePreviewId(): string {
 export function calculateExpiresAt(): Date {
   const now = new Date();
   return new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours
+}
+
+// Generate contextual prompts based on extracted content
+export function generateContextualPrompts(siteIdentity: SiteIdentity): string[] {
+  const prompts: string[] = [];
+  
+  // Use service headings for contextual questions
+  for (const heading of siteIdentity.serviceHeadings.slice(0, 2)) {
+    prompts.push(`What does ${heading} include?`);
+  }
+  
+  // Add general prompts
+  if (siteIdentity.title) {
+    prompts.push(`How do I get started with ${siteIdentity.title?.split(' - ')[0] || siteIdentity.sourceDomain}?`);
+  }
+  
+  prompts.push("What's the best next step for someone like me?");
+  
+  // Use FAQ candidates if available
+  for (const faq of siteIdentity.faqCandidates.slice(0, 2)) {
+    if (!prompts.includes(faq)) {
+      prompts.push(faq);
+    }
+  }
+  
+  return prompts.slice(0, 5);
 }
