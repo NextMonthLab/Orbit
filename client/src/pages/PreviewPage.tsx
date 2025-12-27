@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Loader2, Clock, Sparkles, Archive } from "lucide-react";
+import { Send, Loader2, Clock, Sparkles, Archive, MessageCircle, X, ExternalLink, ChevronRight } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import {
@@ -15,6 +15,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+interface SiteIdentity {
+  sourceDomain: string;
+  title: string | null;
+  heroHeadline: string | null;
+  heroDescription: string | null;
+  logoUrl: string | null;
+  faviconUrl: string | null;
+  heroImageUrl: string | null;
+  primaryColour: string;
+  serviceHeadings: string[];
+  serviceBullets: string[];
+  faqCandidates: string[];
+  extractedAt: string;
+}
+
 interface PreviewInstance {
   id: string;
   sourceUrl: string;
@@ -23,6 +38,7 @@ interface PreviewInstance {
   siteTitle: string | null;
   siteSummary: string | null;
   keyServices: string[] | null;
+  siteIdentity: SiteIdentity | null;
   messageCount: number;
   maxMessages: number;
   expiresAt: string;
@@ -36,6 +52,334 @@ interface ChatMessage {
   createdAt: string;
 }
 
+function BrandHeader({ 
+  preview, 
+  timeRemaining 
+}: { 
+  preview: PreviewInstance; 
+  timeRemaining: string;
+}) {
+  const identity = preview.siteIdentity;
+  const primaryColour = identity?.primaryColour || '#7c3aed';
+  
+  const logoSrc = identity?.logoUrl || identity?.faviconUrl;
+  const showMonogram = !logoSrc;
+  const monogramLetter = (preview.sourceDomain || 'S')[0].toUpperCase();
+  
+  return (
+    <div className="p-4 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-10">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          {showMonogram ? (
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg"
+              style={{ backgroundColor: primaryColour }}
+            >
+              {monogramLetter}
+            </div>
+          ) : (
+            <img 
+              src={logoSrc!} 
+              alt={preview.sourceDomain}
+              className="w-10 h-10 rounded-lg object-contain bg-white"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          )}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-semibold leading-tight truncate" data-testid="text-site-title">
+              {identity?.heroHeadline || preview.siteTitle || preview.sourceDomain}
+            </h1>
+            <p className="text-xs text-muted-foreground">{preview.sourceDomain}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
+          <Sparkles className="w-3 h-3" />
+          <span className="text-xs font-medium">Preview</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Clock className="w-3 h-3" />
+        <span>Expires in {timeRemaining} unless claimed</span>
+      </div>
+    </div>
+  );
+}
+
+function MiniSiteScaffold({ 
+  preview,
+  onAskQuestion 
+}: { 
+  preview: PreviewInstance;
+  onAskQuestion: (question: string) => void;
+}) {
+  const identity = preview.siteIdentity;
+  const primaryColour = identity?.primaryColour || '#7c3aed';
+  
+  const heroImageUrl = identity?.heroImageUrl;
+  const heroHeadline = identity?.heroHeadline || preview.siteTitle;
+  const heroDescription = identity?.heroDescription || preview.siteSummary;
+  const serviceHeadings = identity?.serviceHeadings || [];
+  const serviceBullets = identity?.serviceBullets || preview.keyServices || [];
+  const faqCandidates = identity?.faqCandidates || [];
+  
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <div 
+        className="relative w-full h-48 md:h-64 flex items-end"
+        style={{
+          background: heroImageUrl 
+            ? `linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 50%, transparent 100%), url(${heroImageUrl}) center/cover no-repeat`
+            : `linear-gradient(135deg, ${primaryColour}40 0%, ${primaryColour}20 50%, transparent 100%)`
+        }}
+      >
+        <div className="p-6 w-full">
+          <h2 className="text-2xl md:text-3xl font-bold text-white drop-shadow-lg mb-2" data-testid="text-hero-headline">
+            {heroHeadline}
+          </h2>
+          {heroDescription && (
+            <p className="text-sm md:text-base text-white/90 drop-shadow max-w-2xl line-clamp-3" data-testid="text-hero-description">
+              {heroDescription}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="p-6 space-y-8">
+        {(serviceHeadings.length > 0 || serviceBullets.length > 0) && (
+          <section>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+              What we do
+            </h3>
+            {serviceHeadings.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                {serviceHeadings.slice(0, 6).map((heading, i) => (
+                  <div 
+                    key={i} 
+                    className="p-3 rounded-lg bg-secondary/30 border border-border"
+                    data-testid={`text-service-heading-${i}`}
+                  >
+                    <p className="font-medium text-sm">{heading}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {serviceBullets.length > 0 && (
+              <ul className="space-y-2">
+                {serviceBullets.slice(0, 5).map((bullet, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <span className="text-primary mt-0.5">•</span>
+                    <span data-testid={`text-service-bullet-${i}`}>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        {faqCandidates.length > 0 && (
+          <section>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+              Common questions
+            </h3>
+            <div className="space-y-2">
+              {faqCandidates.slice(0, 5).map((question, i) => (
+                <button
+                  key={i}
+                  onClick={() => onAskQuestion(question)}
+                  className="w-full text-left p-3 rounded-lg border border-border bg-card hover:bg-accent/10 hover:border-primary/30 transition-all text-sm group flex items-center justify-between"
+                  data-testid={`button-faq-${i}`}
+                >
+                  <span className="font-medium text-foreground group-hover:text-primary transition-colors">
+                    {question}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <div className="text-xs text-muted-foreground/60 pt-4 border-t border-border">
+          Content pulled from: {preview.sourceDomain}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChatOverlay({
+  isOpen,
+  onClose,
+  onToggle,
+  messages,
+  input,
+  setInput,
+  onSend,
+  isTyping,
+  suggestedPrompts,
+  capReached,
+  onCapClick,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onToggle: () => void;
+  messages: ChatMessage[];
+  input: string;
+  setInput: (value: string) => void;
+  onSend: (message?: string) => void;
+  isTyping: boolean;
+  suggestedPrompts: string[];
+  capReached: boolean;
+  onCapClick: () => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current && isOpen) {
+      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [messages, isTyping, isOpen]);
+
+  return (
+    <>
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={onToggle}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-shadow"
+            data-testid="button-open-chat"
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span className="font-medium">Ask about this page</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed inset-x-0 bottom-0 z-50 md:right-6 md:left-auto md:bottom-6 md:w-96"
+          >
+            <div className="bg-background border border-border rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col max-h-[70vh] md:max-h-[600px]">
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-primary" />
+                  <span className="font-semibold text-sm">Chat</span>
+                </div>
+                <button 
+                  onClick={onClose}
+                  className="p-1 rounded-full hover:bg-secondary transition-colors"
+                  data-testid="button-close-chat"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+                {messages.length === 0 && suggestedPrompts.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    <p className="text-xs text-muted-foreground mb-3">Try asking:</p>
+                    {suggestedPrompts.slice(0, 3).map((prompt, i) => (
+                      <button
+                        key={i}
+                        onClick={() => onSend(prompt)}
+                        disabled={isTyping || capReached}
+                        className="w-full text-left p-2.5 rounded-lg border border-border bg-secondary/20 hover:bg-accent/10 hover:border-primary/30 transition-all text-xs disabled:opacity-50"
+                        data-testid={`button-suggested-prompt-${i}`}
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {messages.map((msg) => (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      key={msg.id}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`
+                        max-w-[85%] p-3 rounded-xl text-sm leading-relaxed
+                        ${msg.role === 'user'
+                          ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                          : 'bg-secondary/80 text-secondary-foreground rounded-tl-sm border border-border'}
+                      `}>
+                        {msg.content}
+                      </div>
+                    </motion.div>
+                  ))}
+
+                  {isTyping && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex justify-start"
+                    >
+                      <div className="bg-secondary/50 p-3 rounded-xl rounded-tl-sm border border-border flex gap-1 items-center">
+                        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"></span>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </ScrollArea>
+
+              <div className="p-3 border-t border-border">
+                {capReached ? (
+                  <button
+                    onClick={onCapClick}
+                    className="w-full p-3 rounded-lg bg-primary text-primary-foreground font-medium text-sm"
+                    data-testid="button-cap-reached-claim"
+                  >
+                    Continue conversation - Claim this Smart Site
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder="Ask a question..."
+                      className="bg-secondary/30 border-border h-10 rounded-full px-4 text-sm"
+                      onKeyDown={(e) => e.key === 'Enter' && onSend()}
+                      disabled={isTyping}
+                      data-testid="input-chat-message"
+                    />
+                    <Button
+                      onClick={() => onSend()}
+                      size="icon"
+                      className="shrink-0 h-10 w-10 rounded-full"
+                      disabled={isTyping || !input.trim()}
+                      data-testid="button-send-message"
+                    >
+                      {isTyping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
 export default function PreviewPage() {
   const [, params] = useRoute("/preview/:id");
   const previewId = params?.id;
@@ -44,8 +388,8 @@ export default function PreviewPage() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: preview, isLoading: previewLoading } = useQuery({
     queryKey: ["preview", previewId],
@@ -55,7 +399,7 @@ export default function PreviewPage() {
       return response.json() as Promise<PreviewInstance>;
     },
     enabled: !!previewId,
-    refetchInterval: 30000, // Refetch every 30s to update message count and expiry
+    refetchInterval: 30000,
   });
 
   const { data: chatMessages } = useQuery({
@@ -70,33 +414,10 @@ export default function PreviewPage() {
 
   useEffect(() => {
     if (chatMessages && !hasInitialized) {
-      if (chatMessages.length > 0) {
-        setMessages(chatMessages);
-      } else if (preview) {
-        // Initial greeting
-        setMessages([{
-          id: 0,
-          role: "assistant",
-          content: preview.siteSummary || `Welcome! I'm here to answer questions about ${preview.siteTitle || preview.sourceDomain}.`,
-          createdAt: new Date().toISOString(),
-        }]);
-      }
+      setMessages(chatMessages);
       setHasInitialized(true);
     }
-  }, [chatMessages, preview, hasInitialized]);
-
-  const scrollToBottom = () => {
-    if (scrollRef.current) {
-      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
-    }
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping]);
+  }, [chatMessages, hasInitialized]);
 
   const sendMutation = useMutation({
     mutationFn: async (userMessage: string) => {
@@ -141,6 +462,10 @@ export default function PreviewPage() {
   const handleSend = (message?: string) => {
     const messageToSend = message || input.trim();
     if (!messageToSend || isTyping) return;
+
+    if (!chatOpen) {
+      setChatOpen(true);
+    }
 
     setMessages(prev => [...prev, {
       id: Date.now(),
@@ -194,11 +519,36 @@ export default function PreviewPage() {
     return `${diffMins}m`;
   };
 
-  const suggestedPrompts = [
-    "What do you do better than competitors?",
-    "How would you qualify a new lead?",
-    "What do customers usually ask before buying?"
-  ];
+  const generateContextualPrompts = () => {
+    if (!preview?.siteIdentity) {
+      return [
+        "What services do you offer?",
+        "How do I get started?",
+        "What makes you different?",
+      ];
+    }
+
+    const prompts: string[] = [];
+    const identity = preview.siteIdentity;
+    
+    for (const heading of identity.serviceHeadings.slice(0, 2)) {
+      prompts.push(`What does ${heading} include?`);
+    }
+    
+    const siteName = identity.title?.split(' - ')[0] || identity.sourceDomain;
+    prompts.push(`How do I get started with ${siteName}?`);
+    prompts.push("What's the best next step for someone like me?");
+    
+    for (const faq of identity.faqCandidates.slice(0, 2)) {
+      if (!prompts.includes(faq)) {
+        prompts.push(faq);
+      }
+    }
+    
+    return prompts.slice(0, 5);
+  };
+
+  const capReached = preview ? preview.messageCount >= preview.maxMessages : false;
 
   if (previewLoading) {
     return (
@@ -211,9 +561,9 @@ export default function PreviewPage() {
   if (!preview) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8 text-center">
-        <h2 className="text-2xl font-display font-bold mb-4">Preview Not Found</h2>
+        <h2 className="text-2xl font-bold mb-4">Preview Not Found</h2>
         <p className="text-muted-foreground mb-6">This preview may have expired or been archived.</p>
-        <Button onClick={() => window.location.href = "/"}>Go Home</Button>
+        <Button onClick={() => window.location.href = "/"} data-testid="button-go-home">Go Home</Button>
       </div>
     );
   }
@@ -222,9 +572,9 @@ export default function PreviewPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8 text-center">
         <Archive className="w-16 h-16 text-muted-foreground mb-4" />
-        <h2 className="text-2xl font-display font-bold mb-4">Preview Archived</h2>
+        <h2 className="text-2xl font-bold mb-4">Preview Archived</h2>
         <p className="text-muted-foreground mb-6">This preview has been archived and is no longer available.</p>
-        <Button onClick={() => window.location.href = "/"}>Go Home</Button>
+        <Button onClick={() => window.location.href = "/"} data-testid="button-go-home">Go Home</Button>
       </div>
     );
   }
@@ -233,167 +583,40 @@ export default function PreviewPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8 text-center">
         <Sparkles className="w-16 h-16 text-primary mb-4" />
-        <h2 className="text-2xl font-display font-bold mb-4">Preview Claimed!</h2>
+        <h2 className="text-2xl font-bold mb-4">Preview Claimed!</h2>
         <p className="text-muted-foreground mb-6">This preview has been claimed and is now a full Smart Site.</p>
-        <Button onClick={() => window.location.href = "/"}>Go Home</Button>
+        <Button onClick={() => window.location.href = "/"} data-testid="button-go-home">Go Home</Button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col max-w-4xl mx-auto border-x border-border shadow-2xl relative">
-      {/* Header with branding and preview badge */}
-      <div className="p-4 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-10">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex-1">
-            <h1 className="text-xl font-display font-bold leading-tight">
-              {preview.siteTitle || preview.sourceDomain}
-            </h1>
-            <p className="text-xs text-muted-foreground">{preview.sourceDomain}</p>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="text-xs font-medium">Preview Mode</span>
-          </div>
-        </div>
+    <div className="min-h-screen bg-background text-foreground flex flex-col max-w-4xl mx-auto border-x border-border shadow-2xl">
+      <BrandHeader preview={preview} timeRemaining={getTimeRemaining()} />
+      
+      <MiniSiteScaffold 
+        preview={preview} 
+        onAskQuestion={(question) => handleSend(question)}
+      />
 
-        {/* Expiry timer */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Clock className="w-3.5 h-3.5" />
-          <span>Preview expires in {getTimeRemaining()} unless claimed</span>
-        </div>
-      </div>
+      <ChatOverlay
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+        onToggle={() => setChatOpen(true)}
+        messages={messages}
+        input={input}
+        setInput={setInput}
+        onSend={handleSend}
+        isTyping={isTyping}
+        suggestedPrompts={generateContextualPrompts()}
+        capReached={capReached}
+        onCapClick={() => setShowPaywall(true)}
+      />
 
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Guided Tour Panel */}
-        <aside className="md:w-72 border-b md:border-b-0 md:border-r border-border bg-secondary/5 p-4">
-          <div className="mb-4">
-            <h2 className="text-sm font-semibold mb-2 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              Try asking...
-            </h2>
-            <p className="text-xs text-muted-foreground mb-4">
-              Click a question to get started
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            {suggestedPrompts.map((prompt, i) => (
-              <button
-                key={i}
-                onClick={() => handleSend(prompt)}
-                disabled={isTyping}
-                className="w-full text-left p-3 rounded-lg border border-border bg-card hover:bg-accent/10 hover:border-primary/30 transition-all text-sm group disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <p className="font-medium text-foreground group-hover:text-primary transition-colors">
-                  {prompt}
-                </p>
-              </button>
-            ))}
-          </div>
-
-          {preview.keyServices && preview.keyServices.length > 0 && (
-            <div className="mt-6 pt-4 border-t border-border">
-              <h3 className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wider">
-                Key Services
-              </h3>
-              <ul className="space-y-1">
-                {preview.keyServices.map((service, i) => (
-                  <li key={i} className="text-xs text-foreground flex items-start gap-2">
-                    <span className="text-primary mt-0.5">•</span>
-                    <span>{service}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="mt-6 pt-4 border-t border-border">
-            <p className="text-xs text-muted-foreground mb-3">
-              Messages: {preview.messageCount} / {preview.maxMessages}
-            </p>
-            <Button
-              onClick={() => setShowPaywall(true)}
-              className="w-full"
-              size="sm"
-            >
-              Claim and Activate
-            </Button>
-          </div>
-        </aside>
-
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col">
-          <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-            <div className="space-y-4 max-w-2xl mx-auto pb-4">
-              {messages.map((msg) => (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  key={msg.id}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`
-                    max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm
-                    ${msg.role === 'user'
-                      ? 'bg-primary text-primary-foreground rounded-tr-sm shadow-[0_4px_20px_rgba(124,58,237,0.2)]'
-                      : 'bg-secondary/80 text-secondary-foreground rounded-tl-sm border border-border'}
-                  `}>
-                    {msg.content}
-                  </div>
-                </motion.div>
-              ))}
-
-              {isTyping && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-start"
-                >
-                  <div className="bg-secondary/50 p-4 rounded-2xl rounded-tl-sm border border-border flex gap-1 items-center h-[44px]">
-                    <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"></span>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          </ScrollArea>
-
-          {/* Input Area */}
-          <div className="p-4 border-t border-border bg-background/80 backdrop-blur-md">
-            <div className="max-w-2xl mx-auto flex gap-2">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask a question..."
-                className="bg-secondary/50 border-border focus-visible:ring-primary/50 h-12 rounded-full px-6 shadow-inner"
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                disabled={isTyping || preview.messageCount >= preview.maxMessages}
-              />
-              <Button
-                onClick={() => handleSend()}
-                size="icon"
-                className="shrink-0 h-12 w-12 rounded-full shadow-[0_0_15px_rgba(124,58,237,0.4)]"
-                disabled={isTyping || !input.trim() || preview.messageCount >= preview.maxMessages}
-              >
-                {isTyping ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-0.5" />}
-              </Button>
-            </div>
-            {preview.messageCount >= preview.maxMessages && (
-              <p className="text-xs text-center text-muted-foreground mt-3">
-                Message limit reached. <button onClick={() => setShowPaywall(true)} className="text-primary underline">Claim this preview</button> to continue.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Paywall Modal */}
       <Dialog open={showPaywall} onOpenChange={setShowPaywall}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-display">Your Smart Site is ready</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">Your Smart Site is ready</DialogTitle>
             <DialogDescription className="text-base pt-2">
               To keep it live and claim the leads it is already uncovering, activate it.
             </DialogDescription>
@@ -420,6 +643,7 @@ export default function PreviewPage() {
               disabled={claimMutation.isPending}
               className="w-full"
               size="lg"
+              data-testid="button-claim-activate"
             >
               {claimMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -432,8 +656,9 @@ export default function PreviewPage() {
               variant="ghost"
               className="w-full"
               size="sm"
+              data-testid="button-not-now"
             >
-              Not now, archive this preview
+              Not now
             </Button>
           </DialogFooter>
         </DialogContent>
