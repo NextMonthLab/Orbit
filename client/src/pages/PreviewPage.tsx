@@ -261,12 +261,9 @@ function ChatOverlay({
 
   useEffect(() => {
     if (scrollRef.current && isOpen) {
-      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        setTimeout(() => {
-          scrollContainer.scrollTop = scrollContainer.scrollHeight;
-        }, 50);
-      }
+      setTimeout(() => {
+        scrollRef.current!.scrollTop = scrollRef.current!.scrollHeight;
+      }, 50);
     }
   }, [messages, isTyping, isOpen]);
 
@@ -309,8 +306,11 @@ function ChatOverlay({
                 </button>
               </div>
 
-              <div className="flex-1 min-h-0 overflow-hidden" ref={scrollRef}>
-                <ScrollArea className="h-full max-h-[calc(70vh-130px)] md:max-h-[470px]">
+              <div 
+                className="flex-1 min-h-0" 
+                ref={scrollRef}
+                style={{ height: 'calc(70vh - 130px)', maxHeight: '470px', overflow: 'auto' }}
+              >
                   <div className="p-4">
                 {messages.length === 0 && suggestedPrompts.length > 0 && (
                   <div className="space-y-2 mb-4">
@@ -372,7 +372,6 @@ function ChatOverlay({
                   )}
                 </div>
                   </div>
-                </ScrollArea>
               </div>
 
               <div className="p-3 shrink-0" style={{ borderTop: `1px solid ${borderColor}` }}>
