@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { StoryMode } from "@/components/preview/StoryMode";
+import { PreviewExperienceOrchestrator } from "@/components/preview/PreviewExperienceOrchestrator";
 
 interface SiteIdentity {
   sourceDomain: string;
@@ -606,7 +606,7 @@ export default function PreviewPage() {
       <BrandHeader preview={preview} timeRemaining={getTimeRemaining()} />
       
       {preview.siteIdentity && (
-        <StoryMode
+        <PreviewExperienceOrchestrator
           siteIdentity={preview.siteIdentity}
           siteTitle={preview.siteTitle}
           siteSummary={preview.siteSummary}
