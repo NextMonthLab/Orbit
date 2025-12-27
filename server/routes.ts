@@ -4385,7 +4385,7 @@ Output only the narration paragraph, nothing else.`;
   });
 
   // ============ PREVIEW INSTANCES (Micro Smart Site) ============
-  const { validateUrlSafety, ingestSitePreview, generatePreviewId, calculateExpiresAt } = await import("./previewHelpers");
+  const { validateUrlSafety: validatePreviewUrl, ingestSitePreview, generatePreviewId, calculateExpiresAt } = await import("./previewHelpers");
 
   // Create a preview instance
   app.post("/api/previews", async (req, res) => {
@@ -4414,7 +4414,7 @@ Output only the narration paragraph, nothing else.`;
       }
 
       // Validate URL (SSRF protection)
-      const validation = await validateUrlSafety(url.trim());
+      const validation = await validatePreviewUrl(url.trim());
       if (!validation.safe) {
         return res.status(400).json({ message: validation.error });
       }
