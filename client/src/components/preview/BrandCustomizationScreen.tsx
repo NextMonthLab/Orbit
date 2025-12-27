@@ -21,14 +21,33 @@ export interface BrandPreferences {
 
 const presetColors = [
   '#ffffff',
+  '#f5f5f5',
+  '#94a3b8',
+  '#64748b',
   '#ef4444',
+  '#dc2626',
   '#f97316',
+  '#ea580c',
   '#eab308',
+  '#ca8a04',
   '#22c55e',
+  '#16a34a',
   '#14b8a6',
+  '#0d9488',
+  '#06b6d4',
+  '#0891b2',
   '#3b82f6',
+  '#2563eb',
+  '#6366f1',
+  '#4f46e5',
   '#8b5cf6',
+  '#7c3aed',
+  '#a855f7',
+  '#9333ea',
   '#ec4899',
+  '#db2777',
+  '#f43f5e',
+  '#e11d48',
 ];
 
 export function BrandCustomizationScreen({
@@ -72,7 +91,7 @@ export function BrandCustomizationScreen({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center p-6"
+      className="fixed inset-0 z-50 flex flex-col overflow-y-auto"
       style={{ backgroundColor: bgColor }}
       data-testid="brand-customization-screen"
     >
@@ -80,7 +99,7 @@ export function BrandCustomizationScreen({
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
-        className="w-full max-w-md space-y-8"
+        className="w-full max-w-md mx-auto space-y-6 px-5 py-8 pb-safe"
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -214,25 +233,25 @@ export function BrandCustomizationScreen({
             </span>
           </div>
           
-          <div className="flex flex-wrap gap-3 justify-center">
+          <div className="grid grid-cols-7 gap-2 justify-items-center max-w-xs mx-auto">
             {presetColors.map((color) => (
               <button
                 key={color}
                 onClick={() => setAccentColor(color)}
-                className="w-10 h-10 rounded-full transition-all relative"
+                className="w-8 h-8 rounded-full transition-all relative"
                 style={{
                   backgroundColor: color,
                   boxShadow: accentColor === color 
-                    ? `0 0 0 3px ${bgColor}, 0 0 0 5px ${color}` 
+                    ? `0 0 0 2px ${bgColor}, 0 0 0 4px ${color}` 
                     : 'none',
-                  border: color === '#ffffff' ? `1px solid ${borderColor}` : 'none',
+                  border: color === '#ffffff' || color === '#f5f5f5' ? `1px solid ${borderColor}` : 'none',
                 }}
                 data-testid={`color-option-${color.replace('#', '')}`}
               >
                 {accentColor === color && (
                   <Check 
-                    className="w-5 h-5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                    style={{ color: color === '#ffffff' ? '#000' : '#fff' }}
+                    className="w-4 h-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                    style={{ color: color === '#ffffff' || color === '#f5f5f5' ? '#000' : '#fff' }}
                   />
                 )}
               </button>
@@ -285,14 +304,14 @@ export function BrandCustomizationScreen({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="pt-4"
+          className="pt-4 pb-6"
         >
           <button
             onClick={handleConfirm}
             className="w-full py-4 rounded-xl font-medium text-base transition-all flex items-center justify-center gap-2"
             style={{
               backgroundColor: accentColor,
-              color: accentColor === '#ffffff' ? '#000' : '#fff',
+              color: accentColor === '#ffffff' || accentColor === '#f5f5f5' ? '#000' : '#fff',
             }}
             data-testid="button-continue-preview"
           >

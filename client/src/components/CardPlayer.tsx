@@ -37,6 +37,13 @@ interface Character {
   avatar?: string | null;
 }
 
+interface BrandPreferences {
+  accentColor: string;
+  theme: 'dark' | 'light';
+  selectedLogo: string | null;
+  selectedImages: string[];
+}
+
 interface CardPlayerProps {
   card: Card;
   autoplay?: boolean;
@@ -44,6 +51,7 @@ interface CardPlayerProps {
   onChatClick?: (characterId: number) => void;
   onPhaseChange?: (phase: "cinematic" | "context") => void;
   fullScreen?: boolean;
+  brandPreferences?: BrandPreferences | null;
 }
 
 type Phase = "cinematic" | "context";
@@ -54,7 +62,8 @@ export default function CardPlayer({
   characters = [],
   onChatClick,
   onPhaseChange,
-  fullScreen = false
+  fullScreen = false,
+  brandPreferences
 }: CardPlayerProps) {
   const [, setLocation] = useLocation();
   const [phase, setPhase] = useState<Phase>("cinematic");
@@ -67,6 +76,12 @@ export default function CardPlayer({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const isTabletLandscape = useIsTabletLandscape();
+  
+  const theme = brandPreferences?.theme || 'dark';
+  const accentColor = brandPreferences?.accentColor || '#ffffff';
+  const bgColor = theme === 'dark' ? '#0a0a0a' : '#f5f5f5';
+  const textColor = theme === 'dark' ? 'white' : '#1a1a1a';
+  const mutedTextColor = theme === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)';
   
   const hasNarration = card.narrationEnabled && card.narrationStatus === "ready" && card.narrationAudioUrl;
   const hasVideo = card.videoGenerated && card.generatedVideoUrl && card.videoGenerationStatus === "completed";
@@ -174,12 +189,16 @@ export default function CardPlayer({
   const primaryCharacter = characters[0];
 
   const containerClass = fullScreen
-    ? "relative w-full h-full overflow-hidden bg-black"
-    : "relative w-full aspect-[9/16] overflow-hidden rounded-2xl bg-black shadow-2xl border border-white/10";
+    ? "relative w-full h-full overflow-hidden"
+    : "relative w-full aspect-[9/16] overflow-hidden rounded-2xl shadow-2xl";
 
   return (
     <div 
       className={containerClass}
+      style={{ 
+        backgroundColor: bgColor,
+        border: fullScreen ? 'none' : `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`
+      }}
       onClick={handleTap}
       data-testid="card-player"
     >
@@ -301,7 +320,12 @@ export default function CardPlayer({
                   className="flex items-center justify-center"
                 >
                   {captionIndex < card.captions.length ? (
-                    <p className={`font-bold text-white text-center leading-snug drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] px-4 ${fullScreen ? 'text-3xl md:text-4xl' : 'text-2xl md:text-3xl'}`}>
+                    <p 
+                      className={`font-bold text-center leading-snug px-4 text-white ${fullScreen ? 'text-3xl md:text-4xl' : 'text-2xl md:text-3xl'}`}
+                      style={{ 
+                        textShadow: '0 2px 10px rgba(0,0,0,0.9)'
+                      }}
+                    >
                       {card.captions[captionIndex]}
                     </p>
                   ) : null}

@@ -156,6 +156,7 @@ export function PreviewExperienceOrchestrator({
                 autoplay={true}
                 onPhaseChange={handlePhaseChange}
                 fullScreen={true}
+                brandPreferences={brandPreferences}
               />
             </div>
           </motion.div>
@@ -343,7 +344,7 @@ export function PreviewExperienceOrchestrator({
             {/* Single AI Entry Point - Only show when validation passed */}
             {validationPassed && (
               <div 
-                className="fixed bottom-0 left-0 right-0 p-4"
+                className="fixed bottom-0 left-0 right-0 p-4 pb-safe"
                 style={{ 
                   background: theme === 'dark' 
                     ? `linear-gradient(to top, ${bgColor}, ${bgColor}f2, transparent)` 
@@ -354,13 +355,12 @@ export function PreviewExperienceOrchestrator({
                   onClick={handleAskGeneral}
                   className="w-full max-w-lg mx-auto block p-4 rounded-xl font-medium text-base transition-all shadow-2xl flex items-center justify-center gap-2"
                   style={{
-                    background: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-                    border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
-                    color: textColor
+                    background: accentColor,
+                    color: accentColor === '#ffffff' || accentColor === '#f5f5f5' ? '#000' : '#fff',
                   }}
                   data-testid="button-single-ask"
                 >
-                  <MessageCircle className="w-5 h-5" style={{ color: mutedColor }} />
+                  <MessageCircle className="w-5 h-5" />
                   Ask about {brandName}
                 </button>
               </div>
@@ -430,8 +430,8 @@ export function PreviewExperienceOrchestrator({
                     onClick={onClaim}
                     className="w-full p-3.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2"
                     style={{
-                      background: theme === 'dark' ? 'white' : 'black',
-                      color: theme === 'dark' ? 'black' : 'white'
+                      background: accentColor,
+                      color: accentColor === '#ffffff' || accentColor === '#f5f5f5' ? '#000' : '#fff'
                     }}
                     data-testid="button-activate-smartsite"
                   >
