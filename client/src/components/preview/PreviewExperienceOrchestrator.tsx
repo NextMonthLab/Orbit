@@ -16,6 +16,7 @@ interface SiteIdentity {
   serviceHeadings: string[];
   serviceBullets: string[];
   faqCandidates: string[];
+  imagePool?: string[];
 }
 
 interface PreviewExperienceOrchestratorProps {
@@ -35,7 +36,7 @@ export function PreviewExperienceOrchestrator({
   onClaim,
 }: PreviewExperienceOrchestratorProps) {
   const [mode, setMode] = useState<Mode>('cinematic');
-  const [currentTarget, setCurrentTarget] = useState<PreviewTarget>({ type: 'overview', id: 'overview' });
+  const [currentTarget, setCurrentTarget] = useState<PreviewTarget>({ type: 'overview', id: 'overview', index: 0 });
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const primaryColour = siteIdentity.primaryColour || '#7c3aed';
@@ -88,7 +89,7 @@ export function PreviewExperienceOrchestrator({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="absolute inset-0 z-50 bg-black"
+            className="fixed inset-0 z-50 bg-black"
           />
         )}
       </AnimatePresence>
@@ -101,13 +102,14 @@ export function PreviewExperienceOrchestrator({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="w-full h-[70vh] min-h-[400px] max-h-[600px]"
+            className="w-full h-[100svh] min-h-[500px]"
+            style={{ scrollSnapAlign: 'start' }}
           >
             <CardPlayer
               card={currentCard}
               autoplay={true}
               onPhaseChange={handlePhaseChange}
-              fullScreen={false}
+              fullScreen={true}
             />
           </motion.div>
         )}
@@ -119,30 +121,37 @@ export function PreviewExperienceOrchestrator({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="w-full"
+            className="w-full min-h-[100svh] pb-20"
+            style={{ 
+              background: `linear-gradient(to bottom, color-mix(in srgb, ${primaryColour} 8%, #0a0a0a), #0a0a0a)`
+            }}
           >
-            <div className="p-4 border-b border-border bg-card/50">
+            <div className="p-5 pt-6 border-b border-white/10">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">
+                <h2 className="text-xl font-semibold text-white">
                   {currentTarget.label || 'Overview'}
                 </h2>
                 <button
                   onClick={() => handleAskAbout(currentTarget)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors"
+                  style={{
+                    backgroundColor: `color-mix(in srgb, ${primaryColour} 20%, transparent)`,
+                    color: primaryColour,
+                  }}
                   data-testid="button-ask-current"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  Ask about this
+                  Ask
                 </button>
               </div>
             </div>
 
             <div className="p-4 space-y-3">
-              {targets.filter(t => t.id !== currentTarget.id).slice(0, 6).map((target) => (
+              {targets.filter(t => t.id !== currentTarget.id).slice(0, 5).map((target) => (
                 <button
                   key={target.id}
                   onClick={() => handleTargetClick(target)}
-                  className="w-full text-left p-4 rounded-xl border border-border bg-card hover:bg-accent/10 hover:border-primary/30 transition-all group flex items-center justify-between"
+                  className="w-full text-left p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all group flex items-center justify-between"
                   style={{
                     borderLeftColor: primaryColour,
                     borderLeftWidth: '3px',
@@ -150,23 +159,27 @@ export function PreviewExperienceOrchestrator({
                   data-testid={`target-${target.id}`}
                 >
                   <div className="flex-1">
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground mb-1 block">
+                    <span className="text-xs uppercase tracking-wider text-white/50 mb-1 block">
                       {target.type === 'service' ? 'Service' : target.type === 'faq' ? 'Question' : target.type === 'lead' ? 'Next Step' : target.type}
                     </span>
-                    <span className="font-medium text-foreground group-hover:text-primary transition-colors">
+                    <span className="font-medium text-white group-hover:text-white transition-colors line-clamp-2">
                       {target.label}
                     </span>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <ChevronRight className="w-5 h-5 text-white/40 group-hover:text-white/80 transition-colors flex-shrink-0 ml-3" />
                 </button>
               ))}
             </div>
 
             {currentTarget.type === 'lead' && (
-              <div className="p-4 pt-0">
+              <div className="p-4 pt-2">
                 <button
                   onClick={onClaim}
-                  className="w-full p-4 rounded-xl bg-primary text-primary-foreground font-semibold text-base hover:bg-primary/90 transition-colors"
+                  className="w-full p-4 rounded-xl font-semibold text-base transition-colors"
+                  style={{
+                    backgroundColor: primaryColour,
+                    color: '#fff',
+                  }}
                   data-testid="button-claim-orchestrator"
                 >
                   Claim and activate

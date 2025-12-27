@@ -12,19 +12,35 @@ interface SiteIdentity {
   serviceHeadings: string[];
   serviceBullets: string[];
   faqCandidates: string[];
+  imagePool?: string[];
 }
 
 export interface PreviewTarget {
   type: 'overview' | 'service' | 'faq' | 'lead' | 'why';
   id?: string;
   label?: string;
+  index?: number;
 }
 
-function getBestImage(identity: SiteIdentity): string {
+function getImageForIndex(identity: SiteIdentity, index: number): string {
+  const pool = identity.imagePool || [];
+  if (pool.length > 0) {
+    return pool[index % pool.length];
+  }
   if (identity.heroImageUrl) return identity.heroImageUrl;
   if (identity.logoUrl) return identity.logoUrl;
-  if (identity.faviconUrl) return identity.faviconUrl;
-  return `https://placehold.co/1080x1920/1a1a2e/7c3aed?text=${encodeURIComponent(identity.sourceDomain)}`;
+  return createGradientPlaceholder(identity.primaryColour, identity.sourceDomain);
+}
+
+function createGradientPlaceholder(colour: string, domain: string): string {
+  const safeColour = colour.replace('#', '');
+  return `https://placehold.co/1080x1920/${safeColour}/ffffff?text=${encodeURIComponent(domain)}`;
+}
+
+function truncateHeadline(text: string, maxWords: number = 8): string {
+  const words = text.split(/\s+/);
+  if (words.length <= maxWords) return text;
+  return words.slice(0, maxWords).join(' ');
 }
 
 export function adaptPreviewToCards(
@@ -34,22 +50,20 @@ export function adaptPreviewToCards(
 ): Card[] {
   const brandName = identity.title?.split(' - ')[0]?.split(' | ')[0] || siteTitle?.split(' - ')[0] || identity.sourceDomain;
   const description = identity.heroDescription || '';
-  const sentences = description.split(/[.!?]/).map(s => s.trim()).filter(s => s.length > 15);
-  const heroImage = getBestImage(identity);
+  const shortDesc = description.split('.')[0]?.trim() || '';
+  const targetIndex = target?.index || 0;
 
   if (!target || target.type === 'overview') {
     return [
       {
         id: 'preview-identity',
         dayIndex: 1,
-        title: brandName,
-        image: heroImage,
+        title: truncateHeadline(brandName),
+        image: getImageForIndex(identity, 0),
         captions: [
-          `Welcome to ${brandName}`,
-          sentences[0] || 'Discover what we offer',
-          sentences[1] || 'Your journey starts here',
+          truncateHeadline(shortDesc || `Welcome to ${brandName}`, 10),
         ],
-        sceneText: description || `Learn more about ${brandName} and how we can help you.`,
+        sceneText: '',
         recapText: brandName,
         publishDate: new Date().toISOString(),
       }
@@ -57,23 +71,16 @@ export function adaptPreviewToCards(
   }
 
   if (target.type === 'service') {
-    const serviceHeading = target.label || identity.serviceHeadings[0] || 'Our Services';
-    const relatedBullet = identity.serviceBullets.find(b => 
-      b.toLowerCase().includes(serviceHeading.toLowerCase().split(' ')[0])
-    ) || identity.serviceBullets[0];
+    const serviceHeading = truncateHeadline(target.label || identity.serviceHeadings[0] || 'Our Services');
     
     return [
       {
         id: `preview-service-${target.id}`,
         dayIndex: 2,
         title: serviceHeading,
-        image: heroImage,
-        captions: [
-          serviceHeading,
-          relatedBullet || 'Expert solutions tailored to you',
-          'Designed for real results',
-        ],
-        sceneText: relatedBullet || `Learn more about ${serviceHeading} and how it can benefit you.`,
+        image: getImageForIndex(identity, targetIndex + 1),
+        captions: [serviceHeading],
+        sceneText: '',
         recapText: serviceHeading,
         publishDate: new Date().toISOString(),
       }
@@ -81,19 +88,15 @@ export function adaptPreviewToCards(
   }
 
   if (target.type === 'faq') {
-    const question = target.label || identity.faqCandidates[0] || 'Common Questions';
+    const question = truncateHeadline(target.label || identity.faqCandidates[0] || 'Common Questions', 12);
     return [
       {
         id: `preview-faq-${target.id}`,
         dayIndex: 3,
-        title: 'A question you might have',
-        image: heroImage,
-        captions: [
-          'You might be wondering...',
-          question,
-          'Let us explain',
-        ],
-        sceneText: question,
+        title: question,
+        image: getImageForIndex(identity, targetIndex + 2),
+        captions: [question],
+        sceneText: '',
         recapText: question,
         publishDate: new Date().toISOString(),
       }
@@ -101,22 +104,18 @@ export function adaptPreviewToCards(
   }
 
   if (target.type === 'why') {
-    const whyHeading = identity.serviceHeadings.find(h => 
-      /why|about|approach|difference|values|mission/i.test(h)
-    ) || 'Why Choose Us';
+    const whyHeading = truncateHeadline(
+      identity.serviceHeadings.find(h => /why|about|approach|difference|values|mission/i.test(h)) || 'Why Choose Us'
+    );
     
     return [
       {
         id: 'preview-why',
         dayIndex: 4,
         title: whyHeading,
-        image: heroImage,
-        captions: [
-          'What makes us different',
-          whyHeading,
-          sentences[2] || 'Results you can trust',
-        ],
-        sceneText: sentences[2] || `Discover why ${brandName} is the right choice for you.`,
+        image: getImageForIndex(identity, targetIndex + 3),
+        captions: [whyHeading],
+        sceneText: '',
         recapText: whyHeading,
         publishDate: new Date().toISOString(),
       }
@@ -128,14 +127,10 @@ export function adaptPreviewToCards(
       {
         id: 'preview-lead',
         dayIndex: 5,
-        title: 'Ready to get started?',
-        image: heroImage,
-        captions: [
-          'Your next step',
-          `Activate your Smart Site`,
-          'Keep the conversation going',
-        ],
-        sceneText: `Claim this Smart Site to keep it live and capture the leads it uncovers.`,
+        title: 'Ready to start?',
+        image: getImageForIndex(identity, targetIndex + 4),
+        captions: ['Your next step'],
+        sceneText: '',
         recapText: 'Get Started',
         publishDate: new Date().toISOString(),
       }
@@ -147,25 +142,25 @@ export function adaptPreviewToCards(
 
 export function getTargetsFromIdentity(identity: SiteIdentity): PreviewTarget[] {
   const targets: PreviewTarget[] = [
-    { type: 'overview', id: 'overview', label: 'Overview' }
+    { type: 'overview', id: 'overview', label: 'Overview', index: 0 }
   ];
 
   identity.serviceHeadings.slice(0, 4).forEach((heading, i) => {
-    targets.push({ type: 'service', id: `service-${i}`, label: heading });
+    targets.push({ type: 'service', id: `service-${i}`, label: heading, index: i + 1 });
   });
 
   const whyHeading = identity.serviceHeadings.find(h => 
     /why|about|approach|difference|values|mission/i.test(h)
   );
   if (whyHeading) {
-    targets.push({ type: 'why', id: 'why', label: whyHeading });
+    targets.push({ type: 'why', id: 'why', label: whyHeading, index: 5 });
   }
 
   identity.faqCandidates.slice(0, 3).forEach((faq, i) => {
-    targets.push({ type: 'faq', id: `faq-${i}`, label: faq });
+    targets.push({ type: 'faq', id: `faq-${i}`, label: faq, index: 6 + i });
   });
 
-  targets.push({ type: 'lead', id: 'lead', label: 'Get Started' });
+  targets.push({ type: 'lead', id: 'lead', label: 'Get Started', index: 10 });
 
   return targets;
 }
