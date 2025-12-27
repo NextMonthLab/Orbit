@@ -1,15 +1,42 @@
 import { motion } from "framer-motion";
-import { Globe, Sparkles, Shield, BarChart3, Palette, MessageCircle } from "lucide-react";
+import { Globe, Sparkles, Shield, BarChart3, Palette, MessageCircle, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface ScanProgressScreenProps {
   domain: string;
 }
 
 const steps = [
-  { id: 'crawl', label: 'Crawl', description: 'Reading your site structure' },
-  { id: 'understand', label: 'Understand', description: 'Extracting services and questions' },
-  { id: 'structure', label: 'Structure', description: 'Preparing brand-safe styling' },
-  { id: 'build', label: 'Build', description: 'Building your 24/7 assistant' },
+  { 
+    id: 'deep-read', 
+    label: 'Deep Read', 
+    description: 'Reading your site structure so visitors get accurate answers',
+    minDwell: 3000,
+  },
+  { 
+    id: 'concept-map', 
+    label: 'Understanding', 
+    description: 'Extracting services and questions customers actually ask',
+    minDwell: 4000,
+  },
+  { 
+    id: 'language-check', 
+    label: 'Language Validation', 
+    description: 'Ensuring everything reads naturally, not like labels',
+    minDwell: 3000,
+  },
+  { 
+    id: 'mental-model', 
+    label: 'Visitor Clarity', 
+    description: 'Checking if a visitor would understand what you do',
+    minDwell: 3000,
+  },
+  { 
+    id: 'build', 
+    label: 'Building', 
+    description: 'Creating your 24/7 assistant with validated content',
+    minDwell: 2000,
+  },
 ];
 
 const ownerBenefits = [
@@ -20,6 +47,25 @@ const ownerBenefits = [
 ];
 
 export function ScanProgressScreen({ domain }: ScanProgressScreenProps) {
+  const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    const timers: NodeJS.Timeout[] = [];
+    let cumulativeTime = 0;
+
+    steps.forEach((step, index) => {
+      if (index > 0) {
+        const timer = setTimeout(() => {
+          setCurrentStep(index);
+        }, cumulativeTime);
+        timers.push(timer);
+      }
+      cumulativeTime += step.minDwell;
+    });
+
+    return () => timers.forEach(t => clearTimeout(t));
+  }, []);
+
   return (
     <div className="fixed inset-0 z-[100] bg-[#0a0a0a] flex flex-col items-center justify-center p-6">
       <motion.div
@@ -34,35 +80,63 @@ export function ScanProgressScreen({ domain }: ScanProgressScreenProps) {
         </div>
         
         <h1 className="text-2xl font-semibold text-white mb-3">
-          Building your Smart Site
+          Understanding your website
         </h1>
         <p className="text-white/50 text-sm mb-10">
-          This takes about 60 seconds. Here's what's happening.
+          We're reading carefully so visitors get accurate answers.
         </p>
 
-        <div className="space-y-3 mb-12">
-          {steps.map((step, index) => (
-            <motion.div
-              key={step.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.2, duration: 0.4 }}
-              className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]"
-            >
-              <div className="relative w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear", delay: index * 0.5 }}
-                  className="absolute inset-0 rounded-full border border-white/20 border-t-white/60"
-                />
-                <span className="text-xs font-medium text-white/60">{index + 1}</span>
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-medium text-white/80">{step.label}</p>
-                <p className="text-xs text-white/40">{step.description}</p>
-              </div>
-            </motion.div>
-          ))}
+        <div className="space-y-2.5 mb-12">
+          {steps.map((step, index) => {
+            const isComplete = index < currentStep;
+            const isCurrent = index === currentStep;
+            const isPending = index > currentStep;
+
+            return (
+              <motion.div
+                key={step.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.15, duration: 0.4 }}
+                className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
+                  isComplete 
+                    ? 'bg-white/[0.04] border-white/[0.12]' 
+                    : isCurrent 
+                      ? 'bg-white/[0.03] border-white/[0.1]' 
+                      : 'bg-white/[0.01] border-white/[0.04]'
+                }`}
+              >
+                <div className="relative w-8 h-8 rounded-full flex items-center justify-center">
+                  {isComplete ? (
+                    <CheckCircle2 className="w-5 h-5 text-white/60" />
+                  ) : isCurrent ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                        className="absolute inset-0 rounded-full border-2 border-white/10 border-t-white/50"
+                      />
+                      <span className="text-xs font-medium text-white/70">{index + 1}</span>
+                    </>
+                  ) : (
+                    <span className="text-xs font-medium text-white/30">{index + 1}</span>
+                  )}
+                </div>
+                <div className="text-left flex-1">
+                  <p className={`text-sm font-medium ${
+                    isComplete ? 'text-white/70' : isCurrent ? 'text-white/80' : 'text-white/40'
+                  }`}>
+                    {step.label}
+                  </p>
+                  <p className={`text-xs ${
+                    isComplete ? 'text-white/40' : isCurrent ? 'text-white/50' : 'text-white/25'
+                  }`}>
+                    {step.description}
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
 
         <div className="h-px bg-white/[0.06] mb-8" />

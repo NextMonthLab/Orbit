@@ -4,6 +4,20 @@ import CardPlayer from "@/components/CardPlayer";
 import { adaptPreviewToCards } from "./PreviewCardAdapter";
 import { MessageCircle, ArrowRight, Sparkles, Shield, BarChart3, Palette } from "lucide-react";
 
+interface CommonQuestion {
+  question: string;
+  contextPrompt: string;
+}
+
+interface ValidatedContent {
+  overview: string;
+  whatWeDo: string[];
+  commonQuestions: CommonQuestion[];
+  brandName: string;
+  passed: boolean;
+  issues: string[];
+}
+
 interface SiteIdentity {
   sourceDomain: string;
   title: string | null;
@@ -17,6 +31,7 @@ interface SiteIdentity {
   serviceBullets: string[];
   faqCandidates: string[];
   imagePool?: string[];
+  validatedContent?: ValidatedContent;
 }
 
 interface PreviewExperienceOrchestratorProps {
@@ -30,12 +45,12 @@ interface PreviewExperienceOrchestratorProps {
 
 type Mode = 'cinematic' | 'interactive';
 
-interface CommonQuestion {
-  question: string;
-  contextPrompt: string;
-}
-
-function generateCommonQuestions(identity: SiteIdentity, brandName: string): CommonQuestion[] {
+function getValidatedContent(identity: SiteIdentity, fallbackBrandName: string): ValidatedContent {
+  if (identity.validatedContent) {
+    return identity.validatedContent;
+  }
+  
+  const brandName = identity.title?.split(' - ')[0]?.split(' | ')[0] || fallbackBrandName;
   const questions: CommonQuestion[] = [];
   
   if (identity.faqCandidates.length > 0) {
@@ -50,22 +65,21 @@ function generateCommonQuestions(identity: SiteIdentity, brandName: string): Com
     });
   }
   
-  if (questions.length < 3 && identity.serviceHeadings.length > 0) {
-    const service = identity.serviceHeadings[0];
-    questions.push({
-      question: `What does ${service} involve?`,
-      contextPrompt: `Explain what ${service} involves for ${brandName}. Be specific and helpful.`,
-    });
-  }
-  
-  if (questions.length < 4) {
+  if (questions.length < 2) {
     questions.push({
       question: `How do I get started with ${brandName}?`,
       contextPrompt: `Explain how someone can get started working with ${brandName}. Focus on next steps.`,
     });
   }
   
-  return questions.slice(0, 4);
+  return {
+    overview: identity.heroDescription || 'Professional services and solutions.',
+    whatWeDo: identity.serviceHeadings.slice(0, 6),
+    commonQuestions: questions.slice(0, 4),
+    brandName,
+    passed: false,
+    issues: ['Using client-side fallback'],
+  };
 }
 
 export function PreviewExperienceOrchestrator({
@@ -78,8 +92,9 @@ export function PreviewExperienceOrchestrator({
 }: PreviewExperienceOrchestratorProps) {
   const [mode, setMode] = useState<Mode>('cinematic');
 
-  const brandName = siteIdentity.title?.split(' - ')[0]?.split(' | ')[0] || siteTitle?.split(' - ')[0] || siteIdentity.sourceDomain;
-  const commonQuestions = generateCommonQuestions(siteIdentity, brandName);
+  const fallbackBrandName = siteIdentity.title?.split(' - ')[0]?.split(' | ')[0] || siteTitle?.split(' - ')[0] || siteIdentity.sourceDomain;
+  const validatedContent = getValidatedContent(siteIdentity, fallbackBrandName);
+  const { brandName, overview, whatWeDo, commonQuestions } = validatedContent;
   const cards = adaptPreviewToCards(siteIdentity, siteTitle, { type: 'overview', id: 'overview', index: 0 });
   const heroCard = cards[0];
 
@@ -181,25 +196,22 @@ export function PreviewExperienceOrchestrator({
             </header>
 
             <div className="p-4 space-y-5">
-              {/* Overview Block */}
-              {(siteIdentity.heroDescription || siteSummary) && (
+              {/* Overview Block - Uses validated content */}
+              {overview && (
                 <section className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5">
                   <h2 className="text-sm font-medium text-white/60 uppercase tracking-wide mb-3">Overview</h2>
                   <p className="text-[15px] text-white/80 leading-relaxed">
-                    {siteIdentity.heroDescription || siteSummary}
+                    {overview}
                   </p>
                 </section>
               )}
 
-              {/* What We Do Block */}
-              {(siteIdentity.serviceHeadings.length > 0 || siteIdentity.serviceBullets.length > 0) && (
+              {/* What We Do Block - Uses validated human-readable content */}
+              {whatWeDo.length > 0 && (
                 <section className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5">
                   <h2 className="text-sm font-medium text-white/60 uppercase tracking-wide mb-3">What We Do</h2>
                   <ul className="space-y-2.5">
-                    {(siteIdentity.serviceHeadings.length > 0 
-                      ? siteIdentity.serviceHeadings.slice(0, 6) 
-                      : siteIdentity.serviceBullets.slice(0, 6)
-                    ).map((item, i) => (
+                    {whatWeDo.map((item: string, i: number) => (
                       <li key={i} className="flex items-start gap-3 text-[15px] text-white/75">
                         <span className="mt-2 w-1.5 h-1.5 rounded-full bg-white/40 flex-shrink-0" />
                         <span>{item}</span>

@@ -1046,6 +1046,20 @@ export type UserOnboardingProfile = typeof userOnboardingProfiles.$inferSelect;
 // Preview Instances for Micro Smart Site previews
 export type PreviewStatus = 'active' | 'archived' | 'claimed';
 
+export const validatedContentSchema = z.object({
+  overview: z.string(),
+  whatWeDo: z.array(z.string()),
+  commonQuestions: z.array(z.object({
+    question: z.string(),
+    contextPrompt: z.string(),
+  })),
+  brandName: z.string(),
+  passed: z.boolean(),
+  issues: z.array(z.string()),
+}).optional();
+
+export type ValidatedContent = z.infer<typeof validatedContentSchema>;
+
 export const siteIdentitySchema = z.object({
   sourceDomain: z.string(),
   title: z.string().nullable(),
@@ -1060,6 +1074,7 @@ export const siteIdentitySchema = z.object({
   faqCandidates: z.array(z.string()).default([]),
   imagePool: z.array(z.string()).default([]),
   extractedAt: z.string(),
+  validatedContent: validatedContentSchema,
 });
 
 export type SiteIdentity = z.infer<typeof siteIdentitySchema>;
