@@ -28,23 +28,22 @@ function buildStoryCards(identity: SiteIdentity, siteTitle: string | null, siteS
   const cards: StoryCardData[] = [];
   const primaryColour = identity.primaryColour || '#7c3aed';
 
-  const headline = identity.heroHeadline || siteTitle || identity.sourceDomain;
+  const brandName = identity.title?.split(' - ')[0]?.split(' | ')[0] || siteTitle?.split(' - ')[0] || identity.sourceDomain;
   const description = identity.heroDescription || siteSummary || '';
-  const firstSentence = description.split(/[.!?]/)[0]?.trim();
+  const sentences = description.split(/[.!?]/).map(s => s.trim()).filter(s => s.length > 15);
 
   cards.push({
     id: 'identity',
     type: 'identity',
-    headline: headline,
-    support: firstSentence || undefined,
+    headline: `Welcome to ${brandName}`,
+    support: sentences[0] || undefined,
     imageUrl: identity.heroImageUrl,
     primaryColour,
-    contextualPrompt: `Tell me more about ${identity.title?.split(' - ')[0] || identity.sourceDomain}`
+    contextualPrompt: `Tell me more about ${brandName}`
   });
 
-  const sentences = description.split(/[.!?]/).map(s => s.trim()).filter(s => s.length > 20);
   const tensionSentence = sentences.find(s => 
-    /shouldn't|struggle|challenge|problem|difficult|confus|overwhelm|stress|worry|fear|risk/i.test(s)
+    /shouldn't|struggle|challenge|problem|difficult|confus|overwhelm|stress|worry|fear|risk|need|help/i.test(s)
   ) || sentences[1];
 
   if (tensionSentence) {
@@ -68,6 +67,15 @@ function buildStoryCards(identity: SiteIdentity, siteTitle: string | null, siteS
       primaryColour,
       contextualPrompt: `What does ${topServices[0]} include?`
     });
+  } else if (identity.serviceBullets.length > 0) {
+    cards.push({
+      id: 'services',
+      type: 'services',
+      headline: "What we offer",
+      pills: identity.serviceBullets.slice(0, 4),
+      primaryColour,
+      contextualPrompt: "What services do you offer?"
+    });
   }
 
   const whyHeading = identity.serviceHeadings.find(h => 
@@ -79,6 +87,15 @@ function buildStoryCards(identity: SiteIdentity, siteTitle: string | null, siteS
       type: 'why',
       headline: whyHeading,
       support: identity.serviceBullets[0] || undefined,
+      primaryColour,
+      contextualPrompt: "What makes you different?"
+    });
+  } else if (sentences.length > 3) {
+    cards.push({
+      id: 'why',
+      type: 'why',
+      headline: "Why choose us",
+      support: sentences[3] || sentences[2],
       primaryColour,
       contextualPrompt: "What makes you different?"
     });
@@ -94,6 +111,17 @@ function buildStoryCards(identity: SiteIdentity, siteTitle: string | null, siteS
     });
   }
 
+  if (cards.length < 4) {
+    cards.push({
+      id: 'next-step',
+      type: 'why',
+      headline: "How do I get started?",
+      support: `We would love to hear from you. Ask us anything about ${brandName}.`,
+      primaryColour,
+      contextualPrompt: "How do I get started?"
+    });
+  }
+
   cards.push({
     id: 'cta',
     type: 'cta',
@@ -103,7 +131,7 @@ function buildStoryCards(identity: SiteIdentity, siteTitle: string | null, siteS
     ctaText: "Claim and activate"
   });
 
-  return cards;
+  return cards.slice(0, 6);
 }
 
 export function StoryMode({ siteIdentity, siteTitle, siteSummary, onAskAbout, onClaim }: StoryModeProps) {
