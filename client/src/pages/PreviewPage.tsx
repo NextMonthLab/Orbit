@@ -232,6 +232,7 @@ function ChatOverlay({
   suggestedPrompts,
   capReached,
   onCapClick,
+  brandPreferences,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -244,14 +245,27 @@ function ChatOverlay({
   suggestedPrompts: string[];
   capReached: boolean;
   onCapClick: () => void;
+  brandPreferences?: BrandPreferences | null;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const theme = brandPreferences?.theme || 'dark';
+  const accentColor = brandPreferences?.accentColor || '#ffffff';
+  const bgColor = theme === 'dark' ? '#0f0f0f' : '#ffffff';
+  const textColor = theme === 'dark' ? 'white' : 'black';
+  const mutedColor = theme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const borderColor = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.12)';
+  const subtleBg = theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
+  const userMsgBg = theme === 'dark' ? 'white' : accentColor;
+  const userMsgText = theme === 'dark' ? 'black' : (accentColor === '#ffffff' || accentColor === '#f5f5f5' ? 'black' : 'white');
 
   useEffect(() => {
     if (scrollRef.current && isOpen) {
       const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        setTimeout(() => {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }, 50);
       }
     }
   }, [messages, isTyping, isOpen]);
@@ -269,18 +283,29 @@ function ChatOverlay({
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="fixed inset-x-0 bottom-0 z-50 md:right-6 md:left-auto md:bottom-6 md:w-96"
           >
-            <div className="bg-[#0f0f0f] border border-white/[0.08] rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col max-h-[70vh] md:max-h-[600px] overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-white/[0.08] shrink-0">
+            <div 
+              className="rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col max-h-[70vh] md:max-h-[600px] overflow-hidden"
+              style={{ 
+                background: bgColor, 
+                border: `1px solid ${borderColor}`,
+                boxShadow: `0 0 0 1px ${accentColor}20, 0 25px 50px -12px rgba(0,0,0,0.5)`
+              }}
+            >
+              <div 
+                className="flex items-center justify-between p-4 shrink-0"
+                style={{ borderBottom: `1px solid ${borderColor}` }}
+              >
                 <div className="flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4 text-white/50" />
-                  <span className="font-semibold text-sm text-white">Chat</span>
+                  <MessageCircle className="w-4 h-4" style={{ color: mutedColor }} />
+                  <span className="font-semibold text-sm" style={{ color: textColor }}>Chat</span>
                 </div>
                 <button 
                   onClick={onClose}
-                  className="p-1 rounded-full hover:bg-white/[0.06] transition-colors"
+                  className="p-1 rounded-full transition-colors"
+                  style={{ color: mutedColor }}
                   data-testid="button-close-chat"
                 >
-                  <X className="w-4 h-4 text-white/60" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
@@ -289,13 +314,18 @@ function ChatOverlay({
                   <div className="p-4">
                 {messages.length === 0 && suggestedPrompts.length > 0 && (
                   <div className="space-y-2 mb-4">
-                    <p className="text-xs text-white/40 mb-3">Try asking:</p>
+                    <p className="text-xs mb-3" style={{ color: mutedColor }}>Try asking:</p>
                     {suggestedPrompts.slice(0, 3).map((prompt, i) => (
                       <button
                         key={i}
                         onClick={() => onSend(prompt)}
                         disabled={isTyping || capReached}
-                        className="w-full text-left p-2.5 rounded-lg border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all text-xs text-white/70 disabled:opacity-50"
+                        className="w-full text-left p-2.5 rounded-lg transition-all text-xs disabled:opacity-50"
+                        style={{ 
+                          border: `1px solid ${borderColor}`,
+                          background: subtleBg,
+                          color: theme === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)'
+                        }}
                         data-testid={`button-suggested-prompt-${i}`}
                       >
                         {prompt}
@@ -312,12 +342,13 @@ function ChatOverlay({
                       key={msg.id}
                       className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className={`
-                        max-w-[85%] p-3 rounded-xl text-sm leading-relaxed
-                        ${msg.role === 'user'
-                          ? 'bg-white text-black rounded-tr-sm'
-                          : 'bg-white/[0.06] text-white/80 rounded-tl-sm border border-white/[0.08]'}
-                      `}>
+                      <div 
+                        className="max-w-[85%] p-3 rounded-xl text-sm leading-relaxed"
+                        style={msg.role === 'user' 
+                          ? { background: userMsgBg, color: userMsgText, borderRadius: '12px 12px 4px 12px' }
+                          : { background: subtleBg, color: theme === 'dark' ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)', border: `1px solid ${borderColor}`, borderRadius: '12px 12px 12px 4px' }
+                        }
+                      >
                         {msg.content}
                       </div>
                     </motion.div>
@@ -329,10 +360,13 @@ function ChatOverlay({
                       animate={{ opacity: 1, y: 0 }}
                       className="flex justify-start"
                     >
-                      <div className="bg-white/[0.04] p-3 rounded-xl rounded-tl-sm border border-white/[0.08] flex gap-1 items-center">
-                        <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                        <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                        <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce"></span>
+                      <div 
+                        className="p-3 rounded-xl rounded-tl-sm flex gap-1 items-center"
+                        style={{ background: subtleBg, border: `1px solid ${borderColor}` }}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.3s]" style={{ background: mutedColor }}></span>
+                        <span className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.15s]" style={{ background: mutedColor }}></span>
+                        <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: mutedColor }}></span>
                       </div>
                     </motion.div>
                   )}
@@ -341,11 +375,12 @@ function ChatOverlay({
                 </ScrollArea>
               </div>
 
-              <div className="p-3 border-t border-white/[0.08] shrink-0">
+              <div className="p-3 shrink-0" style={{ borderTop: `1px solid ${borderColor}` }}>
                 {capReached ? (
                   <button
                     onClick={onCapClick}
-                    className="w-full p-3 rounded-lg bg-white text-black font-medium text-sm"
+                    className="w-full p-3 rounded-lg font-medium text-sm"
+                    style={{ background: accentColor, color: accentColor === '#ffffff' || accentColor === '#f5f5f5' ? 'black' : 'white' }}
                     data-testid="button-cap-reached-claim"
                   >
                     Continue conversation - Claim this Smart Site
@@ -356,14 +391,20 @@ function ChatOverlay({
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder="Ask a question..."
-                      className="bg-white/[0.04] border-white/[0.08] h-10 rounded-full px-4 text-sm text-white placeholder:text-white/40"
+                      className="h-10 rounded-full px-4 text-sm"
+                      style={{ 
+                        background: subtleBg, 
+                        border: `1px solid ${borderColor}`,
+                        color: textColor
+                      }}
                       onKeyDown={(e) => e.key === 'Enter' && onSend()}
                       disabled={isTyping}
                       data-testid="input-chat-message"
                     />
                     <button
                       onClick={() => onSend()}
-                      className="shrink-0 h-10 w-10 rounded-full bg-white text-black flex items-center justify-center disabled:opacity-50"
+                      className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center disabled:opacity-50"
+                      style={{ background: accentColor, color: accentColor === '#ffffff' || accentColor === '#f5f5f5' ? 'black' : 'white' }}
                       disabled={isTyping || !input.trim()}
                       data-testid="button-send-message"
                     >
@@ -636,6 +677,7 @@ export default function PreviewPage() {
           suggestedPrompts={generateContextualPrompts()}
           capReached={capReached}
           onCapClick={() => setShowPaywall(true)}
+          brandPreferences={brandPreferences}
         />
       )}
 

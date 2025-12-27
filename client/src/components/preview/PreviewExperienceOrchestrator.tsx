@@ -125,27 +125,31 @@ export function PreviewExperienceOrchestrator({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
-            className="fixed inset-0 z-50 bg-black"
+            className="fixed inset-0 z-50"
+            style={{ background: bgColor }}
           >
-            {(siteIdentity.logoUrl || siteIdentity.faviconUrl) && (
+            {(displayLogo || siteIdentity.faviconUrl) && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.4 }}
                 className="absolute top-4 left-4 z-[60] flex items-center gap-2 px-3 py-2 rounded-full backdrop-blur-md"
                 style={{
-                  backgroundColor: 'rgba(0,0,0,0.6)',
-                  border: '1px solid rgba(255,255,255,0.15)',
+                  backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                  border: `1px solid ${accentColor}40`,
                 }}
               >
                 <img
-                  src={siteIdentity.logoUrl || siteIdentity.faviconUrl || ''}
+                  src={displayLogo || siteIdentity.faviconUrl || ''}
                   alt=""
                   className="w-6 h-6 rounded object-contain"
-                  style={{ filter: 'brightness(1.2)' }}
+                  style={{ filter: theme === 'dark' ? 'brightness(1.2)' : 'none' }}
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
-                <span className="text-sm font-medium text-white/90 max-w-[140px] truncate">
+                <span 
+                  className="text-sm font-medium max-w-[140px] truncate"
+                  style={{ color: theme === 'dark' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+                >
                   {siteIdentity.sourceDomain}
                 </span>
               </motion.div>
@@ -216,14 +220,14 @@ export function PreviewExperienceOrchestrator({
             style={{ background: bgColor, color: textColor }}
           >
             {/* PLANE 1: VISITOR EXPERIENCE */}
-            <header className="p-5 pt-6" style={{ borderBottom: `1px solid ${borderColor}` }}>
+            <header className="p-5 pt-6" style={{ borderBottom: `1.5px solid ${accentColor}25` }}>
               <div className="flex items-center gap-3">
                 {displayLogo && (
                   <div 
                     className="w-10 h-10 rounded-lg flex items-center justify-center p-1.5"
                     style={{ 
                       background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                      border: `1px solid ${borderColor}`
+                      border: `1.5px solid ${accentColor}40`
                     }}
                   >
                     <img
@@ -276,11 +280,12 @@ export function PreviewExperienceOrchestrator({
                 <section 
                   className="rounded-xl p-5"
                   style={{ 
-                    border: `1px solid ${borderColor}`,
-                    background: theme === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'
+                    border: `1.5px solid ${accentColor}30`,
+                    background: theme === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                    boxShadow: `inset 0 0 0 1px ${accentColor}10`
                   }}
                 >
-                  <h2 className="text-sm font-medium uppercase tracking-wide mb-3" style={{ color: mutedColor }}>Overview</h2>
+                  <h2 className="text-sm font-medium uppercase tracking-wide mb-3" style={{ color: accentColor }}>Overview</h2>
                   <p className="text-[15px] leading-relaxed" style={{ color: theme === 'dark' ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)' }}>
                     {overview}
                   </p>
@@ -292,15 +297,16 @@ export function PreviewExperienceOrchestrator({
                 <section 
                   className="rounded-xl p-5"
                   style={{ 
-                    border: `1px solid ${borderColor}`,
-                    background: theme === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'
+                    border: `1.5px solid ${accentColor}30`,
+                    background: theme === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                    boxShadow: `inset 0 0 0 1px ${accentColor}10`
                   }}
                 >
-                  <h2 className="text-sm font-medium uppercase tracking-wide mb-3" style={{ color: mutedColor }}>What We Do</h2>
+                  <h2 className="text-sm font-medium uppercase tracking-wide mb-3" style={{ color: accentColor }}>What We Do</h2>
                   <ul className="space-y-2.5">
                     {whatWeDo.map((item: string, i: number) => (
                       <li key={i} className="flex items-start gap-3 text-[15px]" style={{ color: theme === 'dark' ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.75)' }}>
-                        <span className="mt-2 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: theme === 'dark' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)' }} />
+                        <span className="mt-2 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: accentColor }} />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -313,11 +319,12 @@ export function PreviewExperienceOrchestrator({
                 <section 
                   className="rounded-xl p-5"
                   style={{ 
-                    border: `1px solid ${borderColor}`,
-                    background: theme === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'
+                    border: `1.5px solid ${accentColor}30`,
+                    background: theme === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                    boxShadow: `inset 0 0 0 1px ${accentColor}10`
                   }}
                 >
-                  <h2 className="text-sm font-medium uppercase tracking-wide mb-3" style={{ color: mutedColor }}>Common Questions</h2>
+                  <h2 className="text-sm font-medium uppercase tracking-wide mb-3" style={{ color: accentColor }}>Common Questions</h2>
                   <div className="space-y-2">
                     {commonQuestions.map((q, i) => (
                       <button
@@ -326,14 +333,14 @@ export function PreviewExperienceOrchestrator({
                         className="w-full text-left p-3.5 rounded-lg transition-all flex items-center justify-between gap-3 group"
                         style={{
                           background: theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
-                          border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`
+                          border: `1px solid ${accentColor}20`
                         }}
                         data-testid={`question-trigger-${i}`}
                       >
                         <span className="text-[15px] transition-colors" style={{ color: theme === 'dark' ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.75)' }}>
                           {q.question}
                         </span>
-                        <MessageCircle className="w-4 h-4 flex-shrink-0 transition-colors" style={{ color: theme === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }} />
+                        <MessageCircle className="w-4 h-4 flex-shrink-0 transition-colors" style={{ color: accentColor }} />
                       </button>
                     ))}
                   </div>
