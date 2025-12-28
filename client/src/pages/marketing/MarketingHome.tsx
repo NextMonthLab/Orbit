@@ -14,6 +14,8 @@ const useCases = [
     icon: Building2,
     href: "/for/brands",
     color: "from-pink-500 to-purple-500",
+    microCta: "Turn my website into an experience",
+    intent: "brands",
   },
   {
     id: "creators",
@@ -22,6 +24,8 @@ const useCases = [
     icon: Film,
     href: "/for/creators",
     color: "from-purple-500 to-blue-500",
+    microCta: "Bring my script to life",
+    intent: "creators",
   },
   {
     id: "knowledge",
@@ -30,6 +34,8 @@ const useCases = [
     icon: GraduationCap,
     href: "/for/knowledge",
     color: "from-blue-500 to-indigo-500",
+    microCta: "Transform my material",
+    intent: "knowledge",
   },
 ];
 
@@ -43,7 +49,7 @@ const pipelineSteps = [
   {
     step: 2,
     title: "Extract meaning",
-    description: "Themes, boundaries, and structure",
+    description: "Themes and structure, not just summaries",
     icon: Wand2,
   },
   {
@@ -55,13 +61,13 @@ const pipelineSteps = [
   {
     step: 4,
     title: "Enable interaction",
-    description: "Characters can be spoken to safely",
+    description: "Source-grounded chat audiences can trust",
     icon: MessageCircle,
   },
   {
     step: 5,
     title: "Share everywhere",
-    description: "Embed, export, or share directly",
+    description: "Link, embed, or export as an asset",
     icon: Share2,
   },
 ];
@@ -146,7 +152,7 @@ export default function MarketingHome() {
             <Link href="/login?signup=true">
               <Button className="bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/20 gap-2" data-testid="button-signup">
                 <Sparkles className="w-4 h-4" />
-                Build Experience
+                Launch Experience Builder
               </Button>
             </Link>
           </div>
@@ -178,8 +184,12 @@ export default function MarketingHome() {
                 Turn anything into an interactive experience
               </h1>
               
-              <p className="text-xl md:text-2xl text-white/60 max-w-3xl mx-auto mb-12 leading-relaxed" data-testid="text-hero-description">
-                Transform documents, presentations, and web pages into cinematic, interactive journeys your audience can explore, feel, and remember.
+              <p className="text-xl md:text-2xl text-white/60 max-w-3xl mx-auto mb-6 leading-relaxed" data-testid="text-hero-description">
+                Transform documents, decks, and web pages into cinematic journeys people can explore, feel, and remember.
+              </p>
+              
+              <p className="text-base text-white/50 max-w-2xl mx-auto mb-10">
+                Built for brands, creators, and educators who want people to engage, not just scroll.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -194,6 +204,10 @@ export default function MarketingHome() {
                   See how it works
                 </Button>
               </div>
+              
+              <p className="text-sm text-white/40 mt-6">
+                No code required. Share as a link or embed on your site.
+              </p>
             </motion.div>
             
             <motion.div
@@ -284,25 +298,28 @@ export default function MarketingHome() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Link href={useCase.href}>
-                    <div 
-                      className="group p-8 rounded-2xl bg-gradient-to-b from-white/5 to-transparent border border-white/10 hover:border-purple-500/50 cursor-pointer transition-all duration-300 hover:bg-white/5 h-full"
-                      data-testid={`card-usecase-${useCase.id}`}
-                    >
-                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${useCase.color} flex items-center justify-center mb-6 shadow-lg`}>
-                        <useCase.icon className="w-7 h-7 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold mb-3 group-hover:text-purple-400 transition-colors">
-                        {useCase.title}
-                      </h3>
-                      <p className="text-white/50 leading-relaxed mb-4">
-                        {useCase.description}
-                      </p>
-                      <div className="flex items-center gap-2 text-purple-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                        Learn more <ArrowRight className="w-4 h-4" />
-                      </div>
+                  <div 
+                    className="group p-8 rounded-2xl bg-gradient-to-b from-white/5 to-transparent border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:bg-white/5 h-full flex flex-col"
+                    data-testid={`card-usecase-${useCase.id}`}
+                  >
+                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${useCase.color} flex items-center justify-center mb-6 shadow-lg`}>
+                      <useCase.icon className="w-7 h-7 text-white" />
                     </div>
-                  </Link>
+                    <h3 className="text-xl font-bold mb-3 group-hover:text-purple-400 transition-colors">
+                      {useCase.title}
+                    </h3>
+                    <p className="text-white/50 leading-relaxed mb-4 flex-grow">
+                      {useCase.description}
+                    </p>
+                    <Link href={`/login?signup=true&intent=${useCase.intent}`}>
+                      <button 
+                        className="flex items-center gap-2 text-pink-400 hover:text-pink-300 text-sm font-medium transition-colors cursor-pointer"
+                        data-testid={`button-microcta-${useCase.id}`}
+                      >
+                        {useCase.microCta} <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </Link>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -317,6 +334,9 @@ export default function MarketingHome() {
               <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-different-title">
                 Why NextMonth is <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">different</span>
               </h2>
+              <p className="text-white/50 text-lg max-w-xl mx-auto">
+                Replace flat links with guided journeys. Great for pitches, onboarding, learning, and sales.
+              </p>
             </div>
             
             <div className="grid md:grid-cols-2 gap-4">
@@ -392,14 +412,17 @@ export default function MarketingHome() {
                 <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">interactive experience</span>
               </h2>
               <p className="text-xl text-white/60 mb-10 max-w-2xl mx-auto leading-relaxed">
-                Close the gap between where your visitors are and where your information actually lives. Guide people through your ideas instead of leaving them to figure it out alone.
+                Close the gap between where visitors land and where your best information lives. Guide them through what matters instead of hoping they find it.
               </p>
               <Link href="/login?signup=true">
                 <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3 rounded-xl" data-testid="button-website-cta">
-                  Build a Website Experience
+                  Launch Experience Builder
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
+              <p className="text-sm text-white/40 mt-4">
+                Start with a URL. Publish in minutes.
+              </p>
             </motion.div>
           </div>
         </section>
@@ -417,11 +440,11 @@ export default function MarketingHome() {
               transition={{ duration: 0.6 }}
             >
               <h2 className="text-4xl md:text-6xl font-bold mb-6" data-testid="text-cta-title">
-                Ready to create your first<br />
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">experience?</span>
+                Stop sending links.<br />
+                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">Start guiding people.</span>
               </h2>
               <p className="text-xl text-white/50 mb-10 max-w-xl mx-auto">
-                Transform your content into cinematic moments your audience will never forget
+                Turn your content into an interactive journey that people actually finish.
               </p>
               <Link href="/login?signup=true">
                 <Button size="lg" className="h-16 px-12 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-footer-cta">
