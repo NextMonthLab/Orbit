@@ -181,7 +181,8 @@ export default function MarketingHome() {
               </div>
               
               <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[0.95]" data-testid="text-hero-title">
-                Turn anything into an interactive experience
+                Turn anything into an{' '}
+                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">interactive experience</span>
               </h1>
               
               <p className="text-xl md:text-2xl text-white/60 max-w-3xl mx-auto mb-6 leading-relaxed" data-testid="text-hero-description">
