@@ -1,0 +1,118 @@
+# Replit Upgrade Prompt: NextMonth Homepage Conversion & Clarity Upgrade (Copy + CTA + Decision Hooks)
+
+## Goal
+Upgrade the existing NextMonth homepage to increase **conversion pressure**, improve **intent clarity**, and create stronger **“choose your path” decision hooks** without changing the core layout or visual system.
+
+This is a copy + UX micro-structure pass, not a redesign.
+
+## Non-negotiables
+- Keep the current premium dark aesthetic, spacing, and component structure.
+- Do NOT add new major sections.
+- Do NOT introduce long dashes (—).
+- Keep the primary CTA as a sticky or top-right action button.
+- Maintain mobile-first polish.
+
+## Problems to solve (from evaluation)
+1. Hero explains the “what” but not enough “why now” or “who it’s for”.
+2. The “Three ways to use NextMonth” section segments audiences but does not force a choice.
+3. CTA language is inconsistent (“Build Experience”, “Launch Experience Builder”, “Build a Website Experience”).
+4. The bottom CTA is too polite. Needs conviction.
+
+## Required changes
+
+### 1) Canonical CTA language (unify)
+Pick ONE canonical phrase and use it everywhere:
+- **Primary CTA (canonical):** "Launch Experience Builder"
+- Secondary CTA (video): "See how it works"
+
+Update:
+- Top-right button: "Launch Experience Builder"
+- Hero button: "Launch Experience Builder"
+- Mid-page website CTA: "Launch Experience Builder"
+- Final CTA button: "Launch Experience Builder"
+
+If any contextual CTA exists (eg website section), it can be a small sublabel under the same button, but the button text stays canonical.
+
+### 2) Hero copy upgrade (clarity + relevance)
+Current hero stays but add one tight relevance sentence directly under the subheadline:
+Add a single line:
+"Built for brands, creators, and educators who want people to engage, not just scroll."
+
+Also tighten the main subheadline slightly to reduce floatiness:
+Replace:
+"Transform documents, presentations, and web pages into cinematic, interactive journeys your audience can explore, feel, and remember."
+With:
+"Transform documents, decks, and web pages into cinematic journeys people can explore, feel, and remember."
+
+Add micro-proof beneath the buttons (small text):
+"No code required. Share as a link or embed on your site."
+
+### 3) “What is NextMonth?” step section (add contrast)
+Keep the five steps, but update each step’s subtitle to include subtle contrast positioning.
+
+Suggested replacements:
+- Step 1: Upload content  
+  Subtitle: "Script, PDF, website, or deck"
+- Step 2: Extract meaning  
+  Subtitle: "Themes and structure, not just summaries"
+- Step 3: Build visual story  
+  Subtitle: "Cinematic cards with AI imagery"
+- Step 4: Enable interaction  
+  Subtitle: "Source-grounded chat audiences can trust"
+- Step 5: Share everywhere  
+  Subtitle: "Link, embed, or export as an asset"
+
+### 4) “Three ways to use NextMonth” (add per-card micro-CTA)
+Each of the three cards must include a small action link/button inside the card that routes to the same builder entry point but sets an intent param.
+
+Add to each card:
+- For Brands & Businesses: "Turn my website into an experience →"
+- For Creators & Filmmakers: "Bring my script to life →"
+- For Knowledge & Learning: "Transform my material →"
+
+Implementation detail:
+- Clicking these routes to `/builder?intent=brands` or `intent=creators` or `intent=knowledge`
+- If the builder does not yet use intent, just store it for later and continue the normal flow.
+
+### 5) Website-specific CTA block (keep, tighten copy)
+Keep the section "Turn your website into an interactive experience" but tighten the paragraph:
+
+Replace:
+"Close the gap between where your visitors are and where your information actually lives. Guide people through your ideas instead of leaving them to figure it out alone."
+With:
+"Close the gap between where visitors land and where your best information lives. Guide them through what matters instead of hoping they find it."
+
+Button stays canonical: "Launch Experience Builder"
+Add small subtext under button:
+"Start with a URL. Publish in minutes."
+
+### 6) “Why NextMonth is different” (add grounding line)
+Keep the bullets. Add one grounding line directly under the heading:
+
+"Replace flat links with guided journeys. Great for pitches, onboarding, learning, and sales."
+
+### 7) Final CTA upgrade (bolder close)
+Update the final CTA heading and subheading to apply conviction.
+
+Replace:
+"Ready to create your first experience?"
+With:
+"Stop sending links. Start guiding people."
+
+Replace subheading with:
+"Turn your content into an interactive journey that people actually finish."
+
+Button stays canonical.
+
+### 8) QA checks (must pass)
+- Mobile: no text clipping, no overflow, CTA always visible above fold
+- CTA text is identical across page
+- Three audience cards have micro-CTAs
+- Builder routes accept `intent` param without breaking
+- No long dashes used anywhere
+- Lighthouse performance unchanged or improved
+
+## Deliverable
+A PR-ready homepage upgrade implementing all copy and CTA changes above, with minimal layout changes, and tested on mobile widths.
+
+Proceed to implement now.
