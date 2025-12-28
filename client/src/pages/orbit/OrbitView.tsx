@@ -116,11 +116,6 @@ export default function OrbitView() {
   // Business Hub state
   const [showHub, setShowHub] = useState(false);
   const [hubPanel, setHubPanel] = useState<'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications'>('overview');
-  
-  // Tier checks
-  const planTier = orbitData?.planTier || 'free';
-  const PAID_TIERS = ['grow', 'insight', 'intelligence'];
-  const isPaidTier = PAID_TIERS.includes(planTier);
 
   useEffect(() => {
     if (slug && slug !== lastTrackedSlug) {
@@ -179,6 +174,11 @@ export default function OrbitView() {
 
   const isOwner = currentUser && orbitData?.ownerId === currentUser.id;
   const isUnclaimed = !orbitData?.ownerId;
+  
+  // Tier checks
+  const planTier = orbitData?.planTier || 'free';
+  const PAID_TIERS = ['grow', 'insight', 'intelligence'];
+  const isPaidTier = PAID_TIERS.includes(planTier);
 
   // Fetch hub analytics for owners
   const { data: hubData } = useQuery<{
