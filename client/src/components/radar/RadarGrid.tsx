@@ -101,24 +101,24 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
       score: scoreRelevance(item, query)
     }));
     
-    // At low intent: show many tiles (up to 24) for infinite universe feel
-    // At high intent: show fewer tiles (6-10 most relevant)
-    const maxVisible = Math.round(24 - intentLevel * 14); // 24 at ambient, 10 at focused
+    // Always show minimum 50 tiles for infinite universe feel
+    // Even at high intent, maintain 50+ tiles for density
+    const maxVisible = Math.round(60 - intentLevel * 10); // 60 at ambient, 50 at focused
     
-    // Sort by score descending, take top N
+    // Sort by score descending, take top N (always at least 50)
     return scoredItems
       .sort((a, b) => b.score - a.score)
-      .slice(0, Math.max(6, maxVisible));
+      .slice(0, Math.max(50, maxVisible));
   }, [rankedItems, conversationKeywords, intentLevel]);
 
   const positionMap = useMemo(() => {
-    const tileWidth = 115;
-    const tileHeight = 95;
-    const tileSpacing = 20;
-    const safeGap = tileHeight + tileSpacing; // 115px minimum between zones
+    const tileWidth = 120;
+    const tileHeight = 100;
+    const tileSpacing = 10;
+    const safeGap = tileHeight + tileSpacing; // minimum between zones
     
-    // Ring spacing MUST be > tile height to prevent vertical overlap
-    const ringSpacing = 125; // Now 125 (> 95 tile height + margin)
+    // Ring spacing for compact but readable 50+ tile layout
+    const ringSpacing = 95; // Compact packing, tiles can slightly overlap for density
     
     const map = new Map<string, { x: number; y: number; distance: number }>();
     
@@ -427,7 +427,7 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
               item={item}
               relevanceScore={score}
               position={{ x: pos.x, y: pos.y }}
-              accentColor={score > 10 ? accentColor : undefined}
+              accentColor={accentColor}
               zoomLevel={zoomLevel}
             />
           );
