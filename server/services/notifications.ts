@@ -15,15 +15,25 @@ interface TriggerContext {
 export async function createNotification(
   data: Omit<InsertNotification, 'dedupeKey'> & { dedupeKey?: string }
 ): Promise<boolean> {
-  if (data.dedupeKey) {
-    const existing = await storage.findNotificationByDedupeKey(data.dedupeKey);
-    if (existing) {
-      return false;
+  try {
+    if (data.dedupeKey) {
+      const existing = await storage.findNotificationByDedupeKey(data.dedupeKey);
+      if (existing) {
+        return false;
+      }
     }
+    
+    await storage.createNotification(data as InsertNotification);
+    return true;
+  } catch (error) {
+    console.error('[notifications] Failed to create notification:', {
+      type: data.type,
+      userId: data.userId,
+      orbitId: data.orbitId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return false;
   }
-  
-  await storage.createNotification(data as InsertNotification);
-  return true;
 }
 
 export async function triggerLeadCapturedNotification(
