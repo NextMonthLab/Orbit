@@ -25,3 +25,113 @@ Key architectural patterns and design decisions include:
 - **Replicate API**: Used for alternative video generation models.
 - **Stripe**: For subscription billing and payment processing.
 - **Replit Object Storage (R2/S3-compatible)**: For file storage.
+
+---
+
+## 📌 Locked Strategic Decisions
+
+### Orbit Claiming & Tier Model (LOCKED)
+
+**Status: LOCKED — Do not reinterpret without explicit decision update**
+
+1. **One Orbit per business** — Public, lives at `/orbit/:slug`, always exists, always shareable
+2. **Claiming is universal and free** — Establishes ownership, unlocks free Data Hub
+3. **Free tier = activity visibility** (counts only)
+4. **Paid tier = understanding** (insights, transcripts, ICE Maker, curation)
+5. **Data philosophy**: Activity is free. Understanding is paid.
+
+---
+
+### Pattern Intelligence → Strategic Advice (LOCKED)
+
+**Status: LOCKED — Applies to all future tracking, analytics, and intelligence work**
+
+Core evolution path:
+1. Analytics → what happened
+2. Insights → what people asked and did
+3. Pattern Intelligence → what tends to happen in sequence
+4. Strategic Advice → what this implies the business should do next
+
+**Architectural guardrails:** Events must be linkable into sequences, timestamps preserved, object-level interaction tracked, outcomes linkable to journeys.
+
+---
+
+### Orbit Value Ladder (LOCKED)
+
+**Status: LOCKED — Do not rename tiers or collapse the progression**
+
+| Tier | Price | Core Value |
+|------|-------|------------|
+| **Orbit Free** | £0 | Ownership + visibility of activity |
+| **Orbit Grow** | £19/mo | Control + curation + ICE Maker (pay-as-you-go) |
+| **Orbit Understand** | £49/mo | Insights + clarity + ICE Maker bundled (6 credits) |
+| **Orbit Intelligence** | £99/mo | Pattern Intelligence + Strategic Advice (12-15 credits) |
+
+**Naming guardrail:** Do NOT use Basic/Pro/Enterprise. Use: Orbit → Grow → Understand → Intelligence.
+
+---
+
+### ICE + Video Pricing Model (LOCKED)
+
+**Status: LOCKED — Cost-aware creative economy supporting both casual users and filmmakers**
+
+#### Core Principle
+- An ICE is a **narrative structure**, not "all possible media"
+- Video is **premium, scene-based, and optional**
+- Short films are supported — but never subsidised
+
+#### Standard ICE (1 Credit = £8)
+
+| Contents | Details |
+|----------|---------|
+| Cards/scenes | 12 |
+| AI images | 12 (auto-generated) |
+| Video scenes | ≤4 (Haiper, budget model) |
+| Script & styling | Included |
+
+**Cost to you:** ~£1.40 | **Margin:** ~82%
+
+#### Full Cinematic ICE (Short Film Mode)
+
+For users who want 12 consecutive video scenes:
+
+| Mode | Videos | Model | Credits | Cost | Price | Margin |
+|------|--------|-------|---------|------|-------|--------|
+| Budget Cinematic | 12 | Haiper | 4 | £3.60 | £32 | 89% |
+| Standard Cinematic | 12 | Minimax | 6 | £9.60 | £48 | 80% |
+| Premium Cinematic | 12 | Kling | 8 | £13.20 | £64 | 79% |
+
+**Scaling rule:** ~1 credit per 3 video scenes (budget)
+
+#### UX Flow
+
+1. User creates ICE → gets 12 images + 4 auto-selected video scenes
+2. "Upgrade to Full Cinematic" button for more videos
+3. User chooses quality tier → credits deducted → all scenes rendered as video
+
+#### Subscription Tier Interaction
+
+| Tier | Bundled Credits | Can Create |
+|------|-----------------|------------|
+| Grow (£19) | Pay-as-you-go | Any combination |
+| Understand (£49) | 6 credits/mo | 6 standard ICEs or 1 full cinematic + remainder |
+| Intelligence (£99) | 12-15 credits/mo | Full cinematic stories comfortably |
+
+---
+
+### Free Orbit Guardrails (LOCKED)
+
+**Status: LOCKED — Required for profitability at scale**
+
+- **Conversation limit:** 50 messages per Orbit per month
+- Soft messaging at ~35-40, hard stop at 50
+- UX framing: success not restriction ("Your Orbit is getting attention")
+
+---
+
+### Profitability Guardrails (LOCKED)
+
+1. Free tier must remain predictable and capped
+2. ICE Maker must remain high-margin (79%+)
+3. Video is never unlimited — always a conscious choice
+4. Pattern Intelligence must remain deterministic/batch-processed

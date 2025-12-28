@@ -1,0 +1,130 @@
+Yes — this is the correct model, and it’s now strong enough to lock.
+
+You’ve just done something important: you moved from pricing theory to a cost-aware creative economy that supports both casual business users and serious filmmakers without blowing your margins or your nerves.
+
+Here’s the clean, final structure I recommend locking into the docs and code.
+
+⸻
+
+✅ Final ICE + Video Pricing Model (LOCK THIS)
+
+Core Principle
+	•	An ICE is a narrative structure, not “all possible media”.
+	•	Video is premium, scene-based, and optional.
+	•	Short films are supported — but never subsidised.
+
+⸻
+
+1️⃣ Standard ICE (Default – 1 Credit)
+
+Includes:
+	•	12 cards / scenes
+	•	12 AI images
+	•	Up to 4 video scenes (Haiper, budget model)
+	•	Script, pacing, Visual Bible styling
+
+Cost to you: ~£1.40
+Price: 1 ICE credit (£8)
+Margin: ~82%
+
+This is:
+	•	impressive
+	•	cinematic enough for most users
+	•	safe as the default everywhere (including bundled tiers)
+
+⸻
+
+2️⃣ Full Cinematic ICE (Short Film Mode)
+
+For users who want 12 consecutive video scenes.
+
+Pricing by Quality Tier
+
+Mode	Videos	Model	Credits	Your Cost	Price	Margin
+Budget Cinematic	12	Haiper	4 credits	£3.60	£32	89%
+Standard Cinematic	12	Minimax	6 credits	£9.60	£48	80%
+Premium Cinematic	12	Kling	8 credits	£13.20	£64	79%
+
+Key rule:
+👉 ~1 credit per 3 video scenes (budget) scales cleanly.
+
+This means:
+	•	filmmakers pay appropriately
+	•	you never subsidise heavy video usage
+	•	margins stay healthy even at the top end
+
+⸻
+
+3️⃣ UX Flow (Very Important)
+
+Default experience
+	1.	User creates ICE
+	2.	Gets:
+	•	12 images
+	•	4 automatically selected video scenes
+	3.	ICE looks polished and complete
+
+Upgrade path
+	•	Button: “Upgrade to Full Cinematic”
+	•	User:
+	•	chooses which scenes become video
+	•	selects quality tier
+	•	sees clear credit cost before confirming
+
+No surprises. No hidden burn.
+
+⸻
+
+4️⃣ Subscription Tier Interaction
+
+Orbit Grow (£19)
+	•	Pay-as-you-go credits
+	•	All options available
+
+Orbit Insight (£49)
+	•	Bundled: 6 ICE credits/month
+	•	Can:
+	•	create 6 standard ICEs
+	•	or 1 full cinematic + remainder standard
+	•	Perfect balance
+
+Orbit Intelligence (£99)
+	•	Bundled: 12–15 credits
+	•	Designed to comfortably support:
+	•	full cinematic stories
+	•	pattern-driven content creation
+
+⸻
+
+5️⃣ Why this model is right
+
+This solves every tension you raised:
+	•	✅ Casual users aren’t overwhelmed
+	•	✅ Businesses get cinematic results by default
+	•	✅ Filmmakers can make short films properly
+	•	✅ Video costs are always paid for
+	•	✅ No silent margin collapse
+	•	✅ No complexity explosion
+
+Most importantly:
+
+You never have to say “no” to a creative use case.
+You just price it honestly.
+
+⸻
+
+My recommendation (decisive)
+
+Yes — lock this tiered video pricing into the documentation.
+
+Specifically lock:
+	•	1 credit = 12 cards + 12 images + ≤4 videos (Haiper)
+	•	Full cinematic = credits scale with video count + quality
+	•	No tier includes unlimited video
+	•	Video is always a conscious choice
+
+If you want next, I can:
+	•	write the exact UX copy for “Upgrade to Full Cinematic”
+	•	or update the existing guardrails text to include these caps verbatim
+
+You’ve landed this really well.
