@@ -102,11 +102,15 @@ export default function DataHub() {
   const slug = params?.slug;
   const [, setLocation] = useLocation();
   const [timeRange, setTimeRange] = useState<'7' | '30'>('30');
+  
+  // Check for preview mode in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPreview = urlParams.get('preview') === 'true';
 
   const { data: hubData, isLoading, error } = useQuery<HubData>({
-    queryKey: ["orbit-hub", slug, timeRange],
+    queryKey: ["orbit-hub", slug, timeRange, isPreview],
     queryFn: async () => {
-      const response = await fetch(`/api/orbit/${slug}/hub?days=${timeRange}`);
+      const response = await fetch(`/api/orbit/${slug}/hub?days=${timeRange}${isPreview ? '&preview=true' : ''}`);
       if (!response.ok) throw new Error("Failed to load hub data");
       return response.json();
     },

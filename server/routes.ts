@@ -5054,7 +5054,7 @@ Keep responses concise (2-3 sentences maximum).`;
   app.get("/api/orbit/:slug/hub", async (req, res) => {
     try {
       const { slug } = req.params;
-      const { days = '30' } = req.query;
+      const { days = '30', preview = '' } = req.query;
       
       const orbitMeta = await storage.getOrbitMeta(slug);
       if (!orbitMeta) {
@@ -5065,8 +5065,9 @@ Keep responses concise (2-3 sentences maximum).`;
       const summary = await storage.getOrbitAnalyticsSummary(slug, daysNum);
       const dailyData = await storage.getOrbitAnalytics(slug, daysNum);
       
-      // Check if user is owner (for paid features)
-      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      // Check if user is owner (for paid features) - preview mode bypasses auth for testing
+      const isPreviewMode = preview === 'true';
+      const isOwner = isPreviewMode || (req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id);
       const isPaid = false; // TODO: Check subscription tier
       
       res.json({
