@@ -131,7 +131,7 @@ export default function MarketingHome() {
               src={LOGO_URL} 
               alt="NextMonth" 
               className="h-[96px] cursor-pointer" 
-              style={{ clipPath: 'inset(20% 0 20% 0)' }}
+              style={{ clipPath: 'inset(30% 0 30% 0)' }}
               data-testid="link-logo"
             />
           </Link>
@@ -142,8 +142,9 @@ export default function MarketingHome() {
               </Button>
             </Link>
             <a href="#how-it-works">
-              <Button className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 hover:from-pink-400 hover:via-purple-400 hover:to-blue-400 text-white border-0 shadow-lg shadow-purple-500/20" data-testid="button-signup">
-                Get Started
+              <Button className="bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/20 gap-2" data-testid="button-signup">
+                <Sparkles className="w-4 h-4" />
+                Start Creating
               </Button>
             </a>
           </div>
@@ -166,33 +167,37 @@ export default function MarketingHome() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-white/5 border border-white/10 rounded-full backdrop-blur-sm">
+              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-pink-500/10 border border-pink-500/20 rounded-full backdrop-blur-sm">
                 <Sparkles className="w-4 h-4 text-pink-400" />
-                <span className="text-white/80">This is how stories are experienced now</span>
+                <span className="text-white/80">THE AI TOOL CREATION PLATFORM</span>
               </div>
               
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-semibold tracking-tight mb-8 leading-[0.9]" data-testid="text-hero-title">
-                <span className="block text-white">Turn any content into an</span>
-                <span className="block font-display bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
-                  interactive cinematic experience
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[0.95]" data-testid="text-hero-title">
+                <span className="block bg-gradient-to-r from-pink-400 via-red-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
+                  Build. Share. Embed.
+                </span>
+                <span className="block bg-gradient-to-r from-pink-400 via-red-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
+                  Sell.
                 </span>
               </h1>
               
-              <p className="text-xl md:text-2xl text-white/60 max-w-3xl mx-auto mb-12 leading-relaxed" data-testid="text-hero-description">
-                NextMonth transforms scripts, documents, and websites into visual story cards 
-                your audience can explore, feel, and interact with.
+              <p className="text-xl md:text-2xl text-white max-w-3xl mx-auto mb-4 leading-relaxed font-medium" data-testid="text-hero-description">
+                Turn ideas into working AI tools in seconds.
+              </p>
+              <p className="text-lg text-white/60 max-w-2xl mx-auto mb-12 leading-relaxed">
+                Create interactive tools directly in your browser. Embed them anywhere. No coding required. Free to start.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/login?signup=true">
-                  <Button size="lg" className="h-14 px-8 text-lg bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 hover:from-pink-400 hover:via-purple-400 hover:to-blue-400 text-white border-0 shadow-lg shadow-purple-500/20 gap-3" data-testid="button-hero-cta">
-                    Create a NextMonth
-                    <ArrowRight className="w-5 h-5" />
+                  <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3 rounded-xl" data-testid="button-hero-cta">
+                    <Sparkles className="w-5 h-5" />
+                    Start Creating Free
                   </Button>
                 </Link>
-                <Button size="lg" variant="outline" className="h-14 px-8 text-lg bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 gap-3" data-testid="button-hero-demo">
-                  <Play className="w-5 h-5 fill-current" />
-                  See how it works
+                <Button size="lg" variant="outline" className="h-14 px-8 text-lg bg-transparent border-white/30 text-white hover:bg-white/10 hover:border-white/50 gap-3 rounded-xl" data-testid="button-hero-demo">
+                  Explore Tools
+                  <ArrowRight className="w-5 h-5" />
                 </Button>
               </div>
             </motion.div>
