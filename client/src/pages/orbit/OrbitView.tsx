@@ -60,8 +60,9 @@ interface OrbitResponse {
 }
 
 export default function OrbitView() {
-  const [, params] = useRoute("/orbit/:slug");
-  const slug = params?.slug;
+  const [matchedOrbit, orbitParams] = useRoute("/orbit/:slug");
+  const [matchedO, oParams] = useRoute("/o/:slug");
+  const slug = orbitParams?.slug || oParams?.slug;
   
   const [showCustomization, setShowCustomization] = useState(true);
   const [brandPreferences, setBrandPreferences] = useState<BrandPreferences | null>(null);
