@@ -66,6 +66,9 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
   const dragStart = useRef({ x: 0, y: 0 });
   const offsetStart = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const initialPinchDistance = useRef<number | null>(null);
+  const initialZoom = useRef<number>(1);
 
   const allItems = useMemo(() => getAllItems(knowledge), [knowledge]);
   
@@ -76,55 +79,80 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
 
   const positionMap = useMemo(() => {
     const viewportRadius = Math.min(window.innerWidth, window.innerHeight) / 2;
-    const tileHalfWidth = 55;
-    const maxEdge = viewportRadius - 15;
-    const ring1Radius = 75;
-    const ring2Radius = 115;
+    const tileWidth = 95;
+    const tileHalfWidth = tileWidth / 2;
+    const tileSpacing = 8;
+    const effectiveTileArc = tileWidth + tileSpacing;
+    const maxVisibleEdge = viewportRadius - 15;
+    const priorityOrbitRadius = 52;
+    const priorityOrbitCapacity = 3;
+    const relevanceThreshold = 12;
+    const ring1Radius = 95;
+    const ring2Radius = 135;
     const map = new Map<string, { x: number; y: number; distance: number }>();
     
+    const query = conversationKeywords.join(' ');
+    const scoredItems = rankedItems.map(item => ({
+      item,
+      score: scoreRelevance(item, query)
+    }));
+    
+    const priorityItems = scoredItems
+      .filter(s => s.score >= relevanceThreshold)
+      .slice(0, priorityOrbitCapacity);
+    const priorityIds = new Set(priorityItems.map(p => p.item.id));
+    const regularItems = scoredItems.filter(s => !priorityIds.has(s.item.id));
+    
+    priorityItems.forEach((p, i) => {
+      const angle = (i / priorityOrbitCapacity) * 2 * Math.PI - Math.PI / 2;
+      map.set(p.item.id, {
+        x: Math.cos(angle) * priorityOrbitRadius,
+        y: Math.sin(angle) * priorityOrbitRadius,
+        distance: priorityOrbitRadius,
+      });
+    });
+    
     let placed = 0;
-    const rings = [
-      { count: 6, radius: ring1Radius },
-      { count: 7, radius: ring2Radius },
+    const ringConfigs = [
+      { radius: ring1Radius },
+      { radius: ring2Radius },
     ];
     
-    for (let r = 0; r < rings.length && placed < rankedItems.length; r++) {
-      const { count, radius } = rings[r];
-      const effectiveRadius = Math.min(radius, maxEdge - tileHalfWidth);
-      for (let i = 0; i < count && placed < rankedItems.length; i++) {
-        const item = rankedItems[placed];
-        const query = conversationKeywords.join(' ');
-        const relevance = scoreRelevance(item, query);
-        const pullFactor = relevance > 0 ? Math.max(0.9, 1 - relevance / 20) : 1;
-        const adjustedRadius = effectiveRadius * pullFactor;
-        const angle = (i / count) * 2 * Math.PI - Math.PI / 2 + (r * 0.55);
+    for (let r = 0; r < ringConfigs.length && placed < regularItems.length; r++) {
+      const rawRadius = ringConfigs[r].radius;
+      const ringRadius = Math.min(rawRadius, maxVisibleEdge - tileHalfWidth);
+      const circumference = 2 * Math.PI * ringRadius;
+      const tilesInRing = Math.min(Math.floor(circumference / effectiveTileArc), regularItems.length - placed);
+      const angleOffset = (r + 1) * 0.35;
+      
+      for (let i = 0; i < tilesInRing && placed < regularItems.length; i++) {
+        const { item } = regularItems[placed];
+        const angle = (i / tilesInRing) * 2 * Math.PI - Math.PI / 2 + angleOffset;
         
         map.set(item.id, {
-          x: Math.cos(angle) * adjustedRadius,
-          y: Math.sin(angle) * adjustedRadius,
-          distance: adjustedRadius,
+          x: Math.cos(angle) * ringRadius,
+          y: Math.sin(angle) * ringRadius,
+          distance: ringRadius,
         });
         placed++;
       }
     }
     
     let ring = 3;
-    while (placed < rankedItems.length) {
-      const tilesInRing = 5 + ring * 2;
-      const rawRadius = ring2Radius + (ring - 2) * (tileHalfWidth * 1.1);
+    while (placed < regularItems.length) {
+      const rawRadius = ring2Radius + (ring - 2) * 65;
+      const circumference = 2 * Math.PI * rawRadius;
+      const tilesInRing = Math.min(Math.floor(circumference / effectiveTileArc), regularItems.length - placed);
+      const angleOffset = ring * 0.4;
       
-      for (let i = 0; i < tilesInRing && placed < rankedItems.length; i++) {
-        const item = rankedItems[placed];
-        const query = conversationKeywords.join(' ');
-        const relevance = scoreRelevance(item, query);
-        const pullFactor = relevance > 0 ? Math.max(0.9, 1 - relevance / 20) : 1;
-        const adjustedRadius = rawRadius * pullFactor;
-        const angle = (i / tilesInRing) * 2 * Math.PI - Math.PI / 2 + (ring * 0.45);
+      for (let i = 0; i < tilesInRing && placed < regularItems.length; i++) {
+        const { item } = regularItems[placed];
+        const angle = (i / tilesInRing) * 2 * Math.PI - Math.PI / 2 + angleOffset;
         
         map.set(item.id, {
-          x: Math.cos(angle) * adjustedRadius,
-          y: Math.sin(angle) * adjustedRadius,
-          distance: adjustedRadius,
+          x: Math.cos(angle) * rawRadius,
+          y: Math.sin(angle) * rawRadius,
+          distance: rawRadius,
         });
         placed++;
       }
@@ -169,28 +197,64 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
     return rankedItems.slice(0, 5).map(item => getItemLabel(item));
   }, [rankedItems]);
 
+  const getPinchDistance = useCallback(() => {
+    const pointers = Array.from(activePointers.current.values());
+    if (pointers.length < 2) return null;
+    const dx = pointers[1].x - pointers[0].x;
+    const dy = pointers[1].y - pointers[0].y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }, []);
+
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest('[data-tile]') || target.closest('[data-chat-hub]')) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    setIsDragging(true);
-    dragStart.current = { x: e.clientX, y: e.clientY };
-    offsetStart.current = { ...canvasOffset };
-    target.setPointerCapture(e.pointerId);
-  }, [canvasOffset]);
+    
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    
+    if (activePointers.current.size === 1) {
+      setIsDragging(true);
+      dragStart.current = { x: e.clientX, y: e.clientY };
+      offsetStart.current = { ...canvasOffset };
+    } else if (activePointers.current.size === 2) {
+      setIsDragging(false);
+      initialPinchDistance.current = getPinchDistance();
+      initialZoom.current = zoomLevel;
+    }
+    
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  }, [canvasOffset, zoomLevel, getPinchDistance]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragStart.current.x;
-    const dy = e.clientY - dragStart.current.y;
-    setCanvasOffset({
-      x: offsetStart.current.x + dx,
-      y: offsetStart.current.y + dy,
-    });
-  }, [isDragging]);
+    if (!activePointers.current.has(e.pointerId)) return;
+    
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    
+    if (activePointers.current.size === 2 && initialPinchDistance.current) {
+      const currentDistance = getPinchDistance();
+      if (currentDistance) {
+        const scale = currentDistance / initialPinchDistance.current;
+        const newZoom = Math.max(0.4, Math.min(2.5, initialZoom.current * scale));
+        setZoomLevel(newZoom);
+      }
+    } else if (isDragging && activePointers.current.size === 1) {
+      const dx = e.clientX - dragStart.current.x;
+      const dy = e.clientY - dragStart.current.y;
+      setCanvasOffset({
+        x: offsetStart.current.x + dx,
+        y: offsetStart.current.y + dy,
+      });
+    }
+  }, [isDragging, getPinchDistance]);
 
-  const handlePointerUp = useCallback(() => {
-    setIsDragging(false);
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    activePointers.current.delete(e.pointerId);
+    if (activePointers.current.size < 2) {
+      initialPinchDistance.current = null;
+    }
+    if (activePointers.current.size === 0) {
+      setIsDragging(false);
+    }
   }, []);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -215,6 +279,7 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       onPointerLeave={handlePointerUp}
       onWheel={handleWheel}
       data-testid="radar-grid"

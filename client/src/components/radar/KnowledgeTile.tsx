@@ -27,6 +27,24 @@ const typeColors = {
   action: '#ec4899',
 };
 
+const typeImageKeywords = {
+  topic: ['abstract', 'technology', 'innovation', 'digital', 'concept', 'data', 'network', 'science', 'research', 'future'],
+  page: ['document', 'website', 'interface', 'screen', 'content', 'article', 'blog', 'news', 'media', 'information'],
+  person: ['professional', 'portrait', 'business', 'team', 'office', 'meeting', 'collaboration', 'handshake', 'consultant', 'expert'],
+  proof: ['success', 'achievement', 'trophy', 'chart', 'growth', 'celebration', 'award', 'milestone', 'results', 'analytics'],
+  action: ['action', 'click', 'phone', 'email', 'contact', 'schedule', 'calendar', 'video', 'call', 'message'],
+};
+
+function generateTileImage(item: AnyKnowledgeItem): string {
+  const baseKeywords = typeImageKeywords[item.type];
+  const itemKeyword = item.keywords[0] || baseKeywords[0];
+  const hashCode = item.id.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0);
+  const typeKeyword = baseKeywords[Math.abs(hashCode) % baseKeywords.length];
+  const query = encodeURIComponent(`${itemKeyword} ${typeKeyword}`);
+  const seed = Math.abs(hashCode) % 1000;
+  return `https://source.unsplash.com/200x120/?${query}&sig=${seed}`;
+}
+
 function getActionIcon(actionType: string) {
   switch (actionType) {
     case 'video_reply': return Video;
@@ -49,7 +67,9 @@ export function KnowledgeTile({ item, relevanceScore, position, onClick, accentC
   const showFullContent = zoomLevel >= 1.2;
   
   const rawImageUrl = 'imageUrl' in item ? (item as any).imageUrl : undefined;
-  const imageUrl = rawImageUrl && typeof rawImageUrl === 'string' && rawImageUrl.length > 0 ? rawImageUrl : undefined;
+  const imageUrl = rawImageUrl && typeof rawImageUrl === 'string' && rawImageUrl.length > 0 
+    ? rawImageUrl 
+    : generateTileImage(item);
   
   const getLabel = () => {
     switch (item.type) {
@@ -71,7 +91,7 @@ export function KnowledgeTile({ item, relevanceScore, position, onClick, accentC
     }
   };
 
-  const tileWidth = 110;
+  const tileWidth = 95;
 
   return (
     <motion.button
