@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Sun, Moon, Check, ArrowRight, Palette, ImageIcon, Sparkles, LayoutGrid, Radar } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -65,6 +65,8 @@ export function BrandCustomizationScreen({
   const [selectedLogo, setSelectedLogo] = useState<string | null>(logoUrl || faviconUrl);
   const [selectedImages, setSelectedImages] = useState<string[]>(imagePool.slice(0, 3));
   const [experienceType, setExperienceType] = useState<ExperienceType>('radar');
+  const [huePosition, setHuePosition] = useState(0.5);
+  const spectrumRef = useRef<HTMLDivElement>(null);
 
   const allLogoCandidates = [
     ...(logoUrl ? [logoUrl] : []),
@@ -236,29 +238,70 @@ export function BrandCustomizationScreen({
             </span>
           </div>
           
-          <div className="grid grid-cols-7 gap-2 justify-items-center max-w-xs mx-auto">
-            {presetColors.map((color) => (
-              <button
-                key={color}
-                onClick={() => setAccentColor(color)}
-                className="w-8 h-8 rounded-full transition-all relative"
-                style={{
-                  backgroundColor: color,
-                  boxShadow: accentColor === color 
-                    ? `0 0 0 2px ${bgColor}, 0 0 0 4px ${color}` 
-                    : 'none',
-                  border: color === '#ffffff' || color === '#f5f5f5' ? `1px solid ${borderColor}` : 'none',
+          {/* Color Spectrum Slider */}
+          <div className="space-y-3">
+            <div 
+              ref={spectrumRef}
+              className="relative h-12 rounded-full cursor-pointer mx-auto"
+              style={{ 
+                maxWidth: '280px',
+                background: 'linear-gradient(to right, #ff0000, #ff8000, #ffff00, #80ff00, #00ff00, #00ff80, #00ffff, #0080ff, #0000ff, #8000ff, #ff00ff, #ff0080, #ff0000)',
+              }}
+              onPointerDown={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const updateHue = (clientX: number) => {
+                  const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+                  const percentage = x / rect.width;
+                  setHuePosition(percentage);
+                  const hue = Math.round(percentage * 360);
+                  setAccentColor(`hsl(${hue}, 70%, 50%)`);
+                };
+                
+                updateHue(e.clientX);
+                e.currentTarget.setPointerCapture(e.pointerId);
+                
+                const handleMove = (moveEvent: PointerEvent) => {
+                  updateHue(moveEvent.clientX);
+                };
+                
+                const handleUp = () => {
+                  document.removeEventListener('pointermove', handleMove);
+                  document.removeEventListener('pointerup', handleUp);
+                };
+                
+                document.addEventListener('pointermove', handleMove);
+                document.addEventListener('pointerup', handleUp);
+              }}
+              data-testid="color-spectrum"
+            >
+              {/* Current color indicator */}
+              <div
+                className="absolute top-1/2 -translate-y-1/2 w-7 h-7 rounded-full border-3 border-white shadow-lg pointer-events-none"
+                style={{ 
+                  left: `calc(${huePosition * 100}% - 14px)`,
+                  backgroundColor: `hsl(${Math.round(huePosition * 360)}, 70%, 50%)`,
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,255,255,0.8)',
                 }}
-                data-testid={`color-option-${color.replace('#', '')}`}
-              >
-                {accentColor === color && (
-                  <Check 
-                    className="w-4 h-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                    style={{ color: color === '#ffffff' || color === '#f5f5f5' ? '#000' : '#fff' }}
-                  />
-                )}
-              </button>
-            ))}
+              />
+            </div>
+            
+            {/* Quick preset colors */}
+            <div className="flex justify-center gap-1.5">
+              {['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff'].map((color) => (
+                <button
+                  key={color}
+                  onClick={() => setAccentColor(color)}
+                  className="w-5 h-5 rounded-full transition-all"
+                  style={{
+                    backgroundColor: color,
+                    boxShadow: accentColor === color ? `0 0 0 2px ${bgColor}, 0 0 0 3px ${color}` : 'none',
+                    border: color === '#ffffff' ? `1px solid ${borderColor}` : 'none',
+                    transform: accentColor === color ? 'scale(1.2)' : 'scale(1)',
+                  }}
+                  data-testid={`quick-color-${color.replace('#', '')}`}
+                />
+              ))}
+            </div>
           </div>
         </motion.div>
 

@@ -16,6 +16,7 @@ interface ChatHubProps {
   isMinimized: boolean;
   onMinimize: () => void;
   onExpand: () => void;
+  nearbyTiles?: string[];
 }
 
 export function ChatHub({
@@ -27,9 +28,21 @@ export function ChatHub({
   isMinimized,
   onMinimize,
   onExpand,
+  nearbyTiles = [],
 }: ChatHubProps) {
+  const getProactiveWelcome = () => {
+    if (initialMessage) return initialMessage;
+    
+    const tileHints = nearbyTiles.slice(0, 3);
+    if (tileHints.length > 0) {
+      const tileList = tileHints.map(t => `"${t}"`).join(', ');
+      return `Welcome to ${brandName}! I can see topics like ${tileList} floating around us. What brings you here today?`;
+    }
+    return `Welcome! I'm your guide to ${brandName}. The knowledge around us shifts based on what we discuss. What would you like to explore?`;
+  };
+
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: initialMessage || `Welcome! I'm here to help you explore ${brandName}. What would you like to know?` }
+    { role: 'assistant', content: getProactiveWelcome() }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -94,6 +107,7 @@ export function ChatHub({
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         data-testid="chat-hub-orb"
+        data-chat-hub
       >
         <MessageCircle className="w-7 h-7 text-white" />
       </motion.button>
@@ -107,6 +121,7 @@ export function ChatHub({
       exit={{ opacity: 0, scale: 0.9 }}
       className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[360px] max-w-[90vw]"
       data-testid="chat-hub"
+      data-chat-hub
     >
       <div 
         className="rounded-2xl overflow-hidden backdrop-blur-xl"
