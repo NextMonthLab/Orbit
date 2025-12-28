@@ -115,7 +115,12 @@ export default function OrbitView() {
 
   // Business Hub state
   const [showHub, setShowHub] = useState(false);
-  const [hubPanel, setHubPanel] = useState<'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads'>('overview');
+  const [hubPanel, setHubPanel] = useState<'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications'>('overview');
+  
+  // Tier checks
+  const planTier = orbitData?.planTier || 'free';
+  const PAID_TIERS = ['grow', 'insight', 'intelligence'];
+  const isPaidTier = PAID_TIERS.includes(planTier);
 
   useEffect(() => {
     if (slug && slug !== lastTrackedSlug) {
@@ -484,11 +489,11 @@ export default function OrbitView() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex relative">
-      {/* Business Hub Sidebar for owners */}
-      {isOwner && showHub && (
+      {/* Business Hub Sidebar for paid tier owners */}
+      {isOwner && isPaidTier && showHub && (
         <BusinessHubSidebar
           isOwner={true}
-          planTier={orbitData?.planTier || 'free'}
+          planTier={planTier}
           businessSlug={slug || ''}
           activePanel={hubPanel}
           onPanelChange={setHubPanel}
@@ -502,8 +507,8 @@ export default function OrbitView() {
         />
       )}
 
-      {/* Hub toggle button for owners */}
-      {isOwner && !showHub && !showCustomization && (
+      {/* Hub toggle button for paid tier owners */}
+      {isOwner && isPaidTier && !showHub && !showCustomization && (
         <Button
           onClick={() => setShowHub(true)}
           className="fixed left-4 top-4 z-50 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700"
@@ -514,14 +519,28 @@ export default function OrbitView() {
           Business Hub
         </Button>
       )}
+      
+      {/* Free tier owner - show upgrade prompt */}
+      {isOwner && !isPaidTier && !showCustomization && (
+        <div className="fixed left-4 top-4 z-50 bg-zinc-900/90 border border-zinc-700 rounded-lg p-3 max-w-xs">
+          <p className="text-sm text-zinc-300 mb-2">Upgrade to unlock your Business Hub</p>
+          <Button
+            size="sm"
+            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+            data-testid="button-upgrade-cta"
+          >
+            Upgrade to Grow
+          </Button>
+        </div>
+      )}
 
       {/* Hub Panel Content (when hub is open) */}
-      {isOwner && showHub && (
+      {isOwner && isPaidTier && showHub && (
         <div className="flex-1 bg-zinc-950 overflow-auto">
           <HubPanelContainer
             activePanel={hubPanel}
             businessSlug={slug || ''}
-            planTier={orbitData?.planTier || 'free'}
+            planTier={planTier}
             customTitle={orbitData?.customTitle}
             customDescription={orbitData?.customDescription}
           />
@@ -529,7 +548,7 @@ export default function OrbitView() {
       )}
 
       {/* Main content area (when hub is closed or not owner) */}
-      <div className={cn("flex-1 flex flex-col", isOwner && showHub && "hidden")}>
+      <div className={cn("flex-1 flex flex-col", isOwner && isPaidTier && showHub && "hidden")}>
         {showCustomization && (
         <BrandCustomizationScreen
           logoUrl={preview.siteIdentity.logoUrl}

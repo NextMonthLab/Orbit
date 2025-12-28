@@ -5562,7 +5562,7 @@ Keep responses concise (2-3 sentences maximum).`;
             preview: true,
           })),
           locked: true,
-          upgradeMessage: "Upgrade to Orbit Insight to view conversation transcripts"
+          upgradeMessage: "Upgrade to Orbit Understand to view conversation transcripts"
         });
       }
       
@@ -5590,7 +5590,7 @@ Keep responses concise (2-3 sentences maximum).`;
       
       const tier = orbitMeta.planTier;
       if (!tier || !INSIGHT_TIERS.includes(tier)) {
-        return res.status(403).json({ message: "Upgrade to Orbit Insight to view conversation transcripts" });
+        return res.status(403).json({ message: "Upgrade to Orbit Understand to view conversation transcripts" });
       }
       
       const conversation = await storage.getOrbitConversation(parseInt(id));
@@ -5694,7 +5694,7 @@ Keep responses concise (2-3 sentences maximum).`;
           conversationCount: conversations.length,
           leadsCount,
           locked: true,
-          upgradeMessage: "Upgrade to Orbit Insight for detailed analytics and question clustering"
+          upgradeMessage: "Upgrade to Orbit Understand for detailed analytics and question clustering"
         });
       }
       
@@ -5749,7 +5749,7 @@ Keep responses concise (2-3 sentences maximum).`;
             name: l.name ? l.name[0] + '***' : null,
           })),
           locked: true,
-          upgradeMessage: "Upgrade to Orbit Insight to view lead details and journey context"
+          upgradeMessage: "Upgrade to Orbit Understand to view lead details and journey context"
         });
       }
       
@@ -5777,7 +5777,7 @@ Keep responses concise (2-3 sentences maximum).`;
       
       const tier = orbitMeta.planTier;
       if (!tier || !INSIGHT_TIERS.includes(tier)) {
-        return res.status(403).json({ message: "Upgrade to Orbit Insight to view lead details" });
+        return res.status(403).json({ message: "Upgrade to Orbit Understand to view lead details" });
       }
       
       const lead = await storage.getOrbitLead(parseInt(id));

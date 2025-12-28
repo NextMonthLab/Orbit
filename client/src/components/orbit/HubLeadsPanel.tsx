@@ -147,7 +147,7 @@ export function HubLeadsPanel({ businessSlug, planTier }: HubLeadsPanelProps) {
             <div className="flex items-center gap-2">
               <Lock className="h-4 w-4 text-amber-400" />
               <p className="text-sm text-amber-200">
-                {leadsData?.upgradeMessage || 'Upgrade to Orbit Insight to view lead details'}
+                {leadsData?.upgradeMessage || 'Upgrade to Orbit Understand to view lead details'}
               </p>
             </div>
           </div>

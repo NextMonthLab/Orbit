@@ -233,7 +233,7 @@ export function HubNotificationsPanel({ tier }: HubNotificationsPanelProps) {
           <CardContent className="py-6 text-center">
             <Bell className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
             <p className="text-sm text-muted-foreground">
-              Upgrade to <span className="font-medium text-foreground">Orbit Insight</span> to unlock email notifications and lead alerts
+              Upgrade to <span className="font-medium text-foreground">Orbit Understand</span> to unlock email notifications and lead alerts
             </p>
           </CardContent>
         </Card>

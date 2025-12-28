@@ -152,7 +152,7 @@ export function HubConversationsPanel({ businessSlug, planTier }: HubConversatio
             <div className="flex items-center gap-2">
               <Lock className="h-4 w-4 text-amber-400" />
               <p className="text-sm text-amber-200">
-                {conversationsData?.upgradeMessage || 'Upgrade to Orbit Insight to view transcripts'}
+                {conversationsData?.upgradeMessage || 'Upgrade to Orbit Understand to view transcripts'}
               </p>
             </div>
           </div>

@@ -181,7 +181,7 @@ export function HubIcePanel({ businessSlug, planTier }: HubIcePanelProps) {
           </p>
           <div className="flex items-center gap-2 text-sm text-purple-300">
             <Gift className="h-4 w-4" />
-            <span>Upgrade to Orbit Insight for 6 bundled credits/month</span>
+            <span>Upgrade to Orbit Understand for 6 bundled credits/month</span>
           </div>
         </div>
       )}

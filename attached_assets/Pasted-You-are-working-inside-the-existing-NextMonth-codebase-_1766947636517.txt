@@ -1,0 +1,76 @@
+You are working inside the existing NextMonth codebase. Do not refactor broadly. Make targeted edits with maximum conversion impact.
+
+Target page
+/for/brands
+
+Goal
+Upgrade the Brands page so it communicates a clear promise, feels credible, and drives action to create a Smart Site Preview. This page should feel like a “product demo entry point”, not a generic landing page.
+
+What stays the same
+- Visual style: dark, premium, magenta accents, glass cards
+- The concept: “Smart Site Preview” and “Turn your existing website into a Smart Site in under 60 seconds”
+- The input field + “Create Preview” concept remains
+
+What must improve
+1) Hero message: stronger and clearer
+Current headline is punchy (“Your website is passive…”). Keep that energy but reduce ambiguity.
+- Keep the “passive vs interactive” contrast
+- Make sure it is instantly clear what happens:
+  - User enters their website URL
+  - NextMonth generates a temporary Smart Site Preview layer
+  - Customers can explore and ask questions based on their real content
+
+Add a 1-line trust anchor under the subheading:
+- Example direction: “Uses only public pages you provide. No changes to your site. You can delete the preview anytime.”
+
+2) Form section: reduce friction and clarify what “Create Preview” does
+- Above the input, add a micro-instruction:
+  “Paste your homepage URL (eg https://yourbrand.com)”
+- Under the button, add microcopy with expectations:
+  - “Free preview. Ready in about 60 seconds.”
+  - “We fetch your public content and generate a guided experience.”
+- Handle errors gracefully:
+  - If the URL is invalid, show a friendly inline message
+  - If fetch fails, explain what to try (remove /paths, try homepage, check it is public)
+
+3) “How Smart Sites work” section: make it feel real, not fluffy
+The cards are good. Tighten the copy to be specific:
+- “Connect your existing website” -> “We read your public pages and structure them into a guided experience”
+- “Your Smart Site is generated” -> “We create chapters, key points, and safe boundaries from your content”
+- “Customers can ask real questions” -> “Answers stay grounded in your pages, not generic internet knowledge”
+- “Deploy anywhere” -> “Embed, share a link, or export”
+
+4) Add a lightweight credibility block (very important)
+Add a small “Built for trust” block (one panel) with 3 bullets:
+- “Source-grounded answers”
+- “Guardrails to reduce hallucination”
+- “Human review options for publish flows” (if accurate to your product direction, otherwise omit)
+
+Do not add fake logos or fake customer names.
+
+5) Upgrade path (soft, not salesy)
+This page is a preview entry point, but it should hint at what comes next:
+Add a small section after the preview explanation:
+Title: “What you unlock when you claim your Smart Site”
+Bullets:
+- Analytics and activity counts (free claim)
+- Insights and transcripts (paid)
+- Pattern intelligence and strategic advice (higher tier)
+Keep it short and consistent with the Orbit value ladder already defined in the project.
+
+6) CTAs
+- Primary CTA remains the preview creation button
+- Add a secondary CTA below the page fold:
+  “Explore a sample Smart Site” (if a sample route exists, link it. If not, create a placeholder route that is clearly marked as sample and uses static content)
+
+UX acceptance criteria
+- Mobile-first: the form is always usable without awkward spacing
+- Copy is tighter and more concrete
+- Trust and safety is communicated without sounding corporate
+- No new dependencies
+- No breaking changes to existing preview logic
+
+Deliverables
+- Implement the page upgrades with minimal code churn
+- List the files changed
+- Confirm the route still works and the button triggers the same preview flow as before
