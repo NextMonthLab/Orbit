@@ -1,12 +1,15 @@
 import { useRoute, useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Globe, ExternalLink, AlertCircle, CheckCircle, Mail, MessageCircle } from "lucide-react";
+import { Loader2, Globe, ExternalLink, AlertCircle, CheckCircle, Mail, MessageCircle, LayoutDashboard } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { RadarGrid } from "@/components/radar";
 import { SpatialSmartSite } from "@/components/spatial";
 import { BrandCustomizationScreen, type BrandPreferences } from "@/components/preview/BrandCustomizationScreen";
+import { BusinessHubSidebar } from "@/components/orbit/BusinessHubSidebar";
+import { HubPanelContainer } from "@/components/orbit/HubPanelContainer";
 import type { SiteKnowledge } from "@/lib/siteKnowledge";
 import {
   Dialog,
@@ -57,12 +60,30 @@ interface PreviewInstance {
   createdAt: string;
 }
 
+interface OrbitBox {
+  id: number;
+  businessSlug: string;
+  boxType: string;
+  title: string;
+  description: string | null;
+  sourceUrl: string | null;
+  content: string | null;
+  imageUrl: string | null;
+  sortOrder: number;
+  isVisible: boolean;
+  iceId: number | null;
+}
+
 interface OrbitResponse {
   status: "ready" | "generating" | "failed" | "idle";
   businessSlug: string;
   ownerId?: number | null;
+  planTier?: 'free' | 'grow' | 'insight' | 'intelligence';
+  customTitle?: string | null;
+  customDescription?: string | null;
   lastUpdated?: string;
   previewId?: string | null;
+  boxes?: OrbitBox[];
   error?: string;
   requestedAt?: string;
 }
@@ -91,6 +112,10 @@ export default function OrbitView() {
   const [contactEmail, setContactEmail] = useState('');
   const [contactMessage, setContactMessage] = useState('');
   const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+
+  // Business Hub state
+  const [showHub, setShowHub] = useState(false);
+  const [hubPanel, setHubPanel] = useState<'overview' | 'grid' | 'ice' | 'brand' | 'settings'>('overview');
 
   useEffect(() => {
     if (slug && slug !== lastTrackedSlug) {
@@ -149,6 +174,20 @@ export default function OrbitView() {
 
   const isOwner = currentUser && orbitData?.ownerId === currentUser.id;
   const isUnclaimed = !orbitData?.ownerId;
+
+  // Fetch hub analytics for owners
+  const { data: hubData } = useQuery<{
+    analytics: { visits: number; interactions: number; conversations: number; iceViews: number };
+    leads: { count: number };
+  }>({
+    queryKey: ["orbit-hub", slug],
+    queryFn: async () => {
+      const response = await fetch(`/api/orbit/${slug}/hub`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!slug && !!isOwner,
+  });
 
   // Redirect owners to Data Hub (unless they're on claim route or explicitly viewing public orbit)
   const viewPublic = new URLSearchParams(searchString).get('view') === 'public';
@@ -444,8 +483,54 @@ export default function OrbitView() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col relative">
-      {showCustomization && (
+    <div className="min-h-screen bg-background text-foreground flex relative">
+      {/* Business Hub Sidebar for owners */}
+      {isOwner && showHub && (
+        <BusinessHubSidebar
+          isOwner={true}
+          planTier={orbitData?.planTier || 'free'}
+          businessSlug={slug || ''}
+          activePanel={hubPanel}
+          onPanelChange={setHubPanel}
+          onClose={() => setShowHub(false)}
+          analytics={hubData ? {
+            visits: hubData.analytics.visits,
+            interactions: hubData.analytics.interactions,
+            conversations: hubData.analytics.conversations,
+            leads: hubData.leads.count,
+          } : undefined}
+        />
+      )}
+
+      {/* Hub toggle button for owners */}
+      {isOwner && !showHub && !showCustomization && (
+        <Button
+          onClick={() => setShowHub(true)}
+          className="fixed left-4 top-4 z-50 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700"
+          size="sm"
+          data-testid="button-open-hub"
+        >
+          <LayoutDashboard className="h-4 w-4 mr-2" />
+          Business Hub
+        </Button>
+      )}
+
+      {/* Hub Panel Content (when hub is open) */}
+      {isOwner && showHub && (
+        <div className="flex-1 bg-zinc-950 overflow-auto">
+          <HubPanelContainer
+            activePanel={hubPanel}
+            businessSlug={slug || ''}
+            planTier={orbitData?.planTier || 'free'}
+            customTitle={orbitData?.customTitle}
+            customDescription={orbitData?.customDescription}
+          />
+        </div>
+      )}
+
+      {/* Main content area (when hub is closed or not owner) */}
+      <div className={cn("flex-1 flex flex-col", isOwner && showHub && "hidden")}>
+        {showCustomization && (
         <BrandCustomizationScreen
           logoUrl={preview.siteIdentity.logoUrl}
           faviconUrl={preview.siteIdentity.faviconUrl}
@@ -773,6 +858,7 @@ export default function OrbitView() {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

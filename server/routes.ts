@@ -4914,14 +4914,21 @@ Keep responses concise (2-3 sentences maximum).`;
         });
       }
 
+      // Get boxes for this orbit
+      const boxes = await storage.getOrbitBoxes(orbitMeta.businessSlug);
+
       // Return previewId for rich experience (new approach)
       if (orbitMeta.previewId) {
         return res.json({
           status: "ready",
           businessSlug: orbitMeta.businessSlug,
           ownerId: orbitMeta.ownerId,
+          planTier: orbitMeta.planTier,
+          customTitle: orbitMeta.customTitle,
+          customDescription: orbitMeta.customDescription,
           lastUpdated: orbitMeta.lastUpdated,
           previewId: orbitMeta.previewId,
+          boxes,
         });
       }
 
@@ -4935,8 +4942,12 @@ Keep responses concise (2-3 sentences maximum).`;
             status: "ready",
             businessSlug: orbitMeta.businessSlug,
             ownerId: orbitMeta.ownerId,
+            planTier: orbitMeta.planTier,
+            customTitle: orbitMeta.customTitle,
+            customDescription: orbitMeta.customDescription,
             lastUpdated: orbitMeta.lastUpdated,
             pack: packResult.pack,
+            boxes,
           });
         }
       }
@@ -5239,6 +5250,220 @@ Keep responses concise (2-3 sentences maximum).`;
     } catch (error) {
       console.error("Error getting orbit leads:", error);
       res.status(500).json({ message: "Error getting leads" });
+    }
+  });
+
+  // Orbit Boxes - Get all boxes (owners see hidden boxes too)
+  app.get("/api/orbit/:slug/boxes", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      const boxes = await storage.getOrbitBoxes(slug, isOwner);
+      
+      res.json({ boxes, isOwner });
+    } catch (error) {
+      console.error("Error getting orbit boxes:", error);
+      res.status(500).json({ message: "Error getting boxes" });
+    }
+  });
+
+  // Orbit Boxes - Create box (owner only, Grow+ tier required)
+  app.post("/api/orbit/:slug/boxes", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can add boxes" });
+      }
+      
+      const PAID_TIERS = ['grow', 'insight', 'intelligence'];
+      const tier = orbitMeta.planTier;
+      if (!tier || !PAID_TIERS.includes(tier)) {
+        return res.status(403).json({ message: "Upgrade to Grow to add boxes to your grid" });
+      }
+      
+      const { boxType, title, description, sourceUrl, content, imageUrl, iceId } = req.body;
+      
+      if (!boxType || !title) {
+        return res.status(400).json({ message: "boxType and title are required" });
+      }
+      
+      const existingBoxes = await storage.getOrbitBoxes(slug, true);
+      const sortOrder = existingBoxes.length;
+      
+      const box = await storage.createOrbitBox({
+        businessSlug: slug,
+        boxType,
+        title,
+        description,
+        sourceUrl,
+        content,
+        imageUrl,
+        iceId,
+        sortOrder,
+        isVisible: true,
+      });
+      
+      res.json({ success: true, box });
+    } catch (error) {
+      console.error("Error creating orbit box:", error);
+      res.status(500).json({ message: "Error creating box" });
+    }
+  });
+
+  // Orbit Boxes - Update box (owner only, Grow+ tier required)
+  app.patch("/api/orbit/:slug/boxes/:boxId", async (req, res) => {
+    try {
+      const { slug, boxId } = req.params;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can update boxes" });
+      }
+      
+      const PAID_TIERS = ['grow', 'insight', 'intelligence'];
+      const tier = orbitMeta.planTier;
+      if (!tier || !PAID_TIERS.includes(tier)) {
+        return res.status(403).json({ message: "Upgrade to Grow to manage your grid boxes" });
+      }
+      
+      const box = await storage.getOrbitBox(parseInt(boxId));
+      if (!box || box.businessSlug !== slug) {
+        return res.status(404).json({ message: "Box not found" });
+      }
+      
+      const { title, description, sourceUrl, content, imageUrl, isVisible } = req.body;
+      
+      const updated = await storage.updateOrbitBox(parseInt(boxId), {
+        title,
+        description,
+        sourceUrl,
+        content,
+        imageUrl,
+        isVisible,
+      });
+      
+      res.json({ success: true, box: updated });
+    } catch (error) {
+      console.error("Error updating orbit box:", error);
+      res.status(500).json({ message: "Error updating box" });
+    }
+  });
+
+  // Orbit Boxes - Delete box (owner only, Grow+ tier required)
+  app.delete("/api/orbit/:slug/boxes/:boxId", async (req, res) => {
+    try {
+      const { slug, boxId } = req.params;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can delete boxes" });
+      }
+      
+      const PAID_TIERS = ['grow', 'insight', 'intelligence'];
+      const tier = orbitMeta.planTier;
+      if (!tier || !PAID_TIERS.includes(tier)) {
+        return res.status(403).json({ message: "Upgrade to Grow to manage your grid boxes" });
+      }
+      
+      const box = await storage.getOrbitBox(parseInt(boxId));
+      if (!box || box.businessSlug !== slug) {
+        return res.status(404).json({ message: "Box not found" });
+      }
+      
+      await storage.deleteOrbitBox(parseInt(boxId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting orbit box:", error);
+      res.status(500).json({ message: "Error deleting box" });
+    }
+  });
+
+  // Orbit Boxes - Reorder boxes (owner only, Grow+ tier required)
+  app.post("/api/orbit/:slug/boxes/reorder", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { boxIds } = req.body;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can reorder boxes" });
+      }
+      
+      const PAID_TIERS = ['grow', 'insight', 'intelligence'];
+      const tier = orbitMeta.planTier;
+      if (!tier || !PAID_TIERS.includes(tier)) {
+        return res.status(403).json({ message: "Upgrade to Grow to manage your grid boxes" });
+      }
+      
+      if (!Array.isArray(boxIds)) {
+        return res.status(400).json({ message: "boxIds must be an array" });
+      }
+      
+      await storage.reorderOrbitBoxes(slug, boxIds);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering orbit boxes:", error);
+      res.status(500).json({ message: "Error reordering boxes" });
+    }
+  });
+
+  // Orbit Brand Settings - Update (owner only, Grow+ tier required)
+  app.patch("/api/orbit/:slug/brand", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can update brand settings" });
+      }
+      
+      const PAID_TIERS = ['grow', 'insight', 'intelligence'];
+      const tier = orbitMeta.planTier;
+      if (!tier || !PAID_TIERS.includes(tier)) {
+        return res.status(403).json({ message: "Upgrade to Grow to customize your brand" });
+      }
+      
+      const { customTitle, customDescription } = req.body;
+      
+      const updated = await storage.updateOrbitMeta(slug, {
+        customTitle: customTitle !== undefined ? customTitle : orbitMeta.customTitle,
+        customDescription: customDescription !== undefined ? customDescription : orbitMeta.customDescription,
+      });
+      
+      res.json({ success: true, meta: updated });
+    } catch (error) {
+      console.error("Error updating orbit brand:", error);
+      res.status(500).json({ message: "Error updating brand settings" });
     }
   });
 
