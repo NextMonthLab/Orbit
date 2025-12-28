@@ -224,7 +224,7 @@ export default function MarketingHome() {
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4" data-testid="text-pipeline-title">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-pipeline-title">
                 What is <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextMonth?</span>
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
@@ -267,7 +267,7 @@ export default function MarketingHome() {
           
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4" data-testid="text-usecases-title">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-usecases-title">
                 Three ways to use <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextMonth</span>
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
@@ -314,7 +314,7 @@ export default function MarketingHome() {
           <div className="absolute inset-0 bg-black" />
           <div className="max-w-5xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4" data-testid="text-different-title">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-different-title">
                 Why NextMonth is <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">different</span>
               </h2>
             </div>
@@ -387,7 +387,7 @@ export default function MarketingHome() {
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <h2 className="text-4xl md:text-6xl font-display font-bold mb-6" data-testid="text-website-title">
+              <h2 className="text-4xl md:text-6xl font-bold mb-6" data-testid="text-website-title">
                 Turn your website into an<br />
                 <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">interactive experience</span>
               </h2>
@@ -416,7 +416,7 @@ export default function MarketingHome() {
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <h2 className="text-4xl md:text-6xl font-display font-bold mb-6" data-testid="text-cta-title">
+              <h2 className="text-4xl md:text-6xl font-bold mb-6" data-testid="text-cta-title">
                 Ready to create your first<br />
                 <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">experience?</span>
               </h2>

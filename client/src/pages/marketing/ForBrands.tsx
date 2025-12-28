@@ -247,7 +247,7 @@ export default function ForBrands() {
               
               <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-[0.9]" data-testid="text-hero-title">
                 <span className="block text-white">How Smart Sites</span>
-                <span className="block font-display bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   work
                 </span>
               </h1>
@@ -271,7 +271,7 @@ export default function ForBrands() {
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4">
                 What happens when you <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">create a preview</span>
               </h2>
               <p className="text-white/50 text-lg max-w-3xl mx-auto mt-4">
@@ -309,7 +309,7 @@ export default function ForBrands() {
           <div className="absolute inset-0 bg-gradient-to-br from-black via-black to-black" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4">
                 Export <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">anywhere</span>
               </h2>
               <p className="text-white/50 text-lg">Three ways to share your brand story</p>
@@ -341,7 +341,7 @@ export default function ForBrands() {
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-4xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4">
                 Perfect for
               </h2>
             </div>
@@ -374,7 +374,7 @@ export default function ForBrands() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-4xl md:text-6xl font-display font-bold mb-6">
+              <h2 className="text-4xl md:text-6xl font-bold mb-6">
                 Ready to transform<br />
                 <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   your brand story?

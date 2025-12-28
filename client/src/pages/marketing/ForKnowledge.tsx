@@ -86,7 +86,7 @@ export default function ForKnowledge() {
               
               <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-[0.9]" data-testid="text-hero-title">
                 <span className="block text-white">Make information</span>
-                <span className="block font-display bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   unforgettable
                 </span>
               </h1>
@@ -111,7 +111,7 @@ export default function ForKnowledge() {
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4">
                 How it <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">works</span>
               </h2>
             </div>
@@ -153,7 +153,7 @@ export default function ForKnowledge() {
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center mx-auto mb-8 shadow-xl shadow-pink-500/30">
                 <BookOpen className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-6">
+              <h2 className="text-3xl md:text-5xl font-bold mb-6">
                 Stories stick. Documents don't.
               </h2>
               <p className="text-xl text-white/60 max-w-2xl mx-auto mb-8">
@@ -173,7 +173,7 @@ export default function ForKnowledge() {
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-4xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4">
                 Perfect for
               </h2>
             </div>
@@ -206,7 +206,7 @@ export default function ForKnowledge() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-4xl md:text-6xl font-display font-bold mb-6">
+              <h2 className="text-4xl md:text-6xl font-bold mb-6">
                 Ready to make learning<br />
                 <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   unforgettable?

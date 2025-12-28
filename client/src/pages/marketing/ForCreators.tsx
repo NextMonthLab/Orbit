@@ -86,7 +86,7 @@ export default function ForCreators() {
               
               <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-[0.9]" data-testid="text-hero-title">
                 <span className="block text-white">Your story,</span>
-                <span className="block font-display bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   one moment at a time
                 </span>
               </h1>
@@ -111,7 +111,7 @@ export default function ForCreators() {
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4">
                 From script to <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">screen</span>
               </h2>
             </div>
@@ -153,7 +153,7 @@ export default function ForCreators() {
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-8 shadow-xl shadow-purple-500/30">
                 <Zap className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-6">
+              <h2 className="text-3xl md:text-5xl font-bold mb-6">
                 Visual Bible System
               </h2>
               <p className="text-xl text-white/60 max-w-2xl mx-auto mb-8">
@@ -172,7 +172,7 @@ export default function ForCreators() {
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-4xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4">
                 Perfect for
               </h2>
             </div>
@@ -205,7 +205,7 @@ export default function ForCreators() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-4xl md:text-6xl font-display font-bold mb-6">
+              <h2 className="text-4xl md:text-6xl font-bold mb-6">
                 Ready to bring your<br />
                 <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   story to life?

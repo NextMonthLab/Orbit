@@ -125,7 +125,7 @@ export default function ForBusiness() {
                 <Sparkles className="w-4 h-4 text-primary" />
                 <span className="text-sm font-bold text-primary">Try Smart Site Preview</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-display font-black tracking-tight mb-4">
+              <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-4">
                 See your website as an AI assistant in 60 seconds
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
@@ -217,7 +217,7 @@ export default function ForBusiness() {
                 <businessPersona.icon className="w-5 h-5 text-primary" />
                 <span className="text-sm font-bold">{businessPersona.title}</span>
               </div>
-              <h2 className="text-4xl md:text-5xl font-display font-black tracking-tight mb-6" data-testid="text-hero-title">
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-6" data-testid="text-hero-title">
                 {businessPersona.heroTitle}
               </h2>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8" data-testid="text-hero-subtitle">
@@ -236,7 +236,7 @@ export default function ForBusiness() {
         <section className="py-20 px-4">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-display font-bold mb-4" data-testid="text-usecases-title">
+              <h2 className="text-3xl font-bold mb-4" data-testid="text-usecases-title">
                 How {businessPersona.title} Use NextMonth
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
@@ -254,7 +254,7 @@ export default function ForBusiness() {
                   className="p-6 rounded-xl border border-border bg-card"
                   data-testid={`card-usecase-${index}`}
                 >
-                  <h3 className="font-display font-bold mb-3">{useCase.title}</h3>
+                  <h3 className="font-bold mb-3">{useCase.title}</h3>
                   <p className="text-sm text-muted-foreground">{useCase.description}</p>
                 </motion.div>
               ))}
@@ -265,7 +265,7 @@ export default function ForBusiness() {
         <section className="py-20 px-4 bg-card/50">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-display font-bold mb-4" data-testid="text-benefits-title">
+              <h2 className="text-3xl font-bold mb-4" data-testid="text-benefits-title">
                 Why {businessPersona.title} Choose NextMonth
               </h2>
             </div>
@@ -291,7 +291,7 @@ export default function ForBusiness() {
         {businessPersona.testimonial && (
           <section className="py-20 px-4">
             <div className="max-w-3xl mx-auto text-center">
-              <blockquote className="text-2xl font-display italic mb-6" data-testid="text-testimonial-quote">
+              <blockquote className="text-2xl italic mb-6" data-testid="text-testimonial-quote">
                 "{businessPersona.testimonial.quote}"
               </blockquote>
               <div>
@@ -304,7 +304,7 @@ export default function ForBusiness() {
 
         <section className="py-20 px-4 bg-primary text-primary-foreground">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-display font-bold mb-4" data-testid="text-cta-title">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-cta-title">
               Ready to Transform Your {businessPersona.title.replace(/s$/, '')} Content?
             </h2>
             <p className="text-primary-foreground/80 mb-8 max-w-xl mx-auto">
