@@ -115,7 +115,7 @@ export default function OrbitView() {
 
   // Business Hub state
   const [showHub, setShowHub] = useState(false);
-  const [hubPanel, setHubPanel] = useState<'overview' | 'grid' | 'ice' | 'brand' | 'settings'>('overview');
+  const [hubPanel, setHubPanel] = useState<'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads'>('overview');
 
   useEffect(() => {
     if (slug && slug !== lastTrackedSlug) {
