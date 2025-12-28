@@ -52,6 +52,28 @@ const presetColors = [
   '#e11d48',
 ];
 
+function hexToHue(hex: string): number {
+  if (hex.startsWith('hsl')) {
+    const match = hex.match(/hsl\((\d+)/);
+    return match ? parseInt(match[1]) / 360 : 0.5;
+  }
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  if (max !== min) {
+    const d = max - min;
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return h;
+}
+
 export function BrandCustomizationScreen({
   logoUrl,
   faviconUrl,
@@ -65,8 +87,15 @@ export function BrandCustomizationScreen({
   const [selectedLogo, setSelectedLogo] = useState<string | null>(logoUrl || faviconUrl);
   const [selectedImages, setSelectedImages] = useState<string[]>(imagePool.slice(0, 3));
   const [experienceType, setExperienceType] = useState<ExperienceType>('radar');
-  const [huePosition, setHuePosition] = useState(0.5);
+  const [huePosition, setHuePosition] = useState(() => hexToHue(defaultAccentColor || '#3b82f6'));
   const spectrumRef = useRef<HTMLDivElement>(null);
+  
+  const handleColorChange = useCallback((color: string, updateHue = true) => {
+    setAccentColor(color);
+    if (updateHue) {
+      setHuePosition(hexToHue(color));
+    }
+  }, []);
 
   const allLogoCandidates = [
     ...(logoUrl ? [logoUrl] : []),
@@ -279,7 +308,7 @@ export function BrandCustomizationScreen({
                 className="absolute top-1/2 -translate-y-1/2 w-7 h-7 rounded-full border-3 border-white shadow-lg pointer-events-none"
                 style={{ 
                   left: `calc(${huePosition * 100}% - 14px)`,
-                  backgroundColor: `hsl(${Math.round(huePosition * 360)}, 70%, 50%)`,
+                  backgroundColor: accentColor,
                   boxShadow: '0 2px 10px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,255,255,0.8)',
                 }}
               />
@@ -290,7 +319,7 @@ export function BrandCustomizationScreen({
               {['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff'].map((color) => (
                 <button
                   key={color}
-                  onClick={() => setAccentColor(color)}
+                  onClick={() => handleColorChange(color)}
                   className="w-5 h-5 rounded-full transition-all"
                   style={{
                     backgroundColor: color,
