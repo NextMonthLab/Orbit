@@ -82,6 +82,24 @@ export default function OrbitView() {
   const [claimEmail, setClaimEmail] = useState('');
   const [claimStatus, setClaimStatus] = useState<'idle' | 'sending' | 'sent' | 'verifying' | 'success' | 'error'>('idle');
   const [claimMessage, setClaimMessage] = useState('');
+  const [conversationTracked, setConversationTracked] = useState(false);
+  const [lastTrackedSlug, setLastTrackedSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (slug && slug !== lastTrackedSlug) {
+      setConversationTracked(false);
+      setLastTrackedSlug(slug);
+    }
+  }, [slug, lastTrackedSlug]);
+
+  const trackMetric = (metric: 'visits' | 'interactions' | 'conversations' | 'iceViews') => {
+    if (!slug) return;
+    fetch(`/api/orbit/${slug}/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ metric }),
+    }).catch(() => {});
+  };
 
   const { data: orbitData, isLoading: orbitLoading, error: orbitError, refetch } = useQuery<OrbitResponse>({
     queryKey: ["orbit", slug],
@@ -175,11 +193,7 @@ export default function OrbitView() {
 
   useEffect(() => {
     if (slug && orbitData?.status === 'ready') {
-      fetch(`/api/orbit/${slug}/track`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ metric: 'visits' }),
-      }).catch(() => {});
+      trackMetric('visits');
     }
   }, [slug, orbitData?.status]);
 
@@ -420,15 +434,15 @@ export default function OrbitView() {
         <RadarGrid
           knowledge={generateSiteKnowledge(preview)}
           accentColor={brandPreferences?.accentColor || preview.siteIdentity.primaryColour || '#3b82f6'}
+          onInteraction={() => trackMetric('interactions')}
           onSendMessage={async (message) => {
             if (isUnclaimed) {
               return "This orbit hasn't been claimed yet. The business owner can claim it to enable full chat features.";
             }
-            fetch(`/api/orbit/${slug}/track`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ metric: 'conversations' }),
-            }).catch(() => {});
+            if (!conversationTracked) {
+              trackMetric('conversations');
+              setConversationTracked(true);
+            }
             const response = await fetch(`/api/previews/${preview.id}/chat`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -466,11 +480,10 @@ export default function OrbitView() {
             if (isUnclaimed) {
               return "This orbit hasn't been claimed yet. The business owner can claim it to enable full chat features.";
             }
-            fetch(`/api/orbit/${slug}/track`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ metric: 'conversations' }),
-            }).catch(() => {});
+            if (!conversationTracked) {
+              trackMetric('conversations');
+              setConversationTracked(true);
+            }
             const response = await fetch(`/api/previews/${preview.id}/chat`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

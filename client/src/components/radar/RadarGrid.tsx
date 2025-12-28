@@ -36,6 +36,7 @@ interface RadarGridProps {
   knowledge: SiteKnowledge;
   onSendMessage: (message: string) => Promise<string>;
   accentColor?: string;
+  onInteraction?: () => void;
 }
 
 function generateTilePositions(count: number, ringSpacing: number = 180): { x: number; y: number }[] {
@@ -63,7 +64,7 @@ function generateTilePositions(count: number, ringSpacing: number = 180): { x: n
   return positions;
 }
 
-export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }: RadarGridProps) {
+export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6', onInteraction }: RadarGridProps) {
   const [isHubMinimized, setIsHubMinimized] = useState(false);
   const [conversationKeywords, setConversationKeywords] = useState<string[]>([]);
   const [selectedItem, setSelectedItem] = useState<AnyKnowledgeItem | null>(null);
@@ -188,7 +189,8 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
     setIsHubMinimized(false);
     const itemKeywords = item.keywords.slice(0, 3);
     handleIntentChange(itemKeywords);
-  }, [handleIntentChange]);
+    onInteraction?.();
+  }, [handleIntentChange, onInteraction]);
 
   const handleSendMessage = useCallback(async (message: string) => {
     if (selectedItem) {
