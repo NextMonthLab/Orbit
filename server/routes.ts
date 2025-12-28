@@ -4452,12 +4452,30 @@ Output only the narration paragraph, nothing else.`;
         status: "active",
       });
 
+      // Create orbit_meta to link preview to orbit (for PreviewRedirect)
+      const { generateSlug } = await import("./orbitPackGenerator");
+      const businessSlug = generateSlug(url.trim());
+      
+      // Check if orbit already exists
+      let orbitMeta = await storage.getOrbitMeta(businessSlug);
+      if (!orbitMeta) {
+        orbitMeta = await storage.createOrbitMeta({
+          businessSlug,
+          sourceUrl: url.trim(),
+          generationStatus: "ready",
+          requestedAt: new Date(),
+        });
+      }
+      // Link preview to orbit
+      await storage.setOrbitPreviewId(businessSlug, preview.id);
+
       res.json({
         previewId: preview.id,
         expiresAt: preview.expiresAt,
         status: preview.status,
         siteTitle: preview.siteTitle,
         siteIdentity: preview.siteIdentity,
+        businessSlug,
       });
     } catch (error) {
       console.error("Error creating preview:", error);
