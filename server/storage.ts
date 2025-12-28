@@ -213,6 +213,39 @@ export interface IStorage {
   updateOrbitBox(id: number, data: Partial<schema.InsertOrbitBox>): Promise<schema.OrbitBox | undefined>;
   deleteOrbitBox(id: number): Promise<void>;
   reorderOrbitBoxes(businessSlug: string, boxIds: number[]): Promise<void>;
+
+  // Phase 2: Orbit Sessions
+  getOrCreateOrbitSession(sessionId: string, businessSlug: string): Promise<schema.OrbitSession>;
+  getOrbitSession(sessionId: string): Promise<schema.OrbitSession | undefined>;
+  updateOrbitSession(sessionId: string, data: Partial<schema.InsertOrbitSession>): Promise<schema.OrbitSession | undefined>;
+
+  // Phase 2: Orbit Events
+  logOrbitEvent(data: schema.InsertOrbitEvent): Promise<schema.OrbitEvent>;
+  getOrbitEvents(sessionId: string): Promise<schema.OrbitEvent[]>;
+  getOrbitEventsBySlug(businessSlug: string, limit?: number): Promise<schema.OrbitEvent[]>;
+
+  // Phase 2: Orbit Conversations (Insight tier)
+  createOrbitConversation(data: schema.InsertOrbitConversation): Promise<schema.OrbitConversation>;
+  getOrbitConversation(id: number): Promise<schema.OrbitConversation | undefined>;
+  getOrbitConversations(businessSlug: string, limit?: number): Promise<schema.OrbitConversation[]>;
+  updateOrbitConversation(id: number, data: Partial<schema.InsertOrbitConversation>): Promise<schema.OrbitConversation | undefined>;
+
+  // Phase 2: Orbit Messages
+  addOrbitMessage(data: schema.InsertOrbitMessage): Promise<schema.OrbitMessage>;
+  getOrbitMessages(conversationId: number): Promise<schema.OrbitMessage[]>;
+
+  // Phase 2: Orbit Insights Summary
+  getOrbitInsightsSummary(businessSlug: string): Promise<schema.OrbitInsightsSummary | undefined>;
+  upsertOrbitInsightsSummary(data: schema.InsertOrbitInsightsSummary): Promise<schema.OrbitInsightsSummary>;
+
+  // Phase 2: Orbit Lead with context
+  getOrbitLead(id: number): Promise<schema.OrbitLead | undefined>;
+  updateOrbitLead(id: number, data: Partial<schema.InsertOrbitLead>): Promise<schema.OrbitLead | undefined>;
+
+  // Phase 2: ICE Allowance
+  getOrbitIceAllowance(businessSlug: string): Promise<{ allowance: number; used: number; periodStart: Date | null }>;
+  incrementOrbitIceUsed(businessSlug: string): Promise<void>;
+  resetOrbitIcePeriod(businessSlug: string, allowance: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1473,6 +1506,180 @@ export class DatabaseStorage implements IStorage {
           ));
       }
     });
+  }
+
+  // Phase 2: Orbit Sessions
+  async getOrCreateOrbitSession(sessionId: string, businessSlug: string): Promise<schema.OrbitSession> {
+    const existing = await db.query.orbitSessions.findFirst({
+      where: eq(schema.orbitSessions.sessionId, sessionId),
+    });
+    if (existing) {
+      await db.update(schema.orbitSessions)
+        .set({ lastActivityAt: new Date() })
+        .where(eq(schema.orbitSessions.sessionId, sessionId));
+      return { ...existing, lastActivityAt: new Date() };
+    }
+    const [session] = await db.insert(schema.orbitSessions)
+      .values({ sessionId, businessSlug })
+      .returning();
+    return session;
+  }
+
+  async getOrbitSession(sessionId: string): Promise<schema.OrbitSession | undefined> {
+    return db.query.orbitSessions.findFirst({
+      where: eq(schema.orbitSessions.sessionId, sessionId),
+    });
+  }
+
+  async updateOrbitSession(sessionId: string, data: Partial<schema.InsertOrbitSession>): Promise<schema.OrbitSession | undefined> {
+    const [session] = await db.update(schema.orbitSessions)
+      .set({ ...data, lastActivityAt: new Date() })
+      .where(eq(schema.orbitSessions.sessionId, sessionId))
+      .returning();
+    return session;
+  }
+
+  // Phase 2: Orbit Events
+  async logOrbitEvent(data: schema.InsertOrbitEvent): Promise<schema.OrbitEvent> {
+    const [event] = await db.insert(schema.orbitEvents).values(data).returning();
+    await db.update(schema.orbitSessions)
+      .set({ 
+        eventCount: sql`${schema.orbitSessions.eventCount} + 1`,
+        lastActivityAt: new Date()
+      })
+      .where(eq(schema.orbitSessions.sessionId, data.sessionId));
+    return event;
+  }
+
+  async getOrbitEvents(sessionId: string): Promise<schema.OrbitEvent[]> {
+    return db.query.orbitEvents.findMany({
+      where: eq(schema.orbitEvents.sessionId, sessionId),
+      orderBy: [asc(schema.orbitEvents.createdAt)],
+    });
+  }
+
+  async getOrbitEventsBySlug(businessSlug: string, limit: number = 100): Promise<schema.OrbitEvent[]> {
+    return db.query.orbitEvents.findMany({
+      where: eq(schema.orbitEvents.businessSlug, businessSlug),
+      orderBy: [desc(schema.orbitEvents.createdAt)],
+      limit,
+    });
+  }
+
+  // Phase 2: Orbit Conversations
+  async createOrbitConversation(data: schema.InsertOrbitConversation): Promise<schema.OrbitConversation> {
+    const [conversation] = await db.insert(schema.orbitConversations).values(data).returning();
+    return conversation;
+  }
+
+  async getOrbitConversation(id: number): Promise<schema.OrbitConversation | undefined> {
+    return db.query.orbitConversations.findFirst({
+      where: eq(schema.orbitConversations.id, id),
+    });
+  }
+
+  async getOrbitConversations(businessSlug: string, limit: number = 50): Promise<schema.OrbitConversation[]> {
+    return db.query.orbitConversations.findMany({
+      where: eq(schema.orbitConversations.businessSlug, businessSlug),
+      orderBy: [desc(schema.orbitConversations.lastMessageAt)],
+      limit,
+    });
+  }
+
+  async updateOrbitConversation(id: number, data: Partial<schema.InsertOrbitConversation>): Promise<schema.OrbitConversation | undefined> {
+    const [conversation] = await db.update(schema.orbitConversations)
+      .set({ ...data, lastMessageAt: new Date() })
+      .where(eq(schema.orbitConversations.id, id))
+      .returning();
+    return conversation;
+  }
+
+  // Phase 2: Orbit Messages
+  async addOrbitMessage(data: schema.InsertOrbitMessage): Promise<schema.OrbitMessage> {
+    const [message] = await db.insert(schema.orbitMessages).values(data).returning();
+    await db.update(schema.orbitConversations)
+      .set({ 
+        messageCount: sql`${schema.orbitConversations.messageCount} + 1`,
+        lastMessageAt: new Date()
+      })
+      .where(eq(schema.orbitConversations.id, data.conversationId));
+    return message;
+  }
+
+  async getOrbitMessages(conversationId: number): Promise<schema.OrbitMessage[]> {
+    return db.query.orbitMessages.findMany({
+      where: eq(schema.orbitMessages.conversationId, conversationId),
+      orderBy: [asc(schema.orbitMessages.createdAt)],
+    });
+  }
+
+  // Phase 2: Orbit Insights Summary
+  async getOrbitInsightsSummary(businessSlug: string): Promise<schema.OrbitInsightsSummary | undefined> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    return db.query.orbitInsightsSummary.findFirst({
+      where: and(
+        eq(schema.orbitInsightsSummary.businessSlug, businessSlug),
+        gte(schema.orbitInsightsSummary.periodStart, startOfMonth)
+      ),
+    });
+  }
+
+  async upsertOrbitInsightsSummary(data: schema.InsertOrbitInsightsSummary): Promise<schema.OrbitInsightsSummary> {
+    const existing = await this.getOrbitInsightsSummary(data.businessSlug);
+    if (existing) {
+      const [updated] = await db.update(schema.orbitInsightsSummary)
+        .set({ ...data, lastUpdated: new Date() })
+        .where(eq(schema.orbitInsightsSummary.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [summary] = await db.insert(schema.orbitInsightsSummary).values(data).returning();
+    return summary;
+  }
+
+  // Phase 2: Orbit Lead with context
+  async getOrbitLead(id: number): Promise<schema.OrbitLead | undefined> {
+    return db.query.orbitLeads.findFirst({
+      where: eq(schema.orbitLeads.id, id),
+    });
+  }
+
+  async updateOrbitLead(id: number, data: Partial<schema.InsertOrbitLead>): Promise<schema.OrbitLead | undefined> {
+    const [lead] = await db.update(schema.orbitLeads)
+      .set(data)
+      .where(eq(schema.orbitLeads.id, id))
+      .returning();
+    return lead;
+  }
+
+  // Phase 2: ICE Allowance
+  async getOrbitIceAllowance(businessSlug: string): Promise<{ allowance: number; used: number; periodStart: Date | null }> {
+    const meta = await this.getOrbitMeta(businessSlug);
+    if (!meta) {
+      return { allowance: 0, used: 0, periodStart: null };
+    }
+    return {
+      allowance: meta.iceAllowanceMonthly || 0,
+      used: meta.iceUsedThisPeriod || 0,
+      periodStart: meta.icePeriodStart || null,
+    };
+  }
+
+  async incrementOrbitIceUsed(businessSlug: string): Promise<void> {
+    await db.update(schema.orbitMeta)
+      .set({ iceUsedThisPeriod: sql`${schema.orbitMeta.iceUsedThisPeriod} + 1` })
+      .where(eq(schema.orbitMeta.businessSlug, businessSlug));
+  }
+
+  async resetOrbitIcePeriod(businessSlug: string, allowance: number): Promise<void> {
+    await db.update(schema.orbitMeta)
+      .set({ 
+        iceAllowanceMonthly: allowance,
+        iceUsedThisPeriod: 0,
+        icePeriodStart: new Date()
+      })
+      .where(eq(schema.orbitMeta.businessSlug, businessSlug));
   }
 }
 
