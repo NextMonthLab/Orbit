@@ -44,8 +44,8 @@ export default function ForKnowledge() {
             <img 
               src="/logo.png" 
               alt="NextMonth" 
-              className="h-24 md:h-32 cursor-pointer" 
-              style={{ clipPath: 'inset(20% 0 20% 0)' }}
+              className="h-28 md:h-40 cursor-pointer" 
+              style={{ clipPath: 'inset(30% 0 30% 0)' }}
               data-testid="link-logo"
             />
           </Link>
@@ -226,8 +226,8 @@ export default function ForKnowledge() {
               <img 
                 src="/logo.png" 
                 alt="NextMonth" 
-                className="h-16"
-                style={{ clipPath: 'inset(20% 0 20% 0)' }}
+                className="h-20"
+                style={{ clipPath: 'inset(30% 0 30% 0)' }}
               />
               <div className="flex items-center gap-8">
                 <Link href="/for/brands" className="text-white/50 hover:text-white text-sm transition-colors">Brands</Link>
