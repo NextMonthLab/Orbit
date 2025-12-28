@@ -272,7 +272,7 @@ export default function ForBrands() {
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
-                What happens when you <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">create a preview</span>
+                What happens when you <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">create a preview</span>
               </h2>
               <p className="text-white/50 text-lg max-w-3xl mx-auto mt-4">
                 We create a temporary Smart Site that sits on top of your existing website. Customers can ask it questions. It answers using your real content. You see what your website would do if it could actually respond.
@@ -290,7 +290,7 @@ export default function ForBrands() {
                   className="p-8 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10"
                 >
                   <div className="flex items-start gap-5">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-pink-500/20">
                       <benefit.icon className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -306,11 +306,11 @@ export default function ForBrands() {
 
         {/* Export Options */}
         <section className="py-24 px-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-950/20 via-black to-black" />
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-black to-black" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
-                Export <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">anywhere</span>
+                Export <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">anywhere</span>
               </h2>
               <p className="text-white/50 text-lg">Three ways to share your brand story</p>
             </div>
@@ -325,8 +325,8 @@ export default function ForBrands() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="p-8 rounded-2xl bg-gradient-to-b from-white/5 to-transparent border border-white/10 text-center"
                 >
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-6">
-                    <option.icon className="w-7 h-7 text-blue-400" />
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-6">
+                    <option.icon className="w-7 h-7 text-pink-400" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">{option.title}</h3>
                   <p className="text-white/50">{option.description}</p>
@@ -356,7 +356,7 @@ export default function ForBrands() {
                   transition={{ duration: 0.5, delay: index * 0.05 }}
                   className="flex items-center gap-3 p-4 rounded-lg bg-white/5 border border-white/10"
                 >
-                  <CheckCircle2 className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-pink-400 flex-shrink-0" />
                   <span className="text-white/80">{useCase}</span>
                 </motion.div>
               ))}
@@ -366,7 +366,7 @@ export default function ForBrands() {
 
         {/* CTA */}
         <section className="py-32 px-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-t from-blue-950/40 via-blue-950/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black to-transparent" />
           
           <div className="max-w-4xl mx-auto text-center relative z-10">
             <motion.div
@@ -376,13 +376,13 @@ export default function ForBrands() {
             >
               <h2 className="text-4xl md:text-6xl font-display font-bold mb-6">
                 Ready to transform<br />
-                <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   your brand story?
                 </span>
               </h2>
               <Link href="/login?signup=true">
-                <Button size="lg" className="h-16 px-12 text-lg bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white border-0 shadow-xl shadow-blue-500/30 gap-3" data-testid="button-footer-cta">
-                  Create a Brand Story
+                <Button size="lg" className="h-16 px-12 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-footer-cta">
+                  Build a Brand Experience
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
