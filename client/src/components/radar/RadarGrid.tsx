@@ -222,9 +222,9 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
           ['location', 'local', 'area', 'region', 'weather'].includes(k.toLowerCase())
         );
         if (hasLocationContext) {
-          return `${summary}\n\nTell me your location and I can give you more specific information.`;
+          return `Tell me your location and I can give you more specific information about this.`;
         }
-        return `${summary}\n\nI can dive deeper into any aspect of this. What interests you most?`;
+        return `What would you like to know about this?`;
       }
       case 'action': {
         const action = selectedItem as import('@/lib/siteKnowledge').Action;
@@ -247,7 +247,7 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
         return `Meet ${person.name}, ${person.role}.${contactInfo}\n\nWould you like me to help you get in touch, or do you have questions I can answer?`;
       }
       case 'proof': {
-        return `${itemName}\n\n${summary}\n\nWant to see more examples of our work, or do you have questions about what we can do for you?`;
+        return `Want to see more examples, or do you have other questions?`;
       }
       case 'blog': {
         const blog = selectedItem as import('@/lib/siteKnowledge').Blog;

@@ -386,22 +386,19 @@ export default function OrbitView() {
       )}
 
       {isUnclaimed && !showCustomization && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 pb-6">
-          <div className="max-w-md mx-auto text-center">
-            <p className="text-sm text-white/80 mb-3">
-              Is this your business? <span className="text-pink-400 font-medium">Take control and unlock the full experience</span>
-            </p>
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-t border-white/10 py-2 px-4">
+          <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+            <span className="text-xs text-white/60">
+              Powered by <span className="text-pink-400 font-medium">NextMonth</span>
+            </span>
             <Button 
-              className="bg-pink-500 hover:bg-pink-600 text-white px-6"
+              size="sm"
+              className="bg-pink-500/90 hover:bg-pink-500 text-white text-xs px-3 py-1 h-7"
               onClick={() => window.location.href = `/for/brands?claim=${slug}`}
               data-testid="button-claim-orbit"
             >
-              <ExternalLink className="w-4 h-4 mr-2" />
               Claim This Orbit
             </Button>
-            <p className="text-xs text-white/50 mt-2">
-              Powered by <span className="text-pink-400">NextMonth</span>
-            </p>
           </div>
         </div>
       )}
