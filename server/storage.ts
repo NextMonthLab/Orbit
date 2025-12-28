@@ -196,6 +196,7 @@ export interface IStorage {
     conversations: number;
     iceViews: number;
   }>;
+  getMonthlyConversationCount(businessSlug: string): Promise<number>;
   incrementOrbitMetric(businessSlug: string, metric: 'visits' | 'interactions' | 'conversations' | 'iceViews'): Promise<void>;
   getOrCreateTodayAnalytics(businessSlug: string): Promise<schema.OrbitAnalytics>;
   
@@ -1369,6 +1370,21 @@ export class DatabaseStorage implements IStorage {
       conversations: acc.conversations + day.conversations,
       iceViews: acc.iceViews + day.iceViews,
     }), { visits: 0, interactions: 0, conversations: 0, iceViews: 0 });
+  }
+
+  async getMonthlyConversationCount(businessSlug: string): Promise<number> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    
+    const results = await db.query.orbitAnalytics.findMany({
+      where: and(
+        eq(schema.orbitAnalytics.businessSlug, businessSlug),
+        gte(schema.orbitAnalytics.date, startOfMonth)
+      ),
+    });
+    
+    return results.reduce((sum, day) => sum + day.conversations, 0);
   }
 
   // Orbit Leads

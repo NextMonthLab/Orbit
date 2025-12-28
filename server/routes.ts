@@ -15,6 +15,12 @@ import dns from "dns/promises";
 import { isKlingConfigured, startImageToVideoGeneration, checkVideoStatus, waitForVideoCompletion } from "./video";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { startArchiveExpiredPreviewsJob } from "./jobs/archiveExpiredPreviews";
+import { getFullEntitlements } from "./entitlements";
+import { 
+  FREE_CONVERSATION_LIMIT, 
+  FREE_CONVERSATION_SOFT_LIMIT, 
+  conversationLimitCopy 
+} from "@shared/uxCopy";
 
 // OpenAI client for image generation - uses Replit AI Integrations (no API key needed)
 // Charges are billed to your Replit credits
@@ -4539,7 +4545,43 @@ Output only the narration paragraph, nothing else.`;
         });
       }
 
-      // Check message cap
+      // Check if this is an orbit and enforce monthly conversation limit for free tier
+      const orbit = await storage.getOrbitMetaByPreviewId(preview.id);
+      let isPaidOrbit = false;
+      let monthlyConversations = 0;
+      let showSoftLimitWarning = false;
+      
+      if (orbit) {
+        monthlyConversations = await storage.getMonthlyConversationCount(orbit.businessSlug);
+        
+        // Check if orbit has a paid owner
+        if (orbit.ownerId) {
+          const entitlements = await getFullEntitlements(orbit.ownerId);
+          isPaidOrbit = entitlements.planName !== 'Free' && entitlements.planName !== 'Viewer';
+        }
+        
+        // Only enforce limit for free/unclaimed orbits
+        if (!isPaidOrbit) {
+          // Hard limit: 50 messages - block the request
+          if (monthlyConversations >= FREE_CONVERSATION_LIMIT) {
+            return res.json({
+              capped: true,
+              reason: "monthly_limit",
+              ...conversationLimitCopy.hardLimit,
+              monthlyCount: monthlyConversations,
+              limit: FREE_CONVERSATION_LIMIT,
+              upgradeRequired: true,
+            });
+          }
+          
+          // Soft limit: 40 messages - allow but warn
+          if (monthlyConversations >= FREE_CONVERSATION_SOFT_LIMIT) {
+            showSoftLimitWarning = true;
+          }
+        }
+      }
+
+      // Check message cap (per-preview limit)
       if (preview.messageCount >= preview.maxMessages) {
         return res.json({
           capped: true,
@@ -4609,15 +4651,32 @@ Keep responses concise (2-3 sentences maximum).`;
       // Update cost estimate (rough: ~0.01p per message for mini model)
       const newMessageCount = preview.messageCount + 1;
       await storage.updatePreviewInstance(preview.id, {
-        costEstimatePence: preview.costEstimatePence + 1,
-        llmCallCount: preview.llmCallCount + 1,
+        costEstimatePence: (preview.costEstimatePence || 0) + 1,
+        llmCallCount: (preview.llmCallCount || 0) + 1,
       });
+      
+      // Increment orbit analytics AFTER message is successfully processed
+      if (orbit && !isPaidOrbit) {
+        await storage.incrementOrbitMetric(orbit.businessSlug, 'conversations');
+      }
 
-      res.json({
+      // Build response with optional soft limit warning
+      const response: Record<string, any> = {
         reply,
         messageCount: newMessageCount,
         capped: newMessageCount >= preview.maxMessages,
-      });
+      };
+      
+      // Add soft limit warning if approaching monthly limit
+      if (showSoftLimitWarning) {
+        response.softLimitWarning = {
+          ...conversationLimitCopy.softLimit,
+          monthlyCount: monthlyConversations + 1,
+          limit: FREE_CONVERSATION_LIMIT,
+        };
+      }
+      
+      res.json(response);
     } catch (error) {
       console.error("Error in preview chat:", error);
       res.status(500).json({ message: "Error processing chat" });
