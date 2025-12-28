@@ -108,13 +108,13 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
   }, [rankedItems, conversationKeywords, intentLevel]);
 
   const positionMap = useMemo(() => {
-    const tileWidth = 95;
-    const tileHeight = 120;
-    const tileSpacing = 20; // Increased spacing
-    const safeGap = tileHeight + tileSpacing; // 140px minimum between zones
+    const tileWidth = 115;
+    const tileHeight = 95;
+    const tileSpacing = 20;
+    const safeGap = tileHeight + tileSpacing; // 115px minimum between zones
     
     // Ring spacing MUST be > tile height to prevent vertical overlap
-    const ringSpacing = 150; // Was 85, now 150 (> 120 tile height)
+    const ringSpacing = 125; // Now 125 (> 95 tile height + margin)
     
     const map = new Map<string, { x: number; y: number; distance: number }>();
     

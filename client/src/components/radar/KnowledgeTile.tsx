@@ -150,7 +150,8 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
     }
   };
 
-  const tileWidth = 95;
+  const tileWidth = 115;
+  const tileHeight = 95;
 
   return (
     <motion.div
@@ -167,9 +168,10 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
         damping: 20,
         opacity: { duration: 0.3 }
       }}
-      className="absolute rounded-xl text-left overflow-hidden"
+      className="absolute rounded-lg text-left overflow-hidden"
       style={{
         width: tileWidth,
+        height: tileHeight,
         backgroundColor: 'rgba(20, 20, 20, 0.95)',
         backdropFilter: 'blur(8px)',
         border: `1px solid ${color}${Math.floor(30 + glowIntensity * 40).toString(16)}`,
@@ -179,7 +181,7 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
         left: '50%',
         top: '50%',
         marginLeft: -tileWidth / 2,
-        marginTop: '-60px',
+        marginTop: -tileHeight / 2,
         cursor: 'pointer',
       }}
       data-tile-id={item.id}
@@ -187,7 +189,7 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
     >
       {/* Image header with category icon overlay */}
       <div 
-        className="w-full h-12 relative bg-cover bg-center"
+        className="w-full h-10 relative bg-cover bg-center"
         style={{ 
           backgroundImage: `url(${imageUrl})`,
           borderBottom: `1px solid ${color}30`,
@@ -195,52 +197,49 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
       >
         {/* Gradient overlay for icon visibility */}
         <div 
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ background: `linear-gradient(135deg, ${color}60 0%, transparent 60%)` }}
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(135deg, ${color}60 0%, transparent 50%)` }}
         >
-          <CategoryIcon className="w-5 h-5 absolute top-1.5 left-1.5" style={{ color: 'white', opacity: 0.9 }} />
+          <CategoryIcon className="w-4 h-4 absolute top-1 left-1" style={{ color: 'white', opacity: 0.9 }} />
         </div>
-      </div>
-      
-      {/* Content */}
-      <div className="p-2">
         {/* Relevance indicator */}
         {relevanceScore > 0 && (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute top-2 right-2 w-3 h-3 rounded-full"
+            className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full"
             style={{ 
               backgroundColor: color,
-              boxShadow: `0 0 12px ${color}`,
+              boxShadow: `0 0 8px ${color}`,
             }}
           />
         )}
-        
-        <div className="flex items-start gap-2">
-          <div 
-            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-            style={{ backgroundColor: `${color}20` }}
-          >
-            <TypeIcon className="w-3.5 h-3.5" style={{ color }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white text-xs font-medium leading-tight line-clamp-2">
-              {getLabel()}
-            </p>
-            <p className="text-white/50 text-[10px] line-clamp-2 mt-1 leading-tight">
-              {getSummary()}
-            </p>
-          </div>
-        </div>
-        
-        {/* Type badge - always show */}
+      </div>
+      
+      {/* Content - compact layout */}
+      <div className="p-1.5 flex items-start gap-1.5">
         <div 
-          className="mt-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide font-medium"
-          style={{ backgroundColor: `${color}20`, color }}
+          className="w-5 h-5 rounded flex items-center justify-center shrink-0"
+          style={{ backgroundColor: `${color}20` }}
         >
-          {item.type}
+          <TypeIcon className="w-3 h-3" style={{ color }} />
         </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-white text-[10px] font-medium leading-tight line-clamp-2">
+            {getLabel()}
+          </p>
+          <p className="text-white/50 text-[8px] line-clamp-1 mt-0.5 leading-tight">
+            {getSummary()}
+          </p>
+        </div>
+      </div>
+      
+      {/* Type badge - smaller */}
+      <div 
+        className="absolute bottom-1 left-1.5 inline-flex items-center px-1 py-0.5 rounded text-[7px] uppercase tracking-wide font-semibold"
+        style={{ backgroundColor: `${color}30`, color }}
+      >
+        {item.type}
       </div>
     </motion.div>
   );
