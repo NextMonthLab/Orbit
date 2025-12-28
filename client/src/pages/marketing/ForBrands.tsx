@@ -117,7 +117,7 @@ export default function ForBrands() {
             <img
               src="/logo.png"
               alt="NextScene"
-              className="h-[80px] cursor-pointer"
+              className="h-[96px] cursor-pointer"
               style={{ clipPath: 'inset(20% 0 20% 0)' }}
               data-testid="link-logo"
             />
