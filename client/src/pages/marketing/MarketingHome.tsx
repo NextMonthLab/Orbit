@@ -137,7 +137,7 @@ export default function MarketingHome() {
               <img 
                 src={LOGO_URL} 
                 alt="NextMonth" 
-                className="h-30 md:h-36 w-30 md:w-36 cursor-pointer" 
+                className="h-30 md:h-36 w-auto cursor-pointer" 
                 style={{ clipPath: 'inset(30% 0 30% 0)' }}
                 data-testid="link-logo"
               />
