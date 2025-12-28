@@ -127,11 +127,11 @@ export default function MarketingHome() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black to-transparent">
         <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-between">
           <Link href="/">
-            <div className="h-12 md:h-16 flex items-center">
+            <div className="h-18 md:h-24 flex items-center">
               <img 
                 src={LOGO_URL} 
                 alt="NextMonth" 
-                className="h-20 md:h-24 w-20 md:w-24 cursor-pointer" 
+                className="h-30 md:h-36 w-30 md:w-36 cursor-pointer" 
                 style={{ clipPath: 'inset(30% 0 30% 0)' }}
                 data-testid="link-logo"
               />
