@@ -4692,6 +4692,176 @@ Keep responses concise (2-3 sentences maximum).`;
     }
   });
 
+  // ============ ORBIT ROUTES ============
+  
+  // Generate Orbit Pack from URL
+  app.post("/api/orbit/generate", async (req, res) => {
+    try {
+      const { url } = req.body;
+
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({ message: "URL is required" });
+      }
+
+      const { generateOrbitPack, generateSlug } = await import("./orbitPackGenerator");
+      const { storeOrbitPack } = await import("./orbitStorage");
+
+      const businessSlug = generateSlug(url);
+
+      // Check if orbit already exists
+      let orbitMeta = await storage.getOrbitMeta(businessSlug);
+      
+      if (!orbitMeta) {
+        // Create new orbit meta
+        orbitMeta = await storage.createOrbitMeta({
+          businessSlug,
+          sourceUrl: url.trim(),
+          generationStatus: "generating",
+          requestedAt: new Date(),
+        });
+      } else {
+        // Update existing orbit to regenerating
+        await storage.setOrbitGenerationStatus(businessSlug, "generating");
+      }
+
+      // Generate pack
+      const result = await generateOrbitPack(url.trim());
+
+      if (!result.success || !result.pack || !result.version) {
+        await storage.setOrbitGenerationStatus(businessSlug, "failed", result.error);
+        return res.status(400).json({ 
+          message: result.error || "Pack generation failed",
+          pipelineLog: result.pipelineLog,
+        });
+      }
+
+      // Store pack in object storage
+      const storeResult = await storeOrbitPack(businessSlug, result.version, result.pack);
+
+      if (!storeResult.success) {
+        await storage.setOrbitGenerationStatus(businessSlug, "failed", storeResult.error);
+        return res.status(500).json({ 
+          message: storeResult.error || "Failed to store pack",
+        });
+      }
+
+      // Update orbit meta with pack version
+      await storage.setOrbitPackVersion(businessSlug, result.version, storeResult.key!);
+      await storage.setOrbitGenerationStatus(businessSlug, "ready");
+
+      res.json({
+        success: true,
+        businessSlug,
+        version: result.version,
+        packKey: storeResult.key,
+        brand: result.pack.brand,
+        boxCount: result.pack.boxes.length,
+        faqCount: result.pack.faqs.length,
+        pipelineLog: result.pipelineLog,
+      });
+    } catch (error) {
+      console.error("Error generating orbit pack:", error);
+      res.status(500).json({ message: "Error generating orbit pack" });
+    }
+  });
+
+  // Get Orbit metadata and status
+  app.get("/api/orbit/:slug/status", async (req, res) => {
+    try {
+      const orbitMeta = await storage.getOrbitMeta(req.params.slug);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+
+      res.json({
+        businessSlug: orbitMeta.businessSlug,
+        sourceUrl: orbitMeta.sourceUrl,
+        generationStatus: orbitMeta.generationStatus,
+        currentPackVersion: orbitMeta.currentPackVersion,
+        lastUpdated: orbitMeta.lastUpdated,
+        lastError: orbitMeta.lastError,
+        ownerId: orbitMeta.ownerId,
+        totalPackVersions: orbitMeta.totalPackVersions,
+      });
+    } catch (error) {
+      console.error("Error getting orbit status:", error);
+      res.status(500).json({ message: "Error getting orbit status" });
+    }
+  });
+
+  // Get Orbit Pack (reads DB pointer, loads exact pack from storage)
+  app.get("/api/orbit/:slug", async (req, res) => {
+    try {
+      const orbitMeta = await storage.getOrbitMeta(req.params.slug);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+
+      if (orbitMeta.generationStatus === "generating") {
+        return res.json({
+          status: "generating",
+          businessSlug: orbitMeta.businessSlug,
+          requestedAt: orbitMeta.requestedAt,
+        });
+      }
+
+      if (orbitMeta.generationStatus === "failed") {
+        return res.status(400).json({
+          status: "failed",
+          businessSlug: orbitMeta.businessSlug,
+          error: orbitMeta.lastError,
+        });
+      }
+
+      if (!orbitMeta.currentPackKey) {
+        return res.status(404).json({ message: "No pack available" });
+      }
+
+      const { fetchOrbitPackByKey } = await import("./orbitStorage");
+      const packResult = await fetchOrbitPackByKey(orbitMeta.currentPackKey);
+
+      if (!packResult.success || !packResult.pack) {
+        return res.status(500).json({ message: packResult.error || "Failed to fetch pack" });
+      }
+
+      res.json({
+        status: "ready",
+        businessSlug: orbitMeta.businessSlug,
+        ownerId: orbitMeta.ownerId,
+        lastUpdated: orbitMeta.lastUpdated,
+        pack: packResult.pack,
+      });
+    } catch (error) {
+      console.error("Error fetching orbit pack:", error);
+      res.status(500).json({ message: "Error fetching orbit pack" });
+    }
+  });
+
+  // List pack versions for an orbit
+  app.get("/api/orbit/:slug/versions", async (req, res) => {
+    try {
+      const orbitMeta = await storage.getOrbitMeta(req.params.slug);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+
+      const { listOrbitPackVersions } = await import("./orbitStorage");
+      const result = await listOrbitPackVersions(req.params.slug);
+
+      res.json({
+        businessSlug: orbitMeta.businessSlug,
+        currentVersion: orbitMeta.currentPackVersion,
+        versions: result.versions,
+      });
+    } catch (error) {
+      console.error("Error listing orbit versions:", error);
+      res.status(500).json({ message: "Error listing orbit versions" });
+    }
+  });
+
   // Health check endpoint for debugging
   app.get('/api/health', (_req, res) => {
     res.json({

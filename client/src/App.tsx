@@ -19,6 +19,7 @@ import PrivacyPolicy from "@/pages/legal/PrivacyPolicy";
 import TermsOfService from "@/pages/legal/TermsOfService";
 import CookiePolicy from "@/pages/legal/CookiePolicy";
 import PreviewPage from "@/pages/PreviewPage";
+import OrbitView from "@/pages/orbit/OrbitView";
 
 import Home from "@/pages/Home";
 import Today from "@/pages/Today";
@@ -102,6 +103,7 @@ function Router() {
       <Route path="/terms" component={TermsOfService} />
       <Route path="/cookies" component={CookiePolicy} />
       <Route path="/preview/:id" component={PreviewPage} />
+      <Route path="/orbit/:slug" component={OrbitView} />
       <Route path="/app" component={ProtectedHome} />
       <Route path="/onboarding" component={ProtectedOnboarding} />
       <Route path="/login" component={Login} />

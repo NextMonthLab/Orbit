@@ -1138,3 +1138,43 @@ export type PreviewChatMessage = typeof previewChatMessages.$inferSelect;
 
 // Export chat models for AI integrations
 export * from "./models/chat";
+
+// ============ ORBIT SYSTEM ============
+
+// Generation status for Orbit pack generation
+export type OrbitGenerationStatus = 'idle' | 'generating' | 'ready' | 'failed';
+
+// Orbit Meta - tracks business orbits and their current pack version
+export const orbitMeta = pgTable("orbit_meta", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").notNull().unique(),
+  sourceUrl: text("source_url").notNull(),
+  
+  // Pack versioning (DB pointer, no mutable latest.json)
+  currentPackVersion: text("current_pack_version"),
+  currentPackKey: text("current_pack_key"),
+  
+  // Ownership (null = unclaimed preview)
+  ownerId: integer("owner_id").references(() => users.id),
+  
+  // Generation job tracking
+  generationStatus: text("generation_status").$type<OrbitGenerationStatus>().default("idle").notNull(),
+  generationJobId: text("generation_job_id"),
+  requestedAt: timestamp("requested_at"),
+  completedAt: timestamp("completed_at"),
+  lastError: text("last_error"),
+  
+  // Brand customization (after claiming)
+  customLogo: text("custom_logo"),
+  customAccent: text("custom_accent"),
+  customTone: text("custom_tone"),
+  
+  // Stats
+  totalPackVersions: integer("total_pack_versions").default(0).notNull(),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertOrbitMetaSchema = createInsertSchema(orbitMeta).omit({ id: true, createdAt: true, lastUpdated: true });
+export type InsertOrbitMeta = z.infer<typeof insertOrbitMetaSchema>;
+export type OrbitMeta = typeof orbitMeta.$inferSelect;

@@ -171,6 +171,14 @@ export interface IStorage {
   getPreviewChatMessages(previewId: string, limit?: number): Promise<schema.PreviewChatMessage[]>;
   addPreviewChatMessage(message: schema.InsertPreviewChatMessage): Promise<schema.PreviewChatMessage>;
   incrementPreviewMessageCount(previewId: string): Promise<void>;
+
+  // Orbit Meta
+  getOrbitMeta(businessSlug: string): Promise<schema.OrbitMeta | undefined>;
+  getOrbitMetaById(id: number): Promise<schema.OrbitMeta | undefined>;
+  createOrbitMeta(data: schema.InsertOrbitMeta): Promise<schema.OrbitMeta>;
+  updateOrbitMeta(businessSlug: string, data: Partial<schema.InsertOrbitMeta>): Promise<schema.OrbitMeta | undefined>;
+  setOrbitGenerationStatus(businessSlug: string, status: schema.OrbitGenerationStatus, error?: string): Promise<void>;
+  setOrbitPackVersion(businessSlug: string, version: string, key: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1155,6 +1163,62 @@ export class DatabaseStorage implements IStorage {
     await db.update(schema.previewInstances)
       .set({ messageCount: sql`${schema.previewInstances.messageCount} + 1` })
       .where(eq(schema.previewInstances.id, previewId));
+  }
+
+  // Orbit Meta
+  async getOrbitMeta(businessSlug: string): Promise<schema.OrbitMeta | undefined> {
+    const result = await db.query.orbitMeta.findFirst({
+      where: eq(schema.orbitMeta.businessSlug, businessSlug),
+    });
+    return result;
+  }
+
+  async getOrbitMetaById(id: number): Promise<schema.OrbitMeta | undefined> {
+    const result = await db.query.orbitMeta.findFirst({
+      where: eq(schema.orbitMeta.id, id),
+    });
+    return result;
+  }
+
+  async createOrbitMeta(data: schema.InsertOrbitMeta): Promise<schema.OrbitMeta> {
+    const [result] = await db.insert(schema.orbitMeta).values(data as any).returning();
+    return result;
+  }
+
+  async updateOrbitMeta(businessSlug: string, data: Partial<schema.InsertOrbitMeta>): Promise<schema.OrbitMeta | undefined> {
+    const [result] = await db.update(schema.orbitMeta)
+      .set({ ...data, lastUpdated: new Date() })
+      .where(eq(schema.orbitMeta.businessSlug, businessSlug))
+      .returning();
+    return result;
+  }
+
+  async setOrbitGenerationStatus(businessSlug: string, status: schema.OrbitGenerationStatus, error?: string): Promise<void> {
+    const updateData: Partial<schema.InsertOrbitMeta> = {
+      generationStatus: status,
+      lastError: error || null,
+    };
+    
+    if (status === 'generating') {
+      updateData.requestedAt = new Date();
+    } else if (status === 'ready' || status === 'failed') {
+      updateData.completedAt = new Date();
+    }
+    
+    await db.update(schema.orbitMeta)
+      .set({ ...updateData, lastUpdated: new Date() })
+      .where(eq(schema.orbitMeta.businessSlug, businessSlug));
+  }
+
+  async setOrbitPackVersion(businessSlug: string, version: string, key: string): Promise<void> {
+    await db.update(schema.orbitMeta)
+      .set({
+        currentPackVersion: version,
+        currentPackKey: key,
+        totalPackVersions: sql`${schema.orbitMeta.totalPackVersions} + 1`,
+        lastUpdated: new Date(),
+      })
+      .where(eq(schema.orbitMeta.businessSlug, businessSlug));
   }
 }
 
