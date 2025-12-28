@@ -1,0 +1,102 @@
+Yes – and you’re right to stop and nail this, because if you get it wrong you end up with two parallel products that drift and confuse everyone.
+
+The clean answer
+
+The preview should become the public view.
+There is no separate “preview product”. There is only:
+	•	Public Orbit (Unclaimed) – auto-generated, shareable, NextMonth-branded, limited
+	•	Public Orbit (Claimed) – same Orbit, now owned, better branding, deeper interactions
+	•	Business Hub – the same Orbit with the owner sidebar layered on
+
+So “preview” is just a state of the public Orbit.
+
+That gives you one URL, one mental model, one surface.
+
+⸻
+
+How it should work in practice
+
+1) Someone pastes a URL and generates
+
+System creates:
+	•	orbitMeta record for the business slug
+	•	generates Orbit Pack v1
+	•	publishes Public Orbit (Unclaimed) immediately
+
+They land on:
+/orbit/:businessSlug
+
+This page is the “preview”, but it’s also the public view.
+
+2) What makes it “preview”
+
+Not a different route, not a different UI, just gating + branding:
+
+Unclaimed public Orbit must show:
+	•	“Powered by NextMonth” (prominent but classy)
+	•	Persistent CTA: Claim this Orbit
+	•	Limited interactions (view + expand only)
+	•	No ICE Maker
+	•	No chat
+	•	No sidebar
+
+3) When they claim
+
+Nothing changes for their audience except:
+	•	NextMonth branding reduces (or becomes “Built with NextMonth” in footer)
+	•	CTA disappears
+	•	Orbit can be expanded/curated over time
+
+For the owner:
+	•	Sidebar appears (Business Hub)
+	•	“Create ICE” becomes available from grid boxes
+
+Same route. Same view. Same pack source.
+
+⸻
+
+What to ask Replit specifically (so they don’t drift)
+
+Here’s the interrogation checklist you want Replit to answer:
+	1.	Is /orbit/:slug the only public route?
+If not, why not?
+	2.	Does URL generation always create an orbitMeta + first pack and publish it immediately?
+Or is there an interim “preview object” that later becomes public?
+	3.	How is unclaimed vs claimed determined?
+ownerId == null is the clean test.
+	4.	Do we ever show a different layout for preview?
+Answer should be no.
+	5.	What happens if someone generates twice from the same business?
+
+	•	Do we re-use the slug?
+	•	Create a new slug?
+	•	Who owns it?
+This matters for “claim” security and collisions.
+
+⸻
+
+The only tricky bit: ownership + collisions
+
+If a public unclaimed Orbit exists, someone else might try to claim it.
+
+You need a simple rule for MVP:
+	•	Claim requires proving control of the business in some way:
+	•	email domain verification, or
+	•	website meta tag / DNS, or
+	•	a “magic link” to an email address you input (less robust but fast)
+
+For MVP, magic link is acceptable, but you should at least prevent obvious squatting.
+
+⸻
+
+The decision (what I’d lock)
+
+Lock this now:
+	•	There is no separate preview route.
+	•	“Preview” is simply Unclaimed Public Orbit.
+	•	Everything lives at /orbit/:businessSlug.
+	•	Claiming only changes permissions, branding, and sidebar access.
+
+That’s the cleanest product story and the simplest engineering story.
+
+If you want, I’ll write the exact message to send Replit that forces them to confirm this implementation detail and address the collision/claim rule.
