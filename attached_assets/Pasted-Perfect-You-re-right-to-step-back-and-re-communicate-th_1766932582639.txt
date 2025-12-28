@@ -1,0 +1,120 @@
+Perfect. You’re right to step back and re-communicate this cleanly, because this is a step-change in what the product is becoming. If you don’t reset the frame now, Replit will keep optimising for “insights tooling” instead of the strategy engine you’ve just uncovered.
+
+Below is a clean, authoritative update you can copy-paste to Replit. It deliberately rewinds a little, re-states what’s locked, and then introduces the new direction without opening scope chaos.
+
+⸻
+
+Replit Update: Strategic Direction Reset (Patterns → Advice)
+
+Context
+We’ve made a significant strategic clarification. Please treat this as an updated north star for upcoming work. This is not additive feature creep; it’s a refinement of where value ultimately concentrates.
+
+⸻
+
+What’s Locked (Recap – unchanged)
+
+These remain fully locked and should not be revisited:
+	1.	One Orbit per business, always public at /orbit/:slug
+	2.	Claiming is free and establishes ownership
+	3.	Free tier = activity visibility (counts only)
+	4.	Paid tier = understanding (insights, transcripts, ICE Maker, curation)
+	5.	No separate preview product – preview is just an Orbit state
+	6.	Data philosophy: Activity is free. Understanding is paid.
+	7.	Cloud builds the Orbit Pack, local powers interactions
+
+⸻
+
+New Strategic Centre of Gravity (Important)
+
+We’ve identified the true long-term value as Pattern Intelligence, not raw analytics or isolated insights.
+
+Shift in framing:
+	•	Not just what happened
+	•	Not just what people asked
+	•	But what tends to happen, in sequence, and what that implies
+
+This is the foundation for everything that follows.
+
+⸻
+
+New Concept (Do Not Implement Yet – Design Alignment Only)
+
+Behavioural Pattern Intelligence
+
+The system should be capable of identifying and surfacing:
+	•	Common interaction paths
+(e.g. Orbit box → question → ICE → follow-up → lead)
+	•	High-converting vs high-drop-off sequences
+	•	Repeated question → content → outcome patterns
+
+These patterns become evidence, not speculation.
+
+⸻
+
+The Logical Next Layer (Future, Not Immediate)
+
+Recommendations / Advice Layer
+
+Grounded entirely in observed patterns.
+
+Example:
+
+“People repeatedly ask about pricing after viewing Services and Testimonials.
+This suggests a missing or unclear pricing explanation.”
+
+This advice should:
+	•	Always reference evidence (“based on X conversations / Y journeys”)
+	•	Suggest actions, not auto-execution:
+	•	New landing page
+	•	Blog post framing
+	•	ICE experience
+	•	Website addition
+
+Think: what a great salesperson or strategist would recommend after seeing everything.
+
+⸻
+
+Critical Instruction to Replit
+	•	Do not jump to content generation features
+	•	Do not auto-publish anything
+	•	Do not treat this as generic ‘AI content ideas’
+
+This is:
+
+Evidence-based commercial advice derived from Orbit + ICE behaviour.
+
+⸻
+
+What We Need From You Right Now
+
+At this stage, we are not asking you to build the pattern engine or advice layer.
+
+We are asking you to:
+	1.	Acknowledge this direction
+	2.	Confirm that current work (Insights, Leads, contextual prompts) does not block this evolution
+	3.	Flag any architectural decisions we should make now to support:
+	•	path tracking
+	•	sequence reconstruction
+	•	future pattern detection
+
+No new UI. No new endpoints yet.
+Just alignment.
+
+⸻
+
+Summary (One Sentence)
+
+We are evolving from analytics → insights → pattern intelligence → strategic advice, with every step grounded in real user behaviour inside Orbit and ICE.
+
+⸻
+
+If you send that, you’re doing three important things at once:
+	•	You protect the team from drifting back into “dashboard thinking”
+	•	You future-proof current implementation decisions
+	•	You signal that this product is graduating into decision support, not just interaction tooling
+
+If you want, next I can help you:
+	•	Define the minimum event schema needed now to support future pattern recognition
+	•	Or help you name this layer internally so it doesn’t get diluted later
+
+But for now: yes, go communicate this. This is the right moment to do it.

@@ -137,7 +137,26 @@ export default function OrbitView() {
     enabled: !!orbitData?.previewId,
   });
 
+  // Check if current user is the owner
+  const { data: currentUser } = useQuery<{ id: number; email: string } | null>({
+    queryKey: ["current-user"],
+    queryFn: async () => {
+      const response = await fetch("/api/user");
+      if (!response.ok) return null;
+      return response.json();
+    },
+  });
+
+  const isOwner = currentUser && orbitData?.ownerId === currentUser.id;
   const isUnclaimed = !orbitData?.ownerId;
+
+  // Redirect owners to Data Hub (unless they're on claim route or explicitly viewing public orbit)
+  const viewPublic = new URLSearchParams(searchString).get('view') === 'public';
+  useEffect(() => {
+    if (isOwner && slug && !matchedClaim && !viewPublic) {
+      setLocation(`/orbit/${slug}/hub`);
+    }
+  }, [isOwner, slug, matchedClaim, viewPublic, setLocation]);
 
   const requestClaimMutation = useMutation({
     mutationFn: async (email: string) => {
@@ -521,15 +540,17 @@ export default function OrbitView() {
                 <MessageCircle className="w-3 h-3 mr-1" />
                 Contact Us
               </Button>
-              <Button 
-                size="sm"
-                variant="ghost"
-                className="text-zinc-400 hover:text-white text-xs px-3 py-1 h-7"
-                onClick={() => setLocation(`/orbit/${slug}/hub`)}
-                data-testid="button-view-hub"
-              >
-                View Data Hub
-              </Button>
+              {isOwner && (
+                <Button 
+                  size="sm"
+                  variant="ghost"
+                  className="text-zinc-400 hover:text-white text-xs px-3 py-1 h-7"
+                  onClick={() => setLocation(`/orbit/${slug}/hub`)}
+                  data-testid="button-view-hub"
+                >
+                  View Data Hub
+                </Button>
+              )}
             </div>
           </div>
         </div>

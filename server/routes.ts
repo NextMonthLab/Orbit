@@ -5114,8 +5114,12 @@ Keep responses concise (2-3 sentences maximum).`;
       const { slug } = req.params;
       const { name, email, phone, company, message, source = 'orbit' } = req.body;
       
-      if (!name || !email) {
-        return res.status(400).json({ message: "Name and email are required" });
+      // Validate required fields
+      if (!name || typeof name !== 'string' || name.trim().length < 1) {
+        return res.status(400).json({ message: "Name is required" });
+      }
+      if (!email || typeof email !== 'string' || !email.includes('@')) {
+        return res.status(400).json({ message: "Valid email is required" });
       }
       
       const orbitMeta = await storage.getOrbitMeta(slug);
@@ -5123,14 +5127,19 @@ Keep responses concise (2-3 sentences maximum).`;
         return res.status(404).json({ message: "Orbit not found" });
       }
       
+      // Only allow leads on claimed orbits (owners need to claim to receive leads)
+      if (!orbitMeta.ownerId) {
+        return res.status(400).json({ message: "This orbit hasn't been claimed yet. Leads cannot be submitted." });
+      }
+      
       const lead = await storage.createOrbitLead({
         businessSlug: slug,
-        name,
-        email,
-        phone: phone || null,
-        company: company || null,
-        message: message || null,
-        source,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone?.trim() || null,
+        company: company?.trim() || null,
+        message: message?.trim() || null,
+        source: ['orbit', 'chat', 'cta'].includes(source) ? source : 'orbit',
       });
       
       res.json({ success: true, leadId: lead.id });
@@ -5140,7 +5149,7 @@ Keep responses concise (2-3 sentences maximum).`;
     }
   });
 
-  // Orbit Leads - Get leads (owner only)
+  // Orbit Leads - Get leads (owner only for details, count visible to all)
   app.get("/api/orbit/:slug/leads", async (req, res) => {
     try {
       const { slug } = req.params;
@@ -5151,18 +5160,21 @@ Keep responses concise (2-3 sentences maximum).`;
         return res.status(404).json({ message: "Orbit not found" });
       }
       
-      const isPreviewMode = preview === 'true';
+      // Preview mode for testing (should be removed in production)
+      const isPreviewMode = preview === 'true' && process.env.NODE_ENV !== 'production';
+      
+      // Strict owner check - must be authenticated and match ownerId
       const isOwner = isPreviewMode || (req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id);
       
-      // Always return lead count (free tier)
+      // Always return lead count (free tier activity metric)
       const count = await storage.getOrbitLeadsCount(slug);
       
-      // Full lead details only for owners (paid feature in future)
-      const leads = isOwner ? await storage.getOrbitLeads(slug) : [];
+      // Full lead details ONLY for verified owners
+      const leads = isOwner ? await storage.getOrbitLeads(slug) : null;
       
       res.json({
         count,
-        leads: isOwner ? leads : null,
+        leads,
         isOwner,
       });
     } catch (error) {
