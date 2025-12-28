@@ -37,7 +37,7 @@ const useCases = [
 
 export default function ForKnowledge() {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white" data-nm-page="for-knowledge">
       <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black to-transparent">
         <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-between">
           <Link href="/">
@@ -69,7 +69,7 @@ export default function ForKnowledge() {
 
       <main>
         {/* Hero */}
-        <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden pt-20">
+        <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden pt-20 scroll-mt-24" data-nm-section="hero">
           <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-black" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent" />
           
@@ -91,13 +91,13 @@ export default function ForKnowledge() {
                 </span>
               </h1>
               
-              <p className="text-xl md:text-2xl text-white/60 max-w-2xl mx-auto mb-12 leading-relaxed" data-testid="text-hero-description">
+              <p className="text-xl md:text-2xl text-white/70 max-w-2xl mx-auto mb-12 leading-relaxed" data-testid="text-hero-description">
                 Transform dense documents into visual experiences 
                 people actually remember and engage with.
               </p>
               
               <Link href="/login?signup=true">
-                <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-hero-cta">
+                <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-hero-cta" data-nm-cta="build-learning-experience-hero">
                   Build a Learning Experience
                   <ArrowRight className="w-5 h-5" />
                 </Button>
@@ -107,7 +107,7 @@ export default function ForKnowledge() {
         </section>
 
         {/* Features */}
-        <section id="features" className="py-24 px-6 relative scroll-mt-24">
+        <section id="features" className="py-24 px-6 relative scroll-mt-24" data-nm-section="how-it-works">
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
@@ -132,7 +132,7 @@ export default function ForKnowledge() {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                      <p className="text-white/50 leading-relaxed">{feature.description}</p>
+                      <p className="text-white/60 leading-relaxed">{feature.description}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -142,7 +142,7 @@ export default function ForKnowledge() {
         </section>
 
         {/* Knowledge Retention */}
-        <section className="py-24 px-6 relative overflow-hidden">
+        <section className="py-24 px-6 relative overflow-hidden scroll-mt-24" data-nm-section="philosophy">
           <div className="absolute inset-0 bg-gradient-to-br from-black via-black to-black" />
           <div className="max-w-4xl mx-auto relative z-10 text-center">
             <motion.div
@@ -156,12 +156,12 @@ export default function ForKnowledge() {
               <h2 className="text-3xl md:text-5xl font-bold mb-6">
                 Stories stick. Documents don't.
               </h2>
-              <p className="text-xl text-white/60 max-w-2xl mx-auto mb-8">
+              <p className="text-xl text-white/70 max-w-2xl mx-auto mb-4">
                 People remember narratives 22x better than facts alone. NextMonth transforms 
                 your educational content into story-driven experiences with built-in interaction 
                 that reinforces learning.
               </p>
-              <p className="text-white/40">
+              <p className="text-white/50">
                 AI chat lets learners explore concepts on their own terms, grounded entirely in your source material.
               </p>
             </motion.div>
@@ -169,7 +169,7 @@ export default function ForKnowledge() {
         </section>
 
         {/* Use Cases */}
-        <section className="py-24 px-6 relative">
+        <section className="py-24 px-6 relative scroll-mt-24" data-nm-section="perfect-for-knowledge">
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-4xl mx-auto relative z-10">
             <div className="text-center mb-16">
@@ -197,7 +197,7 @@ export default function ForKnowledge() {
         </section>
 
         {/* CTA */}
-        <section className="py-32 px-6 relative overflow-hidden">
+        <section className="py-32 px-6 relative overflow-hidden scroll-mt-24" data-nm-section="footer-cta">
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black to-transparent" />
           
           <div className="max-w-4xl mx-auto text-center relative z-10">
@@ -213,7 +213,7 @@ export default function ForKnowledge() {
                 </span>
               </h2>
               <Link href="/login?signup=true">
-                <Button size="lg" className="h-16 px-12 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-footer-cta">
+                <Button size="lg" className="h-16 px-12 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-footer-cta" data-nm-cta="build-learning-experience-footer">
                   Build a Learning Experience
                   <ArrowRight className="w-5 h-5" />
                 </Button>

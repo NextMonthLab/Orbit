@@ -6,22 +6,22 @@ import { motion } from "framer-motion";
 const features = [
   {
     title: "Scripts become story cards",
-    description: "Upload your screenplay, treatment, or story outline. Each scene or beat becomes a visual card.",
+    description: "Upload your screenplay, treatment, or outline. Each scene or beat becomes a visual story card.",
     icon: Clapperboard,
   },
   {
     title: "Cinematic visuals per card",
-    description: "AI generates stunning imagery in your chosen visual style, maintaining consistency throughout.",
+    description: "AI generates consistent imagery in your chosen visual style across the entire experience.",
     icon: Sparkles,
   },
   {
-    title: "Optional AI character interaction",
-    description: "Let audiences talk to your characters between scenes. Guardrailed to stay in-world.",
+    title: "Optional character interaction",
+    description: "Let audiences speak to characters between scenes, safely constrained to your story world.",
     icon: MessageCircle,
   },
   {
-    title: "Daily release or full-drop modes",
-    description: "Build anticipation with scheduled releases, or drop the full experience at once.",
+    title: "Release your way",
+    description: "Drop everything at once or release scenes daily to build anticipation.",
     icon: Calendar,
   },
 ];
@@ -35,9 +35,16 @@ const perfectFor = [
   "Music video narratives",
 ];
 
+const visualStyles = [
+  "Neo-noir",
+  "Warm naturalism",
+  "High contrast sci-fi",
+  "Handheld documentary",
+];
+
 export default function ForCreators() {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white" data-nm-page="for-creators">
       <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black to-transparent">
         <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-between">
           <Link href="/">
@@ -69,7 +76,7 @@ export default function ForCreators() {
 
       <main>
         {/* Hero */}
-        <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden pt-20">
+        <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden pt-20 scroll-mt-24" data-nm-section="hero">
           <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-black" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-pink-900/20 via-transparent to-transparent" />
           
@@ -91,30 +98,47 @@ export default function ForCreators() {
                 </span>
               </h1>
               
-              <p className="text-xl md:text-2xl text-white/60 max-w-2xl mx-auto mb-12 leading-relaxed" data-testid="text-hero-description">
-                Transform scripts and ideas into interactive visual experiences. 
-                Perfect for filmmakers who think in scenes.
+              <p className="text-xl md:text-2xl text-white/70 max-w-2xl mx-auto mb-4 leading-relaxed" data-testid="text-hero-description">
+                Transform scripts and ideas into cinematic, interactive story experiences.
+                Built for filmmakers who think in scenes, not pages.
               </p>
               
-              <Link href="/login?signup=true">
-                <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-hero-cta">
-                  Build a Story Experience
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
+              <div className="flex flex-wrap justify-center gap-3 mb-10">
+                <span className="text-sm text-white/50">Built for:</span>
+                <span className="text-sm text-white/70">Short films</span>
+                <span className="text-white/30">-</span>
+                <span className="text-sm text-white/70">Trailers and proof-of-concepts</span>
+                <span className="text-white/30">-</span>
+                <span className="text-sm text-white/70">Interactive fiction</span>
+              </div>
+              
+              <div className="flex flex-col items-center gap-4">
+                <Link href="/login?signup=true">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-hero-cta" data-nm-cta="build-story-experience-hero">
+                    Build a Story Experience
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <Link href="/orbit/progress-accountants-accountin-1766789673893" className="text-white/50 hover:text-white/70 text-sm transition-colors" data-nm-cta="see-example-experience">
+                  See an example experience
+                </Link>
+              </div>
             </motion.div>
           </div>
         </section>
 
         {/* Features */}
-        <section id="features" className="py-24 px-6 relative scroll-mt-24">
+        <section id="features" className="py-24 px-6 relative scroll-mt-24" data-nm-section="script-to-screen">
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-7xl mx-auto relative z-10">
-            <div className="text-center mb-16">
+            <div className="text-center mb-6">
               <h2 className="text-3xl md:text-5xl font-bold mb-4">
                 From script to <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">screen</span>
               </h2>
             </div>
+            <p className="text-white/60 text-center max-w-2xl mx-auto mb-12">
+              Turn written story into a visual, structured experience without losing your voice.
+            </p>
             
             <div className="grid md:grid-cols-2 gap-6">
               {features.map((feature, index) => (
@@ -132,17 +156,21 @@ export default function ForCreators() {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                      <p className="text-white/50 leading-relaxed">{feature.description}</p>
+                      <p className="text-white/60 leading-relaxed">{feature.description}</p>
                     </div>
                   </div>
                 </motion.div>
               ))}
             </div>
+            
+            <p className="text-center text-white/40 text-sm mt-8">
+              Output: cinematic cards, optional character chat, shareable link
+            </p>
           </div>
         </section>
 
         {/* Visual Consistency */}
-        <section className="py-24 px-6 relative overflow-hidden">
+        <section className="py-24 px-6 relative overflow-hidden scroll-mt-24" data-nm-section="visual-bible-system">
           <div className="absolute inset-0 bg-gradient-to-br from-black via-black to-black" />
           <div className="max-w-4xl mx-auto relative z-10 text-center">
             <motion.div
@@ -156,19 +184,29 @@ export default function ForCreators() {
               <h2 className="text-3xl md:text-5xl font-bold mb-6">
                 Visual Bible System
               </h2>
-              <p className="text-xl text-white/60 max-w-2xl mx-auto mb-8">
-                Define your visual style once. Art direction, color palette, camera style, and lighting 
-                are automatically applied to every card, maintaining consistency across your entire story.
+              <p className="text-xl text-white/70 max-w-2xl mx-auto mb-4">
+                Define your look once. Lens feel, lighting mood, colour palette, and visual tone are locked and applied across every card.
               </p>
-              <p className="text-white/40">
-                Characters stay recognizable. Locations feel connected. Your vision stays intact.
+              <p className="text-white/50 max-w-2xl mx-auto mb-8">
+                Characters stay recognisable. Locations feel connected. Your visual identity stays intact from first scene to last.
               </p>
+              
+              <div className="flex flex-wrap justify-center gap-3">
+                {visualStyles.map((style) => (
+                  <span 
+                    key={style}
+                    className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white/60 text-sm"
+                  >
+                    {style}
+                  </span>
+                ))}
+              </div>
             </motion.div>
           </div>
         </section>
 
         {/* Perfect For */}
-        <section className="py-24 px-6 relative">
+        <section className="py-24 px-6 relative scroll-mt-24" data-nm-section="perfect-for-creators">
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-4xl mx-auto relative z-10">
             <div className="text-center mb-16">
@@ -196,7 +234,7 @@ export default function ForCreators() {
         </section>
 
         {/* CTA */}
-        <section className="py-32 px-6 relative overflow-hidden">
+        <section className="py-32 px-6 relative overflow-hidden scroll-mt-24" data-nm-section="footer-cta">
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black to-transparent" />
           
           <div className="max-w-4xl mx-auto text-center relative z-10">
@@ -205,18 +243,26 @@ export default function ForCreators() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-4xl md:text-6xl font-bold mb-6">
+              <h2 className="text-4xl md:text-6xl font-bold mb-4">
                 Ready to bring your<br />
                 <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   story to life?
                 </span>
               </h2>
-              <Link href="/login?signup=true">
-                <Button size="lg" className="h-16 px-12 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-footer-cta">
-                  Build a Story Experience
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
+              <p className="text-white/60 text-lg mb-8 max-w-xl mx-auto">
+                Build an interactive story experience your audience can explore, not just watch.
+              </p>
+              <div className="flex flex-col items-center gap-4">
+                <Link href="/login?signup=true">
+                  <Button size="lg" className="h-16 px-12 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-footer-cta" data-nm-cta="build-story-experience-footer">
+                    Build a Story Experience
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <Link href="/orbit/progress-accountants-accountin-1766789673893" className="text-white/50 hover:text-white/70 text-sm transition-colors" data-nm-cta="browse-examples">
+                  Browse examples
+                </Link>
+              </div>
             </motion.div>
           </div>
         </section>
