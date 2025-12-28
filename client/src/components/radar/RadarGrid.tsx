@@ -84,59 +84,81 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
     return rankByRelevance(allItems, query);
   }, [allItems, conversationKeywords]);
 
-  const positionMap = useMemo(() => {
-    const tileWidth = 95;
-    const tileHeight = 120;
-    const tileSpacing = 12;
-    const tileDiagonal = Math.sqrt(tileWidth * tileWidth + tileHeight * tileHeight);
-    const minTileSeparation = tileDiagonal / 2 + tileSpacing;
-    
-    const priorityOrbitRadius = 60;
-    const priorityOrbitCapacity = 3;
-    const relevanceThreshold = 12;
-    
-    const ring1Radius = 120;
-    const ringSpacing = 85;
-    
-    const map = new Map<string, { x: number; y: number; distance: number }>();
-    
+  // Calculate intent level from conversation (0 = ambient, higher = more focused)
+  const intentLevel = useMemo(() => {
+    return Math.min(conversationKeywords.length / 5, 1); // 0-1 scale
+  }, [conversationKeywords]);
+
+  // Elastic zones: high intent = fewer visible tiles, more space
+  const visibleItems = useMemo(() => {
     const query = conversationKeywords.join(' ');
     const scoredItems = rankedItems.map(item => ({
       item,
       score: scoreRelevance(item, query)
     }));
     
-    const priorityItems = scoredItems
-      .filter(s => s.score >= relevanceThreshold)
-      .slice(0, priorityOrbitCapacity);
-    const priorityIds = new Set(priorityItems.map(p => p.item.id));
-    const regularItems = scoredItems.filter(s => !priorityIds.has(s.item.id));
+    // At low intent: show more tiles (up to 16)
+    // At high intent: show fewer tiles (4-8 most relevant)
+    const maxVisible = Math.round(16 - intentLevel * 10); // 16 at ambient, 6 at focused
     
+    // Sort by score descending, take top N
+    return scoredItems
+      .sort((a, b) => b.score - a.score)
+      .slice(0, Math.max(4, maxVisible));
+  }, [rankedItems, conversationKeywords, intentLevel]);
+
+  const positionMap = useMemo(() => {
+    const tileWidth = 95;
+    const tileHeight = 120;
+    const tileSpacing = 20; // Increased spacing
+    const safeGap = tileHeight + tileSpacing; // 140px minimum between zones
+    
+    // Ring spacing MUST be > tile height to prevent vertical overlap
+    const ringSpacing = 150; // Was 85, now 150 (> 120 tile height)
+    
+    const map = new Map<string, { x: number; y: number; distance: number }>();
+    
+    // Priority zone: only 1-2 tiles at high intent, up to 3 at low intent
+    const priorityCapacity = intentLevel > 0.5 ? 1 : (intentLevel > 0.2 ? 2 : 3);
+    const priorityRadius = 90; // Fixed radius for priority items
+    
+    // Ring 1 must be far enough from priority zone to avoid overlap
+    const ring1Radius = priorityRadius + safeGap; // 90 + 140 = 230px
+    
+    const priorityItems = visibleItems.slice(0, priorityCapacity);
+    const regularItems = visibleItems.slice(priorityCapacity);
+    
+    // Place priority items with generous spacing
     priorityItems.forEach((p, i) => {
-      const angle = (i / priorityOrbitCapacity) * 2 * Math.PI - Math.PI / 2;
+      const angle = (i / Math.max(priorityCapacity, 1)) * 2 * Math.PI - Math.PI / 2;
       map.set(p.item.id, {
-        x: Math.cos(angle) * priorityOrbitRadius,
-        y: Math.sin(angle) * priorityOrbitRadius,
-        distance: priorityOrbitRadius,
+        x: Math.cos(angle) * priorityRadius,
+        y: Math.sin(angle) * priorityRadius,
+        distance: priorityRadius,
       });
     });
     
+    // Place remaining items in outer rings with staggered angles
     let placed = 0;
     let ringIndex = 0;
     
     while (placed < regularItems.length) {
       const ringRadius = ring1Radius + ringIndex * ringSpacing;
       
-      const minAngularSeparation = 2 * Math.asin(Math.min(1, minTileSeparation / (2 * ringRadius)));
-      const maxTilesInRing = Math.max(1, Math.floor((2 * Math.PI) / minAngularSeparation));
+      // Calculate safe tile capacity for this ring
+      const circumference = 2 * Math.PI * ringRadius;
+      const tileFootprint = tileWidth + tileSpacing;
+      const maxTilesInRing = Math.max(1, Math.floor(circumference / tileFootprint));
+      
+      // Limit to remaining items
       const tilesInRing = Math.min(maxTilesInRing, regularItems.length - placed);
       
-      const angleStep = (2 * Math.PI) / tilesInRing;
-      const angleOffset = ringIndex * 0.5;
+      // Stagger angle offset between rings to prevent vertical stacking
+      const staggerAngle = (ringIndex % 2 === 0) ? 0 : Math.PI / tilesInRing;
       
       for (let i = 0; i < tilesInRing && placed < regularItems.length; i++) {
         const { item } = regularItems[placed];
-        const angle = i * angleStep - Math.PI / 2 + angleOffset;
+        const angle = (i / tilesInRing) * 2 * Math.PI - Math.PI / 2 + staggerAngle;
         
         map.set(item.id, {
           x: Math.cos(angle) * ringRadius,
@@ -148,7 +170,7 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
       ringIndex++;
     }
     return map;
-  }, [rankedItems, conversationKeywords]);
+  }, [visibleItems, intentLevel]);
 
   const handleIntentChange = useCallback((keywords: string[]) => {
     setConversationKeywords(prev => {
@@ -229,8 +251,8 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
   }, [selectedItem]);
 
   const nearbyTileLabels = useMemo(() => {
-    return rankedItems.slice(0, 5).map(item => getItemLabel(item));
-  }, [rankedItems]);
+    return visibleItems.slice(0, 5).map(({ item }) => getItemLabel(item));
+  }, [visibleItems]);
 
   const getPinchDistance = useCallback(() => {
     const pointers = Array.from(activePointers.current.values());
@@ -379,18 +401,16 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
         }}
         data-testid="tile-layer"
       >
-        {rankedItems.map((item) => {
-          const query = conversationKeywords.join(' ');
-          const relevance = scoreRelevance(item, query);
+        {visibleItems.map(({ item, score }) => {
           const pos = positionMap.get(item.id) || { x: 0, y: 0, distance: 200 };
           
           return (
             <KnowledgeTile
               key={item.id}
               item={item}
-              relevanceScore={relevance}
+              relevanceScore={score}
               position={{ x: pos.x, y: pos.y }}
-              accentColor={relevance > 10 ? accentColor : undefined}
+              accentColor={score > 10 ? accentColor : undefined}
               zoomLevel={zoomLevel}
             />
           );
