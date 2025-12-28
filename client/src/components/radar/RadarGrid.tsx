@@ -101,14 +101,14 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
       score: scoreRelevance(item, query)
     }));
     
-    // At low intent: show more tiles (up to 16)
-    // At high intent: show fewer tiles (4-8 most relevant)
-    const maxVisible = Math.round(16 - intentLevel * 10); // 16 at ambient, 6 at focused
+    // At low intent: show many tiles (up to 24) for infinite universe feel
+    // At high intent: show fewer tiles (6-10 most relevant)
+    const maxVisible = Math.round(24 - intentLevel * 14); // 24 at ambient, 10 at focused
     
     // Sort by score descending, take top N
     return scoredItems
       .sort((a, b) => b.score - a.score)
-      .slice(0, Math.max(4, maxVisible));
+      .slice(0, Math.max(6, maxVisible));
   }, [rankedItems, conversationKeywords, intentLevel]);
 
   const positionMap = useMemo(() => {
@@ -405,7 +405,7 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
           background: `radial-gradient(circle at 50% 50%, ${accentColor}15 0%, transparent 40%)`,
         }}
       />
-
+      
       {/* Pannable tile layer - moves with canvas offset */}
       <div
         className="absolute"
@@ -433,6 +433,17 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
           );
         })}
       </div>
+
+      {/* Feather edge - fade to black at screen edges for infinite universe feel */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 85% 75% at 50% 50%, transparent 35%, rgba(10,10,10,0.3) 55%, rgba(10,10,10,0.7) 75%, #0a0a0a 100%)
+          `,
+          zIndex: 10,
+        }}
+      />
 
       {/* Fixed ChatHub - NEVER moves with canvas */}
       <AnimatePresence mode="wait">

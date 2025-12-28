@@ -456,9 +456,28 @@ export default function PreviewPage() {
 
   const generateSiteKnowledge = (preview: PreviewInstance): SiteKnowledge => {
     const siteIdentity = preview.siteIdentity;
-    const brandName = siteIdentity?.title?.split(' - ')[0]?.split(' | ')[0] || preview.sourceDomain;
-    const imagePool = siteIdentity?.imagePool || [];
     const validatedContent = siteIdentity?.validatedContent;
+    
+    // Priority: AI-extracted brand name > last part of title (after | or -) > domain
+    const extractBrandFromTitle = (title: string | null | undefined): string | undefined => {
+      if (!title) return undefined;
+      // Try last part after | or - (usually contains actual brand name)
+      const parts = title.split(/\s*[|\-]\s*/);
+      if (parts.length > 1) {
+        const lastPart = parts[parts.length - 1].trim();
+        // Only use if it looks like a brand (not too long, not generic)
+        if (lastPart.length > 0 && lastPart.length < 40 && !lastPart.toLowerCase().includes('home')) {
+          return lastPart;
+        }
+      }
+      // Fall back to first part if last part isn't suitable
+      return parts[0]?.trim();
+    };
+    
+    const brandName = validatedContent?.brandName || 
+                      extractBrandFromTitle(siteIdentity?.title) || 
+                      preview.sourceDomain;
+    const imagePool = siteIdentity?.imagePool || [];
     
     const topics = [
       ...(siteIdentity?.serviceBullets || []).slice(0, 6).map((bullet, i) => ({
@@ -557,6 +576,8 @@ export default function PreviewPage() {
           actionType: 'quote' as const,
         },
       ],
+      blogs: [],
+      socials: [],
     };
   };
 
