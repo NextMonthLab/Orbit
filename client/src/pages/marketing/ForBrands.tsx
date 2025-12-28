@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Globe, Wand2, MessageCircle, Share2, Code, QrCode, CheckCircle2, Sparkles, Loader2, Shield, Eye, BarChart3, Brain } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { ScanProgressScreen } from "@/components/preview/ScanProgressScreen";
 
@@ -61,6 +61,10 @@ export default function ForBrands() {
   const [, setLocation] = useLocation();
   const [siteUrl, setSiteUrl] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const createPreviewMutation = useMutation({
     mutationFn: async (url: string) => {

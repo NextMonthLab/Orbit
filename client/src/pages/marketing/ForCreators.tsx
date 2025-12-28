@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Film, Clapperboard, Sparkles, MessageCircle, Calendar, Zap, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 
 const features = [
   {
@@ -43,6 +44,10 @@ const visualStyles = [
 ];
 
 export default function ForCreators() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div className="min-h-screen bg-black text-white" data-nm-page="for-creators">
       <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black to-transparent">
