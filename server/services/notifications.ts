@@ -70,19 +70,23 @@ export async function triggerConversationSpikeNotification(
     return false;
   }
 
-  if (todayCount < 5 || todayCount < avgCount * 2) {
+  if (todayCount < 5 || (avgCount > 0 && todayCount < avgCount * 2)) {
     return false;
   }
 
   const today = new Date().toISOString().split('T')[0];
   const dedupeKey = `conversation_spike_${context.businessSlug}_${today}`;
+  
+  const percentAbove = avgCount > 0 
+    ? Math.round((todayCount / avgCount) * 100) 
+    : 100;
 
   return createNotification({
     userId: context.ownerId,
     orbitId: context.orbitId,
     type: 'conversation_spike',
     title: 'Conversation spike detected',
-    body: `Your Orbit had ${todayCount} conversations today - ${Math.round((todayCount / avgCount) * 100)}% above average`,
+    body: `Your Orbit had ${todayCount} conversations today - ${percentAbove}% above average`,
     actionUrl: `/orbit/${context.businessSlug}?hub=conversations`,
     meta: { todayCount, avgCount },
     severity: 'info',
@@ -113,7 +117,7 @@ export async function triggerPatternShiftNotification(
     type: 'pattern_shift',
     title: 'Pattern shift detected',
     body: changeDescription,
-    actionUrl: `/orbit/${context.businessSlug}?hub=intelligence`,
+    actionUrl: `/orbit/${context.businessSlug}?hub=overview`,
     meta: { changeType },
     severity: 'important',
     dedupeKey,
@@ -144,7 +148,7 @@ export async function triggerFrictionDetectedNotification(
     type: 'friction_detected',
     title: 'Friction point detected',
     body: `Users are stalling at "${boxTitle}" - ${Math.round(stallRate * 100)}% drop-off`,
-    actionUrl: `/orbit/${context.businessSlug}?hub=intelligence`,
+    actionUrl: `/orbit/${context.businessSlug}?hub=overview`,
     meta: { boxId, boxTitle, stallRate },
     severity: 'info',
     dedupeKey,
