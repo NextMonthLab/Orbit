@@ -1,0 +1,125 @@
+Perfect timing. This is exactly the right thing to sanity-check now, before scale or pricing pages lock you in.
+
+Below is a copy-paste ready prompt for RAP. It’s written to be sceptical, numbers-driven, and grounded in reality. It explicitly asks RAP to challenge assumptions, not agree politely.
+
+⸻
+
+RAP Prompt: Cost & Profitability Validation (Orbit + ICE)
+
+Project: NextMonth – Orbit, ICE Maker, Pattern Intelligence
+Role: You are a senior product economist + AI systems architect with experience in:
+	•	AI SaaS cost modelling
+	•	LLM infrastructure (cloud + open-model hosting)
+	•	Freemium → paid conversion economics
+	•	Usage-based pricing systems
+	•	Scaling public-facing AI products
+
+You are sceptical but fair.
+Your job is to validate or break our cost assumptions, not to flatter them.
+
+⸻
+
+Context (Ground Truth)
+
+We are building NextMonth with the following locked product structure:
+
+Products & Tiers
+	•	Orbit Free – Claimed public Orbit + activity counts only
+	•	Orbit Grow (£19/mo) – Control + curation + ICE Maker (pay-as-you-go)
+	•	Orbit Insight (£49/mo) – Insights + ICE Maker bundled
+	•	Orbit Intelligence (£99/mo) – Pattern Intelligence + Strategic Advice
+
+ICE Maker Pricing
+	•	£8 per ICE
+	•	5 ICE credits for £35
+	•	10 ICE credits for £60
+	•	Credits never expire
+	•	Bundled (fair usage) from Orbit Insight upwards
+
+Architecture Assumptions
+	•	Cloud LLM builds the Orbit Pack (async, batched)
+	•	Free Orbit conversations use:
+	•	retrieval + templates first
+	•	optional small server-side open model (7B–8B class) if needed
+	•	No browser-based local LLMs for free Orbit
+	•	Paid tiers unlock deeper LLM usage (insights, summarisation, pattern labelling)
+	•	Pattern Intelligence is largely deterministic computation + light summarisation
+
+Current Cost Assumptions (to be validated)
+	•	Free Orbit cost: ~£0.50–£1 per business/month
+	•	Orbit Grow cost: ~£3–£5 per user/month
+	•	Orbit Insight cost: ~£18–£25 per user/month
+	•	Orbit Intelligence cost: ~£10–£20 per user/month
+	•	ICE cost per unit: ~£0.80–£1.50
+	•	ICE gross margin target: ~80–90%
+
+⸻
+
+What We Want You To Do
+
+1. Cost Reality Check
+
+Validate or challenge:
+	•	Per-user monthly costs at each tier
+	•	ICE per-unit cost assumptions
+	•	Whether small server-side open models genuinely reduce cost vs managed LLM APIs
+	•	Storage, bandwidth, and logging costs at scale
+
+Call out:
+	•	Optimistic assumptions
+	•	Hidden costs
+	•	Things that tend to explode at scale
+
+⸻
+
+2. Behavioural Usage Stress Test
+
+Assume:
+	•	Free users overuse conversation
+	•	Grow users experiment with ICE
+	•	Insight users create ICEs habitually
+	•	Intelligence users expect faster responses and richer analysis
+
+Test:
+	•	Worst-case but realistic usage
+	•	What breaks first
+	•	Where margins erode
+
+⸻
+
+3. Pricing vs Cost Alignment
+
+Assess:
+	•	Whether ICE pricing nudges users correctly toward subscription
+	•	Whether Orbit Insight is underpriced or overpriced
+	•	Whether Orbit Intelligence should be higher, lower, or usage-gated
+
+⸻
+
+4. Scalability & Risk
+
+Identify:
+	•	Which tier becomes unprofitable first if adoption spikes
+	•	Which features are dangerous to offer “unlimited”
+	•	Where guardrails (fair usage, rate limits) are essential
+
+⸻
+
+Output Format Required
+
+Please respond with:
+	1.	Verdict summary – “Viable / Risky / Needs adjustment”
+	2.	Tier-by-tier cost analysis – what holds, what doesn’t
+	3.	ICE Maker economics – validate or revise pricing
+	4.	Key risks – with plain-English explanations
+	5.	Concrete recommendations – what to change now, if anything
+
+Be direct.
+If something is wrong, say so.
+
+⸻
+
+If you want, after RAP responds, paste its answer here and I’ll:
+	•	reconcile it against our current pricing
+	•	decide what (if anything) to adjust
+	•	and help you lock the final commercial model with confidence

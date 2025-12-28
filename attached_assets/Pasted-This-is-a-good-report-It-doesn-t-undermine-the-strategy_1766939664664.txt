@@ -1,0 +1,156 @@
+This is a good report. It doesn’t undermine the strategy – it sharpens it. And the conclusion is very clear:
+
+Your model works.
+The only thing that can hurt you is unbounded free usage.
+
+So the next logical step is not more pricing debate.
+It’s to lock the guardrails so this stays profitable as you scale.
+
+I’ll be decisive and give you numbers you can ship.
+
+⸻
+
+Decision to lock now (recommended)
+
+1. Free Orbit – Conversation Rate Limits (LOCK THIS)
+
+Limit
+	•	100 conversation messages per Orbit per month
+	•	Reset monthly
+	•	Soft limit first, hard limit second
+
+Why 100
+	•	Enough to feel genuinely useful
+	•	Prevents “power users” from camping on free
+	•	Keeps worst-case free cost under ~£1.50–£2/month
+
+UX behaviour
+	•	At ~80 messages: subtle notice
+“You’re approaching the free conversation limit.”
+	•	At 100: polite stop + value framing
+“To continue conversations and unlock insights, upgrade your Orbit.”
+
+No error tone. No punishment tone.
+
+This alone neutralises the biggest risk RAP identified.
+
+⸻
+
+2. Orbit Insight – ICE “Fair Usage” (LOCK THIS)
+
+You must define “fair usage” internally, even if you don’t shout it.
+
+Recommended
+	•	6 ICEs per month included on Orbit Insight
+	•	Soft cap, not a hard stop
+
+UX behaviour
+	•	At 6:
+“You’ve used most of your included ICEs this month.”
+	•	At 8+:
+“Create more ICEs with credits, or upgrade to Orbit Intelligence.”
+
+Why this works:
+	•	Average Insight user will stay under this
+	•	Heavy users self-identify
+	•	You don’t suddenly become a “metered SaaS villain”
+
+Cost maths stays healthy.
+
+⸻
+
+3. Orbit Intelligence – No ICE Anxiety
+
+For Orbit Intelligence (£99):
+	•	Either:
+	•	Higher fair usage (e.g. 12–15 ICEs/month), or
+	•	Effectively “unlimited” with abuse monitoring
+
+This tier is:
+	•	smaller volume
+	•	higher intent
+	•	highest margin
+
+Do not annoy them.
+
+⸻
+
+4. ICE Types – Implement RAP’s recommendation
+
+This is important and smart.
+
+Define two ICE types internally (you don’t have to over-market it):
+	•	Express ICE
+	•	Text + images
+	•	Default
+	•	~£0.60–£1 cost
+	•	Cinematic ICE
+	•	Includes video
+	•	Higher cost
+	•	Limited on bundled tiers
+
+Rules
+	•	Express ICEs count as 1
+	•	Cinematic ICEs:
+	•	Cost 1 credit in Grow
+	•	Count as 2 “usage units” in bundled tiers
+
+This protects margin without changing public pricing.
+
+⸻
+
+What this means strategically (big picture)
+
+After these guardrails:
+	•	Free tier stops being a liability
+	•	Grow tier remains pure upside
+	•	Insight tier becomes your revenue engine
+	•	Intelligence tier becomes your margin engine
+	•	ICE Maker stays highly profitable
+
+And crucially:
+
+You never have to claw features back later.
+You set expectations correctly from day one.
+
+⸻
+
+The three guardrails to write into docs/code comments
+
+If you want to codify this, these are the rules to bake in:
+	1.	Free Orbit conversations are rate-limited.
+	2.	Bundled ICE usage is soft-capped and monitored.
+	3.	Video generation is the primary ICE cost driver and must be controlled.
+
+Everything else is optimisation.
+
+⸻
+
+My recommendation for next step
+
+You have two good options now:
+
+Option A (most logical)
+
+👉 Lock the exact rate limits and fair usage numbers
+Put them in replit.md as an implementation note.
+
+Option B (product-facing)
+
+👉 Design the UX language for:
+	•	free conversation limits
+	•	ICE usage nudges
+	•	“why upgrade” moments
+
+If you ask me to choose:
+
+Lock the limits first. Then design the UX copy.
+
+Because the copy should respect the limits, not negotiate them.
+
+If you want, next I can:
+	•	write the exact in-product messages for hitting limits
+	•	or help you decide whether to surface usage counters or keep them invisible
+
+But strategically:
+You’re in a very strong position now.

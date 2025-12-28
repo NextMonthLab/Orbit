@@ -1,0 +1,94 @@
+Absolutely. Here’s a clean, authoritative message you can copy-paste to Replit to lock the pricing and guardrails. It’s written to remove ambiguity and prevent future drift.
+
+⸻
+
+Replit Update: Pricing & Cost Guardrails (LOCKED)
+
+Context
+We’ve completed a full cost, profitability, and risk analysis for Orbit + ICE, factoring in the constraint that the platform is currently funded from a single £60k salary. These decisions are now locked and should be treated as guardrails for all future implementation.
+
+⸻
+
+🔒 Locked Pricing Structure
+
+Orbit Tiers
+	•	Orbit Free – £0
+Ownership + public Orbit + activity counts only
+	•	Orbit Grow – £19/month
+Control + curation + ICE Maker (pay-as-you-go)
+	•	Orbit Insight – £49/month
+Insights + clarity + ICE Maker bundled (fair usage)
+	•	Orbit Intelligence – £99/month (initial)
+Pattern Intelligence + Strategic Advice
+
+Tier names, order, and positioning are locked.
+Do not use “Basic / Pro / Enterprise” naming.
+
+⸻
+
+🔒 ICE Maker Pricing (LOCKED)
+
+Pay-as-you-go (Orbit Grow)
+	•	£8 per ICE
+	•	5 ICEs for £35
+	•	10 ICEs for £60
+	•	Credits never expire
+	•	Credits carry forward into subscriptions
+
+Bundled (Orbit Insight+)
+	•	ICE Maker included under fair usage
+	•	Fair usage definition (internal): 6 ICEs/month
+	•	Soft cap only (UX nudges, not hard blocks)
+
+ICE Cost Controls
+	•	Distinguish internally between:
+	•	Express ICE (text + images, lower cost)
+	•	Cinematic ICE (includes video, higher cost)
+	•	Cinematic ICEs should count as higher usage internally to protect margin.
+
+⸻
+
+🔒 Free Orbit Cost Guardrails (CRITICAL)
+
+Conversation Limits
+	•	Free Orbit conversation cap: 50 messages per Orbit per month
+	•	Soft messaging at ~35–40
+	•	Hard stop at 50 with calm upgrade CTA
+
+Rationale:
+	•	Protects against free-tier abuse
+	•	Caps worst-case free cost to ~£1 per Orbit/month
+	•	Required due to solo, salary-funded constraints
+
+UX Framing
+
+Limits must be framed as success and engagement, not restriction:
+	•	“Your Orbit is getting attention”
+	•	“People are engaging in conversations”
+	•	“Unlock Insight to continue and understand what they’re asking”
+
+Do not use punitive language (“limit reached”, “blocked”, etc.).
+
+⸻
+
+🔒 Profitability Guardrails
+	•	Free tier must remain predictable and capped
+	•	ICE Maker must remain high-margin (85%+)
+	•	Bundled ICE usage must be monitored for abuse
+	•	Pattern Intelligence must remain largely deterministic / batch-processed, not heavy real-time LLM
+
+⸻
+
+Summary (Do Not Reinterpret)
+	•	Pricing ladder is locked
+	•	ICE pricing and bundling logic is locked
+	•	Free tier limits are locked at 50 conversations
+	•	These decisions are driven by real cost modelling and founder cash-flow constraints
+
+Please acknowledge and ensure all future implementation aligns with these guardrails.
+
+⸻
+
+If you want, next we can:
+	•	add this as a Pricing & Guardrails Decision Record alongside the other three
+	•	or I can help you write the exact UX copy for the 50-message cap and ICE fair-usage nudges so engineering doesn’t guess at tone
