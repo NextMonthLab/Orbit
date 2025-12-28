@@ -1,12 +1,11 @@
 import { motion } from "framer-motion";
-import { FileText, User, Star, Video, Phone, Mail, Quote, Lightbulb, ExternalLink } from "lucide-react";
+import { FileText, User, Star, Video, Phone, Mail, Quote, Lightbulb, ExternalLink, Cloud, Sun, Calendar, MapPin, Globe, Briefcase, Award, MessageCircle, Zap, Book, TrendingUp, Shield, Heart, HelpCircle, Settings, Home, DollarSign, Clock, Users, Target, Sparkles, type LucideIcon } from "lucide-react";
 import type { AnyKnowledgeItem, Topic, Page, Person, Proof, Action } from "@/lib/siteKnowledge";
 
 interface KnowledgeTileProps {
   item: AnyKnowledgeItem;
   relevanceScore: number;
   position: { x: number; y: number };
-  onClick: (item: AnyKnowledgeItem) => void;
   accentColor?: string;
   zoomLevel?: number;
 }
@@ -27,22 +26,85 @@ const typeColors = {
   action: '#ec4899',
 };
 
-const typeImageKeywords = {
-  topic: ['abstract', 'technology', 'innovation', 'digital', 'concept', 'data', 'network', 'science', 'research', 'future'],
-  page: ['document', 'website', 'interface', 'screen', 'content', 'article', 'blog', 'news', 'media', 'information'],
-  person: ['professional', 'portrait', 'business', 'team', 'office', 'meeting', 'collaboration', 'handshake', 'consultant', 'expert'],
-  proof: ['success', 'achievement', 'trophy', 'chart', 'growth', 'celebration', 'award', 'milestone', 'results', 'analytics'],
-  action: ['action', 'click', 'phone', 'email', 'contact', 'schedule', 'calendar', 'video', 'call', 'message'],
+const categoryIcons: Record<string, LucideIcon> = {
+  weather: Cloud,
+  forecast: Sun,
+  schedule: Calendar,
+  location: MapPin,
+  web: Globe,
+  business: Briefcase,
+  success: Award,
+  contact: MessageCircle,
+  action: Zap,
+  learn: Book,
+  growth: TrendingUp,
+  security: Shield,
+  health: Heart,
+  help: HelpCircle,
+  settings: Settings,
+  home: Home,
+  finance: DollarSign,
+  time: Clock,
+  team: Users,
+  goal: Target,
+  feature: Sparkles,
+  call: Phone,
+  email: Mail,
+  video: Video,
+  quote: Quote,
 };
 
-function generateTileImage(item: AnyKnowledgeItem): string {
-  const baseKeywords = typeImageKeywords[item.type];
-  const itemKeyword = item.keywords[0] || baseKeywords[0];
-  const hashCode = item.id.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0);
-  const typeKeyword = baseKeywords[Math.abs(hashCode) % baseKeywords.length];
-  const query = encodeURIComponent(`${itemKeyword} ${typeKeyword}`);
-  const seed = Math.abs(hashCode) % 1000;
-  return `https://source.unsplash.com/200x120/?${query}&sig=${seed}`;
+const typeImageQueries: Record<string, string[]> = {
+  topic: ['abstract gradient', 'technology pattern', 'digital network', 'data visualization', 'modern design', 'innovation concept', 'futuristic interface', 'geometric shapes', 'creative pattern', 'minimal abstract'],
+  page: ['website design', 'document layout', 'content interface', 'digital screen', 'modern webpage', 'information display', 'clean interface', 'web application', 'dashboard design', 'article layout'],
+  person: ['professional headshot', 'business portrait', 'team collaboration', 'office meeting', 'consultant expert', 'corporate professional', 'leadership portrait', 'business handshake', 'workplace team', 'executive portrait'],
+  proof: ['success celebration', 'achievement trophy', 'growth chart', 'business results', 'milestone award', 'analytics dashboard', 'performance metrics', 'victory celebration', 'quality certification', 'excellence badge'],
+  action: ['action button', 'call to action', 'contact form', 'schedule calendar', 'video conference', 'phone call', 'email inbox', 'booking appointment', 'quick response', 'instant message'],
+};
+
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
+
+function generateUniqueImageUrl(item: AnyKnowledgeItem): string {
+  const queries = typeImageQueries[item.type];
+  const itemHash = hashString(item.id);
+  const keywordHash = item.keywords.length > 0 ? hashString(item.keywords[0]) : 0;
+  const combinedHash = itemHash + keywordHash;
+  
+  const queryIndex = combinedHash % queries.length;
+  const baseQuery = queries[queryIndex];
+  
+  const primaryKeyword = item.keywords[0] || item.type;
+  const uniqueQuery = encodeURIComponent(`${primaryKeyword} ${baseQuery}`);
+  
+  const uniqueSeed = combinedHash % 10000;
+  
+  return `https://source.unsplash.com/200x120/?${uniqueQuery}&sig=${item.id}-${uniqueSeed}`;
+}
+
+function getCategoryIcon(item: AnyKnowledgeItem): LucideIcon {
+  const keywords = item.keywords.map(k => k.toLowerCase());
+  for (const keyword of keywords) {
+    for (const [category, icon] of Object.entries(categoryIcons)) {
+      if (keyword.includes(category) || category.includes(keyword)) {
+        return icon;
+      }
+    }
+  }
+  if (item.type === 'action') {
+    const action = item as Action;
+    if (action.actionType === 'call') return Phone;
+    if (action.actionType === 'email') return Mail;
+    if (action.actionType === 'video_reply') return Video;
+  }
+  return typeIcons[item.type];
 }
 
 function getActionIcon(actionType: string) {
@@ -54,22 +116,19 @@ function getActionIcon(actionType: string) {
   }
 }
 
-export function KnowledgeTile({ item, relevanceScore, position, onClick, accentColor, zoomLevel = 1 }: KnowledgeTileProps) {
-  const Icon = item.type === 'action' 
+export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoomLevel = 1 }: KnowledgeTileProps) {
+  const CategoryIcon = getCategoryIcon(item);
+  const TypeIcon = item.type === 'action' 
     ? getActionIcon((item as Action).actionType)
     : typeIcons[item.type];
   
   const color = accentColor || typeColors[item.type];
   const glowIntensity = Math.min(relevanceScore / 30, 1);
   
-  const showDetails = true;
-  const showSummary = true;
-  const showFullContent = zoomLevel >= 1.2;
-  
   const rawImageUrl = 'imageUrl' in item ? (item as any).imageUrl : undefined;
   const imageUrl = rawImageUrl && typeof rawImageUrl === 'string' && rawImageUrl.length > 0 
     ? rawImageUrl 
-    : generateTileImage(item);
+    : generateUniqueImageUrl(item);
   
   const getLabel = () => {
     switch (item.type) {
@@ -94,7 +153,7 @@ export function KnowledgeTile({ item, relevanceScore, position, onClick, accentC
   const tileWidth = 95;
 
   return (
-    <motion.button
+    <motion.div
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ 
         opacity: 1, 
@@ -108,9 +167,6 @@ export function KnowledgeTile({ item, relevanceScore, position, onClick, accentC
         damping: 20,
         opacity: { duration: 0.3 }
       }}
-      whileHover={{ scale: 1.05, zIndex: 100 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={() => onClick(item)}
       className="absolute rounded-xl text-left overflow-hidden"
       style={{
         width: tileWidth,
@@ -124,20 +180,27 @@ export function KnowledgeTile({ item, relevanceScore, position, onClick, accentC
         top: '50%',
         marginLeft: -tileWidth / 2,
         marginTop: '-60px',
+        cursor: 'pointer',
       }}
-      data-tile
+      data-tile-id={item.id}
       data-testid={`tile-${item.id}`}
     >
-      {/* Image header or gradient placeholder */}
+      {/* Image header with category icon overlay */}
       <div 
-        className="w-full h-12 bg-cover bg-center"
+        className="w-full h-12 relative bg-cover bg-center"
         style={{ 
-          backgroundImage: imageUrl 
-            ? `url(${imageUrl})` 
-            : `linear-gradient(135deg, ${color}40 0%, ${color}15 100%)`,
-          borderBottom: `1px solid ${color}25`,
+          backgroundImage: `url(${imageUrl})`,
+          borderBottom: `1px solid ${color}30`,
         }}
-      />
+      >
+        {/* Gradient overlay for icon visibility */}
+        <div 
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ background: `linear-gradient(135deg, ${color}60 0%, transparent 60%)` }}
+        >
+          <CategoryIcon className="w-5 h-5 absolute top-1.5 left-1.5" style={{ color: 'white', opacity: 0.9 }} />
+        </div>
+      </div>
       
       {/* Content */}
       <div className="p-2">
@@ -159,7 +222,7 @@ export function KnowledgeTile({ item, relevanceScore, position, onClick, accentC
             className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
             style={{ backgroundColor: `${color}20` }}
           >
-            <Icon className="w-3.5 h-3.5" style={{ color }} />
+            <TypeIcon className="w-3.5 h-3.5" style={{ color }} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-xs font-medium leading-tight line-clamp-2">
@@ -179,6 +242,6 @@ export function KnowledgeTile({ item, relevanceScore, position, onClick, accentC
           {item.type}
         </div>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }

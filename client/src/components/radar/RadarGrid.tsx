@@ -5,6 +5,9 @@ import { KnowledgeTile } from "./KnowledgeTile";
 import type { SiteKnowledge, AnyKnowledgeItem } from "@/lib/siteKnowledge";
 import { getAllItems, rankByRelevance, scoreRelevance } from "@/lib/siteKnowledge";
 
+const TAP_THRESHOLD_MS = 200;
+const TAP_MOVE_THRESHOLD = 8;
+
 function getItemLabel(item: AnyKnowledgeItem): string {
   switch (item.type) {
     case 'topic': return item.label;
@@ -69,6 +72,10 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
   const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const initialPinchDistance = useRef<number | null>(null);
   const initialZoom = useRef<number>(1);
+  const tapStartTime = useRef<number>(0);
+  const tapStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const pendingTileClick = useRef<AnyKnowledgeItem | null>(null);
+  const hasMoved = useRef<boolean>(false);
 
   const allItems = useMemo(() => getAllItems(knowledge), [knowledge]);
   
@@ -78,17 +85,19 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
   }, [allItems, conversationKeywords]);
 
   const positionMap = useMemo(() => {
-    const viewportRadius = Math.min(window.innerWidth, window.innerHeight) / 2;
     const tileWidth = 95;
-    const tileHalfWidth = tileWidth / 2;
-    const tileSpacing = 8;
-    const effectiveTileArc = tileWidth + tileSpacing;
-    const maxVisibleEdge = viewportRadius - 15;
-    const priorityOrbitRadius = 52;
+    const tileHeight = 120;
+    const tileSpacing = 12;
+    const tileDiagonal = Math.sqrt(tileWidth * tileWidth + tileHeight * tileHeight);
+    const minTileSeparation = tileDiagonal / 2 + tileSpacing;
+    
+    const priorityOrbitRadius = 60;
     const priorityOrbitCapacity = 3;
     const relevanceThreshold = 12;
-    const ring1Radius = 95;
-    const ring2Radius = 135;
+    
+    const ring1Radius = 120;
+    const ringSpacing = 85;
+    
     const map = new Map<string, { x: number; y: number; distance: number }>();
     
     const query = conversationKeywords.join(' ');
@@ -113,21 +122,21 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
     });
     
     let placed = 0;
-    const ringConfigs = [
-      { radius: ring1Radius },
-      { radius: ring2Radius },
-    ];
+    let ringIndex = 0;
     
-    for (let r = 0; r < ringConfigs.length && placed < regularItems.length; r++) {
-      const rawRadius = ringConfigs[r].radius;
-      const ringRadius = Math.min(rawRadius, maxVisibleEdge - tileHalfWidth);
-      const circumference = 2 * Math.PI * ringRadius;
-      const tilesInRing = Math.min(Math.floor(circumference / effectiveTileArc), regularItems.length - placed);
-      const angleOffset = (r + 1) * 0.35;
+    while (placed < regularItems.length) {
+      const ringRadius = ring1Radius + ringIndex * ringSpacing;
+      
+      const minAngularSeparation = 2 * Math.asin(Math.min(1, minTileSeparation / (2 * ringRadius)));
+      const maxTilesInRing = Math.max(1, Math.floor((2 * Math.PI) / minAngularSeparation));
+      const tilesInRing = Math.min(maxTilesInRing, regularItems.length - placed);
+      
+      const angleStep = (2 * Math.PI) / tilesInRing;
+      const angleOffset = ringIndex * 0.5;
       
       for (let i = 0; i < tilesInRing && placed < regularItems.length; i++) {
         const { item } = regularItems[placed];
-        const angle = (i / tilesInRing) * 2 * Math.PI - Math.PI / 2 + angleOffset;
+        const angle = i * angleStep - Math.PI / 2 + angleOffset;
         
         map.set(item.id, {
           x: Math.cos(angle) * ringRadius,
@@ -136,27 +145,7 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
         });
         placed++;
       }
-    }
-    
-    let ring = 3;
-    while (placed < regularItems.length) {
-      const rawRadius = ring2Radius + (ring - 2) * 65;
-      const circumference = 2 * Math.PI * rawRadius;
-      const tilesInRing = Math.min(Math.floor(circumference / effectiveTileArc), regularItems.length - placed);
-      const angleOffset = ring * 0.4;
-      
-      for (let i = 0; i < tilesInRing && placed < regularItems.length; i++) {
-        const { item } = regularItems[placed];
-        const angle = (i / tilesInRing) * 2 * Math.PI - Math.PI / 2 + angleOffset;
-        
-        map.set(item.id, {
-          x: Math.cos(angle) * rawRadius,
-          y: Math.sin(angle) * rawRadius,
-          distance: rawRadius,
-        });
-        placed++;
-      }
-      ring++;
+      ringIndex++;
     }
     return map;
   }, [rankedItems, conversationKeywords]);
@@ -253,10 +242,20 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest('[data-tile]') || target.closest('[data-chat-hub]')) return;
+    if (target.closest('[data-chat-hub]')) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    tapStartTime.current = Date.now();
+    tapStartPos.current = { x: e.clientX, y: e.clientY };
+    hasMoved.current = false;
+    pendingTileClick.current = null;
+    
+    const tileEl = target.closest('[data-tile-id]');
+    if (tileEl) {
+      const tileId = tileEl.getAttribute('data-tile-id');
+      pendingTileClick.current = allItems.find(item => item.id === tileId) || null;
+    }
     
     if (activePointers.current.size === 1) {
       setIsDragging(true);
@@ -268,13 +267,20 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
       initialZoom.current = zoomLevel;
     }
     
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-  }, [canvasOffset, zoomLevel, getPinchDistance]);
+    containerRef.current?.setPointerCapture?.(e.pointerId);
+  }, [canvasOffset, zoomLevel, getPinchDistance, allItems]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!activePointers.current.has(e.pointerId)) return;
     
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    
+    const dx = e.clientX - tapStartPos.current.x;
+    const dy = e.clientY - tapStartPos.current.y;
+    const movedDistance = Math.sqrt(dx * dx + dy * dy);
+    if (movedDistance > TAP_MOVE_THRESHOLD) {
+      hasMoved.current = true;
+    }
     
     if (activePointers.current.size === 2 && initialPinchDistance.current) {
       const currentDistance = getPinchDistance();
@@ -284,24 +290,34 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
         setZoomLevel(newZoom);
       }
     } else if (isDragging && activePointers.current.size === 1) {
-      const dx = e.clientX - dragStart.current.x;
-      const dy = e.clientY - dragStart.current.y;
+      const panDx = e.clientX - dragStart.current.x;
+      const panDy = e.clientY - dragStart.current.y;
       setCanvasOffset({
-        x: offsetStart.current.x + dx,
-        y: offsetStart.current.y + dy,
+        x: offsetStart.current.x + panDx,
+        y: offsetStart.current.y + panDy,
       });
     }
   }, [isDragging, getPinchDistance]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    const elapsed = Date.now() - tapStartTime.current;
+    const wasTap = elapsed < TAP_THRESHOLD_MS && !hasMoved.current;
+    
+    if (wasTap && pendingTileClick.current && activePointers.current.size === 1) {
+      handleTileClick(pendingTileClick.current);
+    }
+    
     activePointers.current.delete(e.pointerId);
+    containerRef.current?.releasePointerCapture?.(e.pointerId);
+    
     if (activePointers.current.size < 2) {
       initialPinchDistance.current = null;
     }
     if (activePointers.current.size === 0) {
       setIsDragging(false);
     }
-  }, []);
+    pendingTileClick.current = null;
+  }, [handleTileClick]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -374,7 +390,6 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6' }:
               item={item}
               relevanceScore={relevance}
               position={{ x: pos.x, y: pos.y }}
-              onClick={handleTileClick}
               accentColor={relevance > 10 ? accentColor : undefined}
               zoomLevel={zoomLevel}
             />
