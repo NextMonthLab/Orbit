@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
+import { Redirect } from "wouter";
 import { 
   FileText, 
   Eye, 
@@ -20,7 +22,8 @@ import {
   Trash2,
   Edit3,
   Calendar,
-  User
+  User,
+  ShieldX
 } from "lucide-react";
 import type { BlogPost } from "@shared/schema";
 
@@ -48,7 +51,15 @@ interface ValidationResult {
   wordCount?: number;
 }
 
+function escapeYamlValue(value: string): string {
+  if (value.includes('"') || value.includes('\n') || value.includes(':')) {
+    return `"${value.replace(/"/g, '\\"')}"`;
+  }
+  return `"${value}"`;
+}
+
 export default function BlogPublisherPage() {
+  const { user, loading: authLoading } = useAuth();
   const [markdown, setMarkdown] = useState("");
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -150,6 +161,26 @@ export default function BlogPublisherPage() {
     },
   });
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-pink-400" />
+      </div>
+    );
+  }
+
+  if (!user?.isAdmin) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
+        <ShieldX className="w-16 h-16 text-red-400 mb-4" />
+        <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
+        <p className="text-white/60 text-center max-w-md">
+          You need administrator privileges to access the Blog Publisher.
+        </p>
+      </div>
+    );
+  }
+
   const handleValidate = () => {
     if (!markdown.trim()) {
       toast({
@@ -191,15 +222,15 @@ export default function BlogPublisherPage() {
   const handleEdit = (post: BlogPost) => {
     const frontmatter = [
       "---",
-      `title: "${post.title}"`,
-      `slug: "${post.slug}"`,
-      post.description ? `description: "${post.description}"` : null,
-      post.author ? `author: "${post.author}"` : null,
-      post.tags?.length ? `tags: [${post.tags.map(t => `"${t}"`).join(", ")}]` : null,
-      post.heroImageUrl ? `heroImageUrl: "${post.heroImageUrl}"` : null,
-      post.heroAlt ? `heroAlt: "${post.heroAlt}"` : null,
-      post.ctaPrimaryLabel ? `ctaPrimaryLabel: "${post.ctaPrimaryLabel}"` : null,
-      post.ctaPrimaryUrl ? `ctaPrimaryUrl: "${post.ctaPrimaryUrl}"` : null,
+      `title: ${escapeYamlValue(post.title)}`,
+      `slug: ${escapeYamlValue(post.slug)}`,
+      post.description ? `description: ${escapeYamlValue(post.description)}` : null,
+      post.author ? `author: ${escapeYamlValue(post.author)}` : null,
+      post.tags?.length ? `tags: [${post.tags.map(t => escapeYamlValue(t)).join(", ")}]` : null,
+      post.heroImageUrl ? `heroImageUrl: ${escapeYamlValue(post.heroImageUrl)}` : null,
+      post.heroAlt ? `heroAlt: ${escapeYamlValue(post.heroAlt)}` : null,
+      post.ctaPrimaryLabel ? `ctaPrimaryLabel: ${escapeYamlValue(post.ctaPrimaryLabel)}` : null,
+      post.ctaPrimaryUrl ? `ctaPrimaryUrl: ${escapeYamlValue(post.ctaPrimaryUrl)}` : null,
       "---",
       "",
     ].filter(Boolean).join("\n");
