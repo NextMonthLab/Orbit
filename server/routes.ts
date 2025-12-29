@@ -6355,6 +6355,199 @@ ANTI-PATTERNS TO AVOID:
     (req as any).orbitMeta = orbitMeta;
     next();
   };
+
+  // ==========================================
+  // Voice Settings Routes (ICE Narration)
+  // ==========================================
+
+  // Voice Settings - Get (owner only)
+  app.get("/api/orbit/:slug/voice-settings", requireOrbitOwner, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta?.businessSlug) {
+        return res.json({
+          universeId: null,
+          narrationEnabled: false,
+          defaultVoice: null,
+          defaultSpeed: 1.0,
+          defaultMode: 'manual',
+          cardsWithNarration: 0,
+          cardsWithAudio: 0,
+          totalCards: 0,
+        });
+      }
+      
+      const universe = await storage.getUniverseBySlug(orbitMeta.businessSlug);
+      if (!universe) {
+        return res.json({
+          universeId: null,
+          narrationEnabled: false,
+          defaultVoice: null,
+          defaultSpeed: 1.0,
+          defaultMode: 'manual',
+          cardsWithNarration: 0,
+          cardsWithAudio: 0,
+          totalCards: 0,
+        });
+      }
+      
+      const cards = await storage.getCardsByUniverse(universe.id);
+      const cardsWithNarration = cards.filter(c => c.narrationEnabled && c.narrationText).length;
+      const cardsWithAudio = cards.filter(c => c.narrationAudioUrl).length;
+      
+      res.json({
+        universeId: universe.id,
+        narrationEnabled: universe.defaultNarrationEnabled ?? false,
+        defaultVoice: universe.defaultNarrationVoice || 'alloy',
+        defaultSpeed: universe.defaultNarrationSpeed ?? 1.0,
+        defaultMode: universe.defaultNarrationMode || 'manual',
+        cardsWithNarration,
+        cardsWithAudio,
+        totalCards: cards.length,
+      });
+    } catch (error) {
+      console.error("Error getting voice settings:", error);
+      res.status(500).json({ message: "Error getting voice settings" });
+    }
+  });
+
+  // Voice Settings - Update (owner only)
+  app.patch("/api/orbit/:slug/voice-settings", requireOrbitOwner, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { narrationEnabled, defaultVoice, defaultSpeed } = req.body;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta?.businessSlug) {
+        return res.status(404).json({ message: "No ICE found for this Orbit" });
+      }
+      
+      const universe = await storage.getUniverseBySlug(orbitMeta.businessSlug);
+      if (!universe) {
+        return res.status(404).json({ message: "No ICE found for this Orbit" });
+      }
+      
+      const updates: Partial<typeof universe> = {};
+      if (narrationEnabled !== undefined) updates.defaultNarrationEnabled = narrationEnabled;
+      if (defaultVoice !== undefined) updates.defaultNarrationVoice = defaultVoice;
+      if (defaultSpeed !== undefined) updates.defaultNarrationSpeed = Math.max(0.5, Math.min(2.0, defaultSpeed));
+      
+      const updated = await storage.updateUniverse(universe.id, updates);
+      
+      // If enabling narration, also enable on all cards that have text
+      if (narrationEnabled === true) {
+        const cards = await storage.getCardsByUniverse(universe.id);
+        for (const card of cards) {
+          if (card.sceneText && !card.narrationEnabled) {
+            await storage.updateCard(card.id, {
+              narrationEnabled: true,
+              narrationText: card.narrationText || card.sceneText?.slice(0, 3000),
+              narrationVoice: defaultVoice || universe.defaultNarrationVoice || 'alloy',
+              narrationSpeed: defaultSpeed || universe.defaultNarrationSpeed || 1.0,
+              narrationStatus: 'text_ready',
+            });
+          }
+        }
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating voice settings:", error);
+      res.status(500).json({ message: "Error updating voice settings" });
+    }
+  });
+
+  // Bulk Narration Generation (owner only)
+  app.post("/api/orbit/:slug/narrations/generate-all", requireOrbitOwner, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta?.businessSlug) {
+        return res.status(404).json({ message: "No ICE found for this Orbit" });
+      }
+      
+      const universe = await storage.getUniverseBySlug(orbitMeta.businessSlug);
+      if (!universe) {
+        return res.status(404).json({ message: "No ICE found for this Orbit" });
+      }
+      
+      const { isTTSConfigured, synthesiseSpeech } = await import("./tts");
+      const { isObjectStorageConfigured, putObject, getNarrationKey } = await import("./storage/objectStore");
+      
+      if (!isTTSConfigured()) {
+        return res.status(503).json({ message: "TTS not configured: OPENAI_API_KEY is missing" });
+      }
+      
+      if (!isObjectStorageConfigured()) {
+        return res.status(503).json({ message: "Object storage not configured" });
+      }
+      
+      const cards = await storage.getCardsByUniverse(universe.id);
+      const cardsToGenerate = cards.filter(c => 
+        c.narrationEnabled && 
+        c.narrationText && 
+        c.narrationText.trim() && 
+        !c.narrationAudioUrl
+      );
+      
+      if (cardsToGenerate.length === 0) {
+        return res.json({ cardsToGenerate: 0, message: "All cards already have audio" });
+      }
+      
+      // Start generating in background
+      (async () => {
+        for (const card of cardsToGenerate) {
+          try {
+            await storage.updateCard(card.id, { narrationStatus: 'generating' });
+            
+            const result = await synthesiseSpeech({
+              text: card.narrationText!,
+              voice: card.narrationVoice || universe.defaultNarrationVoice || 'alloy',
+              speed: card.narrationSpeed || universe.defaultNarrationSpeed || 1.0,
+            });
+            
+            const key = getNarrationKey(card.universeId, card.id);
+            const audioUrl = await putObject(key, result.audioBuffer, result.contentType);
+            
+            const estimatedDuration = (card.narrationText!.length / 5) / 150 * 60;
+            
+            await storage.updateCard(card.id, {
+              narrationAudioUrl: audioUrl,
+              narrationStatus: 'ready',
+              narrationAudioDurationSec: estimatedDuration,
+              narrationUpdatedAt: new Date(),
+              narrationError: null,
+            });
+            
+            await storage.logTtsUsage({
+              userId: (req.user as any).id,
+              universeId: card.universeId,
+              cardId: card.id,
+              charsCount: card.narrationText!.length,
+              voiceId: card.narrationVoice || 'alloy',
+            });
+          } catch (err) {
+            console.error(`Failed to generate narration for card ${card.id}:`, err);
+            await storage.updateCard(card.id, {
+              narrationStatus: 'failed',
+              narrationError: err instanceof Error ? err.message : 'Generation failed',
+            });
+          }
+        }
+      })();
+      
+      res.json({ 
+        cardsToGenerate: cardsToGenerate.length,
+        message: `Generating audio for ${cardsToGenerate.length} cards in background`,
+      });
+    } catch (error) {
+      console.error("Error generating narrations:", error);
+      res.status(500).json({ message: "Error generating narrations" });
+    }
+  });
   
   // List all connections for an Orbit
   app.get("/api/orbit/:slug/data-sources", requireOrbitOwner, async (req, res) => {
