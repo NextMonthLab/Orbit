@@ -1,12 +1,13 @@
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, Calendar, Eye, ImageIcon, Loader2, Plus, Video, Shield, AlertTriangle, Share2 } from "lucide-react";
+import { ArrowLeft, Calendar, Eye, ImageIcon, Loader2, Plus, Video, Shield, AlertTriangle, Share2, BarChart3 } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { SourceGuardrails } from "@shared/schema";
+import { ExperienceInsightsPanel } from "@/components/experience/ExperienceInsightsPanel";
 
 export default function AdminUniverseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -151,6 +152,25 @@ export default function AdminUniverseDetail() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Insights Section */}
+        <Card data-testid="insights-section">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-primary" />
+              <CardTitle>Insights</CardTitle>
+            </div>
+            <CardDescription>
+              View analytics and engagement data for this experience
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ExperienceInsightsPanel 
+              universeId={universeId} 
+              universeName={universe.name} 
+            />
+          </CardContent>
+        </Card>
 
         {/* Source Guardrails Section */}
         {universe.sourceGuardrails && (
