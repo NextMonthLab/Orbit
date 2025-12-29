@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Sparkles, Building2, Film, GraduationCap, Upload, Wand2, MessageCircle, Share2, Shield, Eye, Lock, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Play, Sparkles, Building2, Film, GraduationCap, Upload, Wand2, MessageCircle, Share2, Shield, Eye, Lock, CheckCircle2, Radio } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
@@ -10,12 +10,14 @@ const useCases = [
   {
     id: "brands",
     title: "For Brands & Businesses",
-    description: "Turn your website into a story that sells itself.",
+    description: "Orbit is a Business-to-AI interface that helps you control how your brand is represented in AI-powered discovery.",
     icon: Building2,
     href: "/for/brands",
     color: "from-pink-500 to-purple-500",
-    microCta: "Turn my website into an experience",
+    microCta: "Claim your business Orbit",
     intent: "brands",
+    secondaryLink: "/ai-discovery-control",
+    secondaryCta: "Why this matters",
   },
   {
     id: "creators",
@@ -240,6 +242,50 @@ export default function MarketingHome() {
           <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
         </section>
 
+        {/* AI Discovery Shift Section */}
+        <section className="py-20 px-6 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
+          <div className="max-w-4xl mx-auto relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 text-sm font-medium bg-pink-500/10 border border-pink-500/20 rounded-full backdrop-blur-sm">
+                <Radio className="w-4 h-4 text-pink-400" />
+                <span className="text-pink-300">AI Discovery</span>
+              </div>
+              
+              <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-ai-discovery-title">
+                Discovery has changed.{' '}
+                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">AI now answers.</span>
+              </h2>
+              
+              <p className="text-lg md:text-xl text-white/60 max-w-3xl mx-auto mb-10 leading-relaxed">
+                People no longer find businesses only through search results.
+                They ask AI systems like ChatGPT and Gemini and trust the answers.
+                Orbit helps you control how your business is understood, described, and recommended.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/ai-discovery-control">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-ai-discovery-learn">
+                    Learn about AI discovery
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <Link href="/for/brands">
+                  <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/20 text-white hover:bg-white/10 gap-3" data-testid="button-ai-discovery-claim">
+                    Claim your business Orbit
+                  </Button>
+                </Link>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
         {/* What is NextMonth - Pipeline Visualization */}
         <section id="how-it-works" className="py-24 px-6 relative scroll-mt-24">
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
@@ -318,14 +364,23 @@ export default function MarketingHome() {
                     <p className="text-white/50 leading-relaxed mb-4 flex-grow">
                       {useCase.description}
                     </p>
-                    <Link href={useCase.href}>
-                      <button 
-                        className="flex items-center gap-2 text-pink-400 hover:text-pink-300 text-sm font-medium transition-colors cursor-pointer"
-                        data-testid={`button-microcta-${useCase.id}`}
-                      >
-                        {useCase.microCta} <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </Link>
+                    <div className="flex flex-col gap-2">
+                      <Link href={useCase.href}>
+                        <button 
+                          className="flex items-center gap-2 text-pink-400 hover:text-pink-300 text-sm font-medium transition-colors cursor-pointer"
+                          data-testid={`button-microcta-${useCase.id}`}
+                        >
+                          {useCase.microCta} <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </Link>
+                      {useCase.secondaryLink && (
+                        <Link href={useCase.secondaryLink}>
+                          <span className="text-white/40 hover:text-white/60 text-sm transition-colors cursor-pointer">
+                            {useCase.secondaryCta}
+                          </span>
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -462,6 +517,18 @@ export default function MarketingHome() {
             </motion.div>
           </div>
         </section>
+
+        {/* Proof Strip */}
+        <Link href="/ai-discovery-control">
+          <section className="py-8 px-6 relative cursor-pointer group" data-testid="section-proof-strip">
+            <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 via-purple-500/5 to-blue-500/5 group-hover:from-pink-500/10 group-hover:via-purple-500/10 group-hover:to-blue-500/10 transition-all" />
+            <div className="max-w-4xl mx-auto relative z-10 text-center">
+              <p className="text-lg md:text-xl text-white/60 group-hover:text-white/80 transition-colors">
+                Stop being interpreted by default. Give AI a source it can trust.
+              </p>
+            </div>
+          </section>
+        </Link>
 
         {/* Footer */}
         <footer className="py-12 px-6 border-t border-white/10 bg-black">
