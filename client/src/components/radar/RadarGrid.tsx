@@ -223,10 +223,11 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6', o
         const hasLocationContext = topic.keywords.some(k => 
           ['location', 'local', 'area', 'region', 'weather'].includes(k.toLowerCase())
         );
+        const summaryText = summary ? `\n\n${summary}` : '';
         if (hasLocationContext) {
-          return `Tell me your location and I can give you more specific information about this.`;
+          return `${itemName}${summaryText}\n\nTell me your location and I can give you more specific information about "${itemName}".`;
         }
-        return `What would you like to know about this?`;
+        return `${itemName}${summaryText}\n\nWhat would you like to explore about "${itemName}"?`;
       }
       case 'action': {
         const action = selectedItem as import('@/lib/siteKnowledge').Action;
@@ -249,7 +250,8 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6', o
         return `Meet ${person.name}, ${person.role}.${contactInfo}\n\nWould you like me to help you get in touch, or do you have questions I can answer?`;
       }
       case 'proof': {
-        return `Want to see more examples, or do you have other questions?`;
+        const summaryText = summary ? `\n\n${summary}` : '';
+        return `${itemName}${summaryText}\n\nWhat would you like to explore about "${itemName}"? I can share more details or find similar examples.`;
       }
       case 'blog': {
         const blog = selectedItem as import('@/lib/siteKnowledge').Blog;

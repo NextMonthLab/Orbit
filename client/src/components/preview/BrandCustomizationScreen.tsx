@@ -385,61 +385,6 @@ export function BrandCustomizationScreen({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-          className="space-y-3"
-        >
-          <span className="text-sm font-medium block text-center" style={{ color: mutedColor }}>
-            Experience
-          </span>
-          
-          <div 
-            className="flex flex-wrap justify-center gap-2"
-          >
-            <button
-              onClick={() => setExperienceType('radar')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all text-sm font-medium"
-              style={{
-                backgroundColor: experienceType === 'radar' ? accentColor : (theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'),
-                color: experienceType === 'radar' ? (accentColor === '#ffffff' ? '#000' : '#fff') : mutedColor,
-                border: experienceType === 'radar' ? `2px solid ${accentColor}` : '2px solid transparent',
-              }}
-              data-testid="experience-radar"
-            >
-              <Radar className="w-4 h-4" />
-              Radar
-            </button>
-            <button
-              onClick={() => setExperienceType('spatial')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all text-sm font-medium"
-              style={{
-                backgroundColor: experienceType === 'spatial' ? accentColor : (theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'),
-                color: experienceType === 'spatial' ? (accentColor === '#ffffff' ? '#000' : '#fff') : mutedColor,
-                border: experienceType === 'spatial' ? `2px solid ${accentColor}` : '2px solid transparent',
-              }}
-              data-testid="experience-spatial"
-            >
-              <Sparkles className="w-4 h-4" />
-              Cards
-            </button>
-            <button
-              onClick={() => setExperienceType('classic')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all text-sm font-medium"
-              style={{
-                backgroundColor: experienceType === 'classic' ? accentColor : (theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'),
-                color: experienceType === 'classic' ? (accentColor === '#ffffff' ? '#000' : '#fff') : mutedColor,
-                border: experienceType === 'classic' ? `2px solid ${accentColor}` : '2px solid transparent',
-              }}
-              data-testid="experience-classic"
-            >
-              <LayoutGrid className="w-4 h-4" />
-              Classic
-            </button>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
           className="pt-4 pb-6"
         >
