@@ -7207,23 +7207,21 @@ GUIDELINES:
       if (stripeSecretKey) {
         // Create real Stripe checkout session
         try {
-          const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-12-18.acacia' });
+          const stripe = new Stripe(stripeSecretKey);
           
+          // First create a price for the one-time hardware charge to use as invoice item
+          const hardwarePrice = await stripe.prices.create({
+            currency: 'gbp',
+            unit_amount: 29900, // £299.00 one-time
+            product_data: {
+              name: 'NextMonth Orbit Cube Hardware',
+            },
+          });
+          
+          // Subscription mode with add_invoice_items for one-time hardware charge
           const session = await stripe.checkout.sessions.create({
             mode: 'subscription',
             line_items: [
-              {
-                price_data: {
-                  currency: 'gbp',
-                  product_data: {
-                    name: 'NextMonth Orbit Cube',
-                    description: 'Physical hardware device with voice-enabled kiosk display',
-                  },
-                  unit_amount: 29900, // £299.00 one-time
-                  recurring: undefined,
-                },
-                quantity: 1,
-              },
               {
                 price_data: {
                   currency: 'gbp',
@@ -7237,6 +7235,18 @@ GUIDELINES:
                 quantity: 1,
               },
             ],
+            subscription_data: {
+              metadata: {
+                cubeId: cube.id.toString(),
+                orbitSlug: slug,
+              },
+              add_invoice_items: [
+                {
+                  price: hardwarePrice.id,
+                  quantity: 1,
+                },
+              ],
+            },
             success_url: `${req.protocol}://${req.get('host')}/orbit/${slug}/hub?panel=cubes&success=true&orderId=${order.id}`,
             cancel_url: `${req.protocol}://${req.get('host')}/orbit/${slug}/hub?panel=cubes&cancelled=true`,
             metadata: {
@@ -7357,12 +7367,12 @@ GUIDELINES:
     }
   });
 
-  // Helper function for generating pairing codes
+  // Helper function for generating secure pairing codes
   function generateCubePairingCode(): string {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
     for (let i = 0; i < 8; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+      code += chars.charAt(crypto.randomInt(0, chars.length));
     }
     return code;
   }
