@@ -2,19 +2,29 @@ import crypto from 'crypto';
 
 const SECRET = process.env.PUBLIC_TOKEN_SECRET || crypto.randomBytes(32).toString('hex');
 const TOKEN_EXPIRY_SECONDS = 3600; // 1 hour
+const TOKEN_VERSION = 1;
 
 type ResourceType = 'story' | 'preview';
+type Audience = 'analytics' | 'chat';
 
 interface PublicAccessTokenPayload {
+  ver: number;
+  aud: Audience;
   resourceType: ResourceType;
   resourceId: string;
   iat: number;
   exp: number;
 }
 
-export function generatePublicAccessToken(resourceId: string | number, resourceType: ResourceType): string {
+export function generatePublicAccessToken(
+  resourceId: string | number, 
+  resourceType: ResourceType,
+  audience: Audience = resourceType === 'story' ? 'analytics' : 'chat'
+): string {
   const now = Math.floor(Date.now() / 1000);
   const payload: PublicAccessTokenPayload = {
+    ver: TOKEN_VERSION,
+    aud: audience,
     resourceType,
     resourceId: String(resourceId),
     iat: now,
@@ -55,6 +65,11 @@ export function verifyPublicAccessToken(token: string): PublicAccessTokenPayload
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp < now) {
       return null;
+    }
+    
+    // Backwards compatibility: accept tokens without ver/aud (version 0)
+    if (payload.ver === undefined) {
+      (payload as any).ver = 0;
     }
     
     return payload;
