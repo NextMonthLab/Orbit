@@ -1,0 +1,148 @@
+This is very close to approval, but I want you to make 6 surgical changes before we let Replit touch the code. These are the bits that prevent drift, security headaches, and “why is this so slow on the Cube?” moments.
+
+Decision
+
+✅ Approve direction
+🟡 Approve implementation only after these changes are applied to the plan
+
+⸻
+
+1) Keep /api/orbit/:slug/ask — but make the response Orbit-native
+
+Right now the response returns tiles as { type, id, title }. That’s not enough for a thin client or for your own UI to render consistently.
+
+Change:
+Return a UI-ready payload that the Orbit front-end already knows how to render:
+	•	replyText
+	•	uiIntent (e.g. open_node, highlight_nodes, show_cards, show_diff_prompt)
+	•	scenePatch (minimal state mutation)
+	•	cards[] (full card objects, not stubs)
+
+That keeps the Cube and web in lockstep.
+
+⸻
+
+2) Don’t use device_id as a “hardware fingerprint”
+
+On a Pi it’s doable, but it becomes fragile and privacy-adjacent. You’ll also get support tickets when an SD card swap changes it.
+
+Change:
+Use:
+	•	device_id as a server-issued UUID
+	•	pairing code binds that device to an orbit/tenant
+	•	optional device_label (“Boardroom Cube”)
+
+If you want a “fingerprint”, store it as a non-unique hint (e.g. user-agent, hostname) — never as identity.
+
+⸻
+
+3) Rate limits are too tight for a “talking interface”
+
+60 asks/hour is 1 per minute. A natural voice session can exceed that.
+
+Change:
+	•	MVP: 120 asks/hour per device (2/min average) + burst allowance
+	•	Or use token bucket: burst 10, refill 2/min
+
+Also: rate limit by device + tenant, not just device.
+
+⸻
+
+4) SSRF “not applicable” is wrong (because of Data Sources)
+
+Even if the Cube isn’t triggering external fetches, the Orbit system does fetch external APIs via Data Sources.
+
+Change:
+In the AgoraCube readiness checklist, include:
+	•	“SSRF protections exist in Data Source fetcher layer”
+	•	“Device endpoints are not SSRF vectors”
+
+Just be explicit so nobody forgets that ingestion is the real risk surface.
+
+⸻
+
+5) Kiosk mode “scroll snap / momentum locked” is a trap
+
+Scroll physics tweaks tend to break across browsers, and Pi Chromium can be… quirky.
+
+Change:
+MVP kiosk mode should only do:
+	•	hide chrome
+	•	touch targets
+	•	reduced motion
+	•	node cap
+
+Leave scroll behaviour alone unless you can prove it improves UX without jank.
+
+⸻
+
+6) Voice Mode should not be v1.1 if AgoraCube’s whole point is voice
+
+If the Cube’s differentiator is “you can talk to it”, we should include basic voice input in MVP, but keep it minimal.
+
+Change:
+MVP Voice:
+	•	mic button
+	•	browser STT if available OR a placeholder integration point
+	•	transcript → existing sendMessage handler
+	•	browser TTS (SpeechSynthesis)
+
+No wake word. No camera. No always-on listening.
+
+⸻
+
+Revised MVP scope (what I’d green-light)
+
+MVP
+	•	kiosk=1 mode (chromeless Orbit UI)
+	•	voice=1 mode (mic + TTS toggles)
+	•	device pairing + revocable token
+	•	/api/orbit/:slug/ask returning UI-ready scenePatch + replyText
+	•	snapshot grounding: latest ready snapshots
+	•	sensible rate limiting + audit logging
+
+v1.1
+	•	server-side premium TTS (optional)
+	•	/scene endpoint (only if needed)
+	•	snapshot diff UX
+
+⸻
+
+The approval message you can send to Replit (paste this)
+
+# APPROVED — Proceed to Implementation (with these adjustments)
+
+Proceed with AgoraCube readiness inside Orbit as proposed, but apply the following changes:
+
+1) /api/orbit/:slug/ask response must be Orbit-UI-ready:
+   - include replyText
+   - include scenePatch (or uiIntent + minimal state updates)
+   - include full cards/objects needed for Orbit to render (not tile stubs)
+
+2) Device identity:
+   - device_id must be server-issued UUID (not a hardware fingerprint)
+   - pairing code binds device to orbit/tenant
+   - allow a device_label for admin UI
+
+3) Rate limiting:
+   - increase to support natural voice use (suggest 120 asks/hour + burst, token bucket)
+   - rate limit by device + tenant
+
+4) Security checklist must acknowledge SSRF risk exists in Data Sources fetcher layer (even if not in kiosk endpoints)
+
+5) Kiosk UX:
+   - do NOT implement custom scroll physics in MVP (no momentum-lock / snap-to-tile)
+   - focus on chromeless + touch targets + reduced motion + node cap
+
+6) Voice mode should be included in MVP (basic):
+   - mic button + transcript → existing sendMessage handler
+   - SpeechSynthesis TTS for replies
+   - no wake word, no camera, no always-on listening
+
+After implementing, provide:
+- a short demo checklist
+- pairing flow walkthrough
+- sample /ask request/response examples
+- notes on how snapshot grounding is applied
+
+If you give me a “yes”, I’ll also tighten the /ask request/response into a mini OpenAPI spec so the Pi team (or future you) can build against it without interpretation.

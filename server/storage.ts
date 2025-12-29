@@ -2006,6 +2006,133 @@ export class DatabaseStorage implements IStorage {
     const latestSnapshot = snapshots[0];
     return this.getApiCuratedItemsBySnapshot(latestSnapshot.id);
   }
+
+  // ============================================
+  // DEVICE SESSIONS (AgoraCube / Thin Clients)
+  // ============================================
+
+  async createDeviceSession(data: schema.InsertDeviceSession): Promise<schema.DeviceSession> {
+    const [session] = await db.insert(schema.deviceSessions).values(data).returning();
+    return session;
+  }
+
+  async getDeviceSession(deviceId: string): Promise<schema.DeviceSession | undefined> {
+    return db.query.deviceSessions.findFirst({
+      where: and(
+        eq(schema.deviceSessions.deviceId, deviceId),
+        sql`${schema.deviceSessions.revokedAt} IS NULL`
+      ),
+    });
+  }
+
+  async getDeviceSessionByToken(tokenHash: string): Promise<schema.DeviceSession | undefined> {
+    return db.query.deviceSessions.findFirst({
+      where: and(
+        eq(schema.deviceSessions.tokenHash, tokenHash),
+        sql`${schema.deviceSessions.revokedAt} IS NULL`
+      ),
+    });
+  }
+
+  async getDeviceSessionByPairingCode(pairingCode: string): Promise<schema.DeviceSession | undefined> {
+    return db.query.deviceSessions.findFirst({
+      where: and(
+        eq(schema.deviceSessions.pairingCode, pairingCode),
+        sql`${schema.deviceSessions.pairingExpiresAt} > NOW()`,
+        sql`${schema.deviceSessions.revokedAt} IS NULL`
+      ),
+    });
+  }
+
+  async getDeviceSessionsByOrbit(orbitSlug: string): Promise<schema.DeviceSession[]> {
+    return db.query.deviceSessions.findMany({
+      where: eq(schema.deviceSessions.orbitSlug, orbitSlug),
+      orderBy: [desc(schema.deviceSessions.createdAt)],
+    });
+  }
+
+  async updateDeviceSession(deviceId: string, data: Partial<schema.InsertDeviceSession>): Promise<schema.DeviceSession | undefined> {
+    const [session] = await db.update(schema.deviceSessions)
+      .set(data)
+      .where(eq(schema.deviceSessions.deviceId, deviceId))
+      .returning();
+    return session;
+  }
+
+  async revokeDeviceSession(deviceId: string): Promise<void> {
+    await db.update(schema.deviceSessions)
+      .set({ revokedAt: new Date() })
+      .where(eq(schema.deviceSessions.deviceId, deviceId));
+  }
+
+  async clearPairingCode(deviceId: string): Promise<void> {
+    await db.update(schema.deviceSessions)
+      .set({ pairingCode: null, pairingExpiresAt: null })
+      .where(eq(schema.deviceSessions.deviceId, deviceId));
+  }
+
+  // Device Events (Audit Log)
+  async createDeviceEvent(data: schema.InsertDeviceEvent): Promise<schema.DeviceEvent> {
+    const [event] = await db.insert(schema.deviceEvents).values(data).returning();
+    return event;
+  }
+
+  async getDeviceEvents(deviceId: string, limit: number = 100): Promise<schema.DeviceEvent[]> {
+    return db.query.deviceEvents.findMany({
+      where: eq(schema.deviceEvents.deviceId, deviceId),
+      orderBy: [desc(schema.deviceEvents.createdAt)],
+      limit,
+    });
+  }
+
+  async getDeviceEventsByOrbit(orbitSlug: string, limit: number = 100): Promise<schema.DeviceEvent[]> {
+    return db.query.deviceEvents.findMany({
+      where: eq(schema.deviceEvents.orbitSlug, orbitSlug),
+      orderBy: [desc(schema.deviceEvents.createdAt)],
+      limit,
+    });
+  }
+
+  // Rate Limiting (Token Bucket)
+  async getOrCreateRateLimit(deviceId: string, orbitSlug: string): Promise<schema.DeviceRateLimit> {
+    const existing = await db.query.deviceRateLimits.findFirst({
+      where: and(
+        eq(schema.deviceRateLimits.deviceId, deviceId),
+        eq(schema.deviceRateLimits.orbitSlug, orbitSlug)
+      ),
+    });
+    
+    if (existing) return existing;
+    
+    const [newLimit] = await db.insert(schema.deviceRateLimits)
+      .values({ deviceId, orbitSlug, tokens: 10 })
+      .returning();
+    return newLimit;
+  }
+
+  async updateRateLimit(id: number, tokens: number): Promise<void> {
+    await db.update(schema.deviceRateLimits)
+      .set({ tokens, lastRefillAt: new Date() })
+      .where(eq(schema.deviceRateLimits.id, id));
+  }
+
+  async consumeRateLimitToken(deviceId: string, orbitSlug: string): Promise<{ allowed: boolean; tokensRemaining: number }> {
+    const limit = await this.getOrCreateRateLimit(deviceId, orbitSlug);
+    
+    // Token bucket: refill 2 tokens per minute, max 10 (burst)
+    const now = new Date();
+    const lastRefill = new Date(limit.lastRefillAt);
+    const minutesSinceRefill = (now.getTime() - lastRefill.getTime()) / 60000;
+    const tokensToAdd = Math.floor(minutesSinceRefill * 2); // 2 tokens per minute = 120/hour
+    const newTokens = Math.min(10, limit.tokens + tokensToAdd); // Cap at 10 (burst allowance)
+    
+    if (newTokens < 1) {
+      return { allowed: false, tokensRemaining: 0 };
+    }
+    
+    await this.updateRateLimit(limit.id, newTokens - 1);
+    return { allowed: true, tokensRemaining: newTokens - 1 };
+  }
 }
 
 export const storage = new DatabaseStorage();

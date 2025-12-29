@@ -1595,3 +1595,63 @@ export const apiCuratedItems = pgTable("api_curated_items", {
 export const insertApiCuratedItemSchema = createInsertSchema(apiCuratedItems).omit({ id: true, indexedAt: true });
 export type InsertApiCuratedItem = z.infer<typeof insertApiCuratedItemSchema>;
 export type ApiCuratedItem = typeof apiCuratedItems.$inferSelect;
+
+// ============================================
+// DEVICE SESSIONS (AgoraCube / Thin Clients)
+// ============================================
+
+// Device session scopes
+export type DeviceScope = 'orbit:read' | 'orbit:ask' | 'orbit:voice';
+
+// Device Sessions - for thin clients (AgoraCube, kiosk displays)
+export const deviceSessions = pgTable("device_sessions", {
+  id: serial("id").primaryKey(),
+  deviceId: text("device_id").unique().notNull(), // Server-issued UUID (NOT hardware fingerprint)
+  orbitSlug: text("orbit_slug").notNull(),
+  deviceLabel: text("device_label"), // Admin-friendly name ("Boardroom Cube")
+  tokenHash: text("token_hash").notNull(), // Hashed device token
+  scopes: text("scopes").array().$type<DeviceScope[]>().default(['orbit:read', 'orbit:ask']),
+  pairingCode: text("pairing_code"), // One-time pairing code (cleared after use)
+  pairingExpiresAt: timestamp("pairing_expires_at"),
+  lastSeenAt: timestamp("last_seen_at"),
+  lastSeenIp: text("last_seen_ip"),
+  userAgent: text("user_agent"), // Non-unique hint for debugging
+  revokedAt: timestamp("revoked_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDeviceSessionSchema = createInsertSchema(deviceSessions).omit({ id: true, createdAt: true });
+export type InsertDeviceSession = z.infer<typeof insertDeviceSessionSchema>;
+export type DeviceSession = typeof deviceSessions.$inferSelect;
+
+// Device Events - audit log for device activity
+export type DeviceEventType = 'auth' | 'ask' | 'scene' | 'pair' | 'revoke' | 'rate_limit';
+
+export const deviceEvents = pgTable("device_events", {
+  id: serial("id").primaryKey(),
+  deviceId: text("device_id").notNull(),
+  orbitSlug: text("orbit_slug").notNull(),
+  eventType: text("event_type").$type<DeviceEventType>().notNull(),
+  requestSummary: jsonb("request_summary"), // Minimal context (e.g., question length, response status)
+  ipAddress: text("ip_address"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDeviceEventSchema = createInsertSchema(deviceEvents).omit({ id: true, createdAt: true });
+export type InsertDeviceEvent = z.infer<typeof insertDeviceEventSchema>;
+export type DeviceEvent = typeof deviceEvents.$inferSelect;
+
+// Rate limit tracking for token bucket algorithm
+export const deviceRateLimits = pgTable("device_rate_limits", {
+  id: serial("id").primaryKey(),
+  deviceId: text("device_id").notNull(),
+  orbitSlug: text("orbit_slug").notNull(),
+  tokens: integer("tokens").default(10).notNull(), // Current tokens in bucket
+  lastRefillAt: timestamp("last_refill_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueDeviceOrbit: unique().on(table.deviceId, table.orbitSlug),
+}));
+
+export const insertDeviceRateLimitSchema = createInsertSchema(deviceRateLimits).omit({ id: true });
+export type InsertDeviceRateLimit = z.infer<typeof insertDeviceRateLimitSchema>;
+export type DeviceRateLimit = typeof deviceRateLimits.$inferSelect;
