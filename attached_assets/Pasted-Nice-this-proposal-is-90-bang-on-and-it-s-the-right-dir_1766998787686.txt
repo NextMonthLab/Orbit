@@ -1,0 +1,153 @@
+Nice — this proposal is 90% bang on and it’s the right direction. Before we give Replit the green light to implement, I want to tighten the 10% that will save you pain later (security, scale, and “Orbit-native” integration).
+
+Approve with changes (recommended)
+
+1) Don’t store auth_config directly on api_connections
+
+Even if you intend to encrypt it, JSONB fields tend to leak via logs/debug/exports.
+
+Change:
+	•	api_connections.auth_config becomes auth_secret_id TEXT (or UUID)
+	•	Secrets stored in a dedicated table (or your existing secret store) with strict access controls.
+
+Add table:
+	•	api_secrets(id, orbit_slug, name, encrypted_value, created_at, rotated_at)
+
+This is a small change now that prevents a “how did we leak keys?” moment later.
+
+⸻
+
+2) SSRF protection: “Whitelist public endpoints” is not enough
+
+You need explicit SSRF defence because “connect any API” invites it.
+
+Must add:
+	•	Block internal IP ranges (RFC1918), localhost, link-local, metadata IPs (e.g. 169.254.169.254), and private TLDs.
+	•	DNS rebind protection (resolve host and validate IP at request time).
+	•	Enforce HTTPS (allow HTTP only behind an explicit “unsafe” toggle, ideally not in v1).
+
+This is non-negotiable if this becomes public.
+
+⸻
+
+3) Move orbit_slug off connections if “Orbit” can have multiple hubs/spaces
+
+Right now you’re treating orbit_slug as tenant key. That’s fine for MVP, but you’ll regret hard-coupling it.
+
+Change naming:
+	•	Use tenant_id (or business_id) consistently.
+	•	orbit_slug can be a property on the orbit/hub record, not the foreign key everywhere.
+
+If your existing schema already uses business_slug, keep it — just be consistent and avoid mixing semantics.
+
+⸻
+
+4) “raw_payload JSONB” will hurt you quickly
+
+JSONB in Postgres is fine, but:
+	•	5MB JSONB per snapshot inside the DB becomes chunky fast
+	•	You’ll balloon backups and slow queries
+
+Better v1 compromise:
+	•	Store raw_payload_ref (file/blob path) + small raw_payload_preview (first N KB) in DB
+	•	Keep full payload in object storage or filesystem (whatever you already use)
+
+If you absolutely must keep JSONB, store it compressed and never query it.
+
+⸻
+
+5) Add idempotency + hashing to prevent duplicate snapshots
+
+Scheduled jobs get retried. You’ll get duplicate “versions”.
+
+Add fields:
+	•	request_hash on snapshots (hash of endpoint + params + auth_secret_id + day/hour bucket)
+	•	Unique constraint: (endpoint_id, request_hash) or (endpoint_id, version) with version derived safely.
+
+⸻
+
+6) Normalisation needs a “cursor” story (pagination)
+
+Many APIs paginate. Your v1 needs at least one of:
+	•	“single page only” (explicitly stated)
+	•	or basic pagination support (next page token / page+limit)
+
+Recommendation:
+	•	MVP: support ?page= + ?limit= plus next_cursor token pattern via endpoint config.
+
+Otherwise users will connect Shopify/Stripe and think it’s broken.
+
+⸻
+
+7) Integration: curated items should reference connection + endpoint
+
+Right now you only link curated items to snapshot. Good, but add the ancestry so Orbit can group by source.
+
+Add to api_curated_items:
+	•	connection_id
+	•	endpoint_id
+	•	snapshot_version
+This makes source browsing and “latest snapshot” queries simpler.
+
+⸻
+
+What I would approve right now
+
+✅ Approve the project as v1 with these explicit constraints:
+	•	GET only
+	•	Manual snapshots only (scheduling can be v1.1)
+	•	1 endpoint per connection in v1 (keep UI simple)
+	•	Store secrets out-of-row (must)
+	•	SSRF protections (must)
+	•	Snapshot payload ref + preview (strongly recommended)
+
+That’s enough to ship something real, safely, and it won’t collapse under its own ambition.
+
+⸻
+
+The exact “GO” message to send Replit (implementation brief)
+
+Paste this back to Replit as the approval + adjustments:
+
+# APPROVED WITH CHANGES — Proceed to Implementation (v1)
+
+Proceed to build the Orbit Business Hub “Data Sources” section for Universal API Snapshot Ingestion, but apply the following REQUIRED changes before coding:
+
+## Required Changes (must implement)
+1) **Secrets storage**
+- Do NOT store credentials in api_connections.auth_config JSONB.
+- Replace with `auth_secret_id` reference.
+- Store secrets in a dedicated store/table (encrypted at rest), never logged or returned in responses.
+
+2) **SSRF protection**
+- Validate base_url and request hosts.
+- Block: localhost, private IP ranges, link-local, metadata IPs (169.254.169.254), and private/internal domains.
+- Resolve DNS at request time and validate resolved IP.
+- Enforce HTTPS in v1.
+
+3) **Raw payload storage**
+- Do NOT store multi-MB raw JSON in DB as the primary storage.
+- Store `raw_payload_ref` (file/blob path) + `raw_payload_preview` (small truncated JSON) + metadata in DB.
+
+4) **Idempotency / duplicate prevention**
+- Add request hashing or equivalent so retries don’t create duplicate snapshot versions.
+
+5) **Source ancestry**
+- api_curated_items must include connection_id + endpoint_id (and snapshot_version if helpful) to support grouping and “latest snapshot” queries.
+
+## v1 Scope Lock (keep it simple)
+- Manual snapshot runs only (no scheduler yet).
+- GET only.
+- Start with 1 endpoint per connection in UI (can expand later).
+- Provide: connection list, add connection wizard, test fetch preview, snapshot history, and Orbit curated-source integration.
+
+## After implementation
+Return:
+- A quick demo checklist
+- Seeded test connection example (safe public API)
+- Notes on how conversation queries “latest snapshot” and “diff” will work in v1.1
+
+
+⸻
+
+If you reply with: “Approve as-is” or “Approve with your changes”, I’ll tailor the final Replit approval message accordingly (but honestly… approve with the changes — otherwise you’ll be fighting fires like it’s a Michael Bay film).

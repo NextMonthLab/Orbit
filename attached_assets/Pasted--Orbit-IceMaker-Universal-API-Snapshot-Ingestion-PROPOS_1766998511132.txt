@@ -1,0 +1,83 @@
+# Orbit + IceMaker: Universal API Snapshot Ingestion (PROPOSAL FIRST — DO NOT BUILD YET)
+
+## Context
+We are working on the **Orbit Business Hub dashboard** (current build from the last few days: **Orbit + IceMaker**).
+We want to add a new dashboard section/component that allows a user to **ingest data from any API via scheduled snapshots**, then treat that data as a normal, curated source inside Orbit.
+
+This is **read-only** ingestion. We are not building Zapier. We are not performing actions or writes against external systems.
+
+## The Product Model (locked in)
+- Users configure an API connection (base URL + auth + endpoints).
+- Orbit fetches data on an interval (or manual run).
+- Each fetch creates a **versioned snapshot** (timestamped).
+- IceMaker normalises the snapshot into Orbit’s internal “curated source” shape.
+- Orbit conversation and tiles use **snapshot-scoped** data (and can diff snapshots).
+
+## Your Task (Step 1: PROPOSE ONLY)
+Before writing code, produce a **clear technical approach proposal** covering:
+
+### A) UI/UX proposal (Orbit Business Hub component)
+- Where this lives in the dashboard navigation
+- The new section name (e.g. “API Snapshots”, “Data Sources”, “Connectors”)
+- Screens / modals needed:
+  - Create connection
+  - Auth setup
+  - Endpoint setup
+  - Schedule setup
+  - Test fetch + preview
+  - Confirm “Orbit-ready” mapping
+  - Connection list + status
+  - Snapshot history view (basic)
+
+### B) Data model proposal (minimal v1)
+Define the minimal schema/tables (or documents) needed for:
+- Connections
+- Endpoints
+- Snapshots
+- Normalised records (Orbit-ready items)
+- Logs/errors
+
+Include key fields (id, tenant/user, auth type, schedule, last run, status, etc.)
+
+### C) Ingestion pipeline proposal (minimal v1)
+- How to execute a snapshot safely
+- How to store raw snapshot payloads (and size limits)
+- How IceMaker normalises:
+  - basic flattening
+  - entity/type tagging
+  - time-series anchoring
+- How to mark a snapshot as “ready for Orbit”
+
+### D) Safety + guardrails (non-negotiable)
+- Read-only by default
+- No arbitrary “run any HTTP call in chat”
+- Rate limiting / timeouts / retries
+- Secrets handling (encrypted at rest, never logged)
+- Validation for endpoints + schedule
+- Clear error reporting in UI
+
+### E) How it integrates into Orbit as a curated source
+- What internal shape Orbit expects today
+- How these snapshots become first-class sources (same as other curated sources)
+- How the conversation layer stays scoped:
+  - “use latest snapshot”
+  - “compare snapshot X vs Y”
+  - “show what changed since last snapshot”
+
+### F) MVP scope + phased roadmap
+- v1 (must-have only)
+- v1.1 (diff view, rolling windows)
+- v2 (webhooks, OAuth, write actions — explicitly out of scope for now)
+
+## Output format (required)
+Return your proposal as:
+1) A concise **architecture diagram description** (text is fine)
+2) A **step-by-step build plan**
+3) A **risk list** + mitigations
+4) A **file-level change plan** (which files/components/modules you’ll add/edit)
+
+## Hard constraint
+**Do not implement code yet.**  
+Stop after the proposal and wait for approval.
+
+If anything is unclear, make reasonable assumptions and list them in the proposal rather than asking lots of questions.

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, timestamp, boolean, jsonb, real } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, timestamp, boolean, jsonb, real, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1494,3 +1494,104 @@ export const magicLinks = pgTable("magic_links", {
 export const insertMagicLinkSchema = createInsertSchema(magicLinks).omit({ id: true, createdAt: true });
 export type InsertMagicLink = z.infer<typeof insertMagicLinkSchema>;
 export type MagicLink = typeof magicLinks.$inferSelect;
+
+// ============ DATA SOURCES (API Snapshot Ingestion) ============
+
+// API Secrets - encrypted credentials stored out-of-row
+export type ApiAuthType = 'none' | 'api_key' | 'bearer' | 'basic';
+
+export const apiSecrets = pgTable("api_secrets", {
+  id: serial("id").primaryKey(),
+  orbitSlug: text("orbit_slug").references(() => orbitMeta.businessSlug, { onDelete: "cascade" }).notNull(),
+  name: text("name").notNull(),
+  encryptedValue: text("encrypted_value").notNull(), // AES-256 encrypted
+  authType: text("auth_type").$type<ApiAuthType>().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  rotatedAt: timestamp("rotated_at"),
+});
+
+export const insertApiSecretSchema = createInsertSchema(apiSecrets).omit({ id: true, createdAt: true });
+export type InsertApiSecret = z.infer<typeof insertApiSecretSchema>;
+export type ApiSecret = typeof apiSecrets.$inferSelect;
+
+// API Connections - configured API sources
+export type ConnectionStatus = 'active' | 'paused' | 'error';
+
+export const apiConnections = pgTable("api_connections", {
+  id: serial("id").primaryKey(),
+  orbitSlug: text("orbit_slug").references(() => orbitMeta.businessSlug, { onDelete: "cascade" }).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  baseUrl: text("base_url").notNull(), // Must be HTTPS, validated for SSRF
+  authSecretId: integer("auth_secret_id").references(() => apiSecrets.id, { onDelete: "set null" }),
+  status: text("status").$type<ConnectionStatus>().default("active").notNull(),
+  lastRunAt: timestamp("last_run_at"),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertApiConnectionSchema = createInsertSchema(apiConnections).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertApiConnection = z.infer<typeof insertApiConnectionSchema>;
+export type ApiConnection = typeof apiConnections.$inferSelect;
+
+// API Endpoints - GET paths for a connection
+export const apiEndpoints = pgTable("api_endpoints", {
+  id: serial("id").primaryKey(),
+  connectionId: integer("connection_id").references(() => apiConnections.id, { onDelete: "cascade" }).notNull(),
+  path: text("path").notNull(), // e.g. /api/v1/products
+  params: jsonb("params"), // query params configuration
+  responseMapping: jsonb("response_mapping"), // how to extract items from response
+  paginationConfig: jsonb("pagination_config"), // page/limit or cursor config
+  enabled: boolean("enabled").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertApiEndpointSchema = createInsertSchema(apiEndpoints).omit({ id: true, createdAt: true });
+export type InsertApiEndpoint = z.infer<typeof insertApiEndpointSchema>;
+export type ApiEndpoint = typeof apiEndpoints.$inferSelect;
+
+// API Snapshots - versioned fetch results
+export type SnapshotStatus = 'pending' | 'processing' | 'ready' | 'failed';
+
+export const apiSnapshots = pgTable("api_snapshots", {
+  id: serial("id").primaryKey(),
+  endpointId: integer("endpoint_id").references(() => apiEndpoints.id, { onDelete: "cascade" }).notNull(),
+  connectionId: integer("connection_id").references(() => apiConnections.id, { onDelete: "cascade" }).notNull(),
+  version: integer("version").notNull(),
+  requestHash: text("request_hash").notNull(), // For idempotency/dedup
+  rawPayloadRef: text("raw_payload_ref"), // Object storage path
+  rawPayloadPreview: jsonb("raw_payload_preview"), // First 10KB truncated
+  recordCount: integer("record_count"),
+  status: text("status").$type<SnapshotStatus>().default("pending").notNull(),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+  error: text("error"),
+}, (table) => ({
+  uniqueEndpointHash: unique().on(table.endpointId, table.requestHash),
+}));
+
+export const insertApiSnapshotSchema = createInsertSchema(apiSnapshots).omit({ id: true, fetchedAt: true });
+export type InsertApiSnapshot = z.infer<typeof insertApiSnapshotSchema>;
+export type ApiSnapshot = typeof apiSnapshots.$inferSelect;
+
+// API Curated Items - normalised Orbit-ready sources
+export const apiCuratedItems = pgTable("api_curated_items", {
+  id: serial("id").primaryKey(),
+  snapshotId: integer("snapshot_id").references(() => apiSnapshots.id, { onDelete: "cascade" }).notNull(),
+  connectionId: integer("connection_id").references(() => apiConnections.id, { onDelete: "cascade" }).notNull(),
+  endpointId: integer("endpoint_id").references(() => apiEndpoints.id, { onDelete: "cascade" }).notNull(),
+  snapshotVersion: integer("snapshot_version").notNull(),
+  orbitSlug: text("orbit_slug").notNull(),
+  sourceType: text("source_type").notNull(), // e.g. 'shopify_product'
+  externalId: text("external_id"), // Original ID from source
+  title: text("title"),
+  summary: text("summary"),
+  content: jsonb("content"), // Flattened, searchable fields
+  metadata: jsonb("metadata"), // Original fields preserved
+  indexedAt: timestamp("indexed_at").defaultNow().notNull(),
+});
+
+export const insertApiCuratedItemSchema = createInsertSchema(apiCuratedItems).omit({ id: true, indexedAt: true });
+export type InsertApiCuratedItem = z.infer<typeof insertApiCuratedItemSchema>;
+export type ApiCuratedItem = typeof apiCuratedItems.$inferSelect;
