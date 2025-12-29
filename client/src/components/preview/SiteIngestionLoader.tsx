@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Globe, Brain, MessageCircle, BarChart3, Zap, Shield, Users } from "lucide-react";
+import { Sparkles, Globe, Brain, MessageCircle, BarChart3, Zap, Shield, Users, CheckCircle2, Lightbulb, Target, TrendingUp, Heart, Award, Clock, Rocket } from "lucide-react";
 
 interface SiteIngestionLoaderProps {
   brandName?: string;
   accentColor?: string;
-  onComplete?: () => void;
+  isComplete?: boolean;
+  onReady?: () => void;
 }
 
 const educationalSlides = [
@@ -45,66 +46,113 @@ const educationalSlides = [
     description: "AI responses are guardrailed to always represent your business accurately.",
     detail: "You stay in control of what your Smart Site says about you.",
   },
+  {
+    icon: Lightbulb,
+    title: "Finding Customer Questions",
+    description: "We identify the questions your customers commonly ask.",
+    detail: "Your Smart Site will proactively address visitor concerns.",
+  },
+  {
+    icon: Target,
+    title: "Optimizing for Conversions",
+    description: "Every interaction is designed to guide visitors toward taking action.",
+    detail: "From enquiries to bookings, we make it easy to convert.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Continuous Learning",
+    description: "Your Smart Site gets smarter over time based on real conversations.",
+    detail: "Insights help you improve your messaging and offerings.",
+  },
+  {
+    icon: Heart,
+    title: "Building Trust",
+    description: "Testimonials and social proof are highlighted to build confidence.",
+    detail: "Real customer stories help new visitors feel secure.",
+  },
+  {
+    icon: Award,
+    title: "Professional Presentation",
+    description: "Your Smart Site presents your business at its absolute best.",
+    detail: "Clean, modern design that works on any device.",
+  },
+  {
+    icon: Clock,
+    title: "24/7 Availability",
+    description: "Your Smart Site never sleeps - it's always ready to help visitors.",
+    detail: "Capture leads and answer questions around the clock.",
+  },
+  {
+    icon: Rocket,
+    title: "Ready to Launch",
+    description: "In moments, your Smart Site will be ready to share with the world.",
+    detail: "Embed it, link to it, or use it as your new digital front door.",
+  },
 ];
 
 const progressStages = [
-  { progress: 0, label: "Connecting to your website..." },
+  { progress: 5, label: "Connecting to your website..." },
   { progress: 15, label: "Downloading page content..." },
-  { progress: 30, label: "Extracting brand identity..." },
-  { progress: 45, label: "Analyzing services & offerings..." },
-  { progress: 60, label: "Finding FAQs & testimonials..." },
-  { progress: 75, label: "Building knowledge base..." },
-  { progress: 90, label: "Preparing your Smart Site..." },
-  { progress: 100, label: "Almost ready..." },
+  { progress: 25, label: "Extracting brand identity..." },
+  { progress: 35, label: "Analyzing services & offerings..." },
+  { progress: 45, label: "Finding FAQs & testimonials..." },
+  { progress: 55, label: "Extracting structured data..." },
+  { progress: 65, label: "Building knowledge base..." },
+  { progress: 75, label: "Validating content quality..." },
+  { progress: 85, label: "Preparing your Smart Site..." },
+  { progress: 95, label: "Final optimizations..." },
 ];
 
-export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", onComplete }: SiteIngestionLoaderProps) {
+export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", isComplete = false, onReady }: SiteIngestionLoaderProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentStage, setCurrentStage] = useState(0);
   const [displayProgress, setDisplayProgress] = useState(0);
-  const [hasCalledComplete, setHasCalledComplete] = useState(false);
+  const hasCalledReady = useRef(false);
 
   useEffect(() => {
     const slideInterval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % educationalSlides.length);
-    }, 4000);
+    }, 5000);
     return () => clearInterval(slideInterval);
   }, []);
 
   useEffect(() => {
+    if (isComplete) {
+      setDisplayProgress(100);
+      setCurrentStage(progressStages.length);
+      return;
+    }
+    
     const stageInterval = setInterval(() => {
       setCurrentStage((prev) => {
         if (prev < progressStages.length - 1) return prev + 1;
         return prev;
       });
-    }, 2500);
+    }, 3000);
     return () => clearInterval(stageInterval);
-  }, []);
+  }, [isComplete]);
 
-  // Call onComplete when we reach the final stage
   useEffect(() => {
-    if (currentStage === progressStages.length - 1 && onComplete && !hasCalledComplete) {
-      setHasCalledComplete(true);
-      // Small delay for the final animation
-      const timer = setTimeout(() => {
-        onComplete();
-      }, 1500);
-      return () => clearTimeout(timer);
+    if (isComplete) {
+      setDisplayProgress(100);
+      if (onReady && !hasCalledReady.current) {
+        hasCalledReady.current = true;
+        setTimeout(() => onReady(), 800);
+      }
+      return;
     }
-  }, [currentStage, onComplete, hasCalledComplete]);
-
-  useEffect(() => {
-    const targetProgress = progressStages[currentStage].progress;
+    
+    const targetProgress = progressStages[currentStage]?.progress || 95;
     const animateProgress = () => {
       setDisplayProgress((prev) => {
         const diff = targetProgress - prev;
-        if (Math.abs(diff) < 1) return targetProgress;
-        return prev + diff * 0.1;
+        if (Math.abs(diff) < 0.5) return targetProgress;
+        return prev + diff * 0.08;
       });
     };
     const animationFrame = setInterval(animateProgress, 50);
     return () => clearInterval(animationFrame);
-  }, [currentStage]);
+  }, [currentStage, isComplete, onReady]);
 
   const slide = educationalSlides[currentSlide];
   const SlideIcon = slide.icon;
@@ -139,30 +187,45 @@ export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", onComp
         </motion.div>
 
         <div className="space-y-3">
-          <div className="relative h-2 bg-secondary rounded-full overflow-hidden">
+          <div className="relative h-3 bg-secondary rounded-full overflow-hidden">
             <motion.div
               className="absolute inset-y-0 left-0 rounded-full"
               style={{ 
-                background: `linear-gradient(90deg, ${accentColor}, ${accentColor}cc)`,
+                background: isComplete 
+                  ? `linear-gradient(90deg, #22c55e, #16a34a)` 
+                  : `linear-gradient(90deg, ${accentColor}, ${accentColor}cc)`,
                 width: `${displayProgress}%`,
               }}
               transition={{ type: "spring", stiffness: 50 }}
             />
-            <div 
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"
-              style={{ 
-                backgroundSize: "200% 100%",
-                animation: "shimmer 2s infinite linear",
-              }}
-            />
+            {!isComplete && (
+              <div 
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"
+                style={{ 
+                  backgroundSize: "200% 100%",
+                  animation: "shimmer 2s infinite linear",
+                }}
+              />
+            )}
           </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{progressStages[currentStage].label}</span>
-            <span>{Math.round(displayProgress)}%</span>
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span className="flex items-center gap-2">
+              {isComplete ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  <span className="text-green-500 font-medium">Ready! Loading your Smart Site...</span>
+                </>
+              ) : (
+                progressStages[currentStage]?.label || "Processing..."
+              )}
+            </span>
+            <span className={isComplete ? "text-green-500 font-medium" : ""}>
+              {Math.round(displayProgress)}%
+            </span>
           </div>
         </div>
 
-        <div className="relative h-48 overflow-hidden">
+        <div className="relative h-52 overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentSlide}
@@ -194,15 +257,15 @@ export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", onComp
           </AnimatePresence>
         </div>
 
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-1.5">
           {educationalSlides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className="w-2 h-2 rounded-full transition-all duration-300"
+              className="w-1.5 h-1.5 rounded-full transition-all duration-300"
               style={{
                 backgroundColor: index === currentSlide ? accentColor : 'rgba(255,255,255,0.2)',
-                transform: index === currentSlide ? 'scale(1.3)' : 'scale(1)',
+                transform: index === currentSlide ? 'scale(1.5)' : 'scale(1)',
               }}
               data-testid={`slide-indicator-${index}`}
             />

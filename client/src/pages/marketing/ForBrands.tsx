@@ -63,18 +63,10 @@ export default function ForBrands() {
   const [error, setError] = useState("");
   const [showProgress, setShowProgress] = useState(false);
   const [previewResult, setPreviewResult] = useState<{ previewId: string } | null>(null);
-  const [animationComplete, setAnimationComplete] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  // Navigate once both API completes AND animation finishes
-  useEffect(() => {
-    if (previewResult && animationComplete) {
-      setLocation(`/preview/${previewResult.previewId}`);
-    }
-  }, [previewResult, animationComplete, setLocation]);
 
   const createPreviewMutation = useMutation({
     mutationFn: async (url: string) => {
@@ -113,7 +105,6 @@ export default function ForBrands() {
     try {
       new URL(url);
       setShowProgress(true);
-      setAnimationComplete(false);
       setPreviewResult(null);
       createPreviewMutation.mutate(url);
     } catch {
@@ -121,14 +112,21 @@ export default function ForBrands() {
     }
   };
 
-  const handleAnimationComplete = () => {
-    setAnimationComplete(true);
+  const handleLoaderReady = () => {
+    if (previewResult) {
+      setLocation(`/preview/${previewResult.previewId}`);
+    }
   };
 
   const scanDomain = siteUrl.replace(/^https?:\/\//, '').split('/')[0] || 'your site';
 
   if (showProgress) {
-    return <SiteIngestionLoader onComplete={handleAnimationComplete} />;
+    return (
+      <SiteIngestionLoader 
+        isComplete={!!previewResult} 
+        onReady={handleLoaderReady} 
+      />
+    );
   }
 
   return (
