@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Card } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, ChevronUp, Share2, BookOpen, RotateCcw, Volume2, VolumeX, Film, Image } from "lucide-react";
+import { MessageSquare, ChevronUp, Share2, BookOpen, RotateCcw, Volume2, VolumeX, Film, Image, Play, Pause } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import MessageBoard from "@/components/MessageBoard";
 
@@ -73,6 +73,9 @@ export default function CardPlayer({
   const [dismissedRotateHint, setDismissedRotateHint] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const isTabletLandscape = useIsTabletLandscape();
@@ -103,6 +106,9 @@ export default function CardPlayer({
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
+    setAudioProgress(0);
+    setAudioDuration(0);
+    setIsAudioPlaying(false);
     // Stop any playing video when card changes
     if (videoRef.current) {
       videoRef.current.pause();
@@ -130,6 +136,59 @@ export default function CardPlayer({
     e.stopPropagation();
     setAudioMuted(prev => !prev);
   }, []);
+  
+  const toggleAudioPlayback = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!hasNarration) return;
+    
+    // Toggle isPlaying to sync captions and audio
+    setIsPlaying(prev => {
+      const newPlaying = !prev;
+      if (audioRef.current) {
+        if (newPlaying) {
+          audioRef.current.play().catch(() => {});
+        } else {
+          audioRef.current.pause();
+        }
+      }
+      return newPlaying;
+    });
+  }, [hasNarration]);
+  
+  const handleAudioTimeUpdate = useCallback(() => {
+    if (audioRef.current) {
+      setAudioProgress(audioRef.current.currentTime);
+    }
+  }, []);
+  
+  const handleAudioLoadedMetadata = useCallback(() => {
+    if (audioRef.current) {
+      setAudioDuration(audioRef.current.duration);
+    }
+  }, []);
+  
+  const handleAudioPlay = useCallback(() => {
+    setIsAudioPlaying(true);
+  }, []);
+  
+  const handleAudioPause = useCallback(() => {
+    setIsAudioPlaying(false);
+  }, []);
+  
+  const handleAudioEnded = useCallback(() => {
+    setIsAudioPlaying(false);
+    setAudioProgress(0);
+  }, []);
+  
+  const seekAudio = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (!audioRef.current || !audioDuration) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = clickX / rect.width;
+    audioRef.current.currentTime = percentage * audioDuration;
+  }, [audioDuration]);
   
   // Cleanup audio on unmount
   useEffect(() => {
@@ -284,27 +343,71 @@ export default function CardPlayer({
                   </button>
                 )}
                 {hasNarration && (
-                  <button
-                    onClick={toggleAudioMute}
-                    className="p-2 bg-black/30 rounded-full backdrop-blur-sm hover:bg-black/50 transition-colors"
-                    data-testid="button-toggle-audio"
-                  >
-                    {audioMuted ? (
-                      <VolumeX className="w-4 h-4 text-white/70" />
-                    ) : (
-                      <Volume2 className="w-4 h-4 text-white/70" />
-                    )}
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={toggleAudioPlayback}
+                      className="p-2 bg-black/30 rounded-full backdrop-blur-sm hover:bg-black/50 transition-colors"
+                      data-testid="button-toggle-audio-playback"
+                    >
+                      {isPlaying ? (
+                        <Pause className="w-4 h-4 text-white/70" />
+                      ) : (
+                        <Play className="w-4 h-4 text-white/70" />
+                      )}
+                    </button>
+                    <button
+                      onClick={toggleAudioMute}
+                      className="p-2 bg-black/30 rounded-full backdrop-blur-sm hover:bg-black/50 transition-colors"
+                      data-testid="button-toggle-audio"
+                    >
+                      {audioMuted ? (
+                        <VolumeX className="w-4 h-4 text-white/70" />
+                      ) : (
+                        <Volume2 className="w-4 h-4 text-white/70" />
+                      )}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
+            
+            {hasNarration && audioDuration > 0 && (
+              <div 
+                className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 cursor-pointer z-20"
+                onClick={seekAudio}
+                data-testid="audio-progress-bar"
+              >
+                <motion.div 
+                  className="h-full bg-white/80"
+                  style={{ width: `${(audioProgress / audioDuration) * 100}%` }}
+                  transition={{ duration: 0.1 }}
+                />
+                {isAudioPlaying && (
+                  <motion.div
+                    className="absolute right-2 bottom-2 flex items-center gap-1"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <span className="text-[10px] text-white/60 font-mono">
+                      {Math.floor(audioProgress)}s / {Math.floor(audioDuration)}s
+                    </span>
+                  </motion.div>
+                )}
+              </div>
+            )}
             
             {hasNarration && (
               <audio
                 ref={audioRef}
                 src={card.narrationAudioUrl!}
                 preload="auto"
+                muted={audioMuted}
                 className="hidden"
+                onTimeUpdate={handleAudioTimeUpdate}
+                onLoadedMetadata={handleAudioLoadedMetadata}
+                onPlay={handleAudioPlay}
+                onPause={handleAudioPause}
+                onEnded={handleAudioEnded}
                 data-testid="audio-narration-player"
               />
             )}
