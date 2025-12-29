@@ -52,6 +52,15 @@ Key architectural patterns and design decisions include:
         -   Activation/Pause: 10 requests/minute  
         -   Chat: 30 requests/minute per user/IP
     -   **Environment Variable**: Set `PUBLIC_TOKEN_SECRET` in production for stable tokens across restarts
+-   **Stripe Subscription System (Beta-Ready)**: Full subscription billing with webhook-based synchronization:
+    -   **Products**: Pro ($19/mo) and Business ($49/mo) plans seeded in Stripe with linked price IDs
+    -   **Checkout Flow**: `/api/checkout` creates Stripe sessions, `/api/checkout/verify` confirms and creates local subscriptions
+    -   **Webhook Processing** (`server/webhookHandlers.ts`): Handles subscription.created/updated/deleted, invoice.payment_failed events
+    -   **Credit Grant Idempotency**: Uses `lastCreditGrantPeriodEnd` column to ensure credits are granted exactly once per billing cycle
+        -   Initial subscription: checkout verify grants credits + sets marker
+        -   Renewal: webhook checks if currentPeriodEnd > lastCreditGrantPeriodEnd before granting
+    -   **Entitlements Recompute**: Automatically updates user entitlements when subscription status changes
+    -   **Auto-Pause on Downgrade**: Excess ICEs are paused when subscription downgrades or cancels
 
 ## External Dependencies
 -   **OpenAI API**: Used for chat completions (gpt-4o-mini) and Text-to-Speech (TTS).

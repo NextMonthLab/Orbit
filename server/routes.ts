@@ -4236,6 +4236,128 @@ export async function registerRoutes(
     }
   });
   
+  // Verify checkout session and create/update subscription
+  app.post("/api/checkout/verify", requireAuth, async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID required" });
+      }
+      
+      const { getUncachableStripeClient } = await import("./stripeClient");
+      const stripe = await getUncachableStripeClient();
+      
+      // Retrieve the checkout session from Stripe
+      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ['subscription', 'customer'],
+      });
+      
+      if (session.payment_status !== 'paid') {
+        return res.status(400).json({ message: "Payment not completed" });
+      }
+      
+      // Verify the session belongs to this user
+      const userId = session.metadata?.userId;
+      if (!userId || parseInt(userId) !== req.user!.id) {
+        return res.status(403).json({ message: "Session does not belong to this user" });
+      }
+      
+      const planId = session.metadata?.planId;
+      if (!planId) {
+        return res.status(400).json({ message: "Plan ID missing from session" });
+      }
+      
+      const plan = await storage.getPlan(parseInt(planId));
+      if (!plan) {
+        return res.status(400).json({ message: "Plan not found" });
+      }
+      
+      // Get subscription details
+      const stripeSubscription = session.subscription as any;
+      const stripeCustomer = session.customer as any;
+      
+      // Check if user already has a subscription
+      let existingSubscription = await storage.getSubscription(req.user!.id);
+      
+      if (existingSubscription) {
+        // Update existing subscription
+        await storage.updateSubscription(existingSubscription.id, {
+          planId: plan.id,
+          stripeCustomerId: stripeCustomer?.id || existingSubscription.stripeCustomerId,
+          stripeSubscriptionId: stripeSubscription?.id,
+          status: 'active',
+          currentPeriodStart: stripeSubscription?.current_period_start 
+            ? new Date(stripeSubscription.current_period_start * 1000) 
+            : new Date(),
+          currentPeriodEnd: stripeSubscription?.current_period_end 
+            ? new Date(stripeSubscription.current_period_end * 1000) 
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        });
+      } else {
+        // Create new subscription
+        await storage.createSubscription({
+          userId: req.user!.id,
+          planId: plan.id,
+          stripeCustomerId: stripeCustomer?.id,
+          stripeSubscriptionId: stripeSubscription?.id,
+          status: 'active',
+          currentPeriodStart: stripeSubscription?.current_period_start 
+            ? new Date(stripeSubscription.current_period_start * 1000) 
+            : new Date(),
+          currentPeriodEnd: stripeSubscription?.current_period_end 
+            ? new Date(stripeSubscription.current_period_end * 1000) 
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        });
+      }
+      
+      // Update entitlements based on plan features
+      const features = plan.features as any;
+      await storage.upsertEntitlements(req.user!.id, {
+        canUseCloudLlm: features?.canUseCloudLlm || false,
+        canGenerateImages: features?.canGenerateImages || false,
+        canExport: features?.canExport || false,
+        canUseCharacterChat: features?.canUseCharacterChat || false,
+        maxCardsPerStory: features?.maxCardsPerStory || 5,
+        storageDays: features?.storageDays || 7,
+        collaborationRoles: features?.collaborationRoles || false,
+      });
+      
+      // Grant initial monthly credits for NEW subscriptions only
+      // Webhook handles renewals using lastCreditGrantPeriodEnd for idempotency
+      const isNewSubscription = !existingSubscription;
+      if (isNewSubscription && (features?.monthlyVideoCredits > 0 || features?.monthlyVoiceCredits > 0)) {
+        await storage.grantMonthlyCredits(
+          req.user!.id,
+          features.monthlyVideoCredits || 0,
+          features.monthlyVoiceCredits || 0
+        );
+        
+        // Mark this period as having received credits
+        const newSub = await storage.getSubscription(req.user!.id);
+        if (newSub) {
+          const periodEnd = stripeSubscription?.current_period_end 
+            ? new Date(stripeSubscription.current_period_end * 1000) 
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+          await storage.updateSubscription(newSub.id, {
+            lastCreditGrantPeriodEnd: periodEnd,
+          });
+        }
+        console.log(`[checkout] Granted initial monthly credits for user ${req.user!.id}`);
+      }
+      
+      console.log(`[checkout] User ${req.user!.id} subscribed to plan ${plan.name}`);
+      
+      res.json({ 
+        success: true, 
+        subscription: await storage.getSubscription(req.user!.id),
+        plan,
+      });
+    } catch (error: any) {
+      console.error("Error verifying checkout session:", error);
+      res.status(500).json({ message: error.message || "Error verifying checkout session" });
+    }
+  });
+  
   // Create customer portal session
   app.post("/api/billing-portal", requireAuth, async (req, res) => {
     try {
