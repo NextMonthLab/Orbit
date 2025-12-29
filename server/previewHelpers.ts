@@ -345,7 +345,7 @@ function extractImagePool(html: string, baseUrl: string): string[] {
   return images;
 }
 
-// Extract service headings (h2/h3 elements)
+// Extract service headings (h2/h3 elements) - improved to handle nested tags
 function extractServiceHeadings(html: string): string[] {
   const headings: string[] = [];
   
@@ -355,17 +355,27 @@ function extractServiceHeadings(html: string): string[] {
     .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
     .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "");
   
-  // Extract h2 and h3 headings
-  const h2Matches = mainContent.match(/<h2[^>]*>([^<]+)<\/h2>/gi) || [];
-  const h3Matches = mainContent.match(/<h3[^>]*>([^<]+)<\/h3>/gi) || [];
+  // Extract h2 and h3 headings - now handles nested tags
+  const h2Pattern = /<h2[^>]*>([\s\S]*?)<\/h2>/gi;
+  const h3Pattern = /<h3[^>]*>([\s\S]*?)<\/h3>/gi;
   
-  for (const h of [...h2Matches, ...h3Matches]) {
-    const textMatch = h.match(/>([^<]+)</);
-    if (textMatch) {
-      const text = cleanText(textMatch[1]);
-      if (text.length > 3 && text.length < 100 && !headings.includes(text)) {
+  let match;
+  while ((match = h2Pattern.exec(mainContent)) !== null && headings.length < 20) {
+    // Strip all HTML tags to get clean text
+    const text = cleanText(match[1].replace(/<[^>]+>/g, ''));
+    if (text.length > 3 && text.length < 120 && !headings.includes(text)) {
+      // Skip generic headings
+      if (!/^(home|menu|navigation|copyright|privacy|terms|cookie)/i.test(text)) {
         headings.push(text);
-        if (headings.length >= 8) break;
+      }
+    }
+  }
+  
+  while ((match = h3Pattern.exec(mainContent)) !== null && headings.length < 25) {
+    const text = cleanText(match[1].replace(/<[^>]+>/g, ''));
+    if (text.length > 3 && text.length < 120 && !headings.includes(text)) {
+      if (!/^(home|menu|navigation|copyright|privacy|terms|cookie)/i.test(text)) {
+        headings.push(text);
       }
     }
   }
@@ -373,7 +383,7 @@ function extractServiceHeadings(html: string): string[] {
   return headings;
 }
 
-// Extract service bullets (li elements near service headings)
+// Extract service bullets (li elements) - improved to handle nested tags
 function extractServiceBullets(html: string): string[] {
   const bullets: string[] = [];
   
@@ -383,16 +393,17 @@ function extractServiceBullets(html: string): string[] {
     .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
     .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "");
   
-  // Extract li items
-  const liMatches = mainContent.match(/<li[^>]*>([^<]{10,100})<\/li>/gi) || [];
+  // Extract li items - now handles nested tags
+  const liPattern = /<li[^>]*>([\s\S]*?)<\/li>/gi;
   
-  for (const li of liMatches) {
-    const textMatch = li.match(/>([^<]+)</);
-    if (textMatch) {
-      const text = cleanText(textMatch[1]);
-      if (text.length > 10 && text.length < 100 && !bullets.includes(text)) {
+  let match;
+  while ((match = liPattern.exec(mainContent)) !== null && bullets.length < 25) {
+    // Strip HTML tags to get clean text
+    const text = cleanText(match[1].replace(/<[^>]+>/g, ''));
+    if (text.length > 5 && text.length < 150 && !bullets.includes(text)) {
+      // Skip navigation-like items
+      if (!/^(home|about|contact|menu|login|sign|privacy|terms|cookie|more|view all)/i.test(text)) {
         bullets.push(text);
-        if (bullets.length >= 10) break;
       }
     }
   }
@@ -756,6 +767,105 @@ function cleanText(text: string): string {
     .trim();
 }
 
+// Extract social media links from HTML
+interface SocialLink {
+  platform: string;
+  url: string;
+  handle: string | null;
+}
+
+function extractSocialLinks(html: string): SocialLink[] {
+  const socialLinks: SocialLink[] = [];
+  const seenUrls = new Set<string>();
+  
+  // URLs to skip - share dialogs, intents, embeds, etc.
+  const skipPatterns = /\/(intent|share|sharer|dialog|embed|plugins|login|signup|hashtag|search|explore|settings|help|about|legal|privacy|terms)/i;
+  
+  // Social platform patterns - only match profile-style URLs
+  const socialPatterns: { platform: string; pattern: RegExp; handleExtractor: (url: string) => string | null }[] = [
+    { 
+      platform: 'linkedin', 
+      pattern: /https?:\/\/(?:www\.)?linkedin\.com\/(?:company|in)\/([a-zA-Z0-9_-]+)/gi,
+      handleExtractor: (url) => {
+        const match = url.match(/\/(?:company|in)\/([a-zA-Z0-9_-]+)/);
+        return match ? match[1] : null;
+      }
+    },
+    { 
+      platform: 'twitter', 
+      pattern: /https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)(?:\/|\?|$)/gi,
+      handleExtractor: (url) => {
+        const match = url.match(/(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)/);
+        return match && !skipPatterns.test(match[1]) ? match[1] : null;
+      }
+    },
+    { 
+      platform: 'facebook', 
+      pattern: /https?:\/\/(?:www\.)?facebook\.com\/([a-zA-Z0-9._]+)(?:\/|\?|$)/gi,
+      handleExtractor: (url) => {
+        const match = url.match(/facebook\.com\/([a-zA-Z0-9._]+)/);
+        return match && !skipPatterns.test(match[1]) ? match[1] : null;
+      }
+    },
+    { 
+      platform: 'instagram', 
+      pattern: /https?:\/\/(?:www\.)?instagram\.com\/([a-zA-Z0-9._]+)(?:\/|\?|$)/gi,
+      handleExtractor: (url) => {
+        const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
+        return match && !skipPatterns.test(match[1]) ? match[1] : null;
+      }
+    },
+    { 
+      platform: 'youtube', 
+      pattern: /https?:\/\/(?:www\.)?youtube\.com\/(?:c\/|channel\/|user\/|@)([a-zA-Z0-9_-]+)/gi,
+      handleExtractor: (url) => {
+        const match = url.match(/youtube\.com\/(?:c\/|channel\/|user\/|@)([a-zA-Z0-9_-]+)/);
+        return match ? match[1] : null;
+      }
+    },
+    { 
+      platform: 'tiktok', 
+      pattern: /https?:\/\/(?:www\.)?tiktok\.com\/@([a-zA-Z0-9._]+)/gi,
+      handleExtractor: (url) => {
+        const match = url.match(/tiktok\.com\/@([a-zA-Z0-9._]+)/);
+        return match ? match[1] : null;
+      }
+    },
+    { 
+      platform: 'pinterest', 
+      pattern: /https?:\/\/(?:www\.)?pinterest\.com\/([a-zA-Z0-9_]+)(?:\/|\?|$)/gi,
+      handleExtractor: (url) => {
+        const match = url.match(/pinterest\.com\/([a-zA-Z0-9_]+)/);
+        return match && !skipPatterns.test(match[1]) ? match[1] : null;
+      }
+    },
+  ];
+  
+  for (const { platform, pattern, handleExtractor } of socialPatterns) {
+    let match;
+    while ((match = pattern.exec(html)) !== null && socialLinks.length < 10) {
+      const url = match[0].replace(/["'>\s].*$/, ''); // Clean trailing chars
+      
+      // Skip share/intent URLs
+      if (skipPatterns.test(url)) continue;
+      
+      const handle = handleExtractor(url);
+      if (!handle) continue; // Skip if can't extract valid handle
+      
+      if (!seenUrls.has(url.toLowerCase())) {
+        seenUrls.add(url.toLowerCase());
+        socialLinks.push({
+          platform,
+          url,
+          handle,
+        });
+      }
+    }
+  }
+  
+  return socialLinks;
+}
+
 // Full site identity extraction
 export async function extractSiteIdentity(url: string, html: string): Promise<SiteIdentity> {
   const parsedUrl = new URL(url);
@@ -767,6 +877,26 @@ export async function extractSiteIdentity(url: string, html: string): Promise<Si
   
   // Extract structured data from JSON-LD
   const structuredData = extractJsonLd(html, url);
+  
+  // Extract social links from HTML and merge with JSON-LD sameAs
+  const htmlSocialLinks = extractSocialLinks(html);
+  const sameAsUrls = new Set(structuredData.organization?.sameAs || []);
+  for (const social of htmlSocialLinks) {
+    sameAsUrls.add(social.url);
+  }
+  
+  // Update structuredData with merged social links
+  if (structuredData.organization) {
+    structuredData.organization.sameAs = Array.from(sameAsUrls);
+  } else if (sameAsUrls.size > 0) {
+    structuredData.organization = {
+      name: null,
+      description: null,
+      url: null,
+      logo: null,
+      sameAs: Array.from(sameAsUrls),
+    };
+  }
   
   // Extract enhanced FAQs (Q&A pairs)
   const enhancedFaqs = extractEnhancedFaqs(html);

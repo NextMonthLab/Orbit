@@ -461,6 +461,36 @@ export default function OrbitView() {
       });
     });
 
+    // Extract social links from sameAs
+    const socials: SiteKnowledge['socials'] = [];
+    const sameAsUrls = siteIdentity?.structuredData?.organization?.sameAs || [];
+    const platformPatterns: { platform: 'twitter' | 'facebook' | 'instagram' | 'linkedin' | 'youtube' | 'tiktok' | 'pinterest'; pattern: RegExp }[] = [
+      { platform: 'linkedin', pattern: /linkedin\.com/ },
+      { platform: 'twitter', pattern: /twitter\.com|x\.com/ },
+      { platform: 'facebook', pattern: /facebook\.com/ },
+      { platform: 'instagram', pattern: /instagram\.com/ },
+      { platform: 'youtube', pattern: /youtube\.com/ },
+      { platform: 'tiktok', pattern: /tiktok\.com/ },
+      { platform: 'pinterest', pattern: /pinterest\.com/ },
+    ];
+    
+    sameAsUrls.slice(0, 7).forEach((socialUrl, i) => {
+      const matchedPlatform = platformPatterns.find(p => p.pattern.test(socialUrl));
+      if (matchedPlatform) {
+        const handleMatch = socialUrl.match(/(?:\/(?:company|in|@)?\/?)([^/?\s]+)\/?$/);
+        const handle = handleMatch ? handleMatch[1] : matchedPlatform.platform;
+        socials.push({
+          id: `soc_${i}`,
+          platform: matchedPlatform.platform,
+          handle: handle,
+          url: socialUrl,
+          connected: true,
+          keywords: [matchedPlatform.platform, 'social', 'connect', handle.toLowerCase()],
+          type: 'social' as const,
+        });
+      }
+    });
+
     return {
       brand: {
         name: brandName,
@@ -507,7 +537,7 @@ export default function OrbitView() {
         },
       ],
       blogs: [],
-      socials: [],
+      socials,
     };
   };
 
