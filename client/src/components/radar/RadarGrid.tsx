@@ -215,60 +215,50 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6', o
           ['weather', 'forecast', 'temperature', 'climate'].includes(k.toLowerCase())
         );
         if (hasWeatherKeywords) {
-          return `Here's the ${itemName} page.\n\n${summary}\n\nTell me your town or location and I can help you understand the forecast. Or tap here to visit the page directly: ${page.url}`;
+          return `${itemName}\n\n${summary}\n\nTell me your location for specific information, or visit: ${page.url}`;
         }
-        return `Here's the ${itemName} page.\n\n${summary}\n\nI can answer questions about this, or you can visit the page directly: ${page.url}\n\nWhat would you like to do?`;
+        return `${itemName}\n\n${summary}\n\nVisit: ${page.url}`;
       }
       case 'topic': {
-        const topic = selectedItem as import('@/lib/siteKnowledge').Topic;
-        const hasLocationContext = topic.keywords.some(k => 
-          ['location', 'local', 'area', 'region', 'weather'].includes(k.toLowerCase())
-        );
-        const summaryText = summary ? `\n\n${summary}` : '';
-        if (hasLocationContext) {
-          return `${itemName}${summaryText}\n\nTell me your location and I can give you more specific information about "${itemName}".`;
-        }
-        return `${itemName}${summaryText}\n\nWhat would you like to explore about "${itemName}"?`;
+        const summaryText = summary || '';
+        return `${itemName}\n\n${summaryText}`;
       }
       case 'action': {
         const action = selectedItem as import('@/lib/siteKnowledge').Action;
         const actionPrompts: Record<string, string> = {
-          'video_reply': `Want to send a video message? ${summary}\n\nJust say "record" to get started, or ask me anything else.`,
-          'call': `Ready to schedule a call? ${summary}\n\nTell me when works best for you, or ask me anything else.`,
-          'email': `Want to send us a message? ${summary}\n\nYou can type your question here and I'll help you compose it, or ask me anything else.`,
-          'quote': `Looking for a quote? ${summary}\n\nTell me what you need and I'll help you get started, or ask me anything else.`
+          'video_reply': `Send a video message\n\n${summary}\n\nSay "record" to start.`,
+          'call': `Schedule a call\n\n${summary}\n\nTell me when works for you.`,
+          'email': `Send a message\n\n${summary}`,
+          'quote': `Get a quote\n\n${summary}\n\nTell me what you need.`
         };
-        return actionPrompts[action.actionType] || `${itemName}: ${summary}\n\nHow can I help you with this?`;
+        return actionPrompts[action.actionType] || `${itemName}\n\n${summary}`;
       }
       case 'person': {
         const person = selectedItem as import('@/lib/siteKnowledge').Person;
-        const contactOptions = [];
-        if (person.email) contactOptions.push(`email at ${person.email}`);
-        if (person.phone) contactOptions.push(`call at ${person.phone}`);
-        const contactInfo = contactOptions.length > 0 
-          ? `\n\nYou can reach ${person.name.split(' ')[0]} by ${contactOptions.join(' or ')}.`
-          : '';
-        return `Meet ${person.name}, ${person.role}.${contactInfo}\n\nWould you like me to help you get in touch, or do you have questions I can answer?`;
+        const contactParts = [];
+        if (person.email) contactParts.push(person.email);
+        if (person.phone) contactParts.push(person.phone);
+        const contactLine = contactParts.length > 0 ? `\n\nContact: ${contactParts.join(' · ')}` : '';
+        return `${person.name}, ${person.role}${contactLine}`;
       }
       case 'proof': {
-        const summaryText = summary ? `\n\n${summary}` : '';
-        return `${itemName}${summaryText}\n\nWhat would you like to explore about "${itemName}"? I can share more details or find similar examples.`;
+        return `${itemName}\n\n${summary || ''}`;
       }
       case 'blog': {
         const blog = selectedItem as import('@/lib/siteKnowledge').Blog;
-        return `${itemName}\n\n${summary}\n\nWant to read the full article? Visit: ${blog.url}\n\nOr ask me any questions about this topic.`;
+        return `${itemName}\n\n${summary}\n\nRead more: ${blog.url}`;
       }
       case 'social': {
         const social = selectedItem as import('@/lib/siteKnowledge').Social;
         const platformName = social.platform.charAt(0).toUpperCase() + social.platform.slice(1);
         if (social.connected) {
-          const followerInfo = social.followerCount ? `${social.followerCount.toLocaleString()} followers\n\n` : '';
-          return `Here's our ${platformName} feed (@${social.handle}).\n\n${followerInfo}Visit: ${social.url}\n\nAsk me about our latest posts or activity.`;
+          const followerInfo = social.followerCount ? ` · ${social.followerCount.toLocaleString()} followers` : '';
+          return `${platformName} (@${social.handle})${followerInfo}\n\n${social.url}`;
         }
-        return `Connect your ${platformName} account to display your feed and engage with visitors.\n\nOnce connected, visitors will be able to see your latest posts right here.`;
+        return `Connect ${platformName} to display your feed here.`;
       }
       default:
-        return `${itemName}: ${summary}\n\nHow can I help you with this?`;
+        return `${itemName}\n\n${summary}`;
     }
   }, [selectedItem]);
 

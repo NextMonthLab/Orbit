@@ -23,6 +23,82 @@ import {
   conversationLimitCopy 
 } from "@shared/uxCopy";
 
+// Echo response post-processing utilities
+function dedupeText(text: string): string {
+  const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+  const seen: string[] = [];
+  const deduped: string[] = [];
+  
+  for (const line of lines) {
+    const normalized = line.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+    if (normalized.length < 3) {
+      deduped.push(line);
+      continue;
+    }
+    
+    let isDupe = false;
+    for (const existing of seen) {
+      if (jaccardSimilarity(normalized, existing) > 0.85) {
+        isDupe = true;
+        break;
+      }
+    }
+    
+    if (!isDupe) {
+      seen.push(normalized);
+      deduped.push(line);
+    }
+  }
+  
+  return deduped.join('\n');
+}
+
+function jaccardSimilarity(a: string, b: string): number {
+  if (a === b) return 1;
+  const wordsA = new Set(a.split(' '));
+  const wordsB = new Set(b.split(' '));
+  const intersection = [...wordsA].filter(x => wordsB.has(x));
+  const union = new Set([...wordsA, ...wordsB]);
+  return intersection.length / union.size;
+}
+
+function echoStyleGuard(text: string): string {
+  let result = text;
+  
+  // Convert ALL CAPS (except acronyms) to Title Case
+  result = result.replace(/\b([A-Z]{5,}(?:\s+[A-Z]{5,})*)\b/g, (match) => {
+    return match.split(' ')
+      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(' ');
+  });
+  
+  // Remove robotic phrases
+  const roboticPhrases = [
+    /What would you like to explore about\s*["']?[^"'?]*["']?\??/gi,
+    /What would you like to know about\s*["']?[^"'?]*["']?\??/gi,
+    /Would you like to learn more about\s*["']?[^"'?]*["']?\??/gi,
+    /Is there anything else you'd like to know\??/gi,
+    /Let me know if you have any questions\.?/gi,
+    /Feel free to ask.*questions\.?/gi,
+    /I'd be happy to help\.?/gi,
+    /Great question!/gi,
+    /That's a great question!/gi,
+  ];
+  
+  for (const pattern of roboticPhrases) {
+    result = result.replace(pattern, '').trim();
+  }
+  
+  // Clean up extra whitespace
+  result = result.replace(/\n{3,}/g, '\n\n').trim();
+  
+  return result;
+}
+
+function processEchoResponse(text: string): string {
+  return echoStyleGuard(dedupeText(text));
+}
+
 // OpenAI client for image generation - uses Replit AI Integrations (no API key needed)
 // Charges are billed to your Replit credits
 let _openai: OpenAI | null = null;
@@ -4626,26 +4702,33 @@ Output only the narration paragraph, nothing else.`;
         baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
       });
 
-      const systemPrompt = `You are an intelligent assistant for ${preview.siteTitle}.
+      const systemPrompt = `You are Echo, a calm and knowledgeable guide for ${preview.siteTitle}.
 
 CONTEXT:
 ${preview.siteSummary}
 
-${preview.keyServices && preview.keyServices.length > 0 ? `OFFERINGS:
+${preview.keyServices && preview.keyServices.length > 0 ? `SERVICES:
 ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
 
-TONE & BEHAVIOUR:
-• Calm, prepared, confident — like a senior analyst who already organised the information
-• Direct and clear. No filler phrases ("Great question!", "I'd be happy to...")
-• Provide value immediately. Answer first, then qualify if needed
-• If information is unavailable, acknowledge it simply and offer a next step
-• Be concise: 1-3 sentences unless detail is genuinely helpful
+RESPONSE STRUCTURE:
+1. Lead with the key insight or answer (1 sentence)
+2. Add context if genuinely helpful (1-2 sentences max)
+3. End with one clear next step or offer to clarify
 
-ANTI-PATTERNS TO AVOID:
-• Never start with "I" — rephrase to lead with value
-• Never apologise excessively — one acknowledgment is enough
-• Never hedge with "I think" or "I believe" — state facts or admit uncertainty clearly
-• Never use emojis unless the user does first`;
+VOICE:
+• Professional and composed — never salesy or over-eager
+• Benefit-led: "Here's what this means for you..." not "Let me explain..."
+• Direct: state facts, don't hedge with "I think" or "I believe"
+• Concise: 2-4 sentences typical. Only expand when detail adds value
+
+STRICT RULES:
+• Never repeat the same information twice in one response
+• Never use ALL CAPS except for acronyms (UK, VAT, API)
+• Never ask "What would you like to explore/know about X?"
+• Never say "Great question!", "I'd be happy to...", or similar filler
+• Never start sentences with "I" — rephrase to lead with value
+• One question at end maximum; prefer offering options as bullets
+• If unsure, acknowledge briefly and offer one clear next step`;
 
       const messages = [
         { role: "system" as const, content: systemPrompt },
@@ -4660,7 +4743,8 @@ ANTI-PATTERNS TO AVOID:
         temperature: 0.7,
       });
 
-      const reply = aiResponse.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+      const rawReply = aiResponse.choices[0]?.message?.content || "Sorry, couldn't generate a response.";
+      const reply = processEchoResponse(rawReply);
 
       // Save assistant message
       await storage.addPreviewChatMessage({
