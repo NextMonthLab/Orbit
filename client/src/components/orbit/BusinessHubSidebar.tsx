@@ -12,12 +12,13 @@ import {
   Crown,
   MessageSquare,
   UserCheck,
-  Bell
+  Bell,
+  Database
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type HubPanel = 'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications';
+export type HubPanel = 'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications' | 'data-sources';
 
 interface BusinessHubSidebarProps {
   isOwner: boolean;
@@ -89,6 +90,14 @@ export function BusinessHubSidebar({
       available: isPaidTier,
       tierRequired: 'grow',
       insightRequired: true,
+    },
+    { 
+      id: 'data-sources' as HubPanel, 
+      label: 'Data Sources', 
+      icon: Database,
+      description: 'Connect external APIs',
+      available: isPaidTier,
+      tierRequired: 'grow',
     },
     { 
       id: 'grid' as HubPanel, 

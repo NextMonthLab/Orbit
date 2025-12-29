@@ -5,6 +5,7 @@ import { HubConversationsPanel } from "./HubConversationsPanel";
 import { HubLeadsPanel } from "./HubLeadsPanel";
 import { HubIcePanel } from "./HubIcePanel";
 import { HubNotificationsPanel } from "./HubNotificationsPanel";
+import { HubDataSourcesPanel } from "./HubDataSourcesPanel";
 import type { HubPanel } from "./BusinessHubSidebar";
 
 interface HubPanelContainerProps {
@@ -54,6 +55,9 @@ export function HubPanelContainer({
           <HubNotificationsPanel tier={planTier} />
         </div>
       );
+    
+    case 'data-sources':
+      return <HubDataSourcesPanel businessSlug={businessSlug} planTier={planTier} />;
     
     case 'settings':
       return (
