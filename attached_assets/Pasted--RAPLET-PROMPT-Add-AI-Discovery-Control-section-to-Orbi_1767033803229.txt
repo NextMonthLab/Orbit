@@ -1,0 +1,157 @@
+# RAPLET PROMPT: Add “AI Discovery Control” section to Orbit Business Hub (tiered access + upsell)
+
+## Role
+You are a senior full-stack engineer and product UX implementer working inside the existing NextMonth Orbit Business Hub.
+Do NOT rebuild the hub. Add a new section using existing layout, nav, cards, and permission patterns.
+
+## Goal
+Add a new section inside the Orbit Business Hub called:
+**AI Discovery Control**
+This section lets businesses view and monitor their Orbit Signal Schema (the machine-readable signal at `/.well-known/orbit.json`) with tiered visibility based on subscription package.
+
+We have agreed:
+- The £19.99 tier includes **Schema Monitoring visibility** (read-only, health, freshness, basic access metrics)
+- Higher tiers unlock **editing/optimisation controls** and deeper analytics (upsell)
+
+The experience must feel premium and calm (no fear-based language). It should reinforce: “Control how AI represents your business.”
+
+---
+
+## Placement + Navigation
+1) Add a left-sidebar nav item inside Orbit Business Hub:
+- Label: “AI Discovery Control”
+- Icon: choose an existing suitable icon (signal/radar/lighthouse/beam if available)
+2) Route to a new hub page:
+- `/orbit/business/ai-discovery` (or follow existing routing conventions)
+
+---
+
+## Section Layout (Page Content)
+The page should include these blocks in order:
+
+### 1) Header
+Title: **AI Discovery Control**
+Subcopy:
+“AI systems increasingly answer questions about businesses directly. Orbit helps you control how your business is understood and represented.”
+
+Buttons:
+- Primary: “View Orbit Signal Schema”
+- Secondary: “Learn more” → `/ai-discovery-control`
+
+### 2) Signal Status Card (Always visible to claimed Orbits)
+Card title: “Orbit Signal Status”
+Show:
+- Domain (current orbit domain)
+- Claimed status
+- Schema endpoint: `/.well-known/orbit.json`
+- Last generated timestamp
+- Freshness badge: Healthy / Stale / Needs attention
+
+If orbit is unclaimed:
+- Show a calm callout:
+  “Claiming your Orbit enables AI discovery monitoring and publishing your Orbit signal.”
+- CTA: “Claim your business Orbit”
+
+### 3) Schema Viewer (Tiered)
+Provide a schema viewer component with:
+- Human-readable view (tabs/accordion: Identity, Positioning, Services, Proof, FAQ, AI Guidance, Freshness)
+- Toggle: “Raw JSON” (advanced)
+- Copy button for raw JSON (optional)
+
+Tier behaviour:
+- If user has **£19.99 plan or higher**: enable schema viewer (read-only)
+- If below plan: show locked state + upsell card (see below)
+
+### 4) AI Access & Crawl Metrics (Tiered)
+Add a “Signal Activity” panel with:
+- “Schema accessed (last 7 days)”
+- “Schema accessed (last 30 days)”
+- “Last access time”
+- “Known agents detected” (only if we can detect user agents reliably, otherwise omit)
+
+Important:
+- Do NOT claim “ChatGPT used it” or “Gemini used it” unless we have verifiable evidence.
+- Use neutral language: “accessed”, “fetched”, “requests”, “user agents”.
+
+Tier behaviour:
+- Included in **£19.99** and above.
+- Higher tiers can show more breakdowns (by user agent, geo, trends) later.
+
+### 5) Upgrade / Upsell Panels (Contextual)
+If user is below £19.99:
+Show a calm upgrade card:
+
+Title: “Unlock AI Discovery Monitoring”
+Body:
+“See and monitor the Orbit signal that AI systems can read. Get schema visibility, freshness health, and access metrics.”
+CTA: “Upgrade to Orbit Monitor (£19.99/month)”
+
+If user is on £19.99 tier:
+Show an upsell card for higher tiers:
+
+Title: “Want more control?”
+Body:
+“Upgrade to unlock AI signal optimisation: edit guidance fields, prioritise topics, and gain deeper activity insights.”
+CTA: “View upgrades”
+
+---
+
+## Subscription / Entitlements
+Implement an entitlement check that drives visibility:
+Create a single helper:
+`getOrbitEntitlements(user)`
+
+Return booleans:
+- `canViewSchema` (true for £19.99+)
+- `canViewSignalMetrics` (true for £19.99+)
+- `canEditSchema` (false for £19.99, true for higher tier)
+- `canViewAdvancedAnalytics` (false for £19.99, true for higher tier)
+
+Use existing billing plan detection logic. Do not invent new billing infrastructure.
+
+---
+
+## Data / Backend Requirements
+We already plan to implement:
+- `GET /.well-known/orbit.json` for claimed orbits (Orbit Signal Schema v0.1)
+
+Now add a basic metrics system:
+
+### Metrics Capture
+Log every request to `/.well-known/orbit.json` with:
+- timestamp
+- domain/orbit_id
+- user agent string (truncated)
+- IP (optional, if already logged; do not expose IP in UI)
+
+Store in an existing activity log table if available. If not, add a minimal table:
+`orbit_signal_access_log`
+
+### Metrics API for the Hub
+Create a secure internal endpoint (auth required), e.g.:
+- `GET /api/orbit/signal/metrics?range=7d`
+- `GET /api/orbit/signal/metrics?range=30d`
+
+Return:
+- total_access_count
+- last_access_at
+- top_user_agents (optional)
+
+---
+
+## Copy Guardrails
+- No fearmongering
+- No “someone else might steal it”
+- No claims that specific AI models are using it unless confirmed
+- Emphasise ownership, clarity, and control
+
+---
+
+## Done Criteria
+- “AI Discovery Control” nav item appears in Orbit Business Hub
+- Page renders for claimed and unclaimed states
+- £19.99 tier users can view schema + basic activity
+- Lower tier sees locked UI + upgrade CTA
+- Higher-tier placeholder upsell exists for optimisation controls
+- Metrics logging works and UI displays counts accurately
+- Mobile, tablet, desktop responsive

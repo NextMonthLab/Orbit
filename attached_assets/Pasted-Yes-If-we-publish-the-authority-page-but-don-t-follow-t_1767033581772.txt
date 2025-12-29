@@ -1,0 +1,235 @@
+Yes. If we publish the authority page but don’t follow through with the Signal Schema, we’re basically saying “the future is here” and then leaving the garage empty.
+
+The good news: you can ship Orbit Signal Schema v0.1 fast, and it immediately becomes a real, defensible asset.
+
+What we’re building
+
+A machine-readable “source of truth” for a business that lives at a predictable endpoint, like:
+	•	https://example.com/.well-known/orbit.json
+
+It should be:
+	•	Owned (only for claimed Orbits)
+	•	Structured (AI-friendly, not marketing copy)
+	•	Fresh (timestamps, versioning)
+	•	Safe (no secrets, no personal data)
+	•	Verifiable (signature optional but recommended)
+
+⸻
+
+Orbit Signal Schema v0.1 (practical spec)
+
+Keep v0.1 focused. You can expand later.
+
+Core fields (v0.1)
+	•	schema_version
+	•	orbit_id
+	•	domain
+	•	business (canonical identity)
+	•	positioning (approved descriptions)
+	•	services (structured)
+	•	proof (trust signals)
+	•	faq (question-answer pairs)
+	•	policies (optional: privacy, terms)
+	•	freshness (timestamps + update cadence)
+	•	contact (safe public contact routes)
+	•	sources (what Orbit used, optional)
+	•	ai_guidance (what AI should prioritise, what to avoid)
+
+Example payload (trimmed)
+
+{
+  "schema_version": "0.1",
+  "orbit_id": "orb_123",
+  "domain": "assureuk.co.uk",
+  "business": {
+    "name": "Assure UK",
+    "category": "Professional Services",
+    "location": "United Kingdom",
+    "brand_tone": ["calm", "credible", "trustworthy"],
+    "canonical_description": "Independent pension audit services for trustees and schemes."
+  },
+  "positioning": {
+    "what_we_do": [
+      "Independent review of pension scheme financial statements and compliance."
+    ],
+    "who_we_help": ["Pension scheme trustees", "Scheme administrators"],
+    "what_we_do_not_do": ["Personal financial advice"],
+    "preferred_phrasing": [
+      "independent pension audit",
+      "trustee assurance",
+      "regulatory compliance"
+    ]
+  },
+  "services": [
+    {
+      "name": "Pension audit",
+      "summary": "Independent audit support built around statutory deadlines and trustee confidence.",
+      "keywords": ["pension audit", "scheme audit", "trustee assurance"]
+    }
+  ],
+  "proof": [
+    {
+      "type": "process",
+      "title": "Use a proven process",
+      "summary": "A structured audit approach designed to reduce disruption and avoid last minute surprises."
+    }
+  ],
+  "faq": [
+    {
+      "q": "What does a pension audit cover?",
+      "a": "It covers review of the scheme’s financial statements and relevant compliance requirements, tailored to the scheme context."
+    }
+  ],
+  "ai_guidance": {
+    "priority_topics": ["services", "proof", "deadlines", "process"],
+    "sensitive_topics": ["scheme specific regulatory advice"],
+    "answer_style": "Concise, factual, avoid guarantees. Encourage contact for scheme specific queries."
+  },
+  "freshness": {
+    "generated_at": "2025-12-29T17:00:00Z",
+    "valid_for_days": 7
+  },
+  "contact": {
+    "website": "https://assureuk.co.uk",
+    "email": "info@assureuk.co.uk"
+  }
+}
+
+
+⸻
+
+The “lighthouse” part
+
+Two things make this a lighthouse rather than just another JSON file:
+	1.	Predictable location: /.well-known/orbit.json
+	2.	Predictable semantics: stable fields, timestamps, and “AI guidance” for how to interpret the data
+
+Optional but strong:
+	•	Signed payload: add signature using a server-side key, so consumers can verify it hasn’t been tampered with.
+	•	ETag + caching: helps crawlers and reduces load.
+
+⸻
+
+How it should be generated
+
+Do not manually write these. Generate them from the Orbit knowledge model you already have.
+
+Recommended mapping:
+	•	Orbit tiles “Services” → services[]
+	•	Orbit tiles “Proof points” → proof[] (and fix the “title-only” issue here by forcing summaries)
+	•	Orbit QnA / Echo curated answers → faq[]
+	•	Brand settings → business.brand_tone, positioning.preferred_phrasing
+	•	Claim state → controls whether endpoint is enabled
+
+⸻
+
+Rules for v0.1
+	•	Only publish for claimed orbits by default
+	•	Exclude personal data, internal notes, anything non-public
+	•	Prefer “can” and “typically” over “will” and “guarantee”
+	•	Include timestamps and schema version
+
+⸻
+
+Raplet prompt to build it (copy-paste)
+
+# RAPLET PROMPT: Implement Orbit Signal Schema v0.1 (/.well-known/orbit.json)
+
+## Role
+You are a senior full-stack engineer implementing an AI-facing, machine-readable Orbit Signal Schema.
+You will add a new public endpoint and generate its output from existing Orbit data models.
+Do not rebuild the system. Add this as a thin layer.
+
+## Goal
+Expose a stable schema at:
+- `/.well-known/orbit.json`
+
+This schema helps AI systems understand a business accurately using Orbit as a source of truth.
+
+## Requirements
+
+### 1) Endpoint
+Create a public GET route:
+- `GET /.well-known/orbit.json`
+
+If the platform is multi-tenant, resolve the tenant by host header/domain.
+
+### 2) Access rules
+- Default: only serve schema for CLAIMED orbits
+- If orbit is unclaimed: return `404` or a minimal stub that does not reveal sensitive data
+- Add a config flag to allow unclaimed publishing later: `ORBIT_SCHEMA_ALLOW_UNCLAIMED=false`
+
+### 3) Schema structure (v0.1)
+Return JSON with these top-level keys:
+- `schema_version` (string, "0.1")
+- `orbit_id` (string)
+- `domain` (string)
+- `business` (object)
+- `positioning` (object)
+- `services` (array)
+- `proof` (array)
+- `faq` (array)
+- `ai_guidance` (object)
+- `freshness` (object)
+- `contact` (object)
+Optional:
+- `sources` (array)
+- `signature` (string)
+
+### 4) Data mapping
+Map from existing Orbit knowledge items:
+- Services tiles -> `services[]` with { name, summary, keywords }
+- Proof tiles (short labels) -> `proof[]` with { type, title, summary }
+  - IMPORTANT: ensure `summary` is never empty (use deterministic fallback if needed)
+- Existing QnA / curated answers -> `faq[]` with { q, a }
+- Brand and business identity -> `business` and `positioning`
+
+### 5) “Never empty summary” guardrail
+If a proof item or service item has a title but no body, generate a short summary using a deterministic template.
+It must never output title-only objects without a summary.
+
+### 6) Freshness + caching
+Include:
+- `freshness.generated_at` as ISO timestamp
+- `freshness.valid_for_days` default 7
+
+Add HTTP caching headers:
+- `Cache-Control: public, max-age=3600`
+- ETag support if easy
+
+### 7) Safety + compliance
+- No personal data
+- No internal notes
+- Avoid guarantees, use cautious wording
+- Encourage contacting business for scheme-specific advice when relevant
+
+### 8) Optional signature (recommended)
+If feasible, sign the JSON (excluding signature field) with an HMAC secret:
+- env var: `ORBIT_SCHEMA_SIGNING_SECRET`
+Add `signature` as base64.
+If secret missing, omit signature.
+
+### 9) Tests
+Add regression tests:
+- Endpoint returns 200 for a claimed orbit and includes required keys
+- Endpoint returns 404 for unclaimed orbit by default
+- No proof/service item can have empty summary
+- Output validates against a TypeScript type or JSON schema
+
+## Definition of done
+- `/.well-known/orbit.json` works for claimed domains
+- Output is stable and structured
+- No empty summaries
+- Tests pass
+
+
+⸻
+
+If you want to go one notch further (still practical), the next step after v0.1 is:
+	•	Add /.well-known/orbit.schema.json (machine-readable JSON Schema describing the fields)
+	•	Add an “Orbit Beacon” HTML meta tag that points to the JSON endpoint on every page:
+	•	<link rel="orbit" href="/.well-known/orbit.json">
+
+That’s the real lighthouse beam: easy to discover, easy to trust.
+
+Say the word and I’ll write the v0.1 JSON Schema file too.

@@ -144,6 +144,11 @@ export default function MarketingHome() {
             </div>
           </Link>
           <div className="flex items-center gap-3">
+            <Link href="/ai-discovery-control">
+              <Button variant="ghost" className="hidden md:inline-flex text-white/80 hover:text-white hover:bg-white/10" data-testid="link-ai-discovery">
+                AI Discovery
+              </Button>
+            </Link>
             <Link href="/login">
               <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10" data-testid="button-login">
                 Sign In

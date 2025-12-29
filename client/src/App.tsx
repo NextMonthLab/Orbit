@@ -15,6 +15,7 @@ import ForEducator from "@/pages/marketing/ForEducator";
 import ForBrands from "@/pages/marketing/ForBrands";
 import ForCreators from "@/pages/marketing/ForCreators";
 import ForKnowledge from "@/pages/marketing/ForKnowledge";
+import AIDiscoveryControl from "@/pages/marketing/AIDiscoveryControl";
 import PrivacyPolicy from "@/pages/legal/PrivacyPolicy";
 import TermsOfService from "@/pages/legal/TermsOfService";
 import CookiePolicy from "@/pages/legal/CookiePolicy";
@@ -117,6 +118,8 @@ function Router() {
       <Route path="/for/brands" component={ForBrands} />
       <Route path="/for/creators" component={ForCreators} />
       <Route path="/for/knowledge" component={ForKnowledge} />
+      <Route path="/ai-discovery-control" component={AIDiscoveryControl} />
+      <Route path="/ai-discovery" component={AIDiscoveryControl} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsOfService} />
       <Route path="/cookies" component={CookiePolicy} />

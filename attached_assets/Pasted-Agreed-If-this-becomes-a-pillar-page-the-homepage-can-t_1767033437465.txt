@@ -1,0 +1,113 @@
+Agreed. If this becomes a pillar page, the homepage can’t keep talking like discovery is still “Google-first”. We need to thread this message through the homepage without turning it into a manifesto.
+
+Here’s the clean approach:
+	•	Add one new “AI Discovery Shift” block near the top (right after hero).
+	•	Update the Brands & Businesses section to position Orbit as the control layer.
+	•	Add a single-line “source of truth” proof strip before the product grid.
+	•	Update CTAs so the path is obvious: Read the authority page → Claim Orbit.
+
+Below is a Raplet prompt that does exactly that, using existing components and patterns.
+
+⸻
+
+
+# RAPLET PROMPT: Homepage Messaging Update (AI Discovery Control + Orbit)
+
+## Role
+You are a senior product engineer and copy integrator working in the existing NextMonth Home codebase.
+Do NOT redesign the homepage. Make targeted updates using existing layout components and styles.
+
+## Context
+We have created a new authority page at `/ai-discovery-control` explaining:
+- the shift from Google-first search to AI-driven discovery
+- why businesses need control over how AI represents them
+- Orbit as a Business-to-AI interface
+This messaging is foundational and must now be reflected on the homepage.
+
+## Goals
+1) Update the homepage so it acknowledges the AI discovery shift
+2) Reposition Orbit inside “Brands & Businesses” as AI representation control
+3) Add a strong link path to the new authority page
+4) Keep copy calm, credible, premium (no hype, no fear)
+
+## Required Homepage Changes
+
+### 1) Add a new block near the top (after hero)
+Insert a new section directly below the hero area.
+
+Section heading:
+“Discovery has changed. AI now answers.”
+
+Body copy:
+“People no longer find businesses only through search results.
+They ask AI systems like ChatGPT and Gemini and trust the answers.
+Orbit helps you control how your business is understood, described, and recommended.”
+
+Buttons:
+Primary: “Learn about AI discovery” → link to `/ai-discovery-control`
+Secondary: “Claim your business Orbit” → link to existing Orbit claim flow (same route used elsewhere)
+
+Notes:
+- Keep this block visually simple and scannable
+- Use existing section styles (no new design system)
+
+### 2) Update the “Brands & Businesses” section copy
+Where Orbit is currently described, replace or augment the copy so Orbit is framed as the AI control layer.
+
+Replace the Orbit description with:
+“Orbit is a Business-to-AI interface that helps you control how your brand is represented in AI-powered discovery.
+Define what you do, what matters, and which answers are authoritative, so AI doesn’t have to guess.”
+
+Add a small supporting line (optional):
+“The next phase of discovery isn’t about being found. It’s about being represented accurately.”
+
+CTA within Brands & Businesses:
+- “Claim your business Orbit”
+Secondary link:
+- “Why this matters” → `/ai-discovery-control`
+
+### 3) Add a short “Proof strip” line before product tiles (or before footer)
+Add a single, confident line in a subtle strip component if available:
+
+“Stop being interpreted by default. Give AI a source it can trust.”
+
+Make the strip linkable:
+- clicking it routes to `/ai-discovery-control`
+
+### 4) Update any existing generic “Orbit” CTA labels
+If any CTA currently says “Claim this Orbit”, standardise to:
+“Claim your business Orbit”
+
+Avoid all caps.
+
+### 5) SEO + Metadata (if homepage supports it)
+Homepage meta description should be adjusted to include AI discovery without becoming spammy.
+
+Suggested homepage meta description:
+“NextMonth helps businesses, educators, and creators thrive in the age of AI. Orbit gives businesses control over how they’re understood and represented in AI-powered discovery.”
+
+### 6) Analytics (if hooks exist)
+Track:
+- ai_discovery_home_section_view
+- ai_discovery_home_learn_click
+- ai_discovery_home_claim_click
+
+## Guardrails
+- Do not add long walls of text
+- Do not change layout structure beyond inserting one new block and editing copy
+- Do not introduce fear-based urgency
+- Do not break existing navigation patterns
+
+## Definition of Done
+- Homepage includes the new “AI now answers” section with two buttons
+- Brands & Businesses section clearly positions Orbit as AI representation control
+- Homepage links to `/ai-discovery-control` from at least two places
+- Copy is consistent, calm, premium
+- Responsive on mobile, tablet, desktop
+
+
+⸻
+
+If you want one extra notch of polish (and conversion), I’d also change the hero subline slightly to include the concept without derailing the hero.
+
+If you paste your current homepage hero copy, I’ll rewrite it so it stays cinematic but now anchors this new truth.
