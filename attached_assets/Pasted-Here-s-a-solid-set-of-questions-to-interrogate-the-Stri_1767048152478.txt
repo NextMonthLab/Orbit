@@ -1,0 +1,163 @@
+Here’s a solid set of questions to interrogate the Stripe integration properly, framed so Replit can answer with evidence (routes, env vars, code paths). I’ll include your first two and then the ones that usually catch the nasty surprises.
+
+⸻
+
+Your two key questions (keep these verbatim)
+	1.	Will Stripe work on Render, independent of Replit?
+
+	•	Which exact environment variables does Render need set (live + test)?
+	•	Does the app read them server-side at runtime (not build time)?
+	•	Are any callbacks, URLs, or webhook endpoints hardcoded to Replit domains?
+
+	2.	Is Stripe linked to every payment/subscription CTA?
+
+	•	Which buttons launch checkout and which are currently placeholders?
+	•	For each CTA, what is the exact handler and route it calls?
+	•	Does clicking “Upgrade” always create a Stripe Checkout Session and redirect immediately?
+
+⸻
+
+The “are we actually live?” questions
+	3.	Are we running in Stripe test mode or live mode right now?
+
+	•	Where is this determined in code? (env var switch, key prefix check, explicit flag)
+	•	Do we prevent live mode in non-production environments?
+
+	4.	Are live keys enabled and present in Render secrets?
+
+	•	STRIPE_SECRET_KEY (live)
+	•	STRIPE_WEBHOOK_SECRET (live)
+	•	Any publishable key used client-side is correct for the environment
+
+	5.	Do we have separate Price IDs for test vs live?
+
+	•	Where are the price_... IDs stored?
+	•	Are we accidentally using test Price IDs in production?
+
+⸻
+
+Webhooks (this is where 80% of Stripe bugs hide)
+	6.	What is the webhook endpoint path and does it work on Render?
+
+	•	Exact route (eg /api/stripe/webhook)
+	•	Does it use raw body parsing (required for signature verification)?
+	•	Does it verify Stripe signature properly?
+
+	7.	Which webhook events do we handle and what do they update?
+Minimum expected:
+
+	•	checkout.session.completed
+	•	invoice.payment_succeeded
+	•	invoice.payment_failed
+	•	customer.subscription.updated
+	•	customer.subscription.deleted
+
+	8.	Are webhook calls idempotent?
+
+	•	Do we store and ignore duplicate event IDs?
+	•	What happens if Stripe retries a webhook?
+
+	9.	Do we have a clear mapping: Stripe customer/subscription → our user?
+
+	•	How do we link it (email, userId in metadata, customerId stored)?
+	•	What happens if email changes?
+
+⸻
+
+Subscription state and gating correctness
+	10.	What does “paid” mean in our system and where is it enforced?
+
+	•	Which DB fields represent plan / entitlement?
+	•	Which middleware checks entitlements on protected routes?
+	•	Do we ever trust the client to say they’re paid?
+
+	11.	Do we handle upgrade, downgrade, cancel, and past_due correctly?
+
+	•	What happens immediately after payment fails?
+	•	Is there a grace period?
+	•	Does the app pause “Active Ices” correctly when required?
+
+	12.	Do we have a customer portal for self-serve billing?
+
+	•	Link to Stripe Customer Portal
+	•	Update card, cancel, download invoices
+	•	If not, what’s the plan?
+
+⸻
+
+Checkout experience details
+	13.	Where do success and cancel URLs point, and do they work on Render domain?
+
+	•	Success URL should restore the user to the right app state
+	•	Cancel should not strand them
+
+	14.	Do we include user identifiers in Checkout Session metadata?
+
+	•	userId, planId, tier, etc.
+This makes reconciliation and support massively easier.
+
+	15.	Do we support UK-relevant settings?
+
+	•	Currency: GBP (or multi-currency?)
+	•	VAT handling (automatic tax or manual)
+	•	Receipts/invoices enabled
+
+⸻
+
+Security and reliability checks
+	16.	Are we leaking any Stripe secrets to the client?
+
+	•	Ensure only publishable key is used client-side
+	•	Secret key stays server-only
+
+	17.	Do we log Stripe failures clearly but safely?
+
+	•	No secrets in logs
+	•	Enough context for debugging (userId, sessionId, eventId)
+
+	18.	Do we have a safe fallback if Stripe is down or times out?
+
+	•	Proper error handling rather than “spinning forever”
+
+⸻
+
+Evidence request (force Replit to be concrete)
+
+End your interrogation with:
+	19.	Please list the exact files and routes involved
+
+	•	Checkout session creation handler file and route
+	•	Webhook handler file and route
+	•	Any entitlement middleware file
+	•	The env var names required for test and live
+
+⸻
+
+Copy-paste prompt to Replit
+
+If you want it as one block to paste:
+
+Please audit our Stripe integration for Render deployment. Answer with evidence (file paths, routes, env vars, and flow traces), not assumptions.
+
+Questions:
+1) Will Stripe work on Render independent of Replit? Which Render env vars are required? Any hardcoded Replit URLs?
+2) Are all payment/subscription CTAs wired to Stripe Checkout and redirect immediately? List each CTA and its handler/route.
+3) Are we in test or live mode? Where is that determined in code?
+4) Are live keys and webhook secret configured for Render? What env var names are required?
+5) Are Price IDs separated for test vs live? Where are price IDs stored?
+6) What is the webhook endpoint and does it verify signatures using raw body? Confirm Render compatibility.
+7) Which webhook events are handled and what do they update in our DB?
+8) Are webhooks idempotent (dedupe by event id)?
+9) How do we map Stripe customer/subscription to our user (metadata/customerId/email)? What if email changes?
+10) Where is “paid/entitled” enforced in server routes? Any client-trusted gating?
+11) Do we handle past_due/cancelled and pause Active Ices correctly?
+12) Do we have Stripe Customer Portal? If yes, where is it wired?
+13) Success/cancel URLs: what are they and are they correct for Render domain?
+14) Do we attach userId/planId metadata to Checkout sessions?
+15) UK settings: GBP, VAT/tax, receipts/invoices enabled?
+16) Confirm no Stripe secret is exposed client-side.
+17) Confirm error logging is safe and actionable (no secrets).
+18) Confirm robust error handling for Stripe failures/timeouts.
+19) List exact files/routes for checkout creation, webhook handler, entitlement middleware, CTA components.
+
+If you paste that, you’ll get a proper forensic answer rather than “yeah it should work”.
