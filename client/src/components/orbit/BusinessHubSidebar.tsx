@@ -13,12 +13,13 @@ import {
   MessageSquare,
   UserCheck,
   Bell,
-  Database
+  Database,
+  Box
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type HubPanel = 'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications' | 'data-sources';
+export type HubPanel = 'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications' | 'data-sources' | 'cubes';
 
 interface BusinessHubSidebarProps {
   isOwner: boolean;
@@ -96,6 +97,14 @@ export function BusinessHubSidebar({
       label: 'Data Sources', 
       icon: Database,
       description: 'Connect external APIs',
+      available: isPaidTier,
+      tierRequired: 'grow',
+    },
+    { 
+      id: 'cubes' as HubPanel, 
+      label: 'Orbit Cube', 
+      icon: Box,
+      description: 'Physical kiosk devices',
       available: isPaidTier,
       tierRequired: 'grow',
     },
