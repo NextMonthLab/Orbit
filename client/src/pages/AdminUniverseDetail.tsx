@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { SourceGuardrails } from "@shared/schema";
 import { ExperienceInsightsPanel } from "@/components/experience/ExperienceInsightsPanel";
+import { ActiveIcePanel } from "@/components/experience/ActiveIcePanel";
 
 export default function AdminUniverseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -152,6 +153,12 @@ export default function AdminUniverseDetail() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Hosting Status Section */}
+        <ActiveIcePanel 
+          universeId={universeId}
+          universeSlug={universe.slug}
+        />
 
         {/* Insights Section */}
         <Card data-testid="insights-section">
