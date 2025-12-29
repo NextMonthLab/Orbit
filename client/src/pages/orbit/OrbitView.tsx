@@ -714,9 +714,6 @@ export default function OrbitView() {
           lightMode={brandPreferences?.theme === 'light'}
           onInteraction={() => trackMetric('interactions')}
           onSendMessage={async (message) => {
-            if (isUnclaimed) {
-              return "This orbit hasn't been claimed yet. The business owner can claim it to enable full chat features.";
-            }
             if (!conversationTracked) {
               trackMetric('conversations');
               setConversationTracked(true);
@@ -730,6 +727,9 @@ export default function OrbitView() {
               return "Sorry, I couldn't process that request.";
             }
             const data = await response.json();
+            if (data.capped) {
+              return data.message || "Message limit reached. Claim this Orbit to continue chatting.";
+            }
             return data.reply;
           }}
         />
@@ -755,9 +755,6 @@ export default function OrbitView() {
           } : null}
           brandPreferences={brandPreferences}
           onSendMessage={async (message) => {
-            if (isUnclaimed) {
-              return "This orbit hasn't been claimed yet. The business owner can claim it to enable full chat features.";
-            }
             if (!conversationTracked) {
               trackMetric('conversations');
               setConversationTracked(true);
@@ -771,12 +768,15 @@ export default function OrbitView() {
               return "Sorry, I couldn't process that request.";
             }
             const data = await response.json();
+            if (data.capped) {
+              return data.message || "Message limit reached. Claim this Orbit to continue chatting.";
+            }
             return data.reply;
           }}
         />
       )}
 
-      {!isUnclaimed && !showCustomization && (
+      {!showCustomization && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-t border-white/10 py-2 px-4">
           <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
             <span className="text-xs text-white/60">
