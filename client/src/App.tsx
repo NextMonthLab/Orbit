@@ -20,7 +20,22 @@ import TermsOfService from "@/pages/legal/TermsOfService";
 import CookiePolicy from "@/pages/legal/CookiePolicy";
 import PreviewRedirect from "@/pages/PreviewRedirect";
 import OrbitView from "@/pages/orbit/OrbitView";
+import KioskOrbitView from "@/pages/orbit/KioskOrbitView";
 import DataHub from "@/pages/orbit/DataHub";
+import { useSearch } from "wouter";
+
+function OrbitRouter() {
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const isKiosk = params.get('kiosk') === '1';
+  const isVoice = params.get('voice') === '1';
+  
+  if (isKiosk || isVoice) {
+    return <KioskOrbitView />;
+  }
+  
+  return <OrbitView />;
+}
 
 import Home from "@/pages/Home";
 import Today from "@/pages/Today";
@@ -106,8 +121,8 @@ function Router() {
       <Route path="/terms" component={TermsOfService} />
       <Route path="/cookies" component={CookiePolicy} />
       <Route path="/preview/:id" component={PreviewRedirect} />
-      <Route path="/o/:slug" component={OrbitView} />
-      <Route path="/orbit/:slug" component={OrbitView} />
+      <Route path="/o/:slug" component={OrbitRouter} />
+      <Route path="/orbit/:slug" component={OrbitRouter} />
       <Route path="/orbit/:slug/claim" component={OrbitView} />
       <Route path="/orbit/:slug/hub" component={DataHub} />
       <Route path="/app" component={ProtectedHome} />

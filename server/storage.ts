@@ -2116,7 +2116,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.deviceRateLimits.id, id));
   }
 
-  async consumeRateLimitToken(deviceId: string, orbitSlug: string): Promise<{ allowed: boolean; tokensRemaining: number }> {
+  async consumeRateLimitToken(deviceId: string, orbitSlug: string): Promise<{ allowed: boolean; tokensRemaining: number; retryAfter?: number }> {
     const limit = await this.getOrCreateRateLimit(deviceId, orbitSlug);
     
     // Token bucket: refill 2 tokens per minute, max 10 (burst)
@@ -2127,7 +2127,10 @@ export class DatabaseStorage implements IStorage {
     const newTokens = Math.min(10, limit.tokens + tokensToAdd); // Cap at 10 (burst allowance)
     
     if (newTokens < 1) {
-      return { allowed: false, tokensRemaining: 0 };
+      // Calculate seconds until next token is available
+      const secondsSinceLastRefill = minutesSinceRefill * 60;
+      const secondsUntilNextToken = Math.ceil(30 - (secondsSinceLastRefill % 30)); // 30s per token
+      return { allowed: false, tokensRemaining: 0, retryAfter: secondsUntilNextToken };
     }
     
     await this.updateRateLimit(limit.id, newTokens - 1);

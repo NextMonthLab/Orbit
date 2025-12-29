@@ -6750,6 +6750,391 @@ ANTI-PATTERNS TO AVOID:
     }
   });
 
+  // ==========================================
+  // AgoraCube Device Routes
+  // ==========================================
+
+  // Device provisioning - generate pairing code (owner only)
+  app.post("/api/orbit/:slug/devices/provision", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { deviceLabel } = req.body;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      // Owner check
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can provision devices" });
+      }
+      
+      // Generate 6-digit pairing code with uniqueness check
+      let pairingCode: string;
+      let attempts = 0;
+      do {
+        pairingCode = crypto.randomInt(100000, 999999).toString();
+        const existing = await storage.getDeviceSessionByPairingCode(pairingCode);
+        if (!existing) break;
+        attempts++;
+      } while (attempts < 5);
+      
+      if (attempts >= 5) {
+        return res.status(503).json({ message: "Unable to generate unique pairing code, please try again" });
+      }
+      
+      const pairingExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      
+      // Generate server-issued device ID
+      const deviceId = `dev_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+      
+      // Placeholder token hash - will be replaced on pairing
+      const tokenHash = `pending_${crypto.randomUUID()}`;
+      
+      await storage.createDeviceSession({
+        deviceId,
+        orbitSlug: slug,
+        deviceLabel: deviceLabel || null,
+        tokenHash,
+        scopes: ['orbit:read', 'orbit:ask'],
+        pairingCode,
+        pairingExpiresAt,
+      });
+      
+      // Log the provisioning event
+      await storage.createDeviceEvent({
+        deviceId,
+        orbitSlug: slug,
+        eventType: 'provisioned',
+        requestSummary: { deviceLabel },
+        ipAddress: req.ip || null,
+      });
+      
+      res.json({
+        deviceId,
+        pairingCode,
+        expiresAt: pairingExpiresAt.toISOString(),
+        expiresIn: 600, // seconds
+      });
+    } catch (error: any) {
+      console.error("Error provisioning device:", error);
+      res.status(500).json({ message: error.message || "Failed to provision device" });
+    }
+  });
+
+  // Device pairing - exchange pairing code for token
+  app.post("/api/orbit/:slug/devices/pair", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { pairingCode, deviceLabel } = req.body;
+      
+      if (!pairingCode) {
+        return res.status(400).json({ message: "Pairing code is required" });
+      }
+      
+      const session = await storage.getDeviceSessionByPairingCode(pairingCode);
+      
+      if (!session || session.orbitSlug !== slug) {
+        return res.status(404).json({ message: "Invalid or expired pairing code" });
+      }
+      
+      if (session.pairingExpiresAt && new Date(session.pairingExpiresAt) < new Date()) {
+        return res.status(410).json({ message: "Pairing code has expired" });
+      }
+      
+      if (session.revokedAt) {
+        return res.status(403).json({ message: "Device session has been revoked" });
+      }
+      
+      // Generate new token
+      const token = `dtk_${crypto.randomUUID().replace(/-/g, '')}`;
+      const tokenHash = await bcrypt.hash(token, 10);
+      
+      // Update session with token and clear pairing code
+      await storage.updateDeviceSession(session.deviceId, {
+        tokenHash,
+        pairingCode: null,
+        pairingExpiresAt: null,
+        deviceLabel: deviceLabel || session.deviceLabel,
+        lastSeenAt: new Date(),
+        lastSeenIp: req.ip || null,
+        userAgent: req.headers['user-agent'] || null,
+      });
+      
+      // Initialize rate limit bucket
+      await storage.getOrCreateRateLimit(session.deviceId, slug);
+      
+      // Log pairing event
+      await storage.createDeviceEvent({
+        deviceId: session.deviceId,
+        orbitSlug: slug,
+        eventType: 'paired',
+        requestSummary: { deviceLabel },
+        ipAddress: req.ip || null,
+      });
+      
+      res.json({
+        deviceId: session.deviceId,
+        token,
+        scopes: session.scopes,
+        orbitSlug: slug,
+      });
+    } catch (error: any) {
+      console.error("Error pairing device:", error);
+      res.status(500).json({ message: error.message || "Failed to pair device" });
+    }
+  });
+
+  // List devices for orbit (owner only)
+  app.get("/api/orbit/:slug/devices", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can view devices" });
+      }
+      
+      const devices = await storage.getDeviceSessionsByOrbit(slug);
+      
+      // Don't expose token hashes
+      const sanitized = devices.map(d => ({
+        deviceId: d.deviceId,
+        deviceLabel: d.deviceLabel,
+        scopes: d.scopes,
+        lastSeenAt: d.lastSeenAt,
+        lastSeenIp: d.lastSeenIp,
+        createdAt: d.createdAt,
+        isActive: !d.revokedAt,
+        isPending: d.pairingCode !== null,
+      }));
+      
+      res.json(sanitized);
+    } catch (error: any) {
+      console.error("Error listing devices:", error);
+      res.status(500).json({ message: error.message || "Failed to list devices" });
+    }
+  });
+
+  // Revoke device (owner only)
+  app.delete("/api/orbit/:slug/devices/:deviceId", async (req, res) => {
+    try {
+      const { slug, deviceId } = req.params;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can revoke devices" });
+      }
+      
+      const session = await storage.getDeviceSession(deviceId);
+      if (!session || session.orbitSlug !== slug) {
+        return res.status(404).json({ message: "Device not found" });
+      }
+      
+      await storage.revokeDeviceSession(deviceId);
+      
+      // Log revocation
+      await storage.createDeviceEvent({
+        deviceId,
+        orbitSlug: slug,
+        eventType: 'revoked',
+        requestSummary: { revokedBy: (req.user as any)?.id },
+        ipAddress: req.ip || null,
+      });
+      
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error revoking device:", error);
+      res.status(500).json({ message: error.message || "Failed to revoke device" });
+    }
+  });
+
+  // Device /ask endpoint - UI-ready AI response
+  app.post("/api/orbit/:slug/ask", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { question, deviceToken, conversationId, currentCardId } = req.body;
+      
+      if (!question || typeof question !== 'string') {
+        return res.status(400).json({ message: "Question is required" });
+      }
+      
+      if (question.length > 2000) {
+        return res.status(400).json({ message: "Question too long (max 2000 characters)" });
+      }
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      // Authenticate device if token provided
+      let deviceSession: schema.DeviceSession | undefined;
+      if (deviceToken) {
+        const sessions = await storage.getDeviceSessionsByOrbit(slug);
+        for (const s of sessions) {
+          if (!s.revokedAt && s.tokenHash && !s.tokenHash.startsWith('pending_')) {
+            const isValid = await bcrypt.compare(deviceToken, s.tokenHash);
+            if (isValid) {
+              deviceSession = s;
+              break;
+            }
+          }
+        }
+        
+        if (!deviceSession) {
+          return res.status(401).json({ message: "Invalid device token" });
+        }
+        
+        // Check scope
+        if (!deviceSession.scopes?.includes('orbit:ask')) {
+          return res.status(403).json({ message: "Device does not have ask permission" });
+        }
+        
+        // Rate limiting
+        const rateLimit = await storage.consumeRateLimitToken(deviceSession.deviceId, slug);
+        if (!rateLimit.allowed) {
+          await storage.createDeviceEvent({
+            deviceId: deviceSession.deviceId,
+            orbitSlug: slug,
+            eventType: 'rate_limited',
+            requestSummary: { question: question.slice(0, 100) },
+            ipAddress: req.ip || null,
+          });
+          
+          return res.status(429).json({
+            message: "Rate limit exceeded",
+            retryAfter: rateLimit.retryAfter || 30,
+            tokensRemaining: 0,
+          });
+        }
+        
+        // Update last seen
+        await storage.updateDeviceSession(deviceSession.deviceId, {
+          lastSeenAt: new Date(),
+          lastSeenIp: req.ip || null,
+        });
+      }
+      
+      // Get cards for context from the preview's ingested content
+      let cards: schema.Card[] = [];
+      
+      // Try to get universe by orbit slug (if available)
+      if (orbitMeta.businessSlug) {
+        const universe = await storage.getUniverseBySlug(orbitMeta.businessSlug);
+        if (universe) {
+          cards = await storage.getCardsByUniverse(universe.id);
+        }
+      }
+      
+      // Build context from cards
+      const cardContext = cards.slice(0, 12).map(c => ({
+        id: c.id,
+        dayIndex: c.dayIndex,
+        title: c.title,
+        sceneText: c.sceneText,
+      }));
+      
+      // Get curated items for additional context
+      const curatedItems = await storage.getApiCuratedItemsByOrbit(slug, 20);
+      
+      // Build system prompt
+      const systemPrompt = `You are an intelligent assistant for "${orbitMeta.businessSlug}".
+      
+You help visitors understand the business, answer questions, and guide them through the experience.
+
+CONTEXT FROM ORBIT:
+${cardContext.map(c => `- Card ${c.dayIndex}: ${c.title} - ${c.sceneText?.slice(0, 200)}`).join('\n')}
+
+${curatedItems.length > 0 ? `
+ADDITIONAL DATA:
+${curatedItems.slice(0, 10).map(item => `- ${item.title}: ${item.summary || ''}`).join('\n')}
+` : ''}
+
+GUIDELINES:
+- Be helpful, concise, and professional
+- If you don't know something, say so honestly
+- Keep responses under 300 words unless more detail is requested
+- Reference specific content from the Orbit when relevant`;
+
+      const openai = getOpenAI();
+      
+      // Generate response
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: question },
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      });
+      
+      const replyText = completion.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+      
+      // Determine if we should suggest navigating to a card
+      let scenePatch: { cardId: number; reason: string } | null = null;
+      
+      // Simple keyword matching to suggest relevant cards
+      const questionLower = question.toLowerCase();
+      for (const card of cardContext) {
+        const titleLower = (card.title || '').toLowerCase();
+        const sceneLower = (card.sceneText || '').toLowerCase();
+        
+        // Check for keyword overlap
+        const keywords = questionLower.split(/\s+/).filter(w => w.length > 3);
+        const matchScore = keywords.filter(k => 
+          titleLower.includes(k) || sceneLower.includes(k)
+        ).length;
+        
+        if (matchScore >= 2 && card.id !== currentCardId) {
+          scenePatch = {
+            cardId: card.id,
+            reason: `This relates to "${card.title}"`,
+          };
+          break;
+        }
+      }
+      
+      // Log the ask event
+      if (deviceSession) {
+        await storage.createDeviceEvent({
+          deviceId: deviceSession.deviceId,
+          orbitSlug: slug,
+          eventType: 'ask',
+          requestSummary: { 
+            questionLength: question.length,
+            hasScenePatch: !!scenePatch,
+          },
+          ipAddress: req.ip || null,
+        });
+      }
+      
+      res.json({
+        replyText,
+        scenePatch,
+        tokensUsed: completion.usage?.total_tokens || 0,
+        cardContext: cardContext.slice(0, 3).map(c => ({ id: c.id, title: c.title })),
+      });
+      
+    } catch (error: any) {
+      console.error("Error in /ask:", error);
+      res.status(500).json({ message: error.message || "Failed to process question" });
+    }
+  });
+
   // Start background jobs
   startArchiveExpiredPreviewsJob(storage);
 
