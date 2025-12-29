@@ -20,6 +20,13 @@ Key architectural patterns and design decisions include:
 -   **UI/UX**: Emphasizes a cinematic feel with a dark theme, using Cinzel for headlines and Inter for body text, and a pink-purple-blue gradient accent.
 -   **Data Sources Integration**: Supports ingestion of external read-only GET APIs with SSRF protection and encrypted credentials for conversational intelligence.
 -   **AgoraCube Device System**: Enables Orbit display on dedicated thin clients (e.g., Raspberry Pi 5) with kiosk mode and optional voice interaction (STT/TTS), including device authentication and rate limiting.
+-   **Orbit Signal Schema v0.1**: Machine-readable JSON endpoint at `/.well-known/orbit.json` that exposes structured business identity for AI systems. Features include:
+    -   Domain resolution via host header to map requests to the correct Orbit
+    -   Claimed-only publishing by default (controlled by `ORBIT_SCHEMA_ALLOW_UNCLAIMED` env var)
+    -   Alternative access via `/api/orbit/:slug/signal-schema` for testing
+    -   Optional HMAC signing via `ORBIT_SCHEMA_SIGNING_SECRET` env var
+    -   Caching headers for efficient AI crawler access
+    -   Schema includes: business identity, positioning, services, proof points, FAQs, AI guidance, and contact info
 
 ## External Dependencies
 -   **OpenAI API**: Used for chat completions (gpt-4o-mini) and Text-to-Speech (TTS).

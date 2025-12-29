@@ -326,6 +326,121 @@ export async function registerRoutes(
     return { safe: true };
   }
 
+  // ============ WELL-KNOWN ROUTES (Public, AI-facing) ============
+  
+  // Orbit Signal Schema v0.1 - Machine-readable business identity for AI systems
+  app.get("/.well-known/orbit.json", async (req, res) => {
+    try {
+      // Resolve business by host header (domain)
+      const host = req.headers.host || req.hostname;
+      const domain = host.split(':')[0].replace(/^www\./, '').toLowerCase();
+      
+      // Check for env flag to allow unclaimed publishing (default false)
+      const allowUnclaimed = process.env.ORBIT_SCHEMA_ALLOW_UNCLAIMED === 'true';
+      
+      // Find orbit by domain
+      const orbitMeta = await storage.getOrbitMetaByDomain(domain);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ 
+          error: "not_found",
+          message: "No Orbit found for this domain"
+        });
+      }
+      
+      // Check claim status - only serve for claimed orbits by default
+      const isClaimed = orbitMeta.ownerId !== null || orbitMeta.verifiedAt !== null;
+      if (!isClaimed && !allowUnclaimed) {
+        return res.status(404).json({
+          error: "unclaimed",
+          message: "This Orbit has not been claimed. The business owner must claim their Orbit to enable the Signal Schema."
+        });
+      }
+      
+      // Get preview instance for rich data
+      let preview: schema.PreviewInstance | null = null;
+      if (orbitMeta.previewId) {
+        preview = await storage.getPreviewInstance(orbitMeta.previewId) || null;
+      }
+      
+      // Get boxes for additional content
+      const boxes = await storage.getOrbitBoxes(orbitMeta.businessSlug);
+      
+      // Generate schema
+      const { generateOrbitSignalSchema, signOrbitSchema } = await import("./orbitSignalSchema");
+      let schema = generateOrbitSignalSchema(orbitMeta, preview, boxes);
+      
+      // Optional signature
+      const signingSecret = process.env.ORBIT_SCHEMA_SIGNING_SECRET;
+      if (signingSecret) {
+        schema = signOrbitSchema(schema, signingSecret);
+      }
+      
+      // Set caching headers
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Content-Type', 'application/json');
+      
+      // Return schema
+      res.json(schema);
+    } catch (error) {
+      console.error("Error generating orbit.json:", error);
+      res.status(500).json({ 
+        error: "internal_error",
+        message: "Error generating Orbit Signal Schema" 
+      });
+    }
+  });
+  
+  // Alternative route for accessing schema by slug (for testing/development)
+  app.get("/api/orbit/:slug/signal-schema", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ 
+          error: "not_found",
+          message: "Orbit not found" 
+        });
+      }
+      
+      // Check claim status
+      const allowUnclaimed = process.env.ORBIT_SCHEMA_ALLOW_UNCLAIMED === 'true';
+      const isClaimed = orbitMeta.ownerId !== null || orbitMeta.verifiedAt !== null;
+      if (!isClaimed && !allowUnclaimed) {
+        return res.status(404).json({
+          error: "unclaimed",
+          message: "This Orbit has not been claimed"
+        });
+      }
+      
+      // Get preview instance
+      let preview: schema.PreviewInstance | null = null;
+      if (orbitMeta.previewId) {
+        preview = await storage.getPreviewInstance(orbitMeta.previewId) || null;
+      }
+      
+      const boxes = await storage.getOrbitBoxes(orbitMeta.businessSlug);
+      
+      const { generateOrbitSignalSchema, signOrbitSchema } = await import("./orbitSignalSchema");
+      let signalSchema = generateOrbitSignalSchema(orbitMeta, preview, boxes);
+      
+      const signingSecret = process.env.ORBIT_SCHEMA_SIGNING_SECRET;
+      if (signingSecret) {
+        signalSchema = signOrbitSchema(signalSchema, signingSecret);
+      }
+      
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.json(signalSchema);
+    } catch (error) {
+      console.error("Error generating signal schema:", error);
+      res.status(500).json({ 
+        error: "internal_error",
+        message: "Error generating Signal Schema" 
+      });
+    }
+  });
+
   // ============ AUTH ROUTES ============
   
   app.post("/api/auth/register", async (req, res) => {

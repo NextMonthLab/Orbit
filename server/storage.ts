@@ -176,6 +176,7 @@ export interface IStorage {
   getOrbitMeta(businessSlug: string): Promise<schema.OrbitMeta | undefined>;
   getOrbitMetaById(id: number): Promise<schema.OrbitMeta | undefined>;
   getOrbitMetaByPreviewId(previewId: string): Promise<schema.OrbitMeta | undefined>;
+  getOrbitMetaByDomain(domain: string): Promise<schema.OrbitMeta | undefined>;
   createOrbitMeta(data: schema.InsertOrbitMeta): Promise<schema.OrbitMeta>;
   updateOrbitMeta(businessSlug: string, data: Partial<schema.InsertOrbitMeta>): Promise<schema.OrbitMeta | undefined>;
   setOrbitGenerationStatus(businessSlug: string, status: schema.OrbitGenerationStatus, error?: string): Promise<void>;
@@ -1307,6 +1308,25 @@ export class DatabaseStorage implements IStorage {
       where: eq(schema.orbitMeta.previewId, previewId),
     });
     return result;
+  }
+
+  async getOrbitMetaByDomain(domain: string): Promise<schema.OrbitMeta | undefined> {
+    const normalizedDomain = domain.replace(/^www\./, '').toLowerCase();
+    const results = await db.query.orbitMeta.findMany({
+      where: sql`lower(${schema.orbitMeta.sourceUrl}) LIKE ${'%://' + normalizedDomain + '%'} OR lower(${schema.orbitMeta.sourceUrl}) LIKE ${'%://www.' + normalizedDomain + '%'}`,
+    });
+    for (const result of results) {
+      try {
+        const url = new URL(result.sourceUrl);
+        const sourceDomain = url.hostname.replace(/^www\./, '').toLowerCase();
+        if (sourceDomain === normalizedDomain) {
+          return result;
+        }
+      } catch {
+        continue;
+      }
+    }
+    return undefined;
   }
 
   async createOrbitMeta(data: schema.InsertOrbitMeta): Promise<schema.OrbitMeta> {
