@@ -3230,6 +3230,233 @@ export async function registerRoutes(
     }
   });
 
+  // ============ BLOG ROUTES ============
+
+  // Helper to generate slug from title
+  function generateBlogSlug(title: string): string {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 60);
+  }
+
+  // Validate blog post markdown and extract metadata
+  app.post("/api/admin/blog/validate", requireAdmin, async (req, res) => {
+    try {
+      const { markdown } = req.body;
+      
+      if (!markdown || typeof markdown !== 'string') {
+        return res.status(400).json({ 
+          valid: false, 
+          message: "Markdown content required" 
+        });
+      }
+
+      // Extract frontmatter (YAML between --- delimiters)
+      const frontmatterMatch = markdown.match(/^---\s*\n([\s\S]*?)\n---\s*\n/);
+      
+      let metadata: Record<string, any> = {};
+      let contentMarkdown = markdown;
+      
+      if (frontmatterMatch) {
+        const frontmatter = frontmatterMatch[1];
+        contentMarkdown = markdown.slice(frontmatterMatch[0].length);
+        
+        // Parse YAML-like frontmatter
+        const lines = frontmatter.split('\n');
+        for (const line of lines) {
+          const colonIndex = line.indexOf(':');
+          if (colonIndex > 0) {
+            const key = line.slice(0, colonIndex).trim();
+            let value = line.slice(colonIndex + 1).trim();
+            
+            // Handle arrays like tags: [tag1, tag2]
+            if (value.startsWith('[') && value.endsWith(']')) {
+              const arrayValue = value.slice(1, -1).split(',').map(v => v.trim().replace(/['"]/g, ''));
+              metadata[key] = arrayValue;
+            } else {
+              // Remove quotes
+              metadata[key] = value.replace(/^['"]|['"]$/g, '');
+            }
+          }
+        }
+      }
+
+      // Extract title from first # heading if not in frontmatter
+      if (!metadata.title) {
+        const titleMatch = contentMarkdown.match(/^#\s+(.+)$/m);
+        if (titleMatch) {
+          metadata.title = titleMatch[1].trim();
+        }
+      }
+
+      if (!metadata.title) {
+        return res.status(400).json({
+          valid: false,
+          message: "Blog post must have a title (either in frontmatter or as # heading)"
+        });
+      }
+
+      // Generate slug if not provided
+      if (!metadata.slug) {
+        metadata.slug = generateBlogSlug(metadata.title);
+      }
+
+      // Check if slug already exists
+      const existing = await storage.getBlogPostBySlug(metadata.slug);
+
+      res.json({
+        valid: true,
+        metadata: {
+          title: metadata.title,
+          slug: metadata.slug,
+          description: metadata.description || null,
+          author: metadata.author || null,
+          tags: Array.isArray(metadata.tags) ? metadata.tags : (metadata.tags ? [metadata.tags] : []),
+          heroImageUrl: metadata.heroImageUrl || metadata.hero_image || null,
+          heroAlt: metadata.heroAlt || metadata.hero_alt || null,
+          heroCaption: metadata.heroCaption || metadata.hero_caption || null,
+          ctaPrimaryLabel: metadata.ctaPrimaryLabel || metadata.cta_primary_label || null,
+          ctaPrimaryUrl: metadata.ctaPrimaryUrl || metadata.cta_primary_url || null,
+          ctaSecondaryLabel: metadata.ctaSecondaryLabel || metadata.cta_secondary_label || null,
+          ctaSecondaryUrl: metadata.ctaSecondaryUrl || metadata.cta_secondary_url || null,
+          canonicalUrl: metadata.canonicalUrl || metadata.canonical_url || null,
+          internalLinks: Array.isArray(metadata.internalLinks) ? metadata.internalLinks : [],
+        },
+        contentMarkdown,
+        existingPost: existing ? { id: existing.id, slug: existing.slug, title: existing.title } : null,
+        wordCount: contentMarkdown.split(/\s+/).filter(Boolean).length,
+      });
+    } catch (error) {
+      console.error("Error validating blog post:", error);
+      res.status(500).json({ valid: false, message: "Error validating blog post" });
+    }
+  });
+
+  // Create or update blog post
+  app.post("/api/admin/blog", requireAdmin, async (req, res) => {
+    try {
+      const { 
+        id, slug, title, description, contentMarkdown, contentHtml,
+        heroImageUrl, heroAlt, heroCaption,
+        ctaPrimaryLabel, ctaPrimaryUrl, ctaSecondaryLabel, ctaSecondaryUrl,
+        author, tags, canonicalUrl, internalLinks,
+        status, publishedAt
+      } = req.body;
+      
+      if (!title || !contentMarkdown || !slug) {
+        return res.status(400).json({ message: "title, slug, and contentMarkdown are required" });
+      }
+
+      const postData: schema.InsertBlogPost = {
+        slug,
+        title,
+        description: description || null,
+        contentMarkdown,
+        contentHtml: contentHtml || null,
+        heroImageUrl: heroImageUrl || null,
+        heroAlt: heroAlt || null,
+        heroCaption: heroCaption || null,
+        ctaPrimaryLabel: ctaPrimaryLabel || null,
+        ctaPrimaryUrl: ctaPrimaryUrl || null,
+        ctaSecondaryLabel: ctaSecondaryLabel || null,
+        ctaSecondaryUrl: ctaSecondaryUrl || null,
+        author: author || null,
+        tags: tags || [],
+        canonicalUrl: canonicalUrl || null,
+        internalLinks: internalLinks || [],
+        status: status || 'draft',
+        publishedAt: status === 'published' && !publishedAt ? new Date() : (publishedAt ? new Date(publishedAt) : null),
+      };
+
+      let post: schema.BlogPost;
+      
+      if (id) {
+        // Update existing post
+        const updated = await storage.updateBlogPost(id, postData);
+        if (!updated) {
+          return res.status(404).json({ message: "Blog post not found" });
+        }
+        post = updated;
+      } else {
+        // Check if slug already exists
+        const existing = await storage.getBlogPostBySlug(slug);
+        if (existing) {
+          return res.status(409).json({ 
+            message: "A blog post with this slug already exists",
+            existingPost: { id: existing.id, slug: existing.slug, title: existing.title }
+          });
+        }
+        post = await storage.createBlogPost(postData);
+      }
+
+      res.json({ 
+        success: true, 
+        post,
+        message: id ? "Blog post updated" : "Blog post created"
+      });
+    } catch (error) {
+      console.error("Error saving blog post:", error);
+      res.status(500).json({ message: "Error saving blog post" });
+    }
+  });
+
+  // Get all blog posts (public - only published, admin - all)
+  app.get("/api/blog", async (req, res) => {
+    try {
+      const includeUnpublished = req.isAuthenticated() && req.user?.isAdmin;
+      const posts = await storage.getAllBlogPosts(includeUnpublished);
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching blog posts:", error);
+      res.status(500).json({ message: "Error fetching blog posts" });
+    }
+  });
+
+  // Get single blog post by slug (public)
+  app.get("/api/blog/:slug", async (req, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      
+      if (!post) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+      
+      // Only show draft posts to admins
+      if (post.status === 'draft') {
+        if (!req.isAuthenticated() || !req.user?.isAdmin) {
+          return res.status(404).json({ message: "Blog post not found" });
+        }
+      }
+      
+      res.json(post);
+    } catch (error) {
+      console.error("Error fetching blog post:", error);
+      res.status(500).json({ message: "Error fetching blog post" });
+    }
+  });
+
+  // Delete blog post (admin only)
+  app.delete("/api/admin/blog/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const post = await storage.getBlogPost(id);
+      
+      if (!post) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+      
+      await storage.deleteBlogPost(id);
+      res.json({ success: true, message: "Blog post deleted" });
+    } catch (error) {
+      console.error("Error deleting blog post:", error);
+      res.status(500).json({ message: "Error deleting blog post" });
+    }
+  });
+
   // Get universe audio settings
   app.get("/api/universes/:id/audio-settings", async (req, res) => {
     try {
