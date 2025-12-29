@@ -73,6 +73,13 @@ export interface IStorage {
   
   // Events
   logEvent(event: schema.InsertEvent): Promise<void>;
+  getExperienceAnalyticsSummary(universeId: number, days?: number): Promise<{
+    views: { total: number; last7Days: number };
+    conversations: { total: number; last7Days: number };
+    completionRate: number;
+    topQuestions: string[];
+    topCard: { id: number; title: string; views: number } | null;
+  }>;
   
   // Locations
   getLocation(id: number): Promise<schema.Location | undefined>;
@@ -718,6 +725,87 @@ export class DatabaseStorage implements IStorage {
   // Events
   async logEvent(event: schema.InsertEvent): Promise<void> {
     await db.insert(schema.events).values(event);
+  }
+  
+  async getExperienceAnalyticsSummary(universeId: number, days: number = 30): Promise<{
+    views: { total: number; last7Days: number };
+    conversations: { total: number; last7Days: number };
+    completionRate: number;
+    topQuestions: string[];
+    topCard: { id: number; title: string; views: number } | null;
+  }> {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    
+    const allEvents = await db.query.events.findMany({
+      where: gte(schema.events.createdAt, thirtyDaysAgo),
+    });
+    
+    const universeEvents = allEvents.filter(e => 
+      e.metadataJson && (e.metadataJson as any).universeId === universeId
+    );
+    
+    const viewEvents = universeEvents.filter(e => 
+      e.type === 'experience_view' || e.type === 'card_view'
+    );
+    const conversationEvents = universeEvents.filter(e => 
+      e.type === 'conversation_start' || e.type === 'chat_start'
+    );
+    
+    const recentViewEvents = viewEvents.filter(e => e.createdAt >= sevenDaysAgo);
+    const recentConversationEvents = conversationEvents.filter(e => e.createdAt >= sevenDaysAgo);
+    
+    const cards = await this.getCardsByUniverse(universeId);
+    const totalCards = cards.length;
+    
+    const cardViewCounts: Record<number, number> = {};
+    viewEvents.forEach(e => {
+      const cardId = (e.metadataJson as any)?.cardId;
+      if (cardId) {
+        cardViewCounts[cardId] = (cardViewCounts[cardId] || 0) + 1;
+      }
+    });
+    
+    const lastCardViewCount = totalCards > 0 ? (cardViewCounts[cards[totalCards - 1]?.id] || 0) : 0;
+    const firstCardViewCount = totalCards > 0 ? (cardViewCounts[cards[0]?.id] || 0) : 0;
+    const completionRate = firstCardViewCount > 0 
+      ? Math.round((lastCardViewCount / firstCardViewCount) * 100) 
+      : 0;
+    
+    const questionEvents = universeEvents.filter(e => e.type === 'question_asked');
+    const questions = questionEvents
+      .map(e => (e.metadataJson as any)?.question)
+      .filter(Boolean);
+    const questionCounts: Record<string, number> = {};
+    questions.forEach(q => {
+      const normalized = q.toLowerCase().trim().slice(0, 100);
+      questionCounts[normalized] = (questionCounts[normalized] || 0) + 1;
+    });
+    const topQuestions = Object.entries(questionCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([q]) => q);
+    
+    let topCard: { id: number; title: string; views: number } | null = null;
+    if (Object.keys(cardViewCounts).length > 0) {
+      const topCardId = Object.entries(cardViewCounts)
+        .sort((a, b) => b[1] - a[1])[0];
+      if (topCardId) {
+        const card = cards.find(c => c.id === Number(topCardId[0]));
+        if (card) {
+          topCard = { id: card.id, title: card.title, views: topCardId[1] };
+        }
+      }
+    }
+    
+    return {
+      views: { total: viewEvents.length, last7Days: recentViewEvents.length },
+      conversations: { total: conversationEvents.length, last7Days: recentConversationEvents.length },
+      completionRate,
+      topQuestions,
+      topCard,
+    };
   }
   
   // Locations

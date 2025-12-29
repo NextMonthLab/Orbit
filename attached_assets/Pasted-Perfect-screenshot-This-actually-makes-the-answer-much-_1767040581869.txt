@@ -1,0 +1,148 @@
+Perfect screenshot. This actually makes the answer much clearer.
+
+Your instinct is right: this screen must stay clean, calm, and IceMaker-first. If you pollute this with Orbit concepts, you’ll break the magic.
+
+So the answer is not “put Orbit here”.
+
+The answer is: protect this screen at all costs, and branch out of it deliberately.
+
+⸻
+
+What this screen is (and must remain)
+
+This view is doing three things brilliantly:
+	1.	It’s a library
+“Choose your story” is clear, emotional, and non-technical.
+	2.	It’s a personal or brand catalogue
+These cards feel like artefacts, not dashboards.
+	3.	It’s lightweight
+No numbers. No graphs. No admin energy.
+
+This is not where people want to analyse anything.
+This is where they want to select, continue, or share.
+
+So: do not add Orbit functionality here.
+No metrics. No charts. No “Business Hub” language.
+
+⸻
+
+The correct pattern: Depth on demand
+
+You already have the right mental model without realising it.
+
+Each card (Failsafe, Progress Accountants, etc.) is a portal.
+
+Orbit does not live at the library level.
+Orbit lives one level deeper.
+
+⸻
+
+The clean structure (this will feel obvious once you see it)
+
+Level 1: Library (this screen)
+	•	Exactly as it is now
+	•	No Orbit mentions
+	•	No analytics clutter
+	•	This is selection mode
+
+Level 2: Experience Detail (per story)
+
+When someone taps Failsafe or Progress Accountants, they enter the experience context.
+
+Here you introduce tabs or actions like:
+	•	Play / Preview
+	•	Edit
+	•	Share
+	•	Insights ← this is the key
+
+Still no Orbit yet.
+
+⸻
+
+Level 3: Insights (IceMaker-native)
+
+Inside Insights, show only IceMaker-relevant signals:
+	•	Views
+	•	Conversations started
+	•	Completion
+	•	Top card
+	•	Top question
+
+This feels natural and expected.
+
+Now – and only now – you add a subtle escalation:
+
+Advanced insights available
+
+Button:
+	•	“Open in Orbit”
+	•	“View in Orbit Dashboard”
+
+Orbit appears as an extension, not a takeover.
+
+⸻
+
+Why this works psychologically
+
+People think in layers, not systems.
+	•	“Which story?” → Library
+	•	“How is this doing?” → Insights
+	•	“I want to go deeper” → Orbit
+
+You’re matching their mental journey, not forcing your product architecture on them.
+
+⸻
+
+What Orbit becomes in this model
+
+Orbit is not:
+	•	A competing navigation item
+	•	A parallel product
+	•	A place you dump users
+
+Orbit is:
+
+“The control room for this experience”
+
+And crucially:
+	•	It opens in context of a specific story
+	•	Not as a generic business dashboard first
+
+That avoids disorientation completely.
+
+⸻
+
+What NOT to do (these will break trust)
+
+❌ Adding metrics badges to the library cards
+❌ Adding an “Orbit” tab to the bottom nav by default
+❌ Mixing creative browsing with analytics
+❌ Forcing creators to think like admins
+
+Those moves feel like bloat, not power.
+
+⸻
+
+A subtle enhancement you can consider later
+
+On the library cards themselves, optionally:
+	•	A tiny dot or pulse if there’s new activity
+	•	No numbers
+	•	No labels
+	•	Just a signal: “Something happened”
+
+That nudges curiosity without clutter.
+
+⸻
+
+One sentence you can give Replit or your team
+
+Keep the IceMaker library view clean and unchanged; introduce analytics only inside each experience’s “Insights” view, and surface Orbit as an optional advanced dashboard from there, never at the library level.
+
+You’ve already built something with taste here.
+Orbit should feel like the backstage, not the stage.
+
+If you want, next we can:
+	•	Design the Experience Detail layout cleanly
+	•	Decide exact copy for “Insights” vs “Orbit”
+	•	Or define which analytics stay IceMaker-only vs Orbit-only
