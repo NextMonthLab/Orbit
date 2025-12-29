@@ -376,6 +376,17 @@ export async function registerRoutes(
         schema = signOrbitSchema(schema, signingSecret);
       }
       
+      // Log access for AI Discovery metrics (async, don't wait)
+      const userAgent = req.headers['user-agent'] || null;
+      const userAgentTruncated = userAgent ? userAgent.substring(0, 100) : null;
+      storage.logOrbitSignalAccess({
+        orbitSlug: orbitMeta.businessSlug,
+        userAgent,
+        userAgentTruncated,
+        requestMethod: 'GET',
+        responseStatus: 200,
+      }).catch(err => console.error('Failed to log signal access:', err));
+      
       // Set caching headers
       res.setHeader('Cache-Control', 'public, max-age=3600');
       res.setHeader('Content-Type', 'application/json');
@@ -430,6 +441,17 @@ export async function registerRoutes(
         signalSchema = signOrbitSchema(signalSchema, signingSecret);
       }
       
+      // Log access for AI Discovery metrics (async, don't wait)
+      const userAgent = req.headers['user-agent'] || null;
+      const userAgentTruncated = userAgent ? userAgent.substring(0, 100) : null;
+      storage.logOrbitSignalAccess({
+        orbitSlug: orbitMeta.businessSlug,
+        userAgent,
+        userAgentTruncated,
+        requestMethod: 'GET',
+        responseStatus: 200,
+      }).catch(err => console.error('Failed to log signal access:', err));
+      
       res.setHeader('Cache-Control', 'public, max-age=3600');
       res.json(signalSchema);
     } catch (error) {
@@ -438,6 +460,35 @@ export async function registerRoutes(
         error: "internal_error",
         message: "Error generating Signal Schema" 
       });
+    }
+  });
+
+  // Signal Schema access metrics (for AI Discovery page)
+  app.get("/api/orbit/:slug/signal/metrics", async (req, res) => {
+    try {
+      // Require authentication
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const { slug } = req.params;
+      const days = parseInt(req.query.days as string) || 30;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ error: "Orbit not found" });
+      }
+      
+      // Check ownership
+      if (orbitMeta.ownerId !== req.user.id && !req.user.isAdmin) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      
+      const metrics = await storage.getOrbitSignalAccessMetrics(slug, days);
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching signal metrics:", error);
+      res.status(500).json({ error: "Error fetching signal metrics" });
     }
   });
 
