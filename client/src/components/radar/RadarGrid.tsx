@@ -220,8 +220,10 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6', o
         return `${itemName}\n\n${summary}\n\nVisit: ${page.url}`;
       }
       case 'topic': {
-        const summaryText = summary || '';
-        return `${itemName}\n\n${summaryText}`;
+        if (summary && summary.toLowerCase() !== itemName.toLowerCase()) {
+          return `${itemName}\n\n${summary}`;
+        }
+        return itemName;
       }
       case 'action': {
         const action = selectedItem as import('@/lib/siteKnowledge').Action;

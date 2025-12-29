@@ -136,7 +136,7 @@ export function ChatHub({
   const getProactiveWelcome = () => {
     if (initialMessage) return initialMessage;
     
-    return `Welcome to the new way to explore ${brandName}! All the information about us is right at your fingertips. Simply tap on any tile around me, or tell me what you're looking for and I'll bring the most relevant information closer so we can discuss it together.`;
+    return `${brandName}\n\nTap any tile to learn more, or ask me a question.`;
   };
 
   const [messages, setMessages] = useState<Message[]>([
