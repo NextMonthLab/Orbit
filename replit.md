@@ -140,6 +140,40 @@ For users who want 12 consecutive video scenes:
 
 ## Recent Changes
 
+### Data Sources v1 (December 2025)
+
+**Universal API Snapshot Ingestion** - Allows businesses to connect external read-only GET APIs to their Orbit for conversational intelligence.
+
+**Database Schema:**
+- `api_secrets` - Encrypted credentials (bearer tokens, API keys)
+- `api_connections` - Connection definitions with SSRF-validated base URLs
+- `api_endpoints` - GET paths with response mapping configuration
+- `api_snapshots` - Versioned fetch results with request hash idempotency
+- `api_curated_items` - Normalized, Orbit-ready data for conversation context
+
+**Security Features:**
+- SSRF protection with private IP blocking and HTTPS-only enforcement
+- 5MB streaming body limit with chunk-by-chunk enforcement
+- Request hash deduplication (hourly)
+- Object storage integration for raw payloads (when configured)
+- Owner-only route protection via requireOrbitOwner middleware
+
+**Key Files:**
+- `shared/schema.ts` - Database tables and types
+- `server/services/ssrfProtection.ts` - URL validation utility
+- `server/storage.ts` - CRUD operations for all data sources tables
+- `server/routes.ts` - API endpoints under `/api/orbit/:slug/data-sources/*`
+- `client/src/components/orbit/HubDataSourcesPanel.tsx` - UI component
+
+**Scope (v1):**
+- Manual snapshots only (no scheduled polling)
+- GET requests only
+- 1 endpoint per connection
+- HTTPS enforced
+- Available for paid tiers (Grow+)
+
+---
+
 ### Phase 5: Final Integration Pass (December 2025)
 
 **Security Fixes:**
