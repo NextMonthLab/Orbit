@@ -174,6 +174,56 @@ For users who want 12 consecutive video scenes:
 
 ---
 
+### AgoraCube Device System (December 2025)
+
+**Raspberry Pi 5 Kiosk Mode** - Enables Orbit display on dedicated thin clients with optional voice interaction.
+
+**Database Schema:**
+- `device_sessions` - Device registration with bcrypt-hashed tokens, scopes, expiry
+- `device_events` - Audit log for device activity (pair, revoke, ask)
+- `device_rate_limits` - Token bucket rate limiting per device+orbit
+
+**Device Authentication Flow:**
+1. Owner provisions device → generates 6-digit crypto.randomInt code (collision retry)
+2. Device exchanges code for bearer token → server hashes with bcrypt
+3. Device uses token in X-Device-Token header for /ask requests
+4. Owner can revoke any device instantly
+
+**Rate Limiting:**
+- 2 tokens/minute refill (120/hour)
+- 10 token burst capacity
+- Returns accurate retryAfter in 429 responses
+
+**Kiosk Mode (?kiosk=1):**
+- Chromeless fullscreen layout
+- 64px minimum touch targets
+- 50 card cap per session
+- Reduced motion (no parallax, no custom scroll physics)
+- Tap-based pagination navigation
+
+**Voice Mode (?voice=1):**
+- Browser SpeechRecognition API (STT)
+- SpeechSynthesis API (TTS)
+- Mic button for quick questions
+- en-US language default
+
+**API Endpoints:**
+- `POST /api/orbit/:slug/devices/provision` - Generate pairing code (owner only)
+- `POST /api/orbit/:slug/devices/pair` - Exchange code for token
+- `GET /api/orbit/:slug/devices` - List devices (owner only)
+- `DELETE /api/orbit/:slug/devices/:deviceId` - Revoke device (owner only)
+- `POST /api/orbit/:slug/ask` - AI-powered Q&A with scenePatch
+
+**Key Files:**
+- `shared/schema.ts` - Device tables and types
+- `server/storage.ts` - Device CRUD and rate limiting
+- `server/routes.ts` - Device and /ask endpoints
+- `client/src/pages/orbit/KioskOrbitView.tsx` - Kiosk/voice UI
+- `client/src/App.tsx` - OrbitRouter with mode detection
+- `docs/AGORACUBE_DEMO.md` - Full demo guide and Pi setup
+
+---
+
 ### Phase 5: Final Integration Pass (December 2025)
 
 **Security Fixes:**
