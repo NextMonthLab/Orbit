@@ -1,0 +1,196 @@
+Absolutely. Here’s a Raplet (Replit) prompt you can paste straight in. It instructs Replit to create a new dedicated authority page, wire it into your existing navigation (Brands & Businesses / Educators / Creators), add strong CTAs to claim an Orbit, and keep it consistent with your current site patterns.
+
+# RAPLET PROMPT: New Authority Page – “AI Discovery Control” (Orbit)
+
+## Role
+You are a senior full-stack product engineer and UX copy integrator working inside the existing NextMonth codebase.
+You will NOT rebuild the site. You will add a new dedicated page, route, navigation entry, and UI components using existing patterns.
+
+## Goal
+Create a new dedicated authority page that becomes the definitive explanation of:
+- The shift from Google indexing to AI-driven discovery (ChatGPT, Gemini and AI answers)
+- Why businesses need control over how AI represents them
+- Why Orbit is the Business-to-AI interface
+- Why claiming an Orbit matters (ownership framing, no fearmongering)
+- Introduce the future concept of “Orbit Signal Schema” carefully (no overpromising)
+
+This page must be high quality and conversion-focused, but calm and credible.
+
+## Page Requirements
+
+### 1) Route + URL
+Add a new page at:
+- `/ai-discovery-control` (primary)
+Optionally also add a redirect:
+- `/ai-discovery` → `/ai-discovery-control`
+
+### 2) Navigation
+Currently we have three sections:
+- Brands & Businesses (Orbit lives here)
+- Educators
+- Creators
+
+Add a new nav entry that is visible under Brands & Businesses AND also appears as a top-level “Pillar” link if the nav supports it.
+
+Nav label:
+- “AI Discovery Control” (preferred)
+Alternative acceptable:
+- “AI Discovery”
+
+### 3) Page Layout
+Use the site’s existing layout components and design system.
+The page should feel premium, scannable, and authoritative.
+
+Include these blocks in order:
+1. Hero section (H1 + lead paragraph + primary CTA)
+2. “The shift” section
+3. “AI infers your business” section
+4. “From SEO to AI representation” section including a simple comparison table
+5. “Orbit is how your business speaks to AI” section
+6. “Control requires ownership” section + Claim CTA
+7. “Beyond interfaces” section introducing the Signal Schema concept (careful language)
+8. Closing CTA band
+
+### 4) CTAs (Conversion)
+Primary CTA button (hero + bottom):
+- “Claim your business Orbit”
+
+This should link to the existing claim flow if it exists (use the canonical claim URL/route used elsewhere).
+If claim flow requires a domain:
+- send the user to the claim start screen and prefill with current domain if available
+
+Secondary CTA (hero):
+- “See Orbit in action” (link to existing Orbit demo page or the Orbit area within Brands & Businesses)
+
+Add microcopy beneath the primary CTA (soft FOMO, no scare tactics):
+- “Claiming your Orbit helps control how AI represents your business.”
+
+### 5) Copy to Use (FINAL)
+Use this copy exactly (minor punctuation tweaks allowed to match styling). Do not shorten unless necessary.
+
+H1:
+“When AI answers questions about your business, who decides what it says?”
+
+Intro:
+“For years, businesses focused on being found.
+Search rankings. Keywords. Click-through rates.
+But discovery has changed.
+Today, people don’t search for businesses the way they used to. They ask AI. And AI doesn’t return a list of links. It returns an answer.
+A summary. An interpretation. An opinion.
+The question is no longer where does my website rank?
+It’s this: How is my business being understood and described by AI?”
+
+SECTION: Search has changed. Discovery has changed. Control hasn’t caught up.
+“AI-powered systems like ChatGPT, Gemini, and AI-enhanced search results are now a primary way people discover and evaluate businesses.
+Instead of scanning websites, users ask questions like:
+- Who should I trust for this?
+- What does this company actually do?
+- Are they credible?
+- Who’s best for my situation?
+The AI answers by interpreting information pulled from across the web.
+Not just your website. Not just your marketing copy. But fragments, summaries, assumptions, and third-party references.
+And once that answer is given, it often becomes the truth for that user.”
+
+SECTION: AI doesn’t know your business. It infers it.
+“This is the uncomfortable reality.
+AI systems are not malicious. They’re not biased against you.
+But they are interpretive.
+They compress nuance. They flatten differentiation. They prioritise what’s easy to summarise, not what matters most.
+That means:
+- Your positioning can be diluted
+- Your proof points can disappear
+- Your tone can become generic
+- Outdated or partial information can persist
+- Context can be guessed instead of known
+Most businesses are already being described by AI.
+They’re just not part of the conversation.”
+
+SECTION: From SEO to AI representation
+“Traditional SEO was about visibility.
+AI discovery is about understanding.
+This isn’t SEO 2.0.
+It’s a shift from optimising for algorithms to defining how your business is represented when AI speaks on your behalf.
+The next phase of discovery isn’t about being found.
+It’s about being represented accurately.”
+
+Comparison table:
+Then | Now
+Rankings | Interpretation
+Keywords | Meaning
+Traffic | Trust
+Clicks | Answers
+Search engines | AI systems
+
+SECTION: Businesses need a source of truth for AI
+“Right now, AI systems are forced to guess.
+They scrape. They summarise. They infer.
+What’s missing is an authoritative, structured, business-owned source of truth designed for AI.
+That’s the gap Orbit exists to fill.”
+
+SECTION: Orbit is how your business speaks to AI
+“Orbit is not a chatbot. It’s not a website builder. It’s not an SEO tool.
+Orbit is a Business-to-AI interface.
+It gives AI systems something better than inference: a clear, structured, up-to-date representation of your business that you control.
+With Orbit, you define:
+- Who you are and who you’re for
+- What you do (and what you don’t)
+- How your services should be described
+- Which proof points matter
+- Which answers are authoritative
+- Which information is outdated or sensitive
+Orbit doesn’t try to game AI systems.
+It gives them something reliable to listen to.”
+
+SECTION: Control requires ownership
+“Orbit instances exist for real businesses and domains.
+But ownership matters.
+Claiming your Orbit:
+- Verifies you as the legitimate business owner
+- Gives you control over how your business is described
+- Allows you to correct, refine, and guide AI understanding
+- Unlocks future AI-facing capabilities as discovery evolves
+If AI is going to describe your business, it should be using something you own.”
+
+SECTION: Beyond interfaces: the future of AI discovery
+“Orbit isn’t just about what humans see.
+We’re building toward a future where Orbit also acts as a machine-readable signal designed specifically for AI systems.
+A clear, authoritative dataset that AI can read, trust, reference, and query.
+Think of it like a lighthouse.
+The clearer the signal, the further and more accurately it travels.
+As AI discovery continues to evolve, Orbit is designed to become the place AI systems look first to understand a business properly.
+Not because they’re forced to.
+But because it’s the most reliable source available.”
+
+Closing:
+“AI is already shaping how businesses are discovered, evaluated, and recommended.
+The question isn’t whether this shift will continue.
+It’s whether businesses will accept being interpreted by default, or take control of how they’re understood.
+Orbit exists for businesses that choose the second option.”
+
+Final CTA:
+“Claim your business Orbit”
+
+### 6) SEO + Metadata
+Add metadata:
+- title: “AI Discovery Control | NextMonth Orbit”
+- description: “Orbit helps businesses control how they are understood and represented in AI-powered discovery, search, and assistants.”
+
+Add OpenGraph/Twitter tags if the system supports it.
+
+### 7) Analytics
+If the project has analytics hooks, track:
+- page view: ai_discovery_control_view
+- claim CTA click: ai_discovery_control_claim_click
+- secondary CTA click: ai_discovery_control_demo_click
+
+### 8) Done Criteria
+- New page loads at /ai-discovery-control
+- New nav link appears correctly
+- CTAs work and route correctly
+- Styling matches existing site
+- Copy is readable on mobile, tablet, desktop
+- No duplicate headings, no all caps headings, and no repeated CTA blocks
+
+Proceed to implement now using existing patterns. Do not redesign the whole site.
+
+If you want, I can also give you a second Raplet prompt that builds the Orbit Signal Schema v0.1 spec + endpoint plan (even if you don’t implement it yet), so you’ve got the roadmap sitting next to the new authority page.

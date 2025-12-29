@@ -146,6 +146,7 @@ export default function OrbitView() {
   const [brandPreferences, setBrandPreferences] = useState<BrandPreferences | null>(null);
   const [experienceType, setExperienceType] = useState<'radar' | 'spatial' | 'classic'>('radar');
   const [showClaimModal, setShowClaimModal] = useState(false);
+  const [claimStep, setClaimStep] = useState<'intro' | 'verify'>('intro');
   const [claimEmail, setClaimEmail] = useState('');
   const [claimStatus, setClaimStatus] = useState<'idle' | 'sending' | 'sent' | 'verifying' | 'success' | 'error'>('idle');
   const [claimMessage, setClaimMessage] = useState('');
@@ -808,38 +809,91 @@ export default function OrbitView() {
 
       {isUnclaimed && !showCustomization && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-t border-white/10 py-2 px-4">
-          <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
-            <span className="text-xs text-white/60">
-              Powered by <span className="text-pink-400 font-medium">NextMonth</span>
+          <div className="max-w-lg mx-auto flex flex-col items-center gap-1">
+            <div className="w-full flex items-center justify-between gap-3">
+              <span className="text-xs text-white/60">
+                Powered by <span className="text-pink-400 font-medium">NextMonth</span>
+              </span>
+              <Button 
+                size="sm"
+                className="bg-pink-500/90 hover:bg-pink-500 text-white text-xs px-3 py-1 h-7"
+                onClick={() => setShowClaimModal(true)}
+                data-testid="button-claim-orbit"
+              >
+                Claim your business Orbit
+              </Button>
+            </div>
+            <span className="text-[10px] text-zinc-500 text-center">
+              This Orbit is available for the verified owner of {preview?.sourceDomain || slug}
             </span>
-            <Button 
-              size="sm"
-              className="bg-pink-500/90 hover:bg-pink-500 text-white text-xs px-3 py-1 h-7"
-              onClick={() => setShowClaimModal(true)}
-              data-testid="button-claim-orbit"
-            >
-              Claim This Orbit
-            </Button>
           </div>
         </div>
       )}
 
-      <Dialog open={showClaimModal} onOpenChange={setShowClaimModal}>
+      <Dialog open={showClaimModal} onOpenChange={(open) => {
+        setShowClaimModal(open);
+        if (!open) {
+          setClaimStep('intro');
+          setClaimStatus('idle');
+        }
+      }}>
         <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
-              {claimStatus === 'success' ? 'Orbit Claimed!' : 'Claim Your Orbit'}
+              {claimStatus === 'success' ? 'Orbit Claimed!' : 'Claim your business Orbit'}
             </DialogTitle>
             <DialogDescription className="text-zinc-400">
               {claimStatus === 'verifying' 
                 ? 'Verifying your claim...'
                 : claimStatus === 'success'
-                ? 'You now own this orbit and can customize it.'
-                : `Prove you own ${preview?.sourceDomain || slug} to claim this orbit.`}
+                ? 'You now own this Orbit and can customize it.'
+                : claimStep === 'intro'
+                ? `This Orbit has been created for ${preview?.sourceDomain || slug}.`
+                : `Verify ownership of ${preview?.sourceDomain || slug}`}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
+            {claimStep === 'intro' && claimStatus === 'idle' && (
+              <>
+                <p className="text-sm text-zinc-300 leading-relaxed">
+                  Claiming it confirms you as the verified owner and unlocks:
+                </p>
+                <ul className="space-y-2 text-sm text-zinc-400">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-pink-400 flex-shrink-0" />
+                    Control over content and responses
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-pink-400 flex-shrink-0" />
+                    Brand configuration and presentation
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-pink-400 flex-shrink-0" />
+                    Lead capture and insight tools
+                  </li>
+                </ul>
+                <p className="text-xs text-zinc-500">
+                  Once claimed, this Orbit is reserved for your business domain.
+                </p>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    className="flex-1 bg-pink-500 hover:bg-pink-600 text-white"
+                    onClick={() => setClaimStep('verify')}
+                    data-testid="button-verify-claim"
+                  >
+                    Verify and claim Orbit
+                  </Button>
+                </div>
+                <button 
+                  className="w-full text-center text-xs text-zinc-500 hover:text-zinc-400"
+                  onClick={() => setShowClaimModal(false)}
+                >
+                  Learn more
+                </button>
+              </>
+            )}
+
             {claimStatus === 'verifying' && (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="w-8 h-8 animate-spin text-pink-400" />
@@ -870,7 +924,7 @@ export default function OrbitView() {
               </div>
             )}
 
-            {(claimStatus === 'idle' || claimStatus === 'sending') && (
+            {claimStep === 'verify' && (claimStatus === 'idle' || claimStatus === 'sending') && (
               <>
                 <div className="space-y-2">
                   <label className="text-sm text-zinc-400">Your email address</label>
