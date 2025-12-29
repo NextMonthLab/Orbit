@@ -36,6 +36,13 @@ Key architectural patterns and design decisions include:
     -   Ownership enforcement on promotion (requires matching IP or authenticated owner)
     -   Login redirect with return URL for seamless resume flow
     -   Premium feature upsell (AI images, video, narration, export) requiring authentication
+-   **Experience Analytics System**: Per-experience analytics tracking and insights. Features include:
+    -   Client-side tracking for experience views and card views (`client/src/lib/analytics.ts`)
+    -   Session-level deduplication to avoid duplicate counts
+    -   Public event endpoint: `POST /api/public/analytics/event`
+    -   Admin summary endpoint: `GET /api/analytics/experience/:id/summary`
+    -   ExperienceInsightsPanel component showing total views, conversations, completion rate, top card
+    -   Integrated into AdminUniverseDetail page with Orbit CTA for deeper analytics
 
 ## External Dependencies
 -   **OpenAI API**: Used for chat completions (gpt-4o-mini) and Text-to-Speech (TTS).
