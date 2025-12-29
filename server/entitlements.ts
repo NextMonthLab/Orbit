@@ -32,6 +32,11 @@ export interface FullEntitlements {
   planName: string;
   isAdmin: boolean;
   isCreator: boolean;
+  // Active Ice hosting model
+  activeIceLimit: number; // -1 means unlimited
+  analyticsEnabled: boolean;
+  chatEnabled: boolean;
+  orbitAccess: boolean;
 }
 
 function detectTierFromSlug(slug: string | null | undefined): string {
@@ -58,11 +63,15 @@ const TIER_DEFAULTS: Record<string, Partial<FullEntitlements>> = {
     canUseCharacterChat: false,
     canUseCloudLlm: false,
     canViewAnalytics: false,
-    canViewEngagement: false, // Engagement metrics require Pro or Business
+    canViewEngagement: false,
     maxUniverses: 1,
     maxCardsPerStory: 5,
     monthlyVideoCredits: 0,
     monthlyVoiceCredits: 0,
+    activeIceLimit: 0, // Free tier: preview only, no active Ices
+    analyticsEnabled: false,
+    chatEnabled: false,
+    orbitAccess: false,
   },
   pro: {
     canCreateStory: true,
@@ -79,6 +88,10 @@ const TIER_DEFAULTS: Record<string, Partial<FullEntitlements>> = {
     maxCardsPerStory: 50,
     monthlyVideoCredits: 0,
     monthlyVoiceCredits: 100,
+    activeIceLimit: 3, // Pro tier: 3 active Ices
+    analyticsEnabled: true,
+    chatEnabled: true,
+    orbitAccess: false,
   },
   business: {
     canCreateStory: true,
@@ -95,6 +108,10 @@ const TIER_DEFAULTS: Record<string, Partial<FullEntitlements>> = {
     maxCardsPerStory: -1,
     monthlyVideoCredits: 50,
     monthlyVoiceCredits: 500,
+    activeIceLimit: 10, // Business tier: 10 active Ices
+    analyticsEnabled: true,
+    chatEnabled: true,
+    orbitAccess: true,
   },
 };
 
@@ -113,7 +130,7 @@ export async function getFullEntitlements(userId: number): Promise<FullEntitleme
     if (creatorProfile && creatorProfile.planId && creatorProfile.subscriptionStatus === 'active') {
       const plan = await storage.getPlan(creatorProfile.planId);
       if (plan) {
-        const tierSlug = detectTierFromSlug(plan.slug);
+        const tierSlug = detectTierFromSlug(plan.name);
         const tierDefaults = TIER_DEFAULTS[tierSlug] || TIER_DEFAULTS.free;
         const features = (plan.features as Record<string, any>) || {};
         
@@ -135,6 +152,10 @@ export async function getFullEntitlements(userId: number): Promise<FullEntitleme
           planName: plan.displayName,
           isAdmin: false,
           isCreator: true,
+          activeIceLimit: features.activeIceLimit ?? tierDefaults.activeIceLimit ?? 0,
+          analyticsEnabled: features.analyticsEnabled ?? tierDefaults.analyticsEnabled ?? false,
+          chatEnabled: features.chatEnabled ?? tierDefaults.chatEnabled ?? false,
+          orbitAccess: features.orbitAccess ?? tierDefaults.orbitAccess ?? false,
         };
       }
     }
@@ -163,6 +184,10 @@ function getAdminEntitlements(): FullEntitlements {
     planName: 'Admin',
     isAdmin: true,
     isCreator: true,
+    activeIceLimit: -1,
+    analyticsEnabled: true,
+    chatEnabled: true,
+    orbitAccess: true,
   };
 }
 
@@ -177,7 +202,7 @@ function getCreatorFreeEntitlements(): FullEntitlements {
     canUseCharacterChat: false,
     canUseCloudLlm: false,
     canViewAnalytics: false,
-    canViewEngagement: false, // Engagement metrics require Pro or Business
+    canViewEngagement: false,
     maxUniverses: 1,
     maxCardsPerStory: 5,
     monthlyVideoCredits: 0,
@@ -185,6 +210,10 @@ function getCreatorFreeEntitlements(): FullEntitlements {
     planName: 'Free',
     isAdmin: false,
     isCreator: true,
+    activeIceLimit: 0,
+    analyticsEnabled: false,
+    chatEnabled: false,
+    orbitAccess: false,
   };
 }
 
@@ -207,6 +236,10 @@ function getDefaultEntitlements(): FullEntitlements {
     planName: 'Viewer',
     isAdmin: false,
     isCreator: false,
+    activeIceLimit: 0,
+    analyticsEnabled: false,
+    chatEnabled: false,
+    orbitAccess: false,
   };
 }
 

@@ -250,12 +250,20 @@ export type SourceGuardrails = z.infer<typeof sourceGuardrailsSchema>;
 // Narration mode for auto-generating narration text
 export type NarrationMode = 'manual' | 'derive_from_sceneText' | 'derive_from_captions' | 'ai_summarise_from_card';
 
+// Active Ice status for sustainable hosting model
+export type IceStatus = 'draft' | 'active' | 'paused';
+
 export const universes = pgTable("universes", {
   id: serial("id").primaryKey(),
   slug: text("slug").unique(), // Unique identifier for deterministic imports
   name: text("name").notNull(),
   description: text("description").notNull(),
   styleNotes: text("style_notes"),
+  // Active Ice hosting model fields
+  iceStatus: text("ice_status").$type<IceStatus>().default("draft").notNull(), // draft, active, paused
+  activeSince: timestamp("active_since"), // When Ice was activated for public access
+  pausedAt: timestamp("paused_at"), // When Ice was paused
+  ownerUserId: integer("owner_user_id").references(() => users.id), // Owner of this experience
   visualMode: text("visual_mode").default("author_supplied"), // "engine_generated" | "author_supplied"
   visualStyle: jsonb("visual_style").$type<VisualStyle>(), // Universe-level style constraints
   visualContinuity: jsonb("visual_continuity").$type<VisualContinuity>(), // Style bible for consistent look
