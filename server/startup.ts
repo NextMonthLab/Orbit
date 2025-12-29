@@ -87,6 +87,28 @@ export function runStartupSecurityChecks(): StartupCheckResult {
   }
   console.log('');
 
+  // Email configuration status
+  const resendApiKeySet = !!process.env.RESEND_API_KEY;
+  const usingResendConnector = hasReplitConnector();
+  
+  console.log('[Email Configuration]');
+  if (resendApiKeySet) {
+    console.log('  - Mode: Standard environment variable');
+    console.log(`  - RESEND_API_KEY: SET`);
+    console.log(`  - EMAIL_FROM_ADDRESS: ${process.env.EMAIL_FROM_ADDRESS || 'hello@nextmonth.io (default)'}`);
+  } else if (usingResendConnector) {
+    console.log('  - Mode: Replit Connector (auto-managed)');
+    console.log('  - Credentials: Via Resend integration');
+  } else {
+    console.log('  - Mode: NOT CONFIGURED');
+    if (isProduction) {
+      result.warnings.push('WARNING: Email not configured - magic links and notifications will not be sent');
+    } else {
+      console.log('  - DEV: Emails will be logged but not sent');
+    }
+  }
+  console.log('');
+
   // Rate limiting status
   console.log('[Rate Limiting]');
   console.log('  - Analytics: 100 requests/minute per IP');

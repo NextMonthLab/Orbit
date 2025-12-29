@@ -69,11 +69,23 @@ Key architectural patterns and design decisions include:
     -   **Event Deduplication**: In-memory Set tracks last 1000 webhook event IDs to prevent double-processing
     -   **Startup Validation**: `server/startup.ts` validates required env vars and logs platform detection
     -   **Documentation**: See `docs/render-deployment.md` for complete setup guide
+-   **Email & Notifications System (Beta-Ready)**: Transactional email via Resend and in-app notifications. Features include:
+    -   **Email Provider**: `server/services/email/` with Resend integration (Replit connector or `RESEND_API_KEY` env var)
+    -   **Email Templates**: `orbitClaimMagicLink`, `orbitClaimConfirmed`, `subscriptionChanged`, `leadCapturedDigest`
+    -   **Orbit Claim Magic Link Flow**: 
+        -   POST `/api/orbit/:slug/claim/request` - sends magic link email with 30-min expiry
+        -   POST `/api/orbit/:slug/claim/verify` - validates single-use token, claims orbit, sends confirmation
+        -   Free email domain detection with warnings
+        -   Email domain vs business domain matching
+    -   **In-App Notifications**: Bell icon + preferences panel, tier-gated alert types (lead_captured, conversation_spike, pattern_shift, friction_detected, high_performing_ice)
+    -   **Startup Validation**: Email config logged on startup, warns if not configured in production
+    -   **Documentation**: See `docs/email-and-notifications.md` for complete setup guide
 
 ## External Dependencies
 -   **OpenAI API**: Used for chat completions (gpt-4o-mini) and Text-to-Speech (TTS).
 -   **Kling AI API**: Integrated for video generation.
 -   **Replicate API**: Used for alternative video generation models.
 -   **Stripe**: For subscription billing and payment processing.
+-   **Resend**: Transactional email delivery for magic links and notifications.
 -   **Replit Object Storage (R2/S3-compatible)**: For file storage.
 -   **Neon (PostgreSQL)**: Managed PostgreSQL database service.

@@ -6301,6 +6301,11 @@ STRICT RULES:
         return res.status(400).json({ message: "Email is required" });
       }
 
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+
       const orbitMeta = await storage.getOrbitMeta(slug);
       if (!orbitMeta) {
         return res.status(404).json({ message: "Orbit not found" });
@@ -6310,39 +6315,59 @@ STRICT RULES:
         return res.status(400).json({ message: "This orbit has already been claimed" });
       }
 
-      // Extract domain from source URL and email
+      const { sendEmail, orbitClaimMagicLink, isFreeEmailDomain } = await import("./services/email");
+
       const sourceUrl = new URL(orbitMeta.sourceUrl);
       const sourceDomain = sourceUrl.hostname.replace(/^www\./, '');
       const emailDomain = email.split('@')[1]?.toLowerCase();
       const domainMatch = emailDomain === sourceDomain;
+      const isFreeDomain = isFreeEmailDomain(email);
 
-      // Generate secure token
       const crypto = await import('crypto');
       const token = crypto.randomBytes(32).toString('hex');
 
-      // Create claim token (expires in 24 hours)
+      const expiryMinutes = 30;
       await storage.createClaimToken({
         businessSlug: slug,
         email: email.toLowerCase(),
         token,
         domainMatch,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + expiryMinutes * 60 * 1000),
       });
 
-      // For MVP, we'll log the magic link (in production, send email)
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : 'http://localhost:5000';
+      const baseUrl = getAppBaseUrl(req);
       const magicLink = `${baseUrl}/orbit/${slug}/claim?token=${token}`;
       
-      console.log(`[Claim] Magic link for ${email}: ${magicLink}`);
+      console.log(`[Claim] Magic link generated for ${email.split('@')[1]}`);
+
+      const emailResult = await sendEmail({
+        to: email.toLowerCase(),
+        template: orbitClaimMagicLink({
+          businessName: orbitMeta.businessName,
+          claimUrl: magicLink,
+          expiryMinutes,
+          isFreeEmailDomain: isFreeDomain,
+        }),
+      });
+
+      if (!emailResult.success) {
+        console.error('[Claim] Email send failed:', emailResult.error);
+        return res.status(503).json({ 
+          success: false,
+          message: "Unable to send verification email. Please try again later.",
+          error: "email_send_failed",
+        });
+      }
 
       res.json({
         success: true,
         domainMatch,
+        isFreeEmailDomain: isFreeDomain,
         message: domainMatch 
           ? "Verification email sent! Check your inbox."
-          : "Your email domain doesn't match the business. Verification email sent, but additional review may be required.",
+          : isFreeDomain
+            ? "Verification email sent! Note: For organisations, we recommend using your work email."
+            : "Your email domain doesn't match the business website. Verification email sent.",
       });
     } catch (error) {
       console.error("Error requesting claim:", error);
@@ -6394,6 +6419,19 @@ STRICT RULES:
       
       // Claim the orbit
       await storage.claimOrbit(slug, claimToken.email, user?.id);
+
+      // Send confirmation email
+      const { sendEmail, orbitClaimConfirmed } = await import("./services/email");
+      const baseUrl = getAppBaseUrl(req);
+      const orbitUrl = `${baseUrl}/orbit/${slug}`;
+      
+      await sendEmail({
+        to: claimToken.email,
+        template: orbitClaimConfirmed({
+          businessName: orbitMeta.businessName,
+          orbitUrl,
+        }),
+      });
 
       res.json({
         success: true,
