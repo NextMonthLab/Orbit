@@ -118,6 +118,7 @@ interface ChatHubProps {
   onMinimize: () => void;
   onExpand: () => void;
   nearbyTiles?: string[];
+  lightMode?: boolean;
 }
 
 export function ChatHub({
@@ -130,6 +131,7 @@ export function ChatHub({
   onMinimize,
   onExpand,
   nearbyTiles = [],
+  lightMode = false,
 }: ChatHubProps) {
   const getProactiveWelcome = () => {
     if (initialMessage) return initialMessage;
@@ -222,9 +224,11 @@ export function ChatHub({
       <div 
         className="rounded-2xl overflow-hidden backdrop-blur-xl"
         style={{
-          backgroundColor: 'rgba(10, 10, 10, 0.95)',
+          backgroundColor: lightMode ? 'rgba(255, 255, 255, 0.98)' : 'rgba(10, 10, 10, 0.95)',
           border: `1px solid ${accentColor}40`,
-          boxShadow: `0 0 60px ${accentColor}20, 0 25px 50px -12px rgba(0, 0, 0, 0.5)`,
+          boxShadow: lightMode 
+            ? `0 0 60px ${accentColor}15, 0 25px 50px -12px rgba(0, 0, 0, 0.15)`
+            : `0 0 60px ${accentColor}20, 0 25px 50px -12px rgba(0, 0, 0, 0.5)`,
         }}
       >
         {/* Header */}
@@ -239,14 +243,14 @@ export function ChatHub({
             >
               <MessageCircle className="w-4 h-4" style={{ color: accentColor }} />
             </div>
-            <span className="text-white font-medium text-sm">{brandName}</span>
+            <span className={`font-medium text-sm ${lightMode ? 'text-gray-900' : 'text-white'}`}>{brandName}</span>
           </div>
           <button
             onClick={onMinimize}
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${lightMode ? 'hover:bg-black/5' : 'hover:bg-white/10'}`}
             data-testid="minimize-hub"
           >
-            <Minimize2 className="w-4 h-4 text-white/60" />
+            <Minimize2 className={`w-4 h-4 ${lightMode ? 'text-gray-500' : 'text-white/60'}`} />
           </button>
         </div>
 
@@ -260,8 +264,8 @@ export function ChatHub({
               <div
                 className={`max-w-[85%] px-3 py-2 rounded-xl text-sm ${
                   msg.role === 'user'
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/90'
+                    ? lightMode ? 'bg-gray-100 text-gray-900' : 'bg-white/10 text-white'
+                    : lightMode ? 'text-gray-800' : 'text-white/90'
                 }`}
                 style={msg.role === 'assistant' ? { backgroundColor: `${accentColor}15` } : {}}
               >
@@ -277,7 +281,7 @@ export function ChatHub({
                 className="px-3 py-2 rounded-xl"
                 style={{ backgroundColor: `${accentColor}15` }}
               >
-                <Loader2 className="w-4 h-4 animate-spin text-white/60" />
+                <Loader2 className={`w-4 h-4 animate-spin ${lightMode ? 'text-gray-500' : 'text-white/60'}`} />
               </div>
             </div>
           )}
@@ -294,7 +298,11 @@ export function ChatHub({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask anything..."
-              className="flex-1 bg-white/5 border-0 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className={`flex-1 border-0 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                lightMode 
+                  ? 'bg-gray-100 text-gray-900 placeholder:text-gray-400' 
+                  : 'bg-white/5 text-white placeholder:text-white/40'
+              }`}
               disabled={isTyping}
               data-testid="chat-input"
             />

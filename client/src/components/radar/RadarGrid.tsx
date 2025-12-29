@@ -461,6 +461,7 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6', o
           key={selectedItem?.id || 'default'}
           brandName={knowledge.brand.name}
           accentColor={accentColor}
+          lightMode={lightMode}
           onSendMessage={handleSendMessage}
           onIntentChange={handleIntentChange}
           initialMessage={getInitialMessage()}
