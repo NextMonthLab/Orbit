@@ -275,10 +275,10 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
       {/* Content - show more copy */}
       <div className="p-1.5 flex items-start gap-1">
         <div 
-          className="w-4 h-4 rounded flex items-center justify-center shrink-0"
-          style={{ backgroundColor: `${color}25`, border: `1px solid ${color}40` }}
+          className="w-5 h-5 rounded flex items-center justify-center shrink-0"
+          style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}60` }}
         >
-          <TypeIcon className="w-2.5 h-2.5" style={{ color }} />
+          <TypeIcon className="w-3 h-3" style={{ color: 'white' }} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-white text-[9px] font-medium leading-tight line-clamp-2">
