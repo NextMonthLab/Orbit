@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import type { SourceGuardrails } from "@shared/schema";
 import { ExperienceInsightsPanel } from "@/components/experience/ExperienceInsightsPanel";
 import { ActiveIcePanel } from "@/components/experience/ActiveIcePanel";
+import { VisibilityBadge } from "@/components/VisibilityBadge";
 
 export default function AdminUniverseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -80,7 +81,10 @@ export default function AdminUniverseDetail() {
             </Button>
           </Link>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold" data-testid="text-universe-name">{universe.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold" data-testid="text-universe-name">{universe.name}</h1>
+              <VisibilityBadge visibility={(universe.visibility as "private" | "unlisted" | "public") || "private"} />
+            </div>
             <p className="text-muted-foreground text-sm">{universe.description}</p>
           </div>
           <div className="flex gap-2">

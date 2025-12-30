@@ -68,6 +68,8 @@ export default function GlobalNav({
     { href: '/icemaker', label: 'IceMaker', icon: Sparkles, context: 'ice' as NavContext },
     { href: '/orbit', label: 'Orbit', icon: Orbit, context: 'orbit' as NavContext },
   ];
+  
+  const showTryFree = !user && context === 'marketing';
 
   return (
     <header 
@@ -132,6 +134,19 @@ export default function GlobalNav({
             </nav>
 
             <div className="flex items-center gap-2">
+              {showTryFree && (
+                <Link href="/try">
+                  <Button 
+                    size="sm"
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-1.5 h-8 px-3 text-xs"
+                    data-testid="global-try-free"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Try Free
+                  </Button>
+                </Link>
+              )}
+              
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

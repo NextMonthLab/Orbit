@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import GlobalNav from "@/components/GlobalNav";
+import { VisibilityBadge } from "@/components/VisibilityBadge";
 
 interface PreviewCard {
   id: string;
@@ -327,7 +328,10 @@ export default function GuestIceBuilderPage() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-white">{preview.title}</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold text-white">{preview.title}</h2>
+                  <VisibilityBadge visibility={((existingPreview as any)?.visibility as "private" | "unlisted" | "public") || "unlisted"} size="sm" />
+                </div>
                 <p className="text-sm text-slate-400">{cards.length} story cards</p>
               </div>
               <Button
