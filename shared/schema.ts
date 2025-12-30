@@ -844,12 +844,44 @@ export type TransformationJob = typeof transformationJobs.$inferSelect;
 export type IcePreviewStatus = 'active' | 'promoted' | 'expired';
 export type IcePreviewSourceType = 'url' | 'text' | 'file';
 export type IcePreviewTier = 'short' | 'medium' | 'long';
+export type IceContentType = 'script' | 'article' | 'document' | 'unknown';
+export type IceFidelityMode = 'script_exact' | 'interpretive';
+
+// Scene map for structural ingest (scripts only)
+export const iceSceneSchema = z.object({
+  id: z.string(),
+  order: z.number(),
+  heading: z.string(), // e.g., "INT. STUDIO - NIGHT"
+  location: z.string().optional(), // e.g., "STUDIO"
+  timeOfDay: z.string().optional(), // e.g., "NIGHT"
+  characters: z.array(z.string()), // Character names appearing in scene
+  dialogue: z.array(z.object({
+    character: z.string(),
+    line: z.string(),
+  })),
+  action: z.string(), // Scene action/description
+  isGenerated: z.boolean().default(false), // Whether card has been generated for this scene
+});
+
+export type IceScene = z.infer<typeof iceSceneSchema>;
+
+export const iceSceneMapSchema = z.object({
+  contentType: z.enum(['script', 'article', 'document', 'unknown']),
+  fidelityMode: z.enum(['script_exact', 'interpretive']),
+  totalScenes: z.number(),
+  generatedScenes: z.number(),
+  scenes: z.array(iceSceneSchema),
+});
+
+export type IceSceneMap = z.infer<typeof iceSceneMapSchema>;
 
 export const icePreviewCardSchema = z.object({
   id: z.string(),
   title: z.string(),
   content: z.string(),
   order: z.number(),
+  sceneId: z.string().optional(), // Links to scene in sceneMap (for script-exact mode)
+  dialoguePreserved: z.array(z.string()).optional(), // Key dialogue lines preserved verbatim
 });
 
 export type IcePreviewCard = z.infer<typeof icePreviewCardSchema>;
@@ -878,6 +910,11 @@ export const icePreviews = pgTable("ice_previews", {
   // Source content
   sourceType: text("source_type").$type<IcePreviewSourceType>().notNull(),
   sourceValue: text("source_value").notNull(), // URL or text content
+  
+  // Structural ingest (Story Fidelity Modes)
+  contentType: text("content_type").$type<IceContentType>().default("unknown"), // script, article, document
+  fidelityMode: text("fidelity_mode").$type<IceFidelityMode>().default("interpretive"), // script_exact or interpretive
+  sceneMap: jsonb("scene_map").$type<IceSceneMap>(), // Full scene structure for scripts
   
   // Preview data
   title: text("title").notNull(),

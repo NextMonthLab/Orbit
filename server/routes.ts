@@ -130,6 +130,36 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
 });
 
+// ============ SCREENPLAY DETECTION ============
+// Detects if content follows screenplay format (INT./EXT., character names in CAPS, dialogue structure)
+function detectScreenplayFormat(text: string): boolean {
+  const normalizedText = text.slice(0, 5000); // Check first 5000 chars
+  
+  // Strong indicators of screenplay format
+  const sceneHeadingPattern = /^(INT\.|EXT\.|INT\/EXT\.)[\s]+.+[-–—].+$/gm;
+  const characterCuePattern = /^[A-Z][A-Z\s]+(\s*\(.*\))?\s*$/gm;
+  const fadePattern = /^(FADE IN|FADE OUT|FADE TO BLACK|CUT TO|DISSOLVE TO)/gm;
+  const actionBlockPattern = /^[A-Z][a-z].+\.$|^[A-Z][a-z].+\.\s*$/gm;
+  
+  const sceneHeadings = (normalizedText.match(sceneHeadingPattern) || []).length;
+  const characterCues = (normalizedText.match(characterCuePattern) || []).length;
+  const fadeMatches = (normalizedText.match(fadePattern) || []).length;
+  
+  // Check for "FADE IN" at start (very strong screenplay indicator)
+  const hasFadeIn = /^FADE IN/m.test(normalizedText);
+  
+  // Check for mixed case text after character cues (indicates dialogue)
+  const hasDialogueStructure = /^[A-Z]{2,}(\s*\(.*\))?\s*\n[a-z]/m.test(normalizedText);
+  
+  // Strong evidence: 3+ scene headings OR (FADE IN + character cues)
+  if (sceneHeadings >= 3) return true;
+  if (hasFadeIn && characterCues >= 3) return true;
+  if (fadeMatches >= 1 && sceneHeadings >= 1 && characterCues >= 5) return true;
+  if (sceneHeadings >= 1 && characterCues >= 8 && hasDialogueStructure) return true;
+  
+  return false;
+}
+
 // Extend Express user type
 declare global {
   namespace Express {
@@ -5545,20 +5575,154 @@ Stay engaging, reference story details, and help the audience understand the nar
         return res.status(400).json({ message: "Not enough content to create an experience" });
       }
       
-      // Generate cards using AI
       const openai = getOpenAI();
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert at breaking content into cinematic story cards. Given text content, extract 4-8 key moments/sections and format them as story cards.
+      const previewId = `ice_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      
+      // ============ STRUCTURAL INGEST STEP ============
+      // Step 1: Detect content type (script vs article vs document)
+      const isScreenplay = detectScreenplayFormat(contentText);
+      const contentType: schema.IceContentType = isScreenplay ? 'script' : 'document';
+      const fidelityMode: schema.IceFidelityMode = isScreenplay ? 'script_exact' : 'interpretive';
+      
+      let sceneMap: schema.IceSceneMap | undefined;
+      let cards: Array<{title: string; content: string; sceneId?: string; dialoguePreserved?: string[]}> = [];
+      
+      if (isScreenplay && fidelityMode === 'script_exact') {
+        // ============ SCRIPT-EXACT MODE ============
+        // Parse screenplay structure using AI to extract scenes
+        console.log('[ICE] Detected screenplay format - using Script-Exact mode');
+        
+        const structureCompletion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert screenplay analyst. Parse this screenplay and extract its scene structure.
+
+For each scene, identify:
+- heading: The scene heading (e.g., "INT. STUDIO - NIGHT")
+- location: The location name
+- timeOfDay: Time of day if specified
+- characters: Array of character names who appear/speak
+- dialogue: Array of {character, line} for key dialogue lines (max 3 per scene)
+- action: Brief summary of the scene action (1-2 sentences)
+
+Output as JSON: {
+  "title": "Script title",
+  "scenes": [
+    {
+      "heading": "INT. STUDIO - NIGHT",
+      "location": "STUDIO",
+      "timeOfDay": "NIGHT", 
+      "characters": ["MAYA"],
+      "dialogue": [{"character": "MAYA", "line": "Every loop needs a failsafe."}],
+      "action": "Maya faces the camera and explains system design principles."
+    }
+  ]
+}
+
+IMPORTANT:
+- Preserve the EXACT order of scenes as they appear
+- Keep dialogue verbatim - do not paraphrase
+- Include ALL scenes, not just "key" ones
+- This is structural analysis, NOT interpretation`
+            },
+            {
+              role: "user",
+              content: contentText.slice(0, 15000)
+            }
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 4000,
+        });
+        
+        const structureParsed = JSON.parse(structureCompletion.choices[0].message.content || "{}");
+        const parsedScenes = structureParsed.scenes || [];
+        const scriptTitle = structureParsed.title || sourceTitle;
+        sourceTitle = scriptTitle;
+        
+        // Build scene map
+        const scenes: schema.IceScene[] = parsedScenes.map((s: any, idx: number) => ({
+          id: `scene_${idx}`,
+          order: idx,
+          heading: s.heading || `SCENE ${idx + 1}`,
+          location: s.location,
+          timeOfDay: s.timeOfDay,
+          characters: s.characters || [],
+          dialogue: s.dialogue || [],
+          action: s.action || '',
+          isGenerated: idx < 5, // First 5 scenes will be generated for preview
+        }));
+        
+        sceneMap = {
+          contentType: 'script',
+          fidelityMode: 'script_exact',
+          totalScenes: scenes.length,
+          generatedScenes: Math.min(5, scenes.length),
+          scenes,
+        };
+        
+        // Generate cards from first 5 scenes (faithful adaptation)
+        const previewScenes = scenes.slice(0, 5);
+        
+        const cardCompletion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: `You are a director and production designer adapting a screenplay into cinematic story cards.
+
+CRITICAL RULES - SCRIPT-EXACT MODE:
+- You are NOT summarizing or interpreting - you are STAGING the script
+- Preserve the EXACT scene order
+- Preserve character intent and dramatic beats
+- Keep key dialogue VERBATIM
+- Each card = one scene from the script
+- Do NOT combine, reorder, or skip scenes
+
+For each scene, create a card with:
+- title: A cinematic title for the scene (evocative, 3-6 words)
+- content: The scene's action and mood (2-4 sentences, preserving intent)
+- dialoguePreserved: Array of 1-3 key dialogue lines from this scene (EXACT quotes)
+
+Output as JSON: { "cards": [...] }`
+            },
+            {
+              role: "user",
+              content: `Adapt these ${previewScenes.length} scenes into cinematic cards:\n\n${previewScenes.map((s, i) => 
+                `SCENE ${i + 1}: ${s.heading}\nAction: ${s.action}\nDialogue: ${s.dialogue.map((d: any) => `${d.character}: "${d.line}"`).join('\n')}`
+              ).join('\n\n---\n\n')}`
+            }
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 2000,
+        });
+        
+        const cardsParsed = JSON.parse(cardCompletion.choices[0].message.content || "{}");
+        cards = (cardsParsed.cards || []).map((c: any, idx: number) => ({
+          title: c.title || previewScenes[idx]?.heading || `Scene ${idx + 1}`,
+          content: c.content || previewScenes[idx]?.action || '',
+          sceneId: previewScenes[idx]?.id,
+          dialoguePreserved: c.dialoguePreserved || previewScenes[idx]?.dialogue?.map((d: any) => `${d.character}: "${d.line}"`) || [],
+        }));
+        
+      } else {
+        // ============ INTERPRETIVE MODE ============
+        // Original behavior for articles/documents
+        console.log('[ICE] Using Interpretive mode for non-script content');
+        
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert at breaking content into cinematic story cards. Given text content, extract 4-8 key moments/sections and format them as story cards.
 
 Each card should have:
 - A short, evocative title (3-6 words)
 - Content that captures the essence of that moment (2-4 sentences)
 
-Output as JSON array: [{"title": "...", "content": "..."}, ...]
+Output as JSON: { "cards": [{"title": "...", "content": "..."}, ...] }
 
 Guidelines:
 - Keep cards concise and impactful
@@ -5566,40 +5730,40 @@ Guidelines:
 - Use vivid, engaging language
 - Focus on the narrative arc
 - Maximum 8 cards for a short preview`
-          },
-          {
-            role: "user",
-            content: `Create story cards from this content:\n\n${contentText.slice(0, 8000)}`
+            },
+            {
+              role: "user",
+              content: `Create story cards from this content:\n\n${contentText.slice(0, 8000)}`
+            }
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 2000,
+        });
+        
+        try {
+          const parsed = JSON.parse(completion.choices[0].message.content || "{}");
+          cards = parsed.cards || parsed;
+          if (!Array.isArray(cards)) {
+            cards = Object.values(parsed).find(v => Array.isArray(v)) as any || [];
           }
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 2000,
-      });
-      
-      let cards: Array<{title: string; content: string}> = [];
-      try {
-        const parsed = JSON.parse(completion.choices[0].message.content || "{}");
-        cards = parsed.cards || parsed;
-        if (!Array.isArray(cards)) {
-          cards = Object.values(parsed).find(v => Array.isArray(v)) as any || [];
+        } catch (e) {
+          const paragraphs = contentText.split(/\n\n+/).filter(p => p.trim().length > 20);
+          cards = paragraphs.slice(0, 6).map((p, i) => ({
+            title: `Part ${i + 1}`,
+            content: p.slice(0, 300),
+          }));
         }
-      } catch (e) {
-        const paragraphs = contentText.split(/\n\n+/).filter(p => p.trim().length > 20);
-        cards = paragraphs.slice(0, 6).map((p, i) => ({
-          title: `Part ${i + 1}`,
-          content: p.slice(0, 300),
-        }));
       }
       
       cards = cards.slice(0, 8);
       
-      const previewId = `ice_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      
-      const previewCards = cards.map((card, idx) => ({
+      const previewCards: schema.IcePreviewCard[] = cards.map((card, idx) => ({
         id: `${previewId}_card_${idx}`,
         title: card.title,
         content: card.content,
         order: idx,
+        sceneId: card.sceneId,
+        dialoguePreserved: card.dialoguePreserved,
       }));
       
       // Generate characters from the story content (same as URL/text endpoint)
@@ -5694,6 +5858,9 @@ Stay engaging, reference story details, and help the audience understand the nar
         ownerUserId: req.user?.id || null,
         sourceType: "file" as any,
         sourceValue: file.originalname,
+        contentType,
+        fidelityMode,
+        sceneMap,
         title: sourceTitle,
         cards: previewCards,
         characters: storyCharacters,
@@ -5707,6 +5874,9 @@ Stay engaging, reference story details, and help the audience understand the nar
         title: savedPreview.title,
         cards: savedPreview.cards,
         characters: savedPreview.characters,
+        contentType: savedPreview.contentType,
+        fidelityMode: savedPreview.fidelityMode,
+        sceneMap: savedPreview.sceneMap,
         sourceType: savedPreview.sourceType,
         sourceValue: savedPreview.sourceValue,
         createdAt: savedPreview.createdAt.toISOString(),
@@ -5755,6 +5925,9 @@ Stay engaging, reference story details, and help the audience understand the nar
         sourceValue: preview.sourceValue,
         status: preview.status,
         visibility: preview.visibility,
+        contentType: preview.contentType,
+        fidelityMode: preview.fidelityMode,
+        sceneMap: preview.sceneMap,
         createdAt: preview.createdAt.toISOString(),
       });
     } catch (error) {

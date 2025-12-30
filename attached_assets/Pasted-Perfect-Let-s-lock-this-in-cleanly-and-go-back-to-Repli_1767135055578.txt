@@ -1,0 +1,160 @@
+Perfect. Let’s lock this in cleanly and go back to Replit with a revised plan that is clear, buildable, and non-negotiable.
+
+What follows is the exact message I’d send. It reframes the work from “improving previews” to fixing the story engine architecture.
+
+You can copy/paste this as-is.
+
+⸻
+
+🔴 Revised Plan for IceMaker – Story Fidelity, Previews & Expansion
+
+We’ve reviewed the current IceMaker story formation logic and confirmed that the existing single-prompt summarisation approach is not suitable for script-based projects.
+
+We are revising the plan to introduce Story Fidelity Modes, structural ingest, and selective expansion, without increasing unnecessary generation costs.
+
+Please treat the following as the updated, canonical direction.
+
+⸻
+
+1. Separate Structural Ingest from Story Generation (New Required Step)
+
+When a user uploads content (especially scripts), the system must first perform a Structural Ingest step before any preview cards are generated.
+
+Structural Ingest responsibilities:
+	•	Detect content type (script vs article vs webpage)
+	•	If script detected:
+	•	Parse and preserve:
+	•	scene order
+	•	scene headings (INT./EXT.)
+	•	characters
+	•	dialogue blocks
+	•	action blocks
+	•	Create an internal scene map (no cards yet)
+	•	This step is:
+	•	automatic
+	•	low-cost
+	•	not surfaced as a “preview”
+	•	treated as scaffolding, not output
+
+This ensures the system understands the shape of the story before rendering anything.
+
+⸻
+
+2. Introduce Story Fidelity Modes (Mandatory)
+
+IceMaker must no longer use a single story-generation prompt for all content types.
+
+At minimum, introduce the following modes:
+
+A. Script-Exact Mode (Default for scripts)
+	•	Script is treated as canonical source
+	•	No summarisation or reinterpretation
+	•	Cards are generated from scenes, not themes
+	•	Preserve:
+	•	narrative order
+	•	character intent
+	•	dramatic beats
+	•	Enhance only:
+	•	visual framing
+	•	card titles
+	•	interaction layers
+	•	No creative deviation allowed
+
+This mode is required for filmmakers and writers uploading their own scripts.
+
+B. Interpretive Preview Mode (Existing behaviour, relabelled)
+	•	Current summarisation behaviour is acceptable here
+	•	Used for:
+	•	articles
+	•	websites
+	•	decks
+	•	marketing previews
+	•	Clearly framed as interpretive, not faithful
+
+⸻
+
+3. Redefine “Preview” Behaviour (Deliberately Limited)
+
+A preview is not a full story summary.
+
+For previews:
+	•	Limit the number of generated cards intentionally
+	•	Limits should be based on structure, not arbitrary word count
+
+Examples:
+	•	First 3–5 scenes
+	•	One scene per act
+	•	Inciting incident + key tone scenes
+	•	Or user-selected scenes
+
+The goal of a preview is to:
+	•	prove fidelity to the source
+	•	demonstrate cinematic potential
+	•	build trust
+
+Not to cover the entire plot.
+
+⸻
+
+4. Enable Selective Expansion (Commercial & UX Requirement)
+
+Once the full scene map exists, users must be able to choose what to bring to life.
+
+Add options in the Shopping List / Production Manifest:
+	•	Generate entire story
+	•	Generate Act 1 only
+	•	Generate selected scenes
+	•	Generate remaining scenes later
+
+This allows users to:
+	•	control scope
+	•	manage budget
+	•	work iteratively
+	•	expand over time
+
+This mirrors real production decisions and increases conversion without forcing full generation upfront.
+
+⸻
+
+5. Where to Implement
+
+The intervention point remains:
+	•	server/routes.ts
+	•	/api/ice/preview/upload
+	•	/api/ice/preview/* endpoints
+
+Specifically:
+	•	Replace the single summarisation prompt
+	•	Add:
+	•	content-type detection
+	•	structural ingest step
+	•	mode-based generation prompts
+	•	preview limits tied to structure
+
+⸻
+
+6. Acceptance Criteria (Non-Negotiable)
+
+We will consider this complete when:
+	•	A filmmaker uploads a script
+	•	The preview follows their scene order and intent
+	•	No thematic summarisation replaces structure
+	•	The user can clearly see:
+	•	what has been generated
+	•	what remains
+	•	and choose what to expand next
+
+This is a foundational fix, not a cosmetic improvement.
+
+⸻
+
+If everything above is clear, please revise the task list to reflect this plan before proceeding with implementation.
+
+⸻
+
+That’s it.
+Clear, firm, and aligned with both creative integrity and commercial reality.
+
+Once Replit comes back with the revised task list, bring it straight here and we’ll sanity-check it before you let them build.
+
+You’ve just turned IceMaker from a “cool AI demo” into a serious storytelling tool.

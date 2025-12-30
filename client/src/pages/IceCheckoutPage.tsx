@@ -24,10 +24,29 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
+interface SceneMap {
+  contentType: 'script' | 'article' | 'document' | 'unknown';
+  fidelityMode: 'script_exact' | 'interpretive';
+  totalScenes: number;
+  generatedScenes: number;
+  scenes: Array<{
+    id: string;
+    order: number;
+    heading: string;
+    location?: string;
+    timeOfDay?: string;
+    characters: string[];
+    isGenerated: boolean;
+  }>;
+}
+
 interface PreviewData {
   id: string;
   title: string;
-  cards: Array<{ id: string; title: string; content: string; order: number }>;
+  cards: Array<{ id: string; title: string; content: string; order: number; sceneId?: string; dialoguePreserved?: string[] }>;
+  contentType?: 'script' | 'article' | 'document' | 'unknown';
+  fidelityMode?: 'script_exact' | 'interpretive';
+  sceneMap?: SceneMap;
 }
 
 interface MediaOptions {
@@ -62,6 +81,7 @@ export default function IceCheckoutPage() {
   
   const [outputChoice, setOutputChoice] = useState<"download" | "publish" | null>(null);
   const [interactivityNodeCount, setInteractivityNodeCount] = useState(0);
+  const [expansionScope, setExpansionScope] = useState<"preview_only" | "full_story" | "act1" | "selected">("preview_only");
   
   const { data: preview, isLoading } = useQuery({
     queryKey: ["/api/ice/preview", params.id],
@@ -161,6 +181,70 @@ export default function IceCheckoutPage() {
             </p>
           </div>
           
+          {/* Scene Map & Expansion Scope (for scripts) */}
+          {preview?.sceneMap && preview.sceneMap.contentType === 'script' && (
+            <Card className="bg-slate-900/50 border-slate-800 border-purple-500/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Film className="w-5 h-5 text-purple-400" />
+                  Script Structure Detected
+                  <span className="ml-2 px-2 py-0.5 bg-purple-900/50 text-purple-300 text-xs rounded-full">
+                    Script-Exact Mode
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-3 bg-slate-800/50 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-slate-400">Scene Progress</span>
+                    <span className="text-sm font-medium text-white">
+                      {preview.sceneMap.generatedScenes} of {preview.sceneMap.totalScenes} scenes
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all"
+                      style={{ width: `${(preview.sceneMap.generatedScenes / preview.sceneMap.totalScenes) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Preview includes the first {preview.sceneMap.generatedScenes} scenes. Select expansion scope below.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-white">Expansion Scope</p>
+                  {[
+                    { value: "preview_only" as const, label: "Preview Only", desc: `First ${preview.sceneMap.generatedScenes} scenes`, price: "$0" },
+                    { value: "full_story" as const, label: "Full Story", desc: `All ${preview.sceneMap.totalScenes} scenes`, price: `+$${((preview.sceneMap.totalScenes - preview.sceneMap.generatedScenes) * 1.99).toFixed(2)}` },
+                    { value: "act1" as const, label: "Act 1", desc: `First ${Math.ceil(preview.sceneMap.totalScenes / 3)} scenes`, price: `+$${(Math.max(0, Math.ceil(preview.sceneMap.totalScenes / 3) - preview.sceneMap.generatedScenes) * 1.99).toFixed(2)}` },
+                  ].map(({ value, label, desc, price }) => (
+                    <button
+                      key={value}
+                      onClick={() => setExpansionScope(value)}
+                      className={`w-full p-3 rounded-lg border text-left transition-all ${
+                        expansionScope === value
+                          ? "border-purple-500 bg-purple-900/20"
+                          : "border-slate-700 bg-slate-800/30 hover:border-slate-600"
+                      }`}
+                      data-testid={`expansion-${value}`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium text-white text-sm">{label}</p>
+                          <p className="text-xs text-slate-500">{desc}</p>
+                        </div>
+                        <span className={`text-sm ${value === "preview_only" ? "text-green-400" : "text-slate-400"}`}>
+                          {price}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
           <Card className="bg-slate-900/50 border-slate-800">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -176,7 +260,12 @@ export default function IceCheckoutPage() {
                   </div>
                   <div>
                     <p className="font-medium text-white">{preview?.title || "Your Story"}</p>
-                    <p className="text-xs text-slate-500">{cardCount} story cards</p>
+                    <p className="text-xs text-slate-500">
+                      {preview?.sceneMap && expansionScope !== "preview_only" 
+                        ? `${expansionScope === "full_story" ? preview.sceneMap.totalScenes : Math.ceil(preview.sceneMap.totalScenes / 3)} scenes`
+                        : `${cardCount} story cards`
+                      }
+                    </p>
                   </div>
                 </div>
                 <span className="text-slate-400">${BASE_PRICE.toFixed(2)}</span>
