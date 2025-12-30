@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { Sparkles, Globe, FileText, ArrowRight, Loader2, GripVertical, Lock, Play, Image, Mic, Upload } from "lucide-react";
+import { Sparkles, Globe, FileText, ArrowRight, Loader2, GripVertical, Lock, Play, Image, Mic, Upload, Check, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,15 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import GlobalNav from "@/components/GlobalNav";
 import { VisibilityBadge } from "@/components/VisibilityBadge";
+import { motion, AnimatePresence } from "framer-motion";
+
+const CREATION_STAGES = [
+  { id: "fetch", label: "Fetching your content", duration: 1500 },
+  { id: "analyze", label: "Analyzing structure and themes", duration: 2000 },
+  { id: "extract", label: "Extracting key moments", duration: 2500 },
+  { id: "craft", label: "Crafting your story cards", duration: 2000 },
+  { id: "polish", label: "Adding the finishing touches", duration: 1500 },
+];
 
 interface PreviewCard {
   id: string;
@@ -43,6 +52,20 @@ export default function GuestIceBuilderPage() {
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [cards, setCards] = useState<PreviewCard[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [currentStage, setCurrentStage] = useState(-1);
+  const stageTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Auto-advance through visual stages during creation
+  useEffect(() => {
+    if (currentStage >= 0 && currentStage < CREATION_STAGES.length - 1) {
+      stageTimerRef.current = setTimeout(() => {
+        setCurrentStage(prev => prev + 1);
+      }, CREATION_STAGES[currentStage].duration);
+    }
+    return () => {
+      if (stageTimerRef.current) clearTimeout(stageTimerRef.current);
+    };
+  }, [currentStage]);
   
   const { data: existingPreview, isLoading: loadingExisting } = useQuery({
     queryKey: ["/api/ice/preview", previewIdFromUrl],
@@ -69,16 +92,19 @@ export default function GuestIceBuilderPage() {
 
   const createPreviewMutation = useMutation({
     mutationFn: async (data: { type: string; value: string }) => {
+      setCurrentStage(0); // Start the visual stages
       const res = await apiRequest("POST", "/api/ice/preview", data);
       return res.json();
     },
     onSuccess: (data) => {
+      setCurrentStage(-1); // Reset stages
       setPreview(data);
       setCards(data.cards);
       toast({ title: "Preview created!", description: "You can now edit and reorder your story cards." });
       navigate(`/ice/preview/${data.id}`, { replace: true });
     },
     onError: (error: Error) => {
+      setCurrentStage(-1); // Reset stages on error
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
@@ -119,6 +145,8 @@ export default function GuestIceBuilderPage() {
     },
   });
 
+  const [isFileUploading, setIsFileUploading] = useState(false);
+  
   const handleSubmit = async () => {
     if (inputType === "file") {
       if (!selectedFile) {
@@ -129,6 +157,8 @@ export default function GuestIceBuilderPage() {
       formData.append("file", selectedFile);
       
       try {
+        setIsFileUploading(true);
+        setCurrentStage(0); // Start the visual stages
         const res = await fetch("/api/ice/preview/upload", {
           method: "POST",
           body: formData,
@@ -139,12 +169,16 @@ export default function GuestIceBuilderPage() {
           throw new Error(error.message || "Upload failed");
         }
         const data = await res.json();
+        setCurrentStage(-1); // Reset stages
         setPreview(data);
         setCards(data.cards);
         navigate(`/ice/preview/${data.id}`);
         toast({ title: "Preview created!", description: "Your story cards are ready to edit." });
       } catch (error: any) {
+        setCurrentStage(-1); // Reset stages on error
         toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      } finally {
+        setIsFileUploading(false);
       }
       return;
     }
@@ -304,24 +338,63 @@ export default function GuestIceBuilderPage() {
                 </TabsContent>
               </Tabs>
 
-              <Button
-                onClick={handleSubmit}
-                disabled={createPreviewMutation.isPending}
-                className="w-full mt-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                data-testid="button-create-preview"
-              >
-                {createPreviewMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating preview...
-                  </>
-                ) : (
-                  <>
-                    Create Preview
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </Button>
+              {(createPreviewMutation.isPending || isFileUploading) && currentStage >= 0 ? (
+                <div className="mt-6 space-y-4" data-testid="creation-stages">
+                  <div className="text-center mb-4">
+                    <h3 className="text-lg font-semibold text-white mb-1">Creating Your Experience</h3>
+                    <p className="text-sm text-slate-400">This usually takes 10-15 seconds</p>
+                  </div>
+                  <div className="space-y-2">
+                    <AnimatePresence mode="popLayout">
+                      {CREATION_STAGES.map((stage, index) => {
+                        const status = index < currentStage ? "done" : index === currentStage ? "running" : "pending";
+                        return (
+                          <motion.div
+                            key={stage.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                              status === "done" ? "bg-green-500/10" :
+                              status === "running" ? "bg-purple-500/20" : "bg-slate-800/50"
+                            }`}
+                            data-testid={`stage-${stage.id}`}
+                          >
+                            <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
+                              status === "done" ? "bg-green-500" :
+                              status === "running" ? "bg-purple-500" : "bg-slate-700"
+                            }`}>
+                              {status === "done" ? (
+                                <Check className="w-4 h-4 text-white" />
+                              ) : status === "running" ? (
+                                <Loader2 className="w-4 h-4 text-white animate-spin" />
+                              ) : (
+                                <Circle className="w-3 h-3 text-slate-500" />
+                              )}
+                            </div>
+                            <span className={`text-sm ${
+                              status === "done" ? "text-green-400" :
+                              status === "running" ? "text-purple-300 font-medium" : "text-slate-500"
+                            }`}>
+                              {stage.label}
+                            </span>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={createPreviewMutation.isPending || isFileUploading}
+                  className="w-full mt-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  data-testid="button-create-preview"
+                >
+                  Create Preview
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
