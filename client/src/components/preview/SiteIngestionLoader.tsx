@@ -7,6 +7,7 @@ interface SiteIngestionLoaderProps {
   accentColor?: string;
   isComplete?: boolean;
   onReady?: () => void;
+  isDeepExtracting?: boolean;
 }
 
 const educationalSlides = [
@@ -103,11 +104,27 @@ const progressStages = [
   { progress: 95, label: "Final optimizations..." },
 ];
 
-export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", isComplete = false, onReady }: SiteIngestionLoaderProps) {
+const deepExtractionStages = [
+  { progress: 5, label: "Connecting to your website..." },
+  { progress: 12, label: "Downloading page content..." },
+  { progress: 18, label: "Analyzing initial content..." },
+  { progress: 25, label: "Switching to deep extraction mode..." },
+  { progress: 35, label: "Rendering JavaScript content..." },
+  { progress: 45, label: "Extracting dynamic elements..." },
+  { progress: 55, label: "Capturing images & media..." },
+  { progress: 65, label: "Building knowledge base..." },
+  { progress: 75, label: "Validating content quality..." },
+  { progress: 85, label: "Preparing your Orbit..." },
+  { progress: 95, label: "Final optimizations..." },
+];
+
+export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", isComplete = false, onReady, isDeepExtracting = false }: SiteIngestionLoaderProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentStage, setCurrentStage] = useState(0);
   const [displayProgress, setDisplayProgress] = useState(0);
   const hasCalledReady = useRef(false);
+  
+  const stages = isDeepExtracting ? deepExtractionStages : progressStages;
 
   useEffect(() => {
     const slideInterval = setInterval(() => {
@@ -119,18 +136,18 @@ export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", isComp
   useEffect(() => {
     if (isComplete) {
       setDisplayProgress(100);
-      setCurrentStage(progressStages.length);
+      setCurrentStage(stages.length);
       return;
     }
     
     const stageInterval = setInterval(() => {
       setCurrentStage((prev) => {
-        if (prev < progressStages.length - 1) return prev + 1;
+        if (prev < stages.length - 1) return prev + 1;
         return prev;
       });
     }, 3000);
     return () => clearInterval(stageInterval);
-  }, [isComplete]);
+  }, [isComplete, stages.length]);
 
   useEffect(() => {
     if (isComplete) {
@@ -142,7 +159,7 @@ export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", isComp
       return;
     }
     
-    const targetProgress = progressStages[currentStage]?.progress || 95;
+    const targetProgress = stages[currentStage]?.progress || 95;
     const animateProgress = () => {
       setDisplayProgress((prev) => {
         const diff = targetProgress - prev;
@@ -219,7 +236,7 @@ export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", isComp
                   <span className="text-green-500 font-medium">Ready! Loading your Orbit...</span>
                 </>
               ) : (
-                progressStages[currentStage]?.label || "Processing..."
+                stages[currentStage]?.label || "Processing..."
               )}
             </span>
             <span className={isComplete ? "text-green-500 font-medium" : ""}>

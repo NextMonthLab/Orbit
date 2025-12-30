@@ -930,24 +930,65 @@ export async function extractSiteIdentity(url: string, html: string): Promise<Si
   };
 }
 
+// Detect if extraction yielded thin/sparse content
+function isThinContent(siteIdentity: SiteIdentity, pageText: string): boolean {
+  const issues: string[] = [];
+  
+  // Check for key indicators of thin content
+  if (!siteIdentity.logoUrl) issues.push('no logo');
+  if (siteIdentity.imagePool.length === 0) issues.push('no images');
+  if (!siteIdentity.heroHeadline && !siteIdentity.title) issues.push('no headline');
+  if (siteIdentity.serviceHeadings.length === 0) issues.push('no services');
+  if (pageText.length < 500) issues.push('very short text');
+  
+  // Check for signs of a JavaScript-only page (minimal HTML content)
+  const hasReactRoot = pageText.includes('root') && pageText.length < 200;
+  const hasMinimalContent = pageText.length < 300;
+  
+  if (hasReactRoot || hasMinimalContent) {
+    issues.push('likely JavaScript-rendered');
+  }
+  
+  // If we have 3+ issues, consider it thin content
+  const isThin = issues.length >= 3;
+  
+  if (isThin) {
+    console.log(`[ThinContent] Detected sparse extraction: ${issues.join(', ')}`);
+  }
+  
+  return isThin;
+}
+
+export interface IngestionStatusCallback {
+  (status: 'fetching' | 'extracting' | 'deep_scraping' | 'processing' | 'complete', message?: string): void;
+}
+
 // Lightweight site ingestion (max 4 pages, 80k chars total)
-export async function ingestSitePreview(url: string): Promise<{
+export async function ingestSitePreview(
+  url: string,
+  onStatus?: IngestionStatusCallback
+): Promise<{
   title: string;
   summary: string;
   keyServices: string[];
   totalChars: number;
   pagesIngested: number;
   siteIdentity: SiteIdentity;
+  usedDeepScraping?: boolean;
 }> {
   const maxCharsPerPage = 20000;
+  const notify = onStatus || (() => {});
 
   let totalChars = 0;
   let pagesIngested = 0;
   let allText = '';
   let title = '';
   let siteIdentity: SiteIdentity;
+  let usedDeepScraping = false;
 
   try {
+    notify('fetching', 'Connecting to your website...');
+    
     // Fetch main page
     const response = await fetch(url, {
       headers: { "User-Agent": "NextMonth-Preview/1.0" },
@@ -958,7 +999,8 @@ export async function ingestSitePreview(url: string): Promise<{
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const html = await response.text();
+    let html = await response.text();
+    notify('extracting', 'Analyzing page content...');
 
     // Extract site identity (for brand continuity)
     siteIdentity = await extractSiteIdentity(url, html);
@@ -970,7 +1012,7 @@ export async function ingestSitePreview(url: string): Promise<{
     }
 
     // Basic HTML to text
-    const pageText = html
+    let pageText = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
       .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
@@ -985,9 +1027,55 @@ export async function ingestSitePreview(url: string): Promise<{
       .trim()
       .substring(0, maxCharsPerPage);
 
+    // Check if content is thin - if so, use deep scraping
+    if (isThinContent(siteIdentity, pageText)) {
+      console.log('[Ingestion] Thin content detected, switching to deep extraction...');
+      notify('deep_scraping', 'Switching to deep extraction mode for better results...');
+      
+      try {
+        const { deepScrapeUrl } = await import('./services/deepScraper');
+        const deepResult = await deepScrapeUrl(url);
+        
+        if (deepResult.html && deepResult.html.length > html.length) {
+          console.log(`[Ingestion] Deep scrape successful: ${deepResult.html.length} chars (was ${html.length})`);
+          html = deepResult.html;
+          usedDeepScraping = true;
+          
+          // Re-extract site identity from the rendered HTML
+          siteIdentity = await extractSiteIdentity(url, html);
+          
+          // Re-extract title
+          const newTitleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+          if (newTitleMatch) {
+            title = newTitleMatch[1].trim();
+          }
+          
+          // Re-extract page text
+          pageText = html
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+            .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+            .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
+            .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+            .replace(/<[^>]+>/g, " ")
+            .replace(/&nbsp;/g, " ")
+            .replace(/&amp;/g, "&")
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/\s+/g, " ")
+            .trim()
+            .substring(0, maxCharsPerPage);
+        }
+      } catch (deepError: any) {
+        console.error('[Ingestion] Deep scrape failed, continuing with basic extraction:', deepError.message);
+      }
+    }
+
     allText += pageText + "\n\n";
     totalChars += pageText.length;
     pagesIngested = 1;
+
+    notify('processing', 'Building your Orbit experience...');
 
     // Run SmartSite pipeline for validated content
     try {
@@ -1018,6 +1106,8 @@ export async function ingestSitePreview(url: string): Promise<{
     // Generate summary (first 3 paragraphs or 500 chars)
     const summary = siteIdentity.heroDescription || allText.substring(0, 500).split('\n').slice(0, 3).join('\n').trim();
 
+    notify('complete', 'Ready!');
+
     return {
       title: title || new URL(url).hostname,
       summary: summary || "Business website",
@@ -1025,6 +1115,7 @@ export async function ingestSitePreview(url: string): Promise<{
       totalChars,
       pagesIngested,
       siteIdentity,
+      usedDeepScraping,
     };
   } catch (error: any) {
     console.error("Site ingestion error:", error);
