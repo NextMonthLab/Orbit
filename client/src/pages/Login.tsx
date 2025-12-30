@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useState } from "react";
 import { Sparkles, Globe, User } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -11,6 +11,9 @@ const LOGO_URL = "/logo.png";
 
 export default function Login() {
   const [, setLocation] = useLocation();
+  const searchString = useSearch();
+  const params = new URLSearchParams(searchString);
+  const returnUrl = params.get("return");
   const [isLoading, setIsLoading] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState("");
@@ -35,7 +38,8 @@ export default function Login() {
           title: "Welcome back!",
           description: "Logged in successfully.",
         });
-        setLocation("/icemaker");
+        // Redirect to return URL if provided, otherwise default to icemaker
+        setLocation(returnUrl || "/icemaker");
       }
     } catch (error: any) {
       toast({
