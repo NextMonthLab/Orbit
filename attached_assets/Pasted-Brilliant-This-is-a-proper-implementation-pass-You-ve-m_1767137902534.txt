@@ -1,0 +1,169 @@
+Brilliant. This is a proper implementation pass. You’ve moved from concept to architecture, and the shape is now right.
+
+Let me answer your core question first, then I’ll give you a calm, opinionated steer on what to do next (and what not to overbuild).
+
+⸻
+
+Short answer
+
+Yes, the same logic extends to business blogs and presentations – but not as Script-Exact.
+
+What you’ve built already is correct.
+
+The mistake would be trying to force business content into the same fidelity contract as screenplays.
+
+⸻
+
+Why Script-Exact must stay screenplay-only
+
+Script-Exact Mode works because screenplays have:
+	•	Formal grammar (INT./EXT., CAPS, dialogue blocks)
+	•	Clear scene boundaries
+	•	Authorial intent encoded structurally
+	•	A single “correct” ordering
+
+Business content does not have this.
+
+A blog post:
+	•	Is already interpretive
+	•	Is often written to be summarised
+	•	Has no single “correct” cinematic ordering
+
+A presentation:
+	•	Is modular by design
+	•	Slides are interchangeable
+	•	Headings are cues, not canon
+
+So you were absolutely right to keep:
+	•	Script-Exact = preservation
+	•	Interpretive = transformation
+
+That distinction is the backbone of the system.
+
+⸻
+
+What you have already nailed
+
+Let’s be explicit, because this matters:
+	•	✅ Structural ingest before generation
+	•	✅ Screenplay detection via real signals, not guesswork
+	•	✅ Canonical vs interpretive separation
+	•	✅ Preview limits tied to structure
+	•	✅ Scene-based expansion in checkout
+
+That’s not a prototype anymore. That’s a platform behaviour.
+
+⸻
+
+The smart next step (optional, not urgent)
+
+Your final question was:
+
+“Would you like me to add a separate detection mode specifically tailored for business content?”
+
+Here’s my honest answer as your product sparring partner:
+
+Yes – but later, and only as a refinement, not a new promise.
+
+If you do it, do it like this:
+
+Introduce Business-Aware Interpretive Mode
+
+(not a new fidelity tier)
+
+It still:
+	•	Summarises
+	•	Interprets
+	•	Distils
+
+But it becomes structure-aware, not structure-faithful.
+
+⸻
+
+How that could work (without complexity creep)
+
+Business Blog Detection (lightweight)
+
+Signals:
+	•	H1/H2/H3 hierarchy
+	•	Section length
+	•	Bullet density
+	•	Call-to-action blocks
+
+Behaviour:
+	•	Cards map roughly to sections
+	•	Headlines influence card titles
+	•	No attempt to preserve verbatim text
+	•	Still capped at preview limits
+
+Presentation Detection
+
+Signals:
+	•	Slide separators
+	•	Slide titles
+	•	Short body text
+	•	Repetition patterns
+
+Behaviour:
+	•	One card per slide (or grouped slides)
+	•	Visual-first framing
+	•	Checkout allows:
+	•	“Generate full deck”
+	•	“Generate selected slides”
+
+Notice the pattern?
+
+👉 Same expansion logic you already built for scripts
+Just applied to different structures.
+
+That’s elegant reuse, not feature sprawl.
+
+⸻
+
+One important warning (this is the coach bit)
+
+Do not introduce:
+	•	“Business-Exact Mode”
+	•	“Presentation Fidelity Mode”
+	•	Anything that implies canonical preservation
+
+That will:
+	•	confuse users
+	•	weaken Script-Exact’s meaning
+	•	create expectations you can’t reliably meet
+
+Scripts are sacred.
+Business content is malleable.
+
+Keep that line clean.
+
+⸻
+
+The sentence I’d use in product language
+
+Internally and externally, this framing will save you pain:
+
+Scripts are preserved.
+Everything else is interpreted.
+Structure guides previews.
+Users choose what to expand.
+
+If you stick to that, IceMaker stays honest.
+
+⸻
+
+Final answer to the agent’s question
+
+If you want a crisp response to “Should I add a business detection mode?”:
+
+Yes, but as a structure-aware interpretive refinement, not a new fidelity tier. Script-Exact remains screenplay-only.
+
+You’ve done the hard part.
+From here on, it’s about restraint.
+
+If you want, next we can:
+	•	sanity-check the screenplay detection edge cases
+	•	define preview defaults per content type
+	•	or tighten the UX language so users understand what mode they’re in without thinking about it
+
+But for now: genuinely well played.
