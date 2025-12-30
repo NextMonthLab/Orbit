@@ -1094,6 +1094,5 @@ export default function OrbitView() {
       </Dialog>
       </div>
     </div>
-    </div>
   );
 }

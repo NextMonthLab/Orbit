@@ -1,0 +1,132 @@
+Absolutely. Here’s a clean, unambiguous explanation you can paste straight into Replit (or into a README.md / system prompt) so there’s no room for misinterpretation.
+
+I’ll write this as authoritative product/navigation rules, not a suggestion.
+
+⸻
+
+Navigation & Routing Rules (Authoritative)
+
+1. / = Main Marketing Homepage (Global)
+	•	The root route / must always be the primary marketing homepage.
+	•	This page:
+	•	Explains the overall product ecosystem.
+	•	Introduces IceMaker and Orbit as distinct products.
+	•	Acts as the global reset point for the app.
+
+This page is not part of IceMaker or Orbit.
+It is the umbrella marketing layer.
+
+⸻
+
+2. Global Navigation (Always Visible)
+
+A global top-level navigation must exist on all pages, regardless of context.
+
+Global nav items:
+	•	Home → /
+	•	IceMaker → /icemaker
+	•	Orbit → /orbit
+
+Rules:
+	•	The user must always be able to:
+	•	Return to the homepage
+	•	Switch directly between IceMaker and Orbit
+	•	No page should trap the user inside a product silo.
+
+Think: Netflix top bar, not a WordPress sidebar.
+
+⸻
+
+3. IceMaker App Area
+
+Base route:
+/icemaker
+
+When the user is inside IceMaker:
+	•	The global nav remains visible
+	•	An IceMaker-specific submenu appears
+
+Example IceMaker submenu:
+	•	Dashboard
+	•	Create Experience
+	•	My Projects
+	•	Templates
+	•	Settings
+
+Routing example:
+	•	/icemaker
+	•	/icemaker/create
+	•	/icemaker/projects/:id
+
+The IceMaker submenu:
+	•	Only shows IceMaker-related items
+	•	Does not replace the global navigation
+
+⸻
+
+4. Orbit App Area
+
+Base route:
+/orbit
+
+When the user is inside Orbit:
+	•	The global nav remains visible
+	•	An Orbit-specific submenu appears
+
+Example Orbit submenu:
+	•	Orbit Dashboard
+	•	Knowledge Map
+	•	Intelligence View
+	•	Actions
+	•	Settings
+
+Routing example:
+	•	/orbit
+	•	/orbit/map
+	•	/orbit/actions/:id
+
+Again:
+	•	Orbit submenu is contextual
+	•	Global nav is always present
+
+⸻
+
+5. Mental Model (Important)
+
+Structure this as:
+
+Global Shell
+├── Homepage (/)
+├── IceMaker (/icemaker)
+│   └── IceMaker Submenu
+└── Orbit (/orbit)
+    └── Orbit Submenu
+
+Not:
+	•	❌ Separate apps with no shared navigation
+	•	❌ Product-first routing that hides the homepage
+	•	❌ Submenus that replace global navigation
+
+This is one platform with two products, not two disconnected tools.
+
+⸻
+
+6. Non-Negotiable UX Rules
+	•	The homepage must never disappear
+	•	Product submenus are additive, not exclusive
+	•	Switching between IceMaker and Orbit should feel effortless
+	•	Navigation hierarchy must be obvious without explanation
+
+If a user ever asks:
+
+“How do I get back?”
+Then the navigation has failed.
+
+⸻
+
+If you want, next we can:
+	•	Turn this into a layout component spec (GlobalLayout, IceMakerLayout, OrbitLayout)
+	•	Define active state logic for menus
+	•	Or write the exact Replit scaffold instructions for routing + layout composition
+
+Just say the word.
