@@ -78,14 +78,14 @@ export default function GlobalNav({
           : "bg-gradient-to-r from-black via-neutral-950 to-black border-white/5 backdrop-blur-md"
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer" data-testid="link-global-logo">
               <img 
                 src={LOGO_URL} 
                 alt="NextMonth" 
-                className="h-8 w-auto" 
+                className="h-10 w-auto" 
               />
             </div>
           </Link>
