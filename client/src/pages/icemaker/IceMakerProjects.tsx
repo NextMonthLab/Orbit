@@ -1,10 +1,23 @@
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
+import { useEffect } from "react";
 import { FolderOpen, Plus, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import IceMakerLayout from "@/components/IceMakerLayout";
+import { EditorTransitionModal, useEditorTransition } from "@/components/EditorTransitionModal";
+import { AnimatePresence } from "framer-motion";
 
 export default function IceMakerProjects() {
+  const searchString = useSearch();
+  const params = new URLSearchParams(searchString);
+  const isNewUpgrade = params.get("upgraded") === "true";
+  
+  const { showTransition, checkAndShowTransition, completeTransition } = useEditorTransition();
+  
+  useEffect(() => {
+    checkAndShowTransition(isNewUpgrade);
+  }, [isNewUpgrade]);
+  
   return (
     <IceMakerLayout>
       <div className="p-6 space-y-6">
@@ -58,6 +71,12 @@ export default function IceMakerProjects() {
           </Link>
         </div>
       </div>
+      
+      <AnimatePresence>
+        {showTransition && (
+          <EditorTransitionModal onComplete={completeTransition} />
+        )}
+      </AnimatePresence>
     </IceMakerLayout>
   );
 }

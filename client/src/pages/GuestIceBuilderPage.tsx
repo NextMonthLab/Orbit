@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { Sparkles, Globe, FileText, ArrowRight, Loader2, GripVertical, Lock, Play, Image, Mic, Upload, Check, Circle, Eye, Pencil, Film, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, Globe, FileText, ArrowRight, Loader2, GripVertical, Lock, Play, Image, Mic, Upload, Check, Circle, Eye, Pencil, Film, X, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +18,8 @@ import CardPlayer from "@/components/CardPlayer";
 import type { Card } from "@/lib/mockData";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import previewCardBackground from "@assets/generated_images/minimal_sunset_with_top_silhouettes.png";
+import { InteractivityNode, AddInteractivityButton } from "@/components/InteractivityNode";
+import { GuidedWalkthrough } from "@/components/GuidedWalkthrough";
 
 const CREATION_STAGES = [
   { id: "fetch", label: "Fetching your content", duration: 1500 },
@@ -42,6 +44,13 @@ interface PreviewData {
   sourceValue: string;
   status?: string;
   createdAt: string;
+  previewAccessToken?: string;
+}
+
+interface InteractivityNodeData {
+  id: string;
+  afterCardIndex: number;
+  isActive: boolean;
 }
 
 export default function GuestIceBuilderPage() {
@@ -61,6 +70,21 @@ export default function GuestIceBuilderPage() {
   const stageTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewCardIndex, setPreviewCardIndex] = useState(0);
+  const [interactivityNodes, setInteractivityNodes] = useState<InteractivityNodeData[]>([]);
+  const [previewAccessToken, setPreviewAccessToken] = useState<string | undefined>();
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
+  
+  const hasSeenWalkthrough = () => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("ice_walkthrough_seen") === "true";
+  };
+  
+  const markWalkthroughSeen = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ice_walkthrough_seen", "true");
+    }
+    setShowWalkthrough(false);
+  };
   
   // Auto-advance through visual stages during creation
   useEffect(() => {
@@ -94,6 +118,12 @@ export default function GuestIceBuilderPage() {
     if (existingPreview) {
       setPreview(existingPreview);
       setCards(existingPreview.cards);
+      if (existingPreview.previewAccessToken) {
+        setPreviewAccessToken(existingPreview.previewAccessToken);
+      }
+      if (!hasSeenWalkthrough()) {
+        setShowWalkthrough(true);
+      }
     }
   }, [existingPreview]);
 
@@ -107,8 +137,14 @@ export default function GuestIceBuilderPage() {
       setCurrentStage(-1); // Reset stages
       setPreview(data);
       setCards(data.cards);
+      if (data.previewAccessToken) {
+        setPreviewAccessToken(data.previewAccessToken);
+      }
       toast({ title: "Preview created!", description: "You can now edit and reorder your story cards." });
       navigate(`/ice/preview/${data.id}`, { replace: true });
+      if (!hasSeenWalkthrough()) {
+        setShowWalkthrough(true);
+      }
     },
     onError: (error: Error) => {
       setCurrentStage(-1); // Reset stages on error
@@ -454,7 +490,7 @@ export default function GuestIceBuilderPage() {
             <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-500/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 flex items-center gap-2">
               <Pencil className="w-4 h-4 text-purple-400 flex-shrink-0" />
               <p className="text-xs sm:text-sm text-purple-200">
-                <span className="font-medium">Tap any card</span> to edit the title or content. <span className="hidden sm:inline">Drag cards to reorder your story.</span>
+                <span className="font-medium">Tap any card</span> to edit. <span className="hidden sm:inline">Click ➕ between cards to add AI interactions.</span>
               </p>
             </div>
 
@@ -467,53 +503,99 @@ export default function GuestIceBuilderPage() {
                 ))}
               </div>
               
-              <div className="space-y-2 sm:pl-10">
-                {cards.map((card, index) => (
-                  <div
-                    key={card.id}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    className={`group relative bg-gradient-to-r from-slate-900 to-slate-900/90 border border-slate-700 rounded-lg overflow-hidden cursor-move transition-all hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 ${
-                      draggedIndex === index ? "opacity-50 scale-[1.02] shadow-xl" : ""
-                    }`}
-                    data-testid={`card-preview-${index}`}
-                  >
-                    {/* Card frame number - film style */}
-                    <div className="absolute left-0 top-0 bottom-0 w-10 sm:w-12 bg-slate-950/60 border-r border-slate-700/50 flex flex-col items-center justify-center">
-                      <GripVertical className="w-4 h-4 text-slate-600 mb-1 group-hover:text-purple-400 transition-colors" />
-                      <span className="text-xs font-mono text-slate-500 group-hover:text-purple-400 transition-colors">{String(index + 1).padStart(2, '0')}</span>
-                    </div>
-                    
-                    <div className="pl-12 sm:pl-14 pr-3 py-3 sm:pr-4 sm:py-4">
-                      <Input
-                        value={card.title}
-                        onChange={(e) => handleCardEdit(index, "title", e.target.value)}
-                        onBlur={handleCardBlur}
-                        placeholder="Card title..."
-                        className="bg-transparent border-transparent hover:border-slate-600 focus:border-purple-500 focus:bg-slate-800/50 font-semibold text-white text-sm sm:text-base h-8 sm:h-9 px-2"
-                        data-testid={`input-card-title-${index}`}
-                      />
-                      <Textarea
-                        value={card.content}
-                        onChange={(e) => handleCardEdit(index, "content", e.target.value)}
-                        onBlur={handleCardBlur}
-                        placeholder="Card content..."
-                        rows={2}
-                        className="bg-transparent border-transparent hover:border-slate-600 focus:border-purple-500 focus:bg-slate-800/50 text-slate-300 text-xs sm:text-sm resize-none mt-1 px-2"
-                        data-testid={`input-card-content-${index}`}
-                      />
-                    </div>
-                    
-                    {/* Hover edit indicator */}
-                    <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="bg-purple-500/20 rounded p-1">
-                        <Pencil className="w-3 h-3 text-purple-400" />
+              <div className="space-y-0 sm:pl-10">
+                {cards.map((card, index) => {
+                  const nodeAtPosition = interactivityNodes.find(n => n.afterCardIndex === index);
+                  
+                  return (
+                    <div key={card.id}>
+                      <div
+                        draggable
+                        onDragStart={() => handleDragStart(index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        className={`group relative bg-gradient-to-r from-slate-900 to-slate-900/90 border border-slate-700 rounded-lg overflow-hidden cursor-move transition-all hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 ${
+                          draggedIndex === index ? "opacity-50 scale-[1.02] shadow-xl" : ""
+                        }`}
+                        data-testid={`card-preview-${index}`}
+                      >
+                        {/* Card frame number - film style */}
+                        <div className="absolute left-0 top-0 bottom-0 w-10 sm:w-12 bg-slate-950/60 border-r border-slate-700/50 flex flex-col items-center justify-center">
+                          <GripVertical className="w-4 h-4 text-slate-600 mb-1 group-hover:text-purple-400 transition-colors" />
+                          <span className="text-xs font-mono text-slate-500 group-hover:text-purple-400 transition-colors">{String(index + 1).padStart(2, '0')}</span>
+                        </div>
+                        
+                        <div className="pl-12 sm:pl-14 pr-3 py-3 sm:pr-4 sm:py-4">
+                          <Input
+                            value={card.title}
+                            onChange={(e) => handleCardEdit(index, "title", e.target.value)}
+                            onBlur={handleCardBlur}
+                            placeholder="Card title..."
+                            className="bg-transparent border-transparent hover:border-slate-600 focus:border-purple-500 focus:bg-slate-800/50 font-semibold text-white text-sm sm:text-base h-8 sm:h-9 px-2"
+                            data-testid={`input-card-title-${index}`}
+                          />
+                          <Textarea
+                            value={card.content}
+                            onChange={(e) => handleCardEdit(index, "content", e.target.value)}
+                            onBlur={handleCardBlur}
+                            placeholder="Card content..."
+                            rows={2}
+                            className="bg-transparent border-transparent hover:border-slate-600 focus:border-purple-500 focus:bg-slate-800/50 text-slate-300 text-xs sm:text-sm resize-none mt-1 px-2"
+                            data-testid={`input-card-content-${index}`}
+                          />
+                        </div>
+                        
+                        {/* Hover edit indicator */}
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="bg-purple-500/20 rounded p-1">
+                            <Pencil className="w-3 h-3 text-purple-400" />
+                          </div>
+                        </div>
                       </div>
+                      
+                      {/* Interactivity node slot between cards */}
+                      {index < cards.length - 1 && (
+                        <div className="py-1">
+                          {nodeAtPosition ? (
+                            <InteractivityNode
+                              nodeId={nodeAtPosition.id}
+                              afterCardIndex={index}
+                              previewId={preview?.id || ""}
+                              previewAccessToken={previewAccessToken}
+                              isActive={nodeAtPosition.isActive}
+                              onActivate={() => {
+                                setInteractivityNodes(nodes =>
+                                  nodes.map(n =>
+                                    n.id === nodeAtPosition.id
+                                      ? { ...n, isActive: !n.isActive }
+                                      : n
+                                  )
+                                );
+                              }}
+                              onRemove={() => {
+                                setInteractivityNodes(nodes =>
+                                  nodes.filter(n => n.id !== nodeAtPosition.id)
+                                );
+                              }}
+                            />
+                          ) : (
+                            <AddInteractivityButton
+                              afterCardIndex={index}
+                              onAdd={() => {
+                                const newNode: InteractivityNodeData = {
+                                  id: `node-${Date.now()}-${index}`,
+                                  afterCardIndex: index,
+                                  isActive: false,
+                                };
+                                setInteractivityNodes(nodes => [...nodes, newNode]);
+                              }}
+                            />
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               {/* Film strip perforations - right side */}
@@ -551,36 +633,38 @@ export default function GuestIceBuilderPage() {
                 </div>
 
                 {user ? (
-                  <Button
-                    onClick={() => promoteMutation.mutate()}
-                    disabled={promoteMutation.isPending}
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                    data-testid="button-save-experience"
-                  >
-                    {promoteMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        Save Experience
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </>
-                    )}
-                  </Button>
+                  <div className="space-y-3">
+                    <Button
+                      onClick={() => {
+                        navigate(`/ice/preview/${preview?.id}/checkout`);
+                      }}
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      data-testid="button-upgrade-to-pro"
+                    >
+                      Upgrade to Unlock
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                    <p className="text-xs text-center text-slate-500">
+                      Your progress is saved. Pay to unlock AI media and publishing.
+                    </p>
+                  </div>
                 ) : (
-                  <Button
-                    onClick={() => {
-                      const returnUrl = preview ? `/ice/preview/${preview.id}` : "/try";
-                      navigate(`/login?return=${encodeURIComponent(returnUrl)}`);
-                    }}
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                    data-testid="button-sign-in-to-save"
-                  >
-                    Sign In to Save & Unlock Features
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
+                  <div className="space-y-3">
+                    <Button
+                      onClick={() => {
+                        const returnUrl = preview ? `/ice/preview/${preview.id}` : "/try";
+                        navigate(`/login?return=${encodeURIComponent(returnUrl)}`);
+                      }}
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      data-testid="button-sign-in-to-save"
+                    >
+                      Sign In to Save Progress
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                    <p className="text-xs text-center text-slate-500">
+                      Create an account to save your work. Payment unlocks premium features.
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </UiCard>
@@ -683,6 +767,16 @@ export default function GuestIceBuilderPage() {
           </div>
         </div>
       )}
+      
+      {/* Guided first-run walkthrough */}
+      <AnimatePresence>
+        {showWalkthrough && (
+          <GuidedWalkthrough
+            onComplete={markWalkthroughSeen}
+            onSkip={markWalkthroughSeen}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
