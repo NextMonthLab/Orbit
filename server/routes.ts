@@ -5345,6 +5345,136 @@ Guidelines:
     }
   });
   
+  // File upload endpoint for ICE preview (PDF, PowerPoint, Word, Text)
+  app.post("/api/ice/preview/upload", upload.single("file"), async (req, res) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      const userIp = req.ip || req.socket.remoteAddress || "unknown";
+      
+      // Rate limiting by IP
+      const dailyCount = await storage.countIpIcePreviewsToday(userIp);
+      if (dailyCount >= 10) {
+        return res.status(429).json({ message: "Daily preview limit reached (10 per day)" });
+      }
+      
+      let contentText = "";
+      let sourceTitle = file.originalname.replace(/\.[^/.]+$/, "") || "Uploaded Document";
+      
+      const ext = file.originalname.toLowerCase().split('.').pop();
+      
+      if (ext === "pdf") {
+        // Parse PDF
+        const pdfParse = await import("pdf-parse");
+        const pdfData = await pdfParse.default(file.buffer);
+        contentText = pdfData.text;
+      } else if (ext === "txt") {
+        contentText = file.buffer.toString("utf-8");
+      } else if (ext === "doc" || ext === "docx" || ext === "ppt" || ext === "pptx") {
+        // For Office documents, extract text using basic parsing
+        // This is a simplified approach - in production you'd use a proper library
+        contentText = file.buffer.toString("utf-8").replace(/[^\x20-\x7E\n\r\t]/g, " ");
+        if (contentText.length < 100) {
+          return res.status(400).json({ message: "Could not extract text from this document format. Try PDF or paste the content directly." });
+        }
+      } else {
+        return res.status(400).json({ message: "Unsupported file type. Please upload PDF, Word, PowerPoint, or text files." });
+      }
+      
+      if (!contentText || contentText.trim().length < 50) {
+        return res.status(400).json({ message: "Not enough content to create an experience" });
+      }
+      
+      // Generate cards using AI
+      const openai = getOpenAI();
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert at breaking content into cinematic story cards. Given text content, extract 4-8 key moments/sections and format them as story cards.
+
+Each card should have:
+- A short, evocative title (3-6 words)
+- Content that captures the essence of that moment (2-4 sentences)
+
+Output as JSON array: [{"title": "...", "content": "..."}, ...]
+
+Guidelines:
+- Keep cards concise and impactful
+- Each card should stand alone as a moment
+- Use vivid, engaging language
+- Focus on the narrative arc
+- Maximum 8 cards for a short preview`
+          },
+          {
+            role: "user",
+            content: `Create story cards from this content:\n\n${contentText.slice(0, 8000)}`
+          }
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 2000,
+      });
+      
+      let cards: Array<{title: string; content: string}> = [];
+      try {
+        const parsed = JSON.parse(completion.choices[0].message.content || "{}");
+        cards = parsed.cards || parsed;
+        if (!Array.isArray(cards)) {
+          cards = Object.values(parsed).find(v => Array.isArray(v)) as any || [];
+        }
+      } catch (e) {
+        const paragraphs = contentText.split(/\n\n+/).filter(p => p.trim().length > 20);
+        cards = paragraphs.slice(0, 6).map((p, i) => ({
+          title: `Part ${i + 1}`,
+          content: p.slice(0, 300),
+        }));
+      }
+      
+      cards = cards.slice(0, 8);
+      
+      const previewId = `ice_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      
+      const previewCards = cards.map((card, idx) => ({
+        id: `${previewId}_card_${idx}`,
+        title: card.title,
+        content: card.content,
+        order: idx,
+      }));
+      
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+      
+      const savedPreview = await storage.createIcePreview({
+        id: previewId,
+        ownerIp: userIp,
+        ownerUserId: req.user?.id || null,
+        sourceType: "file" as any,
+        sourceValue: file.originalname,
+        title: sourceTitle,
+        cards: previewCards,
+        tier: "short",
+        status: "active",
+        expiresAt,
+      });
+      
+      res.json({
+        id: savedPreview.id,
+        title: savedPreview.title,
+        cards: savedPreview.cards,
+        sourceType: savedPreview.sourceType,
+        sourceValue: savedPreview.sourceValue,
+        createdAt: savedPreview.createdAt.toISOString(),
+      });
+    } catch (error) {
+      console.error("Error creating ICE preview from file:", error);
+      res.status(500).json({ message: "Error processing uploaded file" });
+    }
+  });
+  
   // Get a specific ICE preview by ID (public)
   app.get("/api/ice/preview/:id", async (req, res) => {
     try {

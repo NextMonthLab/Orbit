@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { Sparkles, Globe, FileText, ArrowRight, Loader2, GripVertical, Lock, Play, Image, Mic } from "lucide-react";
+import { Sparkles, Globe, FileText, ArrowRight, Loader2, GripVertical, Lock, Play, Image, Mic, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,9 +35,10 @@ export default function GuestIceBuilderPage() {
   const previewIdFromUrl = params.id;
   const { toast } = useToast();
   const { user } = useAuth();
-  const [inputType, setInputType] = useState<"url" | "text">("url");
+  const [inputType, setInputType] = useState<"url" | "text" | "file">("url");
   const [urlValue, setUrlValue] = useState("");
   const [textValue, setTextValue] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [cards, setCards] = useState<PreviewCard[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -117,7 +118,36 @@ export default function GuestIceBuilderPage() {
     },
   });
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (inputType === "file") {
+      if (!selectedFile) {
+        toast({ title: "File required", description: "Please select a file to upload.", variant: "destructive" });
+        return;
+      }
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      
+      try {
+        const res = await fetch("/api/ice/preview/upload", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+        if (!res.ok) {
+          const error = await res.json().catch(() => ({ message: "Upload failed" }));
+          throw new Error(error.message || "Upload failed");
+        }
+        const data = await res.json();
+        setPreview(data);
+        setCards(data.cards);
+        navigate(`/ice/preview/${data.id}`);
+        toast({ title: "Preview created!", description: "Your story cards are ready to edit." });
+      } catch (error: any) {
+        toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      }
+      return;
+    }
+    
     const value = inputType === "url" ? urlValue.trim() : textValue.trim();
     if (!value) {
       toast({ title: "Input required", description: "Please enter a URL or paste your content.", variant: "destructive" });
@@ -195,15 +225,19 @@ export default function GuestIceBuilderPage() {
         {!preview ? (
           <Card className="bg-slate-900/80 border-slate-800">
             <CardContent className="p-6">
-              <Tabs value={inputType} onValueChange={(v) => setInputType(v as "url" | "text")}>
-                <TabsList className="grid w-full grid-cols-2 mb-6">
+              <Tabs value={inputType} onValueChange={(v) => setInputType(v as "url" | "text" | "file")}>
+                <TabsList className="grid w-full grid-cols-3 mb-6">
                   <TabsTrigger value="url" className="flex items-center gap-2" data-testid="tab-url">
                     <Globe className="w-4 h-4" />
-                    Website URL
+                    <span className="hidden sm:inline">Website</span> URL
+                  </TabsTrigger>
+                  <TabsTrigger value="file" className="flex items-center gap-2" data-testid="tab-file">
+                    <Upload className="w-4 h-4" />
+                    Upload
                   </TabsTrigger>
                   <TabsTrigger value="text" className="flex items-center gap-2" data-testid="tab-text">
                     <FileText className="w-4 h-4" />
-                    Paste Content
+                    Paste
                   </TabsTrigger>
                 </TabsList>
 
@@ -218,6 +252,36 @@ export default function GuestIceBuilderPage() {
                     />
                     <p className="text-sm text-slate-500">
                       Enter a website URL and we'll extract the key content to create your story.
+                    </p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="file">
+                  <div className="space-y-4">
+                    <div 
+                      className="border-2 border-dashed border-slate-700 rounded-lg p-8 text-center hover:border-purple-500/50 transition-colors cursor-pointer"
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                    >
+                      <input
+                        id="file-upload"
+                        type="file"
+                        accept=".pdf,.pptx,.ppt,.doc,.docx,.txt"
+                        className="hidden"
+                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                        data-testid="input-file"
+                      />
+                      <Upload className="w-10 h-10 text-slate-500 mx-auto mb-3" />
+                      {selectedFile ? (
+                        <p className="text-white font-medium">{selectedFile.name}</p>
+                      ) : (
+                        <>
+                          <p className="text-slate-300 mb-1">Click to upload a file</p>
+                          <p className="text-sm text-slate-500">PDF, PowerPoint, Word, or Text files</p>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      Upload a PDF, presentation, or document. We'll extract the content to create your story.
                     </p>
                   </div>
                 </TabsContent>
