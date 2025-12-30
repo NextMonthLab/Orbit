@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Sparkles, Globe, User } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
-import logoImage from "@assets/nextmonth-logo.png";
+const LOGO_URL = "/logo.png";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -58,9 +58,9 @@ export default function Login() {
         <div className="w-full max-w-md space-y-8 relative z-10">
             <div className="text-center space-y-4">
                 <img 
-                  src={logoImage} 
+                  src={LOGO_URL} 
                   alt="NextMonth" 
-                  className="h-12 md:h-16 mx-auto object-contain"
+                  className="h-16 md:h-20 mx-auto object-contain"
                   data-testid="img-logo"
                 />
                 <p className="text-muted-foreground font-mono text-sm tracking-widest uppercase">
