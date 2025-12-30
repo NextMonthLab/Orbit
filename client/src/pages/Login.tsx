@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
 import { useState } from "react";
-import { Flame, Lock, Zap } from "lucide-react";
+import { Sparkles, Globe, User } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
+import logoImage from "@assets/nextmonth-logo.png";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -55,24 +56,27 @@ export default function Login() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none" />
 
         <div className="w-full max-w-md space-y-8 relative z-10">
-            <div className="text-center space-y-2">
-                <h1 className="text-4xl md:text-6xl font-display font-black text-white tracking-widest uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">
-                    NextMonth
-                </h1>
+            <div className="text-center space-y-4">
+                <img 
+                  src={logoImage} 
+                  alt="NextMonth" 
+                  className="h-12 md:h-16 mx-auto object-contain"
+                  data-testid="img-logo"
+                />
                 <p className="text-muted-foreground font-mono text-sm tracking-widest uppercase">
-                    The AI Tool Creation Platform
+                    Create Experiences. Control AI Discovery.
                 </p>
             </div>
 
             <Card className="bg-card/50 backdrop-blur-md border-white/10 shadow-2xl">
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold text-center">
-                      {isRegister ? "Join the Story" : "Enter the Story"}
+                      {isRegister ? "Create Your Account" : "Sign In"}
                     </CardTitle>
                     <CardDescription className="text-center">
                         {isRegister 
-                          ? "Create an account to begin your journey" 
-                          : "Log in to resume your progress"
+                          ? "Get started with IceMaker and Orbit" 
+                          : "Access your IceMaker projects and Orbit dashboard"
                         }
                     </CardDescription>
                 </CardHeader>
@@ -157,13 +161,13 @@ export default function Login() {
 
             <div className="flex justify-center gap-8 text-xs text-muted-foreground font-mono tracking-widest uppercase opacity-50">
                 <div className="flex items-center gap-2">
-                    <Flame className="w-3 h-3" /> Daily Drops
+                    <Sparkles className="w-3 h-3" /> IceMaker
                 </div>
                 <div className="flex items-center gap-2">
-                    <Lock className="w-3 h-3" /> Secrets
+                    <Globe className="w-3 h-3" /> Orbit
                 </div>
                 <div className="flex items-center gap-2">
-                    <Zap className="w-3 h-3" /> Live Chat
+                    <User className="w-3 h-3" /> One Account
                 </div>
             </div>
         </div>
