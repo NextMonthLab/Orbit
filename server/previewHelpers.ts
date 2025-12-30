@@ -1042,11 +1042,12 @@ export async function ingestSitePreview(
       .trim()
       .substring(0, maxCharsPerPage);
 
-    // Check if content is thin or forced deep - if so, use deep scraping
-    const shouldDeepScrape = forceDeep || isThinContent(siteIdentity, pageText);
-    if (shouldDeepScrape) {
-      console.log(`[Ingestion] ${forceDeep ? 'Forced deep extraction' : 'Thin content detected'}, switching to deep extraction...`);
-      notify('deep_scraping', 'Switching to deep extraction mode for better results...');
+    // Always use deep scraping by default for best quality extraction
+    // Deep scraping renders JavaScript and captures dynamic content
+    console.log('[Ingestion] Using deep extraction for comprehensive content capture...');
+    notify('deep_scraping', 'Rendering page content for best results...');
+    
+    {
       
       try {
         const { deepScrapeUrl } = await import('./services/deepScraper');
