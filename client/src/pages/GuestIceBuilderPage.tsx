@@ -509,6 +509,30 @@ export default function GuestIceBuilderPage() {
                 </Button>
               </div>
             </div>
+            
+            {/* Upgrade prompt banner */}
+            <div className="bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-indigo-500/10 border border-purple-500/40 rounded-lg p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                    <span className="font-semibold text-white text-sm">Ready to bring this to life?</span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Add AI-generated visuals, video, music, and interactive character conversations.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => navigate(`/ice/preview/${preview.id}/checkout`)}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-sm whitespace-nowrap"
+                  size="sm"
+                  data-testid="button-upgrade-preview"
+                >
+                  <Sparkles className="w-3 h-3 mr-1.5" />
+                  Upgrade Experience
+                </Button>
+              </div>
+            </div>
 
             {/* Edit hint banner */}
             <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-500/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 flex items-center gap-2">
