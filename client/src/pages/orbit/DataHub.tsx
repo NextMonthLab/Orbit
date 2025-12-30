@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import GlobalNav from "@/components/GlobalNav";
 
 interface HubData {
   businessSlug: string;
@@ -228,8 +229,9 @@ export default function DataHub() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      <GlobalNav context="orbit" showBreadcrumb breadcrumbLabel="Orbit" breadcrumbHref={`/orbit/${slug}`} />
+      <div className="max-w-4xl mx-auto px-4 py-8 flex-1">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Button

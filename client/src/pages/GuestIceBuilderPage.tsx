@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
+import GlobalNav from "@/components/GlobalNav";
 
 interface PreviewCard {
   id: string;
@@ -162,18 +163,22 @@ export default function GuestIceBuilderPage() {
 
   if (loadingExisting) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Loading your preview...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950 flex flex-col">
+        <GlobalNav context="ice" showBreadcrumb breadcrumbLabel="ICE Maker" />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto mb-4" />
+            <p className="text-slate-400">Loading your preview...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950 flex flex-col">
+      <GlobalNav context="ice" showBreadcrumb breadcrumbLabel="ICE Maker" />
+      <div className="container mx-auto px-4 py-8 max-w-4xl flex-1">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full px-4 py-1.5 mb-4">
             <Sparkles className="w-4 h-4 text-purple-400" />

@@ -12,6 +12,7 @@ import { PreviewShareBar } from "@/components/preview/PreviewShareBar";
 import { BusinessHubSidebar } from "@/components/orbit/BusinessHubSidebar";
 import { HubPanelContainer } from "@/components/orbit/HubPanelContainer";
 import type { SiteKnowledge } from "@/lib/siteKnowledge";
+import GlobalNav from "@/components/GlobalNav";
 import {
   Dialog,
   DialogContent,
@@ -164,7 +165,7 @@ export default function OrbitView() {
 
   // Business Hub state
   const [showHub, setShowHub] = useState(false);
-  const [hubPanel, setHubPanel] = useState<'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications' | 'data-sources'>('overview');
+  const [hubPanel, setHubPanel] = useState<'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications' | 'data-sources' | 'cubes' | 'ai-discovery'>('overview');
 
   useEffect(() => {
     if (slug && slug !== lastTrackedSlug) {
@@ -636,7 +637,9 @@ export default function OrbitView() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex relative">
+    <div className="min-h-screen bg-background text-foreground flex flex-col relative">
+      <GlobalNav context="orbit" showBreadcrumb breadcrumbLabel="Orbit" minimal={showHub} />
+      <div className="flex-1 flex relative">
       {/* Business Hub Sidebar for paid tier owners */}
       {isOwner && isPaidTier && showHub && (
         <BusinessHubSidebar
@@ -1090,6 +1093,7 @@ export default function OrbitView() {
         </DialogContent>
       </Dialog>
       </div>
+    </div>
     </div>
   );
 }
