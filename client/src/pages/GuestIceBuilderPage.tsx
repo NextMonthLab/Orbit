@@ -5,7 +5,7 @@ import { Sparkles, Globe, FileText, ArrowRight, Loader2, GripVertical, Lock, Pla
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card as UiCard, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -13,7 +13,10 @@ import { useAuth } from "@/lib/auth";
 import GlobalNav from "@/components/GlobalNav";
 import { VisibilityBadge } from "@/components/VisibilityBadge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import CardPlayer from "@/components/CardPlayer";
+import type { Card } from "@/lib/mockData";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 const CREATION_STAGES = [
   { id: "fetch", label: "Fetching your content", duration: 1500 },
@@ -261,7 +264,7 @@ export default function GuestIceBuilderPage() {
         </div>
 
         {!preview ? (
-          <Card className="bg-slate-900/80 border-slate-800">
+          <UiCard className="bg-slate-900/80 border-slate-800">
             <CardContent className="p-6">
               <Tabs value={inputType} onValueChange={(v) => setInputType(v as "url" | "text" | "file")}>
                 <TabsList className="grid w-full grid-cols-3 mb-6">
@@ -399,7 +402,7 @@ export default function GuestIceBuilderPage() {
                 </Button>
               )}
             </CardContent>
-          </Card>
+          </UiCard>
         ) : (
           <div className="space-y-4 sm:space-y-6">
             {/* Mobile-optimized header */}
@@ -520,7 +523,7 @@ export default function GuestIceBuilderPage() {
               </div>
             </div>
 
-            <Card className="bg-slate-900/50 border-slate-800 border-dashed">
+            <UiCard className="bg-slate-900/50 border-slate-800 border-dashed">
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Unlock Premium Features</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -579,119 +582,106 @@ export default function GuestIceBuilderPage() {
                   </Button>
                 )}
               </CardContent>
-            </Card>
+            </UiCard>
           </div>
         )}
       </div>
 
-      {/* Preview Modal - Cinematic card viewer */}
-      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] sm:h-[80vh] p-0 bg-black border-slate-800 overflow-hidden">
-          <AnimatePresence mode="wait">
-            {cards[previewCardIndex] && (
-              <motion.div
-                key={previewCardIndex}
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.02 }}
-                transition={{ duration: 0.3 }}
-                className="relative w-full h-full flex flex-col"
-              >
-                {/* Gradient background placeholder for missing image */}
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-900/40 via-slate-900 to-pink-900/40" />
-                
-                {/* Card content */}
-                <div className="relative z-10 flex-1 flex flex-col justify-end p-6 sm:p-8">
-                  {/* Premium badge placeholder */}
-                  <div className="absolute top-4 right-4 bg-slate-800/80 backdrop-blur rounded-full px-3 py-1.5 flex items-center gap-2">
-                    <Lock className="w-3 h-3 text-purple-400" />
-                    <span className="text-xs text-slate-300">AI visuals with Pro</span>
-                  </div>
-                  
-                  {/* Frame counter */}
-                  <div className="absolute top-4 left-4 font-mono text-sm text-slate-500">
-                    {String(previewCardIndex + 1).padStart(2, '0')} / {String(cards.length).padStart(2, '0')}
-                  </div>
-                  
-                  {/* Title */}
-                  <motion.h2
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="text-2xl sm:text-4xl font-bold text-white mb-3 sm:mb-4"
-                  >
-                    {cards[previewCardIndex].title}
-                  </motion.h2>
-                  
-                  {/* Caption */}
-                  <motion.p
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-base sm:text-lg text-slate-200 leading-relaxed max-w-2xl"
-                  >
-                    {cards[previewCardIndex].content}
-                  </motion.p>
-                </div>
-
-                {/* Navigation controls */}
-                <div className="relative z-10 flex items-center justify-between p-4 border-t border-slate-800 bg-slate-900/80 backdrop-blur">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPreviewCardIndex(Math.max(0, previewCardIndex - 1))}
-                    disabled={previewCardIndex === 0}
-                    className="text-slate-400 hover:text-white"
-                    data-testid="button-preview-prev"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                    <span className="hidden sm:inline ml-1">Previous</span>
-                  </Button>
-                  
-                  {/* Progress dots */}
-                  <div className="flex gap-1.5">
-                    {cards.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setPreviewCardIndex(idx)}
-                        className={`w-2 h-2 rounded-full transition-all ${
-                          idx === previewCardIndex
-                            ? 'bg-purple-500 w-4'
-                            : 'bg-slate-600 hover:bg-slate-500'
-                        }`}
-                        data-testid={`button-preview-dot-${idx}`}
-                      />
-                    ))}
-                  </div>
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPreviewCardIndex(Math.min(cards.length - 1, previewCardIndex + 1))}
-                    disabled={previewCardIndex === cards.length - 1}
-                    className="text-slate-400 hover:text-white"
-                    data-testid="button-preview-next"
-                  >
-                    <span className="hidden sm:inline mr-1">Next</span>
-                    <ChevronRight className="w-5 h-5" />
-                  </Button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
+      {/* Full-screen Preview Modal - Uses real CardPlayer */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 z-50 bg-black">
           {/* Close button */}
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setShowPreviewModal(false)}
-            className="absolute top-2 right-2 z-20 text-slate-400 hover:text-white"
+            className="absolute top-4 right-4 z-[60] text-white/60 hover:text-white bg-black/30 hover:bg-black/50 backdrop-blur"
             data-testid="button-close-preview"
           >
             <X className="w-5 h-5" />
           </Button>
-        </DialogContent>
-      </Dialog>
+          
+          {/* Card navigation */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-3 bg-black/50 backdrop-blur rounded-full px-4 py-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPreviewCardIndex(Math.max(0, previewCardIndex - 1))}
+              disabled={previewCardIndex === 0}
+              className="text-white/60 hover:text-white h-8 px-2"
+              data-testid="button-preview-prev"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+            
+            <div className="flex gap-1.5">
+              {cards.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setPreviewCardIndex(idx)}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    idx === previewCardIndex
+                      ? 'bg-purple-500 w-4'
+                      : 'bg-white/30 hover:bg-white/50'
+                  }`}
+                  data-testid={`button-preview-dot-${idx}`}
+                />
+              ))}
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPreviewCardIndex(Math.min(cards.length - 1, previewCardIndex + 1))}
+              disabled={previewCardIndex === cards.length - 1}
+              className="text-white/60 hover:text-white h-8 px-2"
+              data-testid="button-preview-next"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          </div>
+          
+          {/* Actual CardPlayer - the real cinematic experience */}
+          <AnimatePresence mode="wait">
+            {cards[previewCardIndex] && (
+              <motion.div
+                key={previewCardIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="w-full h-full"
+              >
+                <CardPlayer
+                  card={{
+                    id: cards[previewCardIndex].id,
+                    dayIndex: previewCardIndex + 1,
+                    title: cards[previewCardIndex].title,
+                    image: `https://placehold.co/1080x1920/1a1a2e/ffffff?text=${encodeURIComponent(cards[previewCardIndex].title.slice(0, 20))}`,
+                    captions: cards[previewCardIndex].content.split('. ').filter(s => s.trim()).slice(0, 3),
+                    sceneText: cards[previewCardIndex].content,
+                    recapText: cards[previewCardIndex].title,
+                    publishDate: new Date().toISOString(),
+                  }}
+                  autoplay={true}
+                  fullScreen={true}
+                  onPhaseChange={(phase) => {
+                    if (phase === 'context' && previewCardIndex < cards.length - 1) {
+                      setPreviewCardIndex(prev => prev + 1);
+                    }
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Premium upsell overlay */}
+          <div className="absolute top-4 left-4 z-[60] bg-black/50 backdrop-blur rounded-full px-3 py-1.5 flex items-center gap-2">
+            <Lock className="w-3 h-3 text-purple-400" />
+            <span className="text-xs text-white/80">AI images & video with Pro</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
