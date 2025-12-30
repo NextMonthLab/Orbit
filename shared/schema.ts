@@ -854,6 +854,18 @@ export const icePreviewCardSchema = z.object({
 
 export type IcePreviewCard = z.infer<typeof icePreviewCardSchema>;
 
+export const icePreviewCharacterSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.string(),
+  description: z.string(),
+  avatar: z.string().optional(),
+  systemPrompt: z.string(),
+  openingMessage: z.string(),
+});
+
+export type IcePreviewCharacter = z.infer<typeof icePreviewCharacterSchema>;
+
 export const icePreviews = pgTable("ice_previews", {
   id: text("id").primaryKey(), // e.g., ice_1234567890_abc123
   ownerIp: text("owner_ip"), // For rate limiting anonymous previews
@@ -870,6 +882,7 @@ export const icePreviews = pgTable("ice_previews", {
   // Preview data
   title: text("title").notNull(),
   cards: jsonb("cards").$type<IcePreviewCard[]>().notNull(),
+  characters: jsonb("characters").$type<IcePreviewCharacter[]>().default([]),
   tier: text("tier").$type<IcePreviewTier>().default("short").notNull(),
   
   // Access control
