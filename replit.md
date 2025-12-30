@@ -18,6 +18,11 @@ Key architectural patterns and design decisions include:
 -   **Tiered Capability Model**: The "Orbit" tier model (Free, Grow, Understand, Intelligence) gates features rather than access, with a focus on making the free tier a profitable acquisition channel.
 -   **Pattern Intelligence Focus**: All analytics and tracking are designed to support future pattern recognition and strategic advice, emphasizing session-based journeys, event ordering, object-level interaction, and outcome linkage.
 -   **UI/UX**: Emphasizes a cinematic feel with a dark theme, using Cinzel for headlines and Inter for body text, and a pink-purple-blue gradient accent.
+-   **Three-Tier Navigation System**: Global navigation plus product-specific submenus for seamless product switching:
+    -   **Global Nav** (`client/src/components/GlobalNav.tsx`): Always visible with Home (/), IceMaker (/icemaker), Orbit (/orbit) links
+    -   **IceMaker Layout** (`client/src/components/IceMakerLayout.tsx`): Wraps all /icemaker/* pages with submenu: Dashboard, Create Experience, My Projects, Templates, Settings
+    -   **Orbit Layout** (`client/src/components/OrbitLayout.tsx`): Wraps all /orbit/* pages with submenu: Dashboard, Knowledge Map, Intelligence View, Actions, Settings
+    -   **Important**: Future /icemaker/* or /orbit/* routes MUST be wrapped in their respective layout components to preserve navigation
 -   **Data Sources Integration**: Supports ingestion of external read-only GET APIs with SSRF protection and encrypted credentials for conversational intelligence.
 -   **AgoraCube Device System**: Enables Orbit display on dedicated thin clients (e.g., Raspberry Pi 5) with kiosk mode and optional voice interaction (STT/TTS), including device authentication and rate limiting.
 -   **Orbit Signal Schema v0.1**: Machine-readable JSON endpoint at `/.well-known/orbit.json` that exposes structured business identity for AI systems. Features include:
