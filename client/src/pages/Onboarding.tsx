@@ -20,7 +20,7 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (onboardingProfile?.onboardingCompleted) {
-      setLocation("/app");
+      setLocation("/icemaker");
     }
   }, [onboardingProfile, setLocation]);
 
@@ -35,7 +35,7 @@ export default function Onboarding() {
   return (
     <OnboardingWizard 
       onComplete={() => {
-        setLocation("/app");
+        setLocation("/icemaker");
       }} 
     />
   );

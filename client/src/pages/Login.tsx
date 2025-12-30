@@ -35,7 +35,7 @@ export default function Login() {
           title: "Welcome back!",
           description: "Logged in successfully.",
         });
-        setLocation("/");
+        setLocation("/icemaker");
       }
     } catch (error: any) {
       toast({
