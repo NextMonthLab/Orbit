@@ -963,10 +963,15 @@ export interface IngestionStatusCallback {
   (status: 'fetching' | 'extracting' | 'deep_scraping' | 'processing' | 'complete', message?: string): void;
 }
 
+export interface IngestionOptions {
+  onStatus?: IngestionStatusCallback;
+  forceDeep?: boolean;
+}
+
 // Lightweight site ingestion (max 4 pages, 80k chars total)
 export async function ingestSitePreview(
   url: string,
-  onStatus?: IngestionStatusCallback
+  optionsOrCallback?: IngestionOptions | IngestionStatusCallback
 ): Promise<{
   title: string;
   summary: string;
@@ -977,7 +982,17 @@ export async function ingestSitePreview(
   usedDeepScraping?: boolean;
 }> {
   const maxCharsPerPage = 20000;
-  const notify = onStatus || (() => {});
+  
+  // Handle both old callback style and new options object
+  let options: IngestionOptions = {};
+  if (typeof optionsOrCallback === 'function') {
+    options = { onStatus: optionsOrCallback };
+  } else if (optionsOrCallback) {
+    options = optionsOrCallback;
+  }
+  
+  const notify = options.onStatus || (() => {});
+  const forceDeep = options.forceDeep || false;
 
   let totalChars = 0;
   let pagesIngested = 0;
@@ -1027,9 +1042,10 @@ export async function ingestSitePreview(
       .trim()
       .substring(0, maxCharsPerPage);
 
-    // Check if content is thin - if so, use deep scraping
-    if (isThinContent(siteIdentity, pageText)) {
-      console.log('[Ingestion] Thin content detected, switching to deep extraction...');
+    // Check if content is thin or forced deep - if so, use deep scraping
+    const shouldDeepScrape = forceDeep || isThinContent(siteIdentity, pageText);
+    if (shouldDeepScrape) {
+      console.log(`[Ingestion] ${forceDeep ? 'Forced deep extraction' : 'Thin content detected'}, switching to deep extraction...`);
       notify('deep_scraping', 'Switching to deep extraction mode for better results...');
       
       try {

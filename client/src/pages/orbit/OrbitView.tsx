@@ -713,6 +713,7 @@ export default function OrbitView() {
           brandName={preview.siteIdentity.validatedContent?.brandName || preview.siteIdentity.title?.split(' - ')[0]?.split(' | ')[0] || preview.sourceDomain}
           defaultAccentColor={preview.siteIdentity.primaryColour || '#ffffff'}
           imagePool={preview.siteIdentity.imagePool || []}
+          previewId={preview.id}
           onConfirm={handleCustomizationConfirm}
         />
       )}

@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Sun, Moon, Check, ArrowRight, Palette, ImageIcon, Sparkles, LayoutGrid, Radar } from "lucide-react";
+import { Sun, Moon, Check, ArrowRight, Palette, ImageIcon, Sparkles, LayoutGrid, Radar, RefreshCw, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useQueryClient } from "@tanstack/react-query";
 
 export type ExperienceType = 'radar' | 'spatial' | 'classic';
 
@@ -11,7 +12,19 @@ interface BrandCustomizationScreenProps {
   brandName: string;
   defaultAccentColor: string;
   imagePool: string[];
+  previewId?: string;
   onConfirm: (preferences: BrandPreferences, experienceType?: ExperienceType) => void;
+  onRefreshComplete?: (newData: RefreshResult) => void;
+}
+
+interface RefreshResult {
+  logoUrl: string | null;
+  imagePool: string[];
+  stats: {
+    chars: number;
+    images: number;
+    hasLogo: boolean;
+  };
 }
 
 export interface BrandPreferences {
@@ -80,15 +93,57 @@ export function BrandCustomizationScreen({
   brandName,
   defaultAccentColor,
   imagePool,
+  previewId,
   onConfirm,
+  onRefreshComplete,
 }: BrandCustomizationScreenProps) {
+  const queryClient = useQueryClient();
   const [accentColor, setAccentColor] = useState(defaultAccentColor || '#ffffff');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [selectedLogo, setSelectedLogo] = useState<string | null>(logoUrl || faviconUrl);
   const [selectedImages, setSelectedImages] = useState<string[]>(imagePool);
   const [experienceType, setExperienceType] = useState<ExperienceType>('radar');
   const [huePosition, setHuePosition] = useState(() => hexToHue(defaultAccentColor || '#3b82f6'));
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const spectrumRef = useRef<HTMLDivElement>(null);
+  
+  const handleRefreshSiteData = async () => {
+    if (!previewId || isRefreshing) return;
+    
+    setIsRefreshing(true);
+    setRefreshError(null);
+    
+    try {
+      const response = await fetch(`/api/previews/${previewId}/re-extract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to refresh site data');
+      }
+      
+      const result = await response.json();
+      
+      // Invalidate preview query to reload fresh data
+      queryClient.invalidateQueries({ queryKey: [`/api/previews/${previewId}`] });
+      
+      // Call the callback if provided with new data
+      if (onRefreshComplete && result.preview?.siteIdentity) {
+        onRefreshComplete({
+          logoUrl: result.preview.siteIdentity.logoUrl,
+          imagePool: result.preview.siteIdentity.imagePool || [],
+          stats: result.stats,
+        });
+      }
+    } catch (error: any) {
+      setRefreshError(error.message || 'Failed to refresh site data');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   
   const handleColorChange = useCallback((color: string, updateHue = true) => {
     setAccentColor(color);
@@ -151,6 +206,48 @@ export function BrandCustomizationScreen({
             Customize your Orbit appearance
           </p>
         </motion.div>
+
+        {/* Refresh Site Data Button */}
+        {previewId && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-2"
+          >
+            <button
+              onClick={handleRefreshSiteData}
+              disabled={isRefreshing}
+              data-testid="button-refresh-site-data"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+              style={{
+                backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                color: mutedColor,
+                border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+              }}
+            >
+              {isRefreshing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Deep scanning website...</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Refresh Site Data (Deep Scan)</span>
+                </>
+              )}
+            </button>
+            {refreshError && (
+              <p className="text-xs text-red-400 text-center">{refreshError}</p>
+            )}
+            {isRefreshing && (
+              <p className="text-xs text-center" style={{ color: mutedColor }}>
+                This may take 30-60 seconds for JavaScript-heavy sites...
+              </p>
+            )}
+          </motion.div>
+        )}
 
         {allLogoCandidates.length > 0 && (
           <motion.div

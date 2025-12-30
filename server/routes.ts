@@ -6008,6 +6008,61 @@ STRICT RULES:
     }
   });
 
+  // Force re-extraction of preview site data (with deep scraping)
+  app.post("/api/previews/:id/re-extract", async (req, res) => {
+    try {
+      const preview = await storage.getPreviewInstance(req.params.id);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+
+      if (!preview.sourceUrl) {
+        return res.status(400).json({ message: "No source URL to re-extract" });
+      }
+
+      console.log(`[Re-Extract] Starting forced deep extraction for preview ${preview.id} from ${preview.sourceUrl}`);
+
+      // Force deep extraction by passing forceDeep: true
+      const { ingestSitePreview } = await import("./previewHelpers");
+      const siteData = await ingestSitePreview(preview.sourceUrl, { forceDeep: true });
+
+      const imageCount = siteData.siteIdentity?.imagePool?.length || 0;
+      const hasLogo = !!siteData.siteIdentity?.logoUrl;
+      console.log(`[Re-Extract] Extraction complete: ${siteData.totalChars} chars, ${imageCount} images, logo: ${hasLogo}`);
+
+      // Update the preview with new site identity
+      const updatedPreview = await storage.updatePreviewInstance(preview.id, {
+        siteTitle: siteData.title,
+        siteSummary: siteData.summary,
+        siteIdentity: siteData.siteIdentity as any,
+      });
+
+      // If there's a linked orbit, update its source metadata too
+      const orbit = await storage.getOrbitMetaByPreviewId(preview.id);
+      if (orbit) {
+        console.log(`[Re-Extract] Also updating linked orbit: ${orbit.businessSlug}`);
+        await storage.updateOrbitMeta(orbit.businessSlug, {
+          lastUpdated: new Date(),
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Site data re-extracted with deep scraping",
+        preview: updatedPreview,
+        stats: {
+          chars: siteData.totalChars,
+          images: imageCount,
+          hasLogo: hasLogo,
+          pagesIngested: siteData.pagesIngested,
+        }
+      });
+    } catch (error: any) {
+      console.error("[Re-Extract] Error:", error);
+      res.status(500).json({ message: error.message || "Error re-extracting site data" });
+    }
+  });
+
   // Claim preview (start checkout)
   app.post("/api/previews/:id/claim", requireAuth, async (req, res) => {
     try {

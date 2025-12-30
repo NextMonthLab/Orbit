@@ -62,9 +62,14 @@ export async function deepScrapeUrl(url: string, options: DeepScraperOptions = {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   let page: Page | null = null;
   
+  console.log(`[DeepScraper] Starting deep scrape for: ${url}`);
+  
   try {
+    console.log('[DeepScraper] Getting browser instance...');
     const browser = await getBrowser();
+    console.log('[DeepScraper] Browser obtained, creating page...');
     page = await browser.newPage();
+    console.log('[DeepScraper] Page created successfully');
     
     await page.setViewport({ width: 1920, height: 1080 });
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
@@ -92,13 +97,19 @@ export async function deepScrapeUrl(url: string, options: DeepScraperOptions = {
     const html = await page.content();
     const title = await page.title();
     
+    // Debug: Check if content was actually rendered
+    const bodyContent = await page.evaluate(() => document.body.innerText?.substring(0, 500) || '');
+    const imgCount = await page.evaluate(() => document.querySelectorAll('img').length);
+    console.log(`[DeepScraper] Page rendered - Title: "${title}", Images found: ${imgCount}`);
+    console.log(`[DeepScraper] Body text preview: ${bodyContent.substring(0, 200)}...`);
+    
     let screenshotBase64: string | undefined;
     if (opts.captureScreenshot) {
       const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
       screenshotBase64 = screenshot as string;
     }
     
-    console.log(`[DeepScraper] Successfully scraped ${url} (${html.length} chars)`);
+    console.log(`[DeepScraper] Successfully scraped ${url} (${html.length} chars, ${imgCount} images)`);
     
     return {
       html,
