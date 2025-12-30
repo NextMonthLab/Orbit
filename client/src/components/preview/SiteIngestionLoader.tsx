@@ -174,8 +174,7 @@ export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", isComp
             <img 
               src="/logo.png" 
               alt="NextMonth" 
-              className="h-12 animate-pulse"
-              style={{ clipPath: 'inset(30% 0 30% 0)' }}
+              className="h-36 animate-pulse"
             />
           </div>
           {brandName && (
