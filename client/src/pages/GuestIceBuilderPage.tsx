@@ -18,7 +18,7 @@ import CardPlayer from "@/components/CardPlayer";
 import type { Card } from "@/lib/mockData";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import previewCardBackground from "@assets/generated_images/minimal_sunset_with_top_silhouettes.png";
-import { InteractivityNode, AddInteractivityButton } from "@/components/InteractivityNode";
+import { InteractivityNode, AddInteractivityButton, StoryCharacter } from "@/components/InteractivityNode";
 import { GuidedWalkthrough } from "@/components/GuidedWalkthrough";
 
 const CREATION_STAGES = [
@@ -40,6 +40,7 @@ interface PreviewData {
   id: string;
   title: string;
   cards: PreviewCard[];
+  characters?: StoryCharacter[];
   sourceType: string;
   sourceValue: string;
   status?: string;
@@ -51,6 +52,7 @@ interface InteractivityNodeData {
   id: string;
   afterCardIndex: number;
   isActive: boolean;
+  selectedCharacterId?: string;
 }
 
 export default function GuestIceBuilderPage() {
@@ -73,6 +75,28 @@ export default function GuestIceBuilderPage() {
   const [interactivityNodes, setInteractivityNodes] = useState<InteractivityNodeData[]>([]);
   const [previewAccessToken, setPreviewAccessToken] = useState<string | undefined>();
   const [showWalkthrough, setShowWalkthrough] = useState(false);
+  const [cardPace, setCardPace] = useState<"slow" | "normal" | "fast">("normal");
+  const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(true);
+  
+  const paceDelays = { slow: 8000, normal: 5000, fast: 3000 };
+  
+  const [lastManualNav, setLastManualNav] = useState(0);
+  
+  useEffect(() => {
+    if (!showPreviewModal || !autoAdvanceEnabled) return;
+    if (previewCardIndex >= cards.length - 1) return;
+    
+    const timer = setTimeout(() => {
+      setPreviewCardIndex(prev => Math.min(cards.length - 1, prev + 1));
+    }, paceDelays[cardPace]);
+    
+    return () => clearTimeout(timer);
+  }, [showPreviewModal, previewCardIndex, cardPace, autoAdvanceEnabled, cards.length, lastManualNav]);
+  
+  const handleManualNav = (newIndex: number) => {
+    setPreviewCardIndex(newIndex);
+    setLastManualNav(Date.now());
+  };
   
   const hasSeenWalkthrough = () => {
     if (typeof window === "undefined") return true;
@@ -563,6 +587,17 @@ export default function GuestIceBuilderPage() {
                               previewId={preview?.id || ""}
                               previewAccessToken={previewAccessToken}
                               isActive={nodeAtPosition.isActive}
+                              characters={preview?.characters || []}
+                              selectedCharacterId={nodeAtPosition.selectedCharacterId}
+                              onCharacterSelect={(charId) => {
+                                setInteractivityNodes(nodes =>
+                                  nodes.map(n =>
+                                    n.id === nodeAtPosition.id
+                                      ? { ...n, selectedCharacterId: charId }
+                                      : n
+                                  )
+                                );
+                              }}
                               onActivate={() => {
                                 setInteractivityNodes(nodes =>
                                   nodes.map(n =>
@@ -581,11 +616,23 @@ export default function GuestIceBuilderPage() {
                           ) : (
                             <AddInteractivityButton
                               afterCardIndex={index}
-                              onAdd={() => {
+                              characters={preview?.characters || []}
+                              onCharacterSelect={(charId) => {
                                 const newNode: InteractivityNodeData = {
                                   id: `node-${Date.now()}-${index}`,
                                   afterCardIndex: index,
                                   isActive: false,
+                                  selectedCharacterId: charId,
+                                };
+                                setInteractivityNodes(nodes => [...nodes, newNode]);
+                              }}
+                              onAdd={() => {
+                                const chars = preview?.characters || [];
+                                const newNode: InteractivityNodeData = {
+                                  id: `node-${Date.now()}-${index}`,
+                                  afterCardIndex: index,
+                                  isActive: false,
+                                  selectedCharacterId: chars.length > 0 ? chars[0].id : undefined,
                                 };
                                 setInteractivityNodes(nodes => [...nodes, newNode]);
                               }}
@@ -691,7 +738,7 @@ export default function GuestIceBuilderPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setPreviewCardIndex(Math.max(0, previewCardIndex - 1))}
+              onClick={() => handleManualNav(Math.max(0, previewCardIndex - 1))}
               disabled={previewCardIndex === 0}
               className="text-white/60 hover:text-white h-8 px-2"
               data-testid="button-preview-prev"
@@ -703,7 +750,7 @@ export default function GuestIceBuilderPage() {
               {cards.map((_, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setPreviewCardIndex(idx)}
+                  onClick={() => handleManualNav(idx)}
                   className={`w-2 h-2 rounded-full transition-all ${
                     idx === previewCardIndex
                       ? 'bg-purple-500 w-4'
@@ -717,7 +764,7 @@ export default function GuestIceBuilderPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setPreviewCardIndex(Math.min(cards.length - 1, previewCardIndex + 1))}
+              onClick={() => handleManualNav(Math.min(cards.length - 1, previewCardIndex + 1))}
               disabled={previewCardIndex === cards.length - 1}
               className="text-white/60 hover:text-white h-8 px-2"
               data-testid="button-preview-next"
@@ -764,6 +811,25 @@ export default function GuestIceBuilderPage() {
           <div className="absolute top-4 left-4 z-[60] bg-black/50 backdrop-blur rounded-full px-3 py-1.5 flex items-center gap-2">
             <Lock className="w-3 h-3 text-purple-400" />
             <span className="text-xs text-white/80">AI images & video with Pro</span>
+          </div>
+          
+          {/* Pace controls */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] bg-black/50 backdrop-blur rounded-full px-2 py-1 flex items-center gap-1">
+            <span className="text-[10px] text-white/60 mr-1">Pace:</span>
+            {(["slow", "normal", "fast"] as const).map((pace) => (
+              <button
+                key={pace}
+                onClick={() => setCardPace(pace)}
+                className={`px-2 py-0.5 text-[10px] rounded-full transition-all ${
+                  cardPace === pace
+                    ? "bg-purple-500 text-white"
+                    : "text-white/60 hover:text-white hover:bg-white/10"
+                }`}
+                data-testid={`button-pace-${pace}`}
+              >
+                {pace.charAt(0).toUpperCase() + pace.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
       )}

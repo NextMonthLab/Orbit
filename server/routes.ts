@@ -5355,6 +5355,90 @@ Guidelines:
         order: idx,
       }));
       
+      // Generate characters from the story content
+      const cardsSummary = cards.map(c => `${c.title}: ${c.content}`).join('\n\n');
+      let storyCharacters: schema.IcePreviewCharacter[] = [];
+      
+      try {
+        const charCompletion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert at identifying characters from narrative content. Analyze the story and identify 2-4 key characters who could engage in conversation about this story.
+
+For each character, provide:
+- id: short lowercase identifier (e.g., "detective", "victim", "witness_1")
+- name: Full name or title (e.g., "Detective Sarah Chen", "The Vanishing Victim")
+- role: Brief role description (e.g., "Lead Investigator", "Missing Person", "Key Witness")
+- description: 1-2 sentence character background
+- openingMessage: A short in-character greeting (1 sentence, matches their personality)
+
+Output as JSON: { "characters": [...] }
+
+Guidelines:
+- Create compelling, distinct personalities
+- Make characters relevant to the story's themes
+- Include a mix of perspectives (protagonist, supporting, etc.)
+- If no clear characters exist, create narrator/guide archetypes appropriate to the content type`
+            },
+            {
+              role: "user",
+              content: `Story title: ${sourceTitle}\n\nStory content:\n${cardsSummary.slice(0, 4000)}`
+            }
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 1000,
+        });
+        
+        const charParsed = JSON.parse(charCompletion.choices[0].message.content || "{}");
+        const rawChars = charParsed.characters || [];
+        
+        storyCharacters = rawChars.slice(0, 4).map((c: any) => ({
+          id: c.id || `char_${Math.random().toString(36).slice(2, 6)}`,
+          name: c.name || "Story Guide",
+          role: c.role || "Narrator",
+          description: c.description || "A guide to this story.",
+          avatar: undefined,
+          systemPrompt: `You are ${c.name}, ${c.role}. ${c.description}
+
+CONTEXT: This is part of an interactive story experience titled "${sourceTitle}".
+
+STORY CARDS:
+${cardsSummary}
+
+VOICE & PERSONALITY:
+- Stay fully in character as ${c.name}
+- Speak from your perspective within the story
+- Reference events, people, and details from the story naturally
+- Be engaging and draw the audience into the narrative
+- Keep responses concise (2-4 sentences typically)
+- If asked about things outside your knowledge, deflect in-character
+
+STRICT RULES:
+- Never break character or refer to yourself as an AI
+- Never reference "cards" or "the story" directly - you ARE in the story
+- Never use phrases like "as a character" or "in this story"`,
+          openingMessage: c.openingMessage || `Hello, I'm ${c.name}. What would you like to know?`,
+        }));
+      } catch (charError) {
+        console.error("Error generating characters:", charError);
+        // Fallback: create a default narrator character
+        storyCharacters = [{
+          id: "narrator",
+          name: "Story Guide",
+          role: "Narrator",
+          description: "Your guide through this experience.",
+          systemPrompt: `You are a knowledgeable narrator guiding someone through the story "${sourceTitle}".
+
+STORY CARDS:
+${cardsSummary}
+
+Stay engaging, reference story details, and help the audience understand the narrative.`,
+          openingMessage: "Welcome to this story. What would you like to explore?",
+        }];
+      }
+      
       // Persist to database
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // 7-day expiry for guest previews
@@ -5367,6 +5451,7 @@ Guidelines:
         sourceValue: type === "url" ? value : value.slice(0, 500),
         title: sourceTitle,
         cards: previewCards,
+        characters: storyCharacters,
         tier: "short",
         status: "active",
         expiresAt,
@@ -5376,6 +5461,7 @@ Guidelines:
         id: savedPreview.id,
         title: savedPreview.title,
         cards: savedPreview.cards,
+        characters: savedPreview.characters,
         sourceType: savedPreview.sourceType,
         sourceValue: savedPreview.sourceValue,
         createdAt: savedPreview.createdAt.toISOString(),
@@ -5486,6 +5572,89 @@ Guidelines:
         order: idx,
       }));
       
+      // Generate characters from the story content (same as URL/text endpoint)
+      const cardsSummary = cards.map(c => `${c.title}: ${c.content}`).join('\n\n');
+      let storyCharacters: schema.IcePreviewCharacter[] = [];
+      
+      try {
+        const charCompletion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert at identifying characters from narrative content. Analyze the story and identify 2-4 key characters who could engage in conversation about this story.
+
+For each character, provide:
+- id: short lowercase identifier (e.g., "detective", "victim", "witness_1")
+- name: Full name or title (e.g., "Detective Sarah Chen", "The Vanishing Victim")
+- role: Brief role description (e.g., "Lead Investigator", "Missing Person", "Key Witness")
+- description: 1-2 sentence character background
+- openingMessage: A short in-character greeting (1 sentence, matches their personality)
+
+Output as JSON: { "characters": [...] }
+
+Guidelines:
+- Create compelling, distinct personalities
+- Make characters relevant to the story's themes
+- Include a mix of perspectives (protagonist, supporting, etc.)
+- If no clear characters exist, create narrator/guide archetypes appropriate to the content type`
+            },
+            {
+              role: "user",
+              content: `Story title: ${sourceTitle}\n\nStory content:\n${cardsSummary.slice(0, 4000)}`
+            }
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 1000,
+        });
+        
+        const charParsed = JSON.parse(charCompletion.choices[0].message.content || "{}");
+        const rawChars = charParsed.characters || [];
+        
+        storyCharacters = rawChars.slice(0, 4).map((c: any) => ({
+          id: c.id || `char_${Math.random().toString(36).slice(2, 6)}`,
+          name: c.name || "Story Guide",
+          role: c.role || "Narrator",
+          description: c.description || "A guide to this story.",
+          avatar: undefined,
+          systemPrompt: `You are ${c.name}, ${c.role}. ${c.description}
+
+CONTEXT: This is part of an interactive story experience titled "${sourceTitle}".
+
+STORY CARDS:
+${cardsSummary}
+
+VOICE & PERSONALITY:
+- Stay fully in character as ${c.name}
+- Speak from your perspective within the story
+- Reference events, people, and details from the story naturally
+- Be engaging and draw the audience into the narrative
+- Keep responses concise (2-4 sentences typically)
+- If asked about things outside your knowledge, deflect in-character
+
+STRICT RULES:
+- Never break character or refer to yourself as an AI
+- Never reference "cards" or "the story" directly - you ARE in the story
+- Never use phrases like "as a character" or "in this story"`,
+          openingMessage: c.openingMessage || `Hello, I'm ${c.name}. What would you like to know?`,
+        }));
+      } catch (charError) {
+        console.error("Error generating characters:", charError);
+        storyCharacters = [{
+          id: "narrator",
+          name: "Story Guide",
+          role: "Narrator",
+          description: "Your guide through this experience.",
+          systemPrompt: `You are a knowledgeable narrator guiding someone through the story "${sourceTitle}".
+
+STORY CARDS:
+${cardsSummary}
+
+Stay engaging, reference story details, and help the audience understand the narrative.`,
+          openingMessage: "Welcome to this story. What would you like to explore?",
+        }];
+      }
+      
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
       
@@ -5497,6 +5666,7 @@ Guidelines:
         sourceValue: file.originalname,
         title: sourceTitle,
         cards: previewCards,
+        characters: storyCharacters,
         tier: "short",
         status: "active",
         expiresAt,
@@ -5506,6 +5676,7 @@ Guidelines:
         id: savedPreview.id,
         title: savedPreview.title,
         cards: savedPreview.cards,
+        characters: savedPreview.characters,
         sourceType: savedPreview.sourceType,
         sourceValue: savedPreview.sourceValue,
         createdAt: savedPreview.createdAt.toISOString(),
@@ -5549,6 +5720,7 @@ Guidelines:
         id: preview.id,
         title: preview.title,
         cards: preview.cards,
+        characters: preview.characters || [],
         sourceType: preview.sourceType,
         sourceValue: preview.sourceValue,
         status: preview.status,
@@ -5558,6 +5730,85 @@ Guidelines:
     } catch (error) {
       console.error("Error fetching ICE preview:", error);
       res.status(500).json({ message: "Error fetching preview" });
+    }
+  });
+  
+  // ICE Preview Chat - Talk to story characters
+  app.post("/api/ice/preview/:id/chat", chatRateLimiter, async (req, res) => {
+    try {
+      const { message, characterId, previewAccessToken } = req.body;
+      const previewId = req.params.id;
+      
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ message: "Message is required" });
+      }
+      
+      const preview = await storage.getIcePreview(previewId);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      // Check expiry
+      if (preview.expiresAt < new Date() && preview.status !== "promoted") {
+        return res.json({
+          capped: true,
+          reason: "expired",
+          message: "This preview has expired.",
+        });
+      }
+      
+      // Find the selected character or use first one
+      const characters = (preview.characters || []) as schema.IcePreviewCharacter[];
+      let character = characters.find(c => c.id === characterId);
+      if (!character && characters.length > 0) {
+        character = characters[0];
+      }
+      
+      if (!character) {
+        // Fallback: create an inline narrator
+        const cardsSummary = (preview.cards as schema.IcePreviewCard[])
+          .map(c => `${c.title}: ${c.content}`).join('\n\n');
+        character = {
+          id: "narrator",
+          name: "Story Guide",
+          role: "Narrator",
+          description: "Your guide through this experience.",
+          systemPrompt: `You are a knowledgeable narrator guiding someone through the story "${preview.title}".
+
+STORY CARDS:
+${cardsSummary}
+
+Stay engaging, reference story details, and help the audience understand the narrative.`,
+          openingMessage: "Welcome to this story. What would you like to explore?",
+        };
+      }
+      
+      // Call LLM with character persona
+      const openai = getOpenAI();
+      
+      const aiResponse = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: character.systemPrompt },
+          { role: "user", content: message },
+        ],
+        max_tokens: 300,
+        temperature: 0.85,
+      });
+      
+      const reply = aiResponse.choices[0]?.message?.content || "...";
+      
+      res.json({
+        reply,
+        character: {
+          id: character.id,
+          name: character.name,
+          role: character.role,
+        },
+      });
+    } catch (error) {
+      console.error("Error in ICE preview chat:", error);
+      res.status(500).json({ message: "Error processing chat" });
     }
   });
   
