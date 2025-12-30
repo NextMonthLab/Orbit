@@ -338,6 +338,10 @@ export interface IStorage {
   pauseIce(universeId: number): Promise<schema.Universe | undefined>;
   getActiveIceCount(userId: number): Promise<number>;
   getIcesToPauseOnDowngrade(userId: number, newLimit: number): Promise<schema.Universe[]>;
+  
+  // Security Audit Logging
+  createAuditLog(log: schema.InsertAuditLog): Promise<schema.AuditLog>;
+  getAuditLogs(resourceType: string, resourceId: string, limit?: number): Promise<schema.AuditLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2567,6 +2571,23 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
     return activeIces.slice(newLimit);
+  }
+  
+  // Security Audit Logging
+  async createAuditLog(log: schema.InsertAuditLog): Promise<schema.AuditLog> {
+    const [result] = await db.insert(schema.auditLogs).values(log).returning();
+    return result;
+  }
+  
+  async getAuditLogs(resourceType: string, resourceId: string, limit: number = 100): Promise<schema.AuditLog[]> {
+    return await db.query.auditLogs.findMany({
+      where: and(
+        eq(schema.auditLogs.resourceType, resourceType),
+        eq(schema.auditLogs.resourceId, resourceId)
+      ),
+      orderBy: [desc(schema.auditLogs.createdAt)],
+      limit,
+    });
   }
 }
 

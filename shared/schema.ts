@@ -253,6 +253,12 @@ export type NarrationMode = 'manual' | 'derive_from_sceneText' | 'derive_from_ca
 // Active Ice status for sustainable hosting model
 export type IceStatus = 'draft' | 'active' | 'paused';
 
+// Content visibility levels (applies to universes, ice_previews, orbits)
+// private: only owner + admins can view
+// unlisted: anyone with link can view (not discoverable)
+// public: visible to everyone, discoverable
+export type ContentVisibility = 'private' | 'unlisted' | 'public';
+
 export const universes = pgTable("universes", {
   id: serial("id").primaryKey(),
   slug: text("slug").unique(), // Unique identifier for deterministic imports
@@ -264,6 +270,7 @@ export const universes = pgTable("universes", {
   activeSince: timestamp("active_since"), // When Ice was activated for public access
   pausedAt: timestamp("paused_at"), // When Ice was paused
   ownerUserId: integer("owner_user_id").references(() => users.id), // Owner of this experience
+  visibility: text("visibility").$type<ContentVisibility>().default("private").notNull(), // Access control: private, unlisted, public
   visualMode: text("visual_mode").default("author_supplied"), // "engine_generated" | "author_supplied"
   visualStyle: jsonb("visual_style").$type<VisualStyle>(), // Universe-level style constraints
   visualContinuity: jsonb("visual_continuity").$type<VisualContinuity>(), // Style bible for consistent look
@@ -852,6 +859,10 @@ export const icePreviews = pgTable("ice_previews", {
   ownerIp: text("owner_ip"), // For rate limiting anonymous previews
   ownerUserId: integer("owner_user_id").references(() => users.id), // Linked after login
   
+  // Secure claiming (prevents hijacking if preview URLs leak)
+  claimTokenHash: text("claim_token_hash"), // bcrypt hash of claim token (single-use)
+  claimTokenUsedAt: timestamp("claim_token_used_at"), // When token was used to claim
+  
   // Source content
   sourceType: text("source_type").$type<IcePreviewSourceType>().notNull(),
   sourceValue: text("source_value").notNull(), // URL or text content
@@ -860,6 +871,9 @@ export const icePreviews = pgTable("ice_previews", {
   title: text("title").notNull(),
   cards: jsonb("cards").$type<IcePreviewCard[]>().notNull(),
   tier: text("tier").$type<IcePreviewTier>().default("short").notNull(),
+  
+  // Access control
+  visibility: text("visibility").$type<ContentVisibility>().default("unlisted").notNull(), // Guest previews default to unlisted
   
   // Status
   status: text("status").$type<IcePreviewStatus>().default("active").notNull(),
@@ -1269,6 +1283,9 @@ export const orbitMeta = pgTable("orbit_meta", {
   ownerId: integer("owner_id").references(() => users.id),
   ownerEmail: text("owner_email"),
   verifiedAt: timestamp("verified_at"),
+  
+  // Access control (unclaimed orbits are public by default for discovery)
+  visibility: text("visibility").$type<ContentVisibility>().default("public").notNull(),
   
   // Generation job tracking
   generationStatus: text("generation_status").$type<OrbitGenerationStatus>().default("idle").notNull(),
@@ -1889,3 +1906,51 @@ export const blogPosts = pgTable("blog_posts", {
 export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
 export type BlogPost = typeof blogPosts.$inferSelect;
+
+// ============ SECURITY AUDIT LOGGING ============
+
+// Audit event types for security tracking
+export type AuditEventType = 
+  | 'content.viewed'
+  | 'content.created'
+  | 'content.edited'
+  | 'content.deleted'
+  | 'content.claimed'
+  | 'visibility.changed'
+  | 'permission.denied'
+  | 'auth.login'
+  | 'auth.logout'
+  | 'auth.failed';
+
+// Audit logs for security tracking (content access, claims, permission denials)
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  
+  // Event type and details
+  eventType: text("event_type").$type<AuditEventType>().notNull(),
+  
+  // Actor (who performed the action)
+  userId: integer("user_id").references(() => users.id), // null for anonymous
+  userIp: text("user_ip"), // For anonymous tracking
+  userAgent: text("user_agent"),
+  
+  // Resource (what was accessed/modified)
+  resourceType: text("resource_type").notNull(), // 'universe', 'ice_preview', 'orbit', 'user'
+  resourceId: text("resource_id").notNull(), // ID of the resource
+  
+  // Additional context
+  details: jsonb("details").$type<Record<string, unknown>>(), // Event-specific metadata
+  oldValue: jsonb("old_value"), // Previous state for changes
+  newValue: jsonb("new_value"), // New state for changes
+  
+  // Result
+  success: boolean("success").default(true).notNull(),
+  errorCode: text("error_code"), // For failed operations
+  
+  // Timestamp
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, createdAt: true });
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
