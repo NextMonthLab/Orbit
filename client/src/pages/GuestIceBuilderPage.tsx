@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { Sparkles, Globe, FileText, ArrowRight, Loader2, GripVertical, Lock, Play, Image, Mic, Upload, Check, Circle } from "lucide-react";
+import { Sparkles, Globe, FileText, ArrowRight, Loader2, GripVertical, Lock, Play, Image, Mic, Upload, Check, Circle, Eye, Pencil, Film, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import GlobalNav from "@/components/GlobalNav";
 import { VisibilityBadge } from "@/components/VisibilityBadge";
 import { motion, AnimatePresence } from "framer-motion";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const CREATION_STAGES = [
   { id: "fetch", label: "Fetching your content", duration: 1500 },
@@ -54,6 +55,8 @@ export default function GuestIceBuilderPage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [currentStage, setCurrentStage] = useState(-1);
   const stageTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewCardIndex, setPreviewCardIndex] = useState(0);
   
   // Auto-advance through visual stages during creation
   useEffect(() => {
@@ -398,69 +401,123 @@ export default function GuestIceBuilderPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-semibold text-white">{preview.title}</h2>
+          <div className="space-y-4 sm:space-y-6">
+            {/* Mobile-optimized header */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-lg sm:text-xl font-semibold text-white truncate">{preview.title}</h2>
                   <VisibilityBadge visibility={((existingPreview as any)?.visibility as "private" | "unlisted" | "public") || "unlisted"} size="sm" />
                 </div>
-                <p className="text-sm text-slate-400">{cards.length} story cards</p>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  <Film className="w-3 h-3 inline mr-1" />
+                  {cards.length} story cards
+                </p>
               </div>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setPreview(null);
-                  setCards([]);
-                  setUrlValue("");
-                  setTextValue("");
-                }}
-                data-testid="button-start-over"
-              >
-                Start Over
-              </Button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setPreviewCardIndex(0);
+                    setShowPreviewModal(true);
+                  }}
+                  className="flex-1 sm:flex-none gap-1.5 border-purple-500/50 text-purple-300 hover:bg-purple-500/10"
+                  data-testid="button-preview-experience"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span className="hidden xs:inline">Preview</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setPreview(null);
+                    setCards([]);
+                    setUrlValue("");
+                    setTextValue("");
+                    setSelectedFile(null);
+                  }}
+                  className="flex-1 sm:flex-none"
+                  data-testid="button-start-over"
+                >
+                  Start Over
+                </Button>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              {cards.map((card, index) => (
-                <Card
-                  key={card.id}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  className={`bg-slate-900/80 border-slate-800 cursor-move transition-all ${
-                    draggedIndex === index ? "opacity-50 scale-105" : ""
-                  }`}
-                  data-testid={`card-preview-${index}`}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <GripVertical className="w-4 h-4" />
-                        <span className="text-sm font-medium">{index + 1}</span>
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <Input
-                          value={card.title}
-                          onChange={(e) => handleCardEdit(index, "title", e.target.value)}
-                          onBlur={handleCardBlur}
-                          className="bg-transparent border-transparent hover:border-slate-700 focus:border-purple-500 font-semibold text-white"
-                          data-testid={`input-card-title-${index}`}
-                        />
-                        <Textarea
-                          value={card.content}
-                          onChange={(e) => handleCardEdit(index, "content", e.target.value)}
-                          onBlur={handleCardBlur}
-                          rows={2}
-                          className="bg-transparent border-transparent hover:border-slate-700 focus:border-purple-500 text-slate-300 resize-none"
-                          data-testid={`input-card-content-${index}`}
-                        />
+            {/* Edit hint banner */}
+            <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-500/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 flex items-center gap-2">
+              <Pencil className="w-4 h-4 text-purple-400 flex-shrink-0" />
+              <p className="text-xs sm:text-sm text-purple-200">
+                <span className="font-medium">Tap any card</span> to edit the title or content. <span className="hidden sm:inline">Drag cards to reorder your story.</span>
+              </p>
+            </div>
+
+            {/* Film strip style cards */}
+            <div className="relative">
+              {/* Film strip perforations - left side */}
+              <div className="absolute left-0 top-0 bottom-0 w-6 sm:w-8 bg-slate-950/80 rounded-l-lg border-r border-slate-700 hidden sm:flex flex-col items-center justify-around py-4">
+                {cards.slice(0, 8).map((_, i) => (
+                  <div key={i} className="w-3 h-3 rounded-sm bg-slate-800 border border-slate-600" />
+                ))}
+              </div>
+              
+              <div className="space-y-2 sm:pl-10">
+                {cards.map((card, index) => (
+                  <div
+                    key={card.id}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                    className={`group relative bg-gradient-to-r from-slate-900 to-slate-900/90 border border-slate-700 rounded-lg overflow-hidden cursor-move transition-all hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 ${
+                      draggedIndex === index ? "opacity-50 scale-[1.02] shadow-xl" : ""
+                    }`}
+                    data-testid={`card-preview-${index}`}
+                  >
+                    {/* Card frame number - film style */}
+                    <div className="absolute left-0 top-0 bottom-0 w-10 sm:w-12 bg-slate-950/60 border-r border-slate-700/50 flex flex-col items-center justify-center">
+                      <GripVertical className="w-4 h-4 text-slate-600 mb-1 group-hover:text-purple-400 transition-colors" />
+                      <span className="text-xs font-mono text-slate-500 group-hover:text-purple-400 transition-colors">{String(index + 1).padStart(2, '0')}</span>
+                    </div>
+                    
+                    <div className="pl-12 sm:pl-14 pr-3 py-3 sm:pr-4 sm:py-4">
+                      <Input
+                        value={card.title}
+                        onChange={(e) => handleCardEdit(index, "title", e.target.value)}
+                        onBlur={handleCardBlur}
+                        placeholder="Card title..."
+                        className="bg-transparent border-transparent hover:border-slate-600 focus:border-purple-500 focus:bg-slate-800/50 font-semibold text-white text-sm sm:text-base h-8 sm:h-9 px-2"
+                        data-testid={`input-card-title-${index}`}
+                      />
+                      <Textarea
+                        value={card.content}
+                        onChange={(e) => handleCardEdit(index, "content", e.target.value)}
+                        onBlur={handleCardBlur}
+                        placeholder="Card content..."
+                        rows={2}
+                        className="bg-transparent border-transparent hover:border-slate-600 focus:border-purple-500 focus:bg-slate-800/50 text-slate-300 text-xs sm:text-sm resize-none mt-1 px-2"
+                        data-testid={`input-card-content-${index}`}
+                      />
+                    </div>
+                    
+                    {/* Hover edit indicator */}
+                    <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="bg-purple-500/20 rounded p-1">
+                        <Pencil className="w-3 h-3 text-purple-400" />
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Film strip perforations - right side */}
+              <div className="absolute right-0 top-0 bottom-0 w-6 sm:w-8 bg-slate-950/80 rounded-r-lg border-l border-slate-700 hidden sm:flex flex-col items-center justify-around py-4">
+                {cards.slice(0, 8).map((_, i) => (
+                  <div key={i} className="w-3 h-3 rounded-sm bg-slate-800 border border-slate-600" />
+                ))}
+              </div>
             </div>
 
             <Card className="bg-slate-900/50 border-slate-800 border-dashed">
@@ -526,6 +583,115 @@ export default function GuestIceBuilderPage() {
           </div>
         )}
       </div>
+
+      {/* Preview Modal - Cinematic card viewer */}
+      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] sm:h-[80vh] p-0 bg-black border-slate-800 overflow-hidden">
+          <AnimatePresence mode="wait">
+            {cards[previewCardIndex] && (
+              <motion.div
+                key={previewCardIndex}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.02 }}
+                transition={{ duration: 0.3 }}
+                className="relative w-full h-full flex flex-col"
+              >
+                {/* Gradient background placeholder for missing image */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-900/40 via-slate-900 to-pink-900/40" />
+                
+                {/* Card content */}
+                <div className="relative z-10 flex-1 flex flex-col justify-end p-6 sm:p-8">
+                  {/* Premium badge placeholder */}
+                  <div className="absolute top-4 right-4 bg-slate-800/80 backdrop-blur rounded-full px-3 py-1.5 flex items-center gap-2">
+                    <Lock className="w-3 h-3 text-purple-400" />
+                    <span className="text-xs text-slate-300">AI visuals with Pro</span>
+                  </div>
+                  
+                  {/* Frame counter */}
+                  <div className="absolute top-4 left-4 font-mono text-sm text-slate-500">
+                    {String(previewCardIndex + 1).padStart(2, '0')} / {String(cards.length).padStart(2, '0')}
+                  </div>
+                  
+                  {/* Title */}
+                  <motion.h2
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-2xl sm:text-4xl font-bold text-white mb-3 sm:mb-4"
+                  >
+                    {cards[previewCardIndex].title}
+                  </motion.h2>
+                  
+                  {/* Caption */}
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-base sm:text-lg text-slate-200 leading-relaxed max-w-2xl"
+                  >
+                    {cards[previewCardIndex].content}
+                  </motion.p>
+                </div>
+
+                {/* Navigation controls */}
+                <div className="relative z-10 flex items-center justify-between p-4 border-t border-slate-800 bg-slate-900/80 backdrop-blur">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPreviewCardIndex(Math.max(0, previewCardIndex - 1))}
+                    disabled={previewCardIndex === 0}
+                    className="text-slate-400 hover:text-white"
+                    data-testid="button-preview-prev"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                    <span className="hidden sm:inline ml-1">Previous</span>
+                  </Button>
+                  
+                  {/* Progress dots */}
+                  <div className="flex gap-1.5">
+                    {cards.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setPreviewCardIndex(idx)}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          idx === previewCardIndex
+                            ? 'bg-purple-500 w-4'
+                            : 'bg-slate-600 hover:bg-slate-500'
+                        }`}
+                        data-testid={`button-preview-dot-${idx}`}
+                      />
+                    ))}
+                  </div>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPreviewCardIndex(Math.min(cards.length - 1, previewCardIndex + 1))}
+                    disabled={previewCardIndex === cards.length - 1}
+                    className="text-slate-400 hover:text-white"
+                    data-testid="button-preview-next"
+                  >
+                    <span className="hidden sm:inline mr-1">Next</span>
+                    <ChevronRight className="w-5 h-5" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Close button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowPreviewModal(false)}
+            className="absolute top-2 right-2 z-20 text-slate-400 hover:text-white"
+            data-testid="button-close-preview"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
