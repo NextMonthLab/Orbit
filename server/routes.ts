@@ -5495,8 +5495,9 @@ Stay engaging, reference story details, and help the audience understand the nar
       
       if (ext === "pdf") {
         // Parse PDF
-        const pdfParse = await import("pdf-parse");
-        const pdfData = await pdfParse.default(file.buffer);
+        const pdfParseModule = await import("pdf-parse") as any;
+        const pdfParse = pdfParseModule.default || pdfParseModule;
+        const pdfData = await pdfParse(file.buffer);
         contentText = pdfData.text;
       } else if (ext === "txt") {
         contentText = file.buffer.toString("utf-8");
