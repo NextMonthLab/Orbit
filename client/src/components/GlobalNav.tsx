@@ -38,10 +38,10 @@ interface GlobalNavProps {
 }
 
 const contextLabels: Record<NavContext, { label: string; icon: React.ComponentType<any>; href: string }> = {
-  marketing: { label: 'Home', icon: Globe, href: '/' },
+  marketing: { label: 'Home', icon: Home, href: '/' },
   app: { label: 'Stories', icon: Home, href: '/app' },
-  orbit: { label: 'Orbit', icon: Orbit, href: '/for/brands' },
-  ice: { label: 'ICE Maker', icon: Sparkles, href: '/try' },
+  orbit: { label: 'Orbit', icon: Orbit, href: '/orbit' },
+  ice: { label: 'IceMaker', icon: Sparkles, href: '/icemaker' },
 };
 
 export default function GlobalNav({ 
