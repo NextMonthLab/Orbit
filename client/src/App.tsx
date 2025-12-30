@@ -23,6 +23,17 @@ import PreviewRedirect from "@/pages/PreviewRedirect";
 import OrbitView from "@/pages/orbit/OrbitView";
 import KioskOrbitView from "@/pages/orbit/KioskOrbitView";
 import DataHub from "@/pages/orbit/DataHub";
+import OrbitHome from "@/pages/orbit/OrbitHome";
+import OrbitMap from "@/pages/orbit/OrbitMap";
+import OrbitIntelligence from "@/pages/orbit/OrbitIntelligence";
+import OrbitActions from "@/pages/orbit/OrbitActions";
+import OrbitSettings from "@/pages/orbit/OrbitSettings";
+import OrbitClaim from "@/pages/orbit/OrbitClaim";
+import IceMakerHome from "@/pages/icemaker/IceMakerHome";
+import IceMakerCreate from "@/pages/icemaker/IceMakerCreate";
+import IceMakerProjects from "@/pages/icemaker/IceMakerProjects";
+import IceMakerTemplates from "@/pages/icemaker/IceMakerTemplates";
+import IceMakerSettings from "@/pages/icemaker/IceMakerSettings";
 import { useSearch } from "wouter";
 
 function OrbitRouter() {
@@ -127,6 +138,20 @@ function Router() {
       <Route path="/terms" component={TermsOfService} />
       <Route path="/cookies" component={CookiePolicy} />
       <Route path="/preview/:id" component={PreviewRedirect} />
+      
+      <Route path="/icemaker" component={IceMakerHome} />
+      <Route path="/icemaker/create" component={IceMakerCreate} />
+      <Route path="/icemaker/projects" component={IceMakerProjects} />
+      <Route path="/icemaker/templates" component={IceMakerTemplates} />
+      <Route path="/icemaker/settings" component={IceMakerSettings} />
+      
+      <Route path="/orbit" component={OrbitHome} />
+      <Route path="/orbit/map" component={OrbitMap} />
+      <Route path="/orbit/intelligence" component={OrbitIntelligence} />
+      <Route path="/orbit/actions" component={OrbitActions} />
+      <Route path="/orbit/settings" component={OrbitSettings} />
+      <Route path="/orbit/claim" component={OrbitClaim} />
+      
       <Route path="/o/:slug" component={OrbitRouter} />
       <Route path="/orbit/:slug" component={OrbitRouter} />
       <Route path="/orbit/:slug/claim" component={OrbitView} />

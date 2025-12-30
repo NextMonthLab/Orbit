@@ -1,7 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { 
-  Globe,
   Orbit,
   Sparkles,
   Home,
@@ -65,9 +64,9 @@ export default function GlobalNav({
   };
 
   const quickLinks = [
-    { href: '/', label: 'Home', icon: Globe, context: 'marketing' as NavContext },
-    { href: '/app', label: 'Stories', icon: Home, context: 'app' as NavContext, requiresAuth: true },
-    { href: '/try', label: 'ICE Maker', icon: Sparkles, context: 'ice' as NavContext },
+    { href: '/', label: 'Home', icon: Home, context: 'marketing' as NavContext },
+    { href: '/icemaker', label: 'IceMaker', icon: Sparkles, context: 'ice' as NavContext },
+    { href: '/orbit', label: 'Orbit', icon: Orbit, context: 'orbit' as NavContext },
   ];
 
   return (
@@ -112,7 +111,6 @@ export default function GlobalNav({
           <>
             <nav className="hidden md:flex items-center gap-1">
               {quickLinks.map((link) => {
-                if (link.requiresAuth && !user) return null;
                 const isActive = context === link.context;
                 return (
                   <Link key={link.href} href={link.href}>
@@ -206,7 +204,6 @@ export default function GlobalNav({
       {mobileMenuOpen && !minimal && (
         <div className="md:hidden bg-black/95 border-t border-white/10 px-4 py-3 space-y-1">
           {quickLinks.map((link) => {
-            if (link.requiresAuth && !user) return null;
             const isActive = context === link.context;
             return (
               <Link key={link.href} href={link.href}>
