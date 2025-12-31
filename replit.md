@@ -76,6 +76,25 @@ Key architectural decisions include:
 | `/api/checkout/config` endpoint | DONE | Returns pricing config for frontend display |
 | Frontend display-only refactor | DONE | `IceCheckoutPage.tsx` fetches prices from server |
 
+### EPIC 5: Billing Audit Logging - COMPLETED
+| Task | Status | Details |
+|------|--------|---------|
+| Billing audit log table | DONE | `billing_audit_logs` append-only table with event types, Stripe IDs, amounts, status transitions |
+| Payment verification logging | DONE | Logs `payment_verified` or `payment_rejected_amount_mismatch` on checkout completion |
+| Subscription status logging | DONE | Logs `subscription_status_changed` for all status transitions (updates, cancellations, payment failures) |
+| ICE lifecycle logging | DONE | Logs `ice_paused_due_to_subscription` and `ice_restored` for subscription-driven changes |
+| Enhanced 410 messaging | DONE | Owner sees "Paused due to subscription status. Reactivate your plan..." vs public "This experience is temporarily unavailable." |
+
+**Billing Audit Event Types:**
+- `checkout_session_created` - When checkout session is initiated
+- `payment_verified` - Successful payment with amount validation
+- `payment_rejected_amount_mismatch` - Blocked payment due to suspicious amount
+- `subscription_status_changed` - Any status transition (active, canceled, past_due, etc.)
+- `ice_paused_due_to_subscription` - ICE auto-paused when subscription downgrades
+- `ice_restored` - ICE restored when subscription reactivates
+- `subscription_reactivated` - Subscription moved from inactive to active
+- `credits_granted` - Monthly credits added to user account
+
 ## External Dependencies
 -   **OpenAI API**: For chat completions (gpt-4o-mini) and Text-to-Speech (TTS).
 -   **Kling AI API**: For video generation.
