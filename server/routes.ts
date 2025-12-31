@@ -4515,6 +4515,7 @@ export async function registerRoutes(
         payment_method_types: ["card"],
         line_items: [{ price: priceId, quantity: 1 }],
         mode: "subscription",
+        allow_promotion_codes: true,
         success_url: `${getAppBaseUrl(req)}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${getAppBaseUrl(req)}/checkout/cancel`,
         metadata: {
@@ -4756,6 +4757,7 @@ export async function registerRoutes(
           quantity: 1,
         }],
         mode: "payment",
+        allow_promotion_codes: true,
         success_url: `${getAppBaseUrl(req)}/credits/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${getAppBaseUrl(req)}/credits/cancel`,
         metadata: {
@@ -7000,6 +7002,7 @@ STRICT RULES:
         customer: customerId,
         mode: "subscription",
         payment_method_types: ["card"],
+        allow_promotion_codes: true,
         line_items: [
           {
             price: plan.stripePriceId!,
@@ -9690,6 +9693,7 @@ GUIDELINES:
           // Subscription mode with add_invoice_items for one-time hardware charge
           const session = await stripe.checkout.sessions.create({
             mode: 'subscription',
+            allow_promotion_codes: true,
             line_items: [
               {
                 price_data: {

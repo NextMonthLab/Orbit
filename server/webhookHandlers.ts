@@ -161,23 +161,42 @@ export class WebhookHandlers {
     const idempotencyKey = session.metadata?.idempotencyKey;
     const paymentIntentId = session.payment_intent;
     const amountTotal = session.amount_total; // in cents
+    const totalDiscount = session.total_details?.amount_discount || 0;
+    const hasDiscount = totalDiscount > 0;
     
-    console.log(`[webhook] Checkout session completed: ${checkoutSessionId}, payment_intent: ${paymentIntentId}, amount: ${amountTotal}`);
+    console.log(`[webhook] Checkout session completed: ${checkoutSessionId}, payment_intent: ${paymentIntentId}, amount: ${amountTotal}, discount: ${totalDiscount}`);
     
     if (idempotencyKey) {
       const transaction = await storage.getCheckoutTransactionByKey(idempotencyKey);
       if (transaction) {
-        // CRITICAL: Verify amount matches what we stored - REJECT if mismatched
-        // This prevents attackers from manipulating Stripe sessions to pay less
-        if (transaction.amountCents && amountTotal && transaction.amountCents !== amountTotal) {
-          console.error(`[webhook] SECURITY ALERT: Amount mismatch for transaction ${transaction.id}! Expected: ${transaction.amountCents}, Stripe charged: ${amountTotal}. BLOCKING entitlements.`);
-          await storage.updateCheckoutTransaction(transaction.id, {
-            status: 'failed' as any, // Mark as failed, not completed
-            stripePaymentIntentId: paymentIntentId || null,
-          });
-          // NOTE: Do NOT proceed with entitlements - payment was tampered
-          // Admin should investigate and potentially refund if needed
-          return;
+        // Validate amount - but allow Stripe-applied discounts
+        // Stripe is the source of truth for discount calculations
+        if (transaction.amountCents && amountTotal !== undefined) {
+          const expectedAfterDiscount = transaction.amountCents - totalDiscount;
+          
+          if (!hasDiscount && transaction.amountCents !== amountTotal) {
+            // No discount applied but amounts don't match - suspicious
+            console.error(`[webhook] SECURITY ALERT: Amount mismatch for transaction ${transaction.id}! Expected: ${transaction.amountCents}, Stripe charged: ${amountTotal}. No discount applied. BLOCKING entitlements.`);
+            await storage.updateCheckoutTransaction(transaction.id, {
+              status: 'failed' as any,
+              stripePaymentIntentId: paymentIntentId || null,
+            });
+            return;
+          }
+          
+          if (hasDiscount && amountTotal > transaction.amountCents) {
+            // With a discount, amount should be less than or equal to original
+            console.error(`[webhook] SECURITY ALERT: Amount exceeds expected for transaction ${transaction.id}! Expected max: ${transaction.amountCents}, Stripe charged: ${amountTotal}. BLOCKING entitlements.`);
+            await storage.updateCheckoutTransaction(transaction.id, {
+              status: 'failed' as any,
+              stripePaymentIntentId: paymentIntentId || null,
+            });
+            return;
+          }
+          
+          if (hasDiscount) {
+            console.log(`[webhook] Discount applied: original ${transaction.amountCents}, discount ${totalDiscount}, charged ${amountTotal}`);
+          }
         }
         
         await storage.updateCheckoutTransaction(transaction.id, {
