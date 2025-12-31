@@ -245,8 +245,16 @@ export class WebhookHandlers {
       }
     }
 
+    const oldStatus = subscription.status;
+    const wasInactive = oldStatus === 'canceled' || oldStatus === 'past_due' || oldStatus === 'paused';
+    const isNowActive = status === 'active';
+    
     if (status === 'canceled' || status === 'unpaid' || status === 'past_due') {
       await WebhookHandlers.autoPauseExcessIces(subscription.userId, 0);
+    } else if (wasInactive && isNowActive) {
+      const newLimit = WebhookHandlers.getActiveIceLimit(plan.name);
+      await WebhookHandlers.autoRestorePausedIces(subscription.userId, newLimit);
+      console.log(`[webhook] Subscription reactivated for user ${subscription.userId}, restored ICEs up to limit ${newLimit}`);
     } else if (oldPlanId !== plan.id) {
       const newLimit = WebhookHandlers.getActiveIceLimit(plan.name);
       await WebhookHandlers.autoPauseExcessIces(subscription.userId, newLimit);
@@ -279,6 +287,38 @@ export class WebhookHandlers {
       }
     } catch (error) {
       console.error(`[webhook] Error auto-pausing ICEs for user ${userId}:`, error);
+    }
+  }
+
+  static async autoRestorePausedIces(userId: number, limit: number): Promise<void> {
+    try {
+      const allUniverses = await storage.getUniversesByCreator(userId);
+      const pausedUniverses = allUniverses
+        .filter(u => u.iceStatus === 'paused')
+        .sort((a, b) => {
+          const aTime = a.pausedAt ? new Date(a.pausedAt).getTime() : 0;
+          const bTime = b.pausedAt ? new Date(b.pausedAt).getTime() : 0;
+          return bTime - aTime;
+        });
+      const activeCount = allUniverses.filter(u => u.iceStatus === 'active').length;
+      
+      if (limit === -1) {
+        for (const universe of pausedUniverses) {
+          await storage.updateUniverse(universe.id, { iceStatus: 'active', pausedAt: null });
+          console.log(`[webhook] Restored ICE ${universe.id} for user ${userId}`);
+        }
+        return;
+      }
+      
+      const slotsAvailable = Math.max(0, limit - activeCount);
+      const toRestore = pausedUniverses.slice(0, slotsAvailable);
+      
+      for (const universe of toRestore) {
+        await storage.updateUniverse(universe.id, { iceStatus: 'active', pausedAt: null });
+        console.log(`[webhook] Restored ICE ${universe.id} for user ${userId} (limit: ${limit})`);
+      }
+    } catch (error) {
+      console.error(`[webhook] Error restoring ICEs for user ${userId}:`, error);
     }
   }
 
