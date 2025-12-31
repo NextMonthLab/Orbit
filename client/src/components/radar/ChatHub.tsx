@@ -221,7 +221,7 @@ export function ChatHub({
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[360px] max-w-[90vw]"
+      className="fixed left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 z-[60] w-[360px] max-w-[90vw] mb-16"
       data-testid="chat-hub"
       data-chat-hub
     >
