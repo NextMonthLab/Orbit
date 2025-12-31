@@ -61,12 +61,13 @@ Key architectural decisions include:
 | Upgrade orientation toast | DONE | Shows welcome message explaining unlocked features when returning with ?upgraded=true |
 | Routes for success/cancel | DONE | /checkout/success and /checkout/cancel routes added to App.tsx |
 
-### EPIC 3: Subscription Lifecycle Safety (HIGH PRIORITY)
-| Task | Risk | What Breaks | Files | Migration |
-|------|------|-------------|-------|-----------|
-| Graceful pause/archive on cancellation | HIGH | Unbounded hosting costs or silent deletion | `webhookHandlers.ts`, `storage.ts` | No |
-| Clear status transitions | MEDIUM | Undefined account states | `webhookHandlers.ts`, `schema.ts` | No |
-| Non-destructive reactivation path | LOW | Churned users can't return | `webhookHandlers.ts` | No |
+### EPIC 3: Subscription Lifecycle Safety - COMPLETED
+| Task | Status | Details |
+|------|--------|---------|
+| Graceful pause/archive on cancellation | DONE | ICEs auto-paused (not deleted), return 410 for cost protection |
+| Clear status transitions | DONE | normalizeStripeStatus() maps all Stripe variants to valid SubscriptionStatus; isInactiveStatus() for consistent detection |
+| Non-destructive reactivation path | DONE | autoRestorePausedIces() restores most recently paused ICEs up to plan limit when subscription reactivates |
+| Stripe status normalization | DONE | 'unpaid', 'incomplete', 'incomplete_expired' → 'past_due'; enables unpaid→active reactivation |
 
 ### EPIC 4: Single Source of Truth - COMPLETED
 | Task | Status | Details |
