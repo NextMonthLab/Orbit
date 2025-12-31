@@ -55,6 +55,17 @@ interface InteractivityNodeData {
   selectedCharacterId?: string;
 }
 
+interface Entitlements {
+  canUseCloudLlm: boolean;
+  canGenerateImages: boolean;
+  canExport: boolean;
+  canUseCharacterChat: boolean;
+  maxCardsPerStory: number;
+  storageDays: number;
+  planName: string;
+  tier: string;
+}
+
 export default function GuestIceBuilderPage() {
   const [, navigate] = useLocation();
   const params = useParams<{ id?: string }>();
@@ -62,6 +73,19 @@ export default function GuestIceBuilderPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [inputType, setInputType] = useState<"url" | "text" | "file">("url");
+  
+  const { data: entitlements } = useQuery({
+    queryKey: ["/api/me/entitlements"],
+    queryFn: async () => {
+      const res = await fetch("/api/me/entitlements", { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json() as Promise<Entitlements>;
+    },
+    enabled: !!user,
+    staleTime: 60000,
+  });
+  
+  const isProfessionalMode = entitlements && entitlements.tier !== "free";
   const [urlValue, setUrlValue] = useState("");
   const [textValue, setTextValue] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -324,15 +348,25 @@ export default function GuestIceBuilderPage() {
       <GlobalNav context="ice" showBreadcrumb breadcrumbLabel="ICE Maker" />
       <div className="container mx-auto px-4 py-8 max-w-4xl flex-1">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full px-4 py-1.5 mb-4">
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span className="text-sm text-purple-300">Try ICE Free</span>
-          </div>
+          {isProfessionalMode ? (
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 rounded-full px-4 py-1.5 mb-4" data-testid="badge-professional">
+              <Check className="w-4 h-4 text-emerald-400" />
+              <span className="text-sm text-emerald-300">Professional Editor</span>
+              <span className="text-xs text-emerald-400/70 ml-1">• {entitlements?.planName}</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full px-4 py-1.5 mb-4" data-testid="badge-preview">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span className="text-sm text-purple-300">Preview Mode</span>
+            </div>
+          )}
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
-            Create Your Interactive Cinematic Experience
+            {isProfessionalMode ? "Professional ICE Editor" : "Create Your Interactive Cinematic Experience"}
           </h1>
           <p className="text-slate-400 max-w-2xl mx-auto">
-            Transform any content into an interactive story. Paste a URL or your script, and we'll generate story cards you can edit and reorder.
+            {isProfessionalMode 
+              ? "Full access unlocked. Generate media, add AI characters, and publish your interactive experience."
+              : "Transform any content into an interactive story. Paste a URL or your script, and we'll generate story cards you can edit and reorder."}
           </p>
         </div>
 
