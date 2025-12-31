@@ -60,7 +60,7 @@ export default function OrbitLayout({ children }: { children: React.ReactNode })
   const guestNavItems = [
     { href: "/orbit", icon: Globe, label: "Explore Orbits", exact: true },
     { href: "/orbit/claim", icon: Building2, label: "Claim an Orbit" },
-    { href: "/login", icon: LogIn, label: "Sign In" },
+    { href: `/login?return=${encodeURIComponent(location)}`, icon: LogIn, label: "Sign In" },
   ];
 
   const navItems = isLoggedIn 
