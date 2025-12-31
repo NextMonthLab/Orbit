@@ -5,6 +5,7 @@ import OrbitLayout from "@/components/OrbitLayout";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { SiteIngestionLoader } from "@/components/preview/SiteIngestionLoader";
 
 interface OrbitGenerateResponse {
   success: boolean;
@@ -19,6 +20,7 @@ export default function OrbitClaim() {
   const [, setLocation] = useLocation();
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [error, setError] = useState("");
+  const [brandName, setBrandName] = useState<string | undefined>();
 
   const analyzeWebsiteMutation = useMutation({
     mutationFn: async (url: string): Promise<OrbitGenerateResponse> => {
@@ -36,8 +38,13 @@ export default function OrbitClaim() {
       return response.json();
     },
     onSuccess: (data) => {
+      if (data.brandName) {
+        setBrandName(data.brandName);
+      }
       if (data.businessSlug) {
-        setLocation(`/orbit/${data.businessSlug}`);
+        setTimeout(() => {
+          setLocation(`/orbit/${data.businessSlug}`);
+        }, 1500);
       }
     },
     onError: (err: Error) => {
@@ -59,7 +66,8 @@ export default function OrbitClaim() {
     }
 
     try {
-      new URL(url);
+      const parsedUrl = new URL(url);
+      setBrandName(parsedUrl.hostname.replace('www.', ''));
       analyzeWebsiteMutation.mutate(url);
     } catch {
       setError("Please enter a valid URL");
@@ -67,6 +75,22 @@ export default function OrbitClaim() {
   };
 
   const isLoading = analyzeWebsiteMutation.isPending;
+  const isComplete = analyzeWebsiteMutation.isSuccess;
+
+  if (isLoading || isComplete) {
+    return (
+      <SiteIngestionLoader
+        brandName={brandName}
+        accentColor="#3b82f6"
+        isComplete={isComplete}
+        onReady={() => {
+          if (analyzeWebsiteMutation.data?.businessSlug) {
+            setLocation(`/orbit/${analyzeWebsiteMutation.data.businessSlug}`);
+          }
+        }}
+      />
+    );
+  }
 
   return (
     <OrbitLayout>
@@ -92,7 +116,7 @@ export default function OrbitClaim() {
 
         <div className="space-y-6">
           <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
-            <h2 className="text-lg font-semibold text-white">Step 1: Enter Your Website</h2>
+            <h2 className="text-lg font-semibold text-white">Enter Your Website</h2>
             <p className="text-sm text-white/60">
               We'll analyze your website to understand your business and create your Orbit profile.
             </p>
@@ -118,7 +142,7 @@ export default function OrbitClaim() {
                 className="bg-blue-500 hover:bg-blue-600 min-w-[100px]" 
                 data-testid="button-analyze"
               >
-                {analyzeWebsiteMutation.isPending ? (
+                {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Analyzing...
@@ -128,13 +152,6 @@ export default function OrbitClaim() {
                 )}
               </Button>
             </div>
-            
-            {analyzeWebsiteMutation.isPending && (
-              <div className="flex items-center gap-2 text-sm text-blue-400">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Analyzing your website... This may take a moment.</span>
-              </div>
-            )}
           </div>
         </div>
 
