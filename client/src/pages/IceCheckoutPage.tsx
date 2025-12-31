@@ -116,12 +116,13 @@ export default function IceCheckoutPage() {
   
   const cardCount = preview?.cards?.length || 0;
   
-  const { data: serverPricing } = useQuery({
+  const { data: serverPricing, isError: pricingError } = useQuery({
     queryKey: ["/api/checkout/calculate", params.id, mediaOptions, outputChoice, interactivityNodeCount, expansionScope, selectedPlan],
     queryFn: async () => {
       const res = await fetch("/api/checkout/calculate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           previewId: params.id,
           mediaOptions,
@@ -131,10 +132,15 @@ export default function IceCheckoutPage() {
           selectedPlan,
         }),
       });
-      if (!res.ok) throw new Error("Failed to calculate pricing");
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("[Checkout] Pricing calculation failed:", res.status, errorText);
+        throw new Error("Failed to calculate pricing");
+      }
       return res.json() as Promise<CheckoutCalculation>;
     },
     enabled: !!params.id,
+    retry: 2,
   });
   
   const pricingConfig = serverPricing?.pricingConfig;

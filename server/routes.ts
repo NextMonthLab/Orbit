@@ -4336,15 +4336,19 @@ export async function registerRoutes(
         voiceover: mediaOptions?.voiceover === true,
       };
 
-      const preview = await storage.getPreviewInstance(previewId);
+      // Try ICE preview first (ice_xxx format), then fall back to preview instance (UUID format)
+      let preview: any = await storage.getIcePreview(previewId);
+      if (!preview) {
+        preview = await storage.getPreviewInstance(previewId);
+      }
       if (!preview) {
         return res.status(404).json({ message: "Preview not found" });
       }
 
-      const cards = (preview as any).cards || [];
+      const cards = preview.cards || [];
       const cardCount = Array.isArray(cards) ? cards.length : 0;
 
-      const sceneMap = (preview as any).sceneMap as { totalScenes?: number; generatedScenes?: number } | null;
+      const sceneMap = preview.sceneMap as { totalScenes?: number; generatedScenes?: number } | null;
       const totalScenes = sceneMap?.totalScenes || cardCount;
       const generatedScenes = sceneMap?.generatedScenes || cardCount;
 
