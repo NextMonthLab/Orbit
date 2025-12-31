@@ -70,6 +70,11 @@ const PLAN_PRICES = {
   business: 49,
 };
 
+const PLAN_STRIPE_PRICE_IDS = {
+  pro: "price_1SjorwDrvHce9MJuRiVY0xFs",
+  business: "price_1SjorwDrvHce9MJuZzNh4YVo",
+};
+
 export default function IceCheckoutPage() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -132,7 +137,8 @@ export default function IceCheckoutPage() {
           mediaOptions,
           outputChoice,
           interactivityNodeCount,
-          selectedPlan: outputChoice === "publish" ? selectedPlan : null,
+          planName: outputChoice === "publish" && selectedPlan ? selectedPlan : undefined,
+          priceId: outputChoice === "publish" && selectedPlan ? PLAN_STRIPE_PRICE_IDS[selectedPlan] : undefined,
         }),
         credentials: "include",
       });
