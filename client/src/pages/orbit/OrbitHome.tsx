@@ -15,7 +15,7 @@ export default function OrbitHome() {
       <div className="p-6 space-y-8">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold text-white" data-testid="text-orbit-title">
-            Orbit
+            Explore Orbits
           </h1>
           <p className="text-white/60" data-testid="text-orbit-subtitle">
             Control how AI represents your brand in the age of AI-powered discovery
