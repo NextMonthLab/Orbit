@@ -37,9 +37,24 @@ Key architectural decisions include:
 -   **Selective Expansion**: For scripts, the checkout page shows scene progress (X of Y scenes generated) with expansion options: Preview Only, Full Story, or Act 1. Users control scope and manage budget iteratively.
 -   **Guided First-Run Experience**: A light, skippable walkthrough on first preview explaining cards, interactivity nodes, and the distinction between downloading and publishing.
 -   **Login Does Not Unlock Features**: Login saves progress and allows checkout; payment via Stripe unlocks media generation, AI interactivity, and publishing.
+-   **Guest-First Conversion Model**: Users must experience value before identity or payment is requested. The canonical upsell journey is: preview creation → interaction → value demonstration → optional login for save/upgrade.
 -   **Shopping List / Production Manifest**: Calculates and displays media counts (cards, interactivity nodes, AI characters, images, video, music, voice) with real-time price updates before checkout.
 -   **Download vs Publish**: Download produces a non-interactive video artifact; Publish creates a public, interactive experience with AI, requiring a subscription.
 -   **Editor Transition**: Users transition from a Preview Editor to a Professional/Production Editor post-upgrade, with an explicit explanation and orientation.
+
+## Canonical Routing Rules
+
+These routing rules are final and must not be altered without explicit approval.
+
+| CTA Label | Route | Requires Login | Notes |
+|-----------|-------|----------------|-------|
+| Launch Interactive Builder / Start Creating / Try It | `/try` | NO | Guest preview builder starts immediately. No login gate. |
+| Sign In / Login | `/login` | N/A | Explicit identity action |
+| Dashboard / My Projects | `/dashboard` | YES | Protected route |
+| Upgrade / Subscribe | `/checkout/*` | YES | Checkout requires identity for subscription linking |
+| Save Progress | Triggers login modal | YES | Login preserves work |
+
+**Key Principle**: "Launch Interactive Builder" and equivalent CTAs route to `/try`, never `/login`. Login is for identity and continuity, not gatekeeping creation. If a CTA routes to `/login`, it must be explicitly labeled as "Sign In", "Dashboard", or "Account access".
 
 ## Production Hardening Backlog (Audit: Dec 31, 2025)
 
