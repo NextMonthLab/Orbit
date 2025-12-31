@@ -158,6 +158,7 @@ export interface IStorage {
   
   // Checkout Transactions (idempotency)
   getCheckoutTransactionByKey(idempotencyKey: string): Promise<schema.CheckoutTransaction | undefined>;
+  getCheckoutTransactionBySessionId(stripeCheckoutSessionId: string): Promise<schema.CheckoutTransaction | undefined>;
   createCheckoutTransaction(transaction: schema.InsertCheckoutTransaction): Promise<schema.CheckoutTransaction>;
   updateCheckoutTransaction(id: number, data: Partial<schema.InsertCheckoutTransaction>): Promise<schema.CheckoutTransaction | undefined>;
   
@@ -1287,6 +1288,13 @@ export class DatabaseStorage implements IStorage {
   async getCheckoutTransactionByKey(idempotencyKey: string): Promise<schema.CheckoutTransaction | undefined> {
     const result = await db.query.checkoutTransactions.findFirst({
       where: eq(schema.checkoutTransactions.idempotencyKey, idempotencyKey),
+    });
+    return result;
+  }
+  
+  async getCheckoutTransactionBySessionId(stripeCheckoutSessionId: string): Promise<schema.CheckoutTransaction | undefined> {
+    const result = await db.query.checkoutTransactions.findFirst({
+      where: eq(schema.checkoutTransactions.stripeCheckoutSessionId, stripeCheckoutSessionId),
     });
     return result;
   }

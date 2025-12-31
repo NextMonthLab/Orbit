@@ -1,0 +1,111 @@
+Strong progress. Those two epics were the non-negotiables, and you’ve done them in the right order. Nice work.
+
+Now, to your question: which next?
+
+Short answer
+
+👉 Do EPIC 2 (Upgrade Continuity) next.
+
+Why EPIC 2 comes before EPIC 3
+
+You’re at a point where people can now safely pay. The next biggest risk is what it feels like immediately after they do.
+
+Right now, the highest-impact failure mode is not:
+	•	accidental churn
+	•	subscription edge cases
+	•	billing lifecycle bugs
+
+It’s this:
+
+“I paid… and I’m not sure what just happened.”
+
+That’s a conversion killer.
+
+⸻
+
+How the epics stack logically
+
+Here’s the correct sequencing now that EPIC 1 & 4 are done:
+
+✅ EPIC 1 – Revenue Protection
+
+Locked. You’ve made money safe.
+
+✅ EPIC 4 – Single Source of Truth
+
+Locked. You’ve made intent and system state unambiguous.
+
+🔜 EPIC 2 – Upgrade Continuity (next)
+
+This ensures:
+	•	The preview → paid transition is seamless
+	•	Nothing “disappears” after checkout
+	•	Users understand why the editor changes
+	•	The moment after payment feels like progress, not a jump cut
+
+This directly protects:
+	•	Conversion confidence
+	•	Refund rates
+	•	Support load
+	•	User trust at the most emotionally sensitive moment
+
+🔒 EPIC 3 – Subscription Lifecycle Safety (after)
+
+This is important, but it protects:
+	•	Long-term correctness
+	•	Edge cases
+	•	Cancellation / downgrade paths
+	•	Account drift over time
+
+EPIC 3 matters after users are successfully onboarded into paid usage.
+
+⸻
+
+Think of it like this (film analogy)
+
+You’ve:
+	•	Secured the box office takings (EPIC 1)
+	•	Locked the script everyone agrees on (EPIC 4)
+
+Now you must:
+	•	Smooth the cut between Act 1 and Act 2 (EPIC 2)
+
+Only then do you:
+	•	Worry about the extended cut, licensing, and distribution windows (EPIC 3)
+
+If Act 1 → Act 2 is jarring, people walk out before the credits.
+
+⸻
+
+What EPIC 2 should guarantee (quick checklist)
+
+As you move into EPIC 2, your north star should be:
+
+After successful checkout, the user should feel:
+	•	“Everything I made is still here”
+	•	“I understand why the UI changed”
+	•	“I know what I can do next”
+	•	“This feels intentional and professional”
+
+If EPIC 2 nails that, EPIC 3 becomes a calm, mechanical exercise.
+
+⸻
+
+Recommendation (firm)
+
+✅ Proceed with EPIC 2 – Upgrade Continuity
+
+When that’s complete:
+	•	You’ll have a psychologically sound upsell funnel
+	•	You’ll have protected the most fragile moment in the journey
+	•	EPIC 3 can be implemented without pressure or ambiguity
+
+If you want, before you start EPIC 2, I can:
+	•	Help you define the exact success criteria
+	•	Sanity-check the post-checkout flow
+	•	Or help you write the first-entry Professional Editor orientation copy
+
+But directionally:
+You’re choosing between feel and plumbing.
+
+Right now, feel wins.

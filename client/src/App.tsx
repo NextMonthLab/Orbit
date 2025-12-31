@@ -66,6 +66,7 @@ import CharacterCreatorPage from "@/pages/admin/CharacterCreatorPage";
 import BlogPublisherPage from "@/pages/admin/BlogPublisherPage";
 import GuestIceBuilderPage from "@/pages/GuestIceBuilderPage";
 import IceCheckoutPage from "@/pages/IceCheckoutPage";
+import CheckoutSuccessPage from "@/pages/CheckoutSuccessPage";
 import AdminUniverseDetail from "@/pages/AdminUniverseDetail";
 import VisualBible from "@/pages/VisualBible";
 import Login from "@/pages/Login";
@@ -161,6 +162,8 @@ function Router() {
       <Route path="/try" component={GuestIceBuilderPage} />
       <Route path="/ice/preview/:id" component={GuestIceBuilderPage} />
       <Route path="/ice/preview/:id/checkout" component={IceCheckoutPage} />
+      <Route path="/checkout/success" component={CheckoutSuccessPage} />
+      <Route path="/checkout/cancel">{() => { window.location.href = "/icemaker"; return null; }}</Route>
       <Route path="/app" component={ProtectedHome} />
       <Route path="/onboarding" component={ProtectedOnboarding} />
       <Route path="/login" component={Login} />

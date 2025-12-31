@@ -103,6 +103,18 @@ export default function GuestIceBuilderPage() {
     return localStorage.getItem("ice_walkthrough_seen") === "true";
   };
   
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("upgraded") === "true") {
+      toast({
+        title: "Welcome to the Professional Editor!",
+        description: "Your subscription is active. All features are now unlocked - generate media, add AI interactivity, and publish your experience.",
+        duration: 6000,
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+  
   const markWalkthroughSeen = () => {
     if (typeof window !== "undefined") {
       localStorage.setItem("ice_walkthrough_seen", "true");

@@ -4667,10 +4667,18 @@ export async function registerRoutes(
       
       console.log(`[checkout] User ${req.user!.id} subscribed to plan ${plan.name}`);
       
+      // Retrieve the pending action from checkout transaction
+      const checkoutTransaction = await storage.getCheckoutTransactionBySessionId(sessionId);
+      const pendingAction = checkoutTransaction ? {
+        previewId: checkoutTransaction.previewId,
+        checkoutOptions: checkoutTransaction.checkoutOptions,
+      } : null;
+      
       res.json({ 
         success: true, 
         subscription: await storage.getSubscription(req.user!.id),
         plan,
+        pendingAction,
       });
     } catch (error: any) {
       console.error("Error verifying checkout session:", error);
