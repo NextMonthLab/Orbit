@@ -82,6 +82,7 @@ export default function IceCheckoutPage() {
   const [outputChoice, setOutputChoice] = useState<"download" | "publish" | null>(null);
   const [interactivityNodeCount, setInteractivityNodeCount] = useState(0);
   const [expansionScope, setExpansionScope] = useState<"preview_only" | "full_story" | "act1" | "selected">("preview_only");
+  const [selectedPlan, setSelectedPlan] = useState<"pro" | "business" | null>(null);
   
   const { data: preview, isLoading } = useQuery({
     queryKey: ["/api/ice/preview", params.id],
@@ -124,6 +125,7 @@ export default function IceCheckoutPage() {
           mediaOptions,
           outputChoice,
           interactivityNodeCount,
+          selectedPlan: outputChoice === "publish" ? selectedPlan : null,
         }),
         credentials: "include",
       });
@@ -156,6 +158,7 @@ export default function IceCheckoutPage() {
         if (state.outputChoice) setOutputChoice(state.outputChoice);
         if (state.expansionScope) setExpansionScope(state.expansionScope);
         if (state.interactivityNodeCount !== undefined) setInteractivityNodeCount(state.interactivityNodeCount);
+        if (state.selectedPlan) setSelectedPlan(state.selectedPlan);
         sessionStorage.removeItem(`checkout_state_${params.id}`);
       } catch (e) {
         console.error("Failed to restore checkout state:", e);
@@ -172,6 +175,7 @@ export default function IceCheckoutPage() {
           outputChoice,
           expansionScope,
           interactivityNodeCount,
+          selectedPlan,
         }));
       }
       navigate(`/login?return=${encodeURIComponent(`/ice/preview/${params.id}/checkout`)}`);
@@ -433,6 +437,70 @@ export default function IceCheckoutPage() {
                   </div>
                 </div>
               </button>
+              
+              {/* Subscription selection when Publish is chosen */}
+              <AnimatePresence>
+                {outputChoice === "publish" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-4 pt-4 border-t border-slate-700"
+                  >
+                    <p className="text-sm font-medium text-white mb-3">Choose Your Plan</p>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setSelectedPlan("pro")}
+                        className={`w-full p-3 rounded-lg border text-left transition-all ${
+                          selectedPlan === "pro"
+                            ? "border-purple-500 bg-purple-900/30"
+                            : "border-slate-600 bg-slate-800/30 hover:border-slate-500"
+                        }`}
+                        data-testid="plan-pro"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium text-white">Pro</p>
+                            <p className="text-xs text-slate-400">Up to 10 published experiences</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-white">$19/mo</p>
+                            {selectedPlan === "pro" && (
+                              <Check className="w-4 h-4 text-purple-400 ml-auto" />
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => setSelectedPlan("business")}
+                        className={`w-full p-3 rounded-lg border text-left transition-all ${
+                          selectedPlan === "business"
+                            ? "border-purple-500 bg-purple-900/30"
+                            : "border-slate-600 bg-slate-800/30 hover:border-slate-500"
+                        }`}
+                        data-testid="plan-business"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium text-white">Business</p>
+                            <p className="text-xs text-slate-400">Unlimited experiences + analytics</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-white">$49/mo</p>
+                            {selectedPlan === "business" && (
+                              <Check className="w-4 h-4 text-purple-400 ml-auto" />
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      Your subscription will be billed monthly. Cancel anytime.
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </CardContent>
           </Card>
           
@@ -455,7 +523,7 @@ export default function IceCheckoutPage() {
               
               <Button
                 onClick={handleProceedToPayment}
-                disabled={!outputChoice || checkoutMutation.isPending}
+                disabled={!outputChoice || (outputChoice === "publish" && !selectedPlan) || checkoutMutation.isPending}
                 className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-lg font-semibold"
                 data-testid="button-proceed-to-payment"
               >
@@ -472,6 +540,11 @@ export default function IceCheckoutPage() {
               {!outputChoice && (
                 <p className="text-xs text-center text-amber-400/70 mt-3">
                   Please select Download or Publish above
+                </p>
+              )}
+              {outputChoice === "publish" && !selectedPlan && (
+                <p className="text-xs text-center text-amber-400/70 mt-3">
+                  Please select a subscription plan above
                 </p>
               )}
             </CardContent>
