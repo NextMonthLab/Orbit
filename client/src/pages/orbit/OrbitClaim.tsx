@@ -1,4 +1,4 @@
-import { Building2, Globe, Upload, Loader2, AlertCircle } from "lucide-react";
+import { Building2, Globe, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import OrbitLayout from "@/components/OrbitLayout";
@@ -44,10 +44,6 @@ export default function OrbitClaim() {
       setError(err.message);
     },
   });
-
-  const handleUploadClick = () => {
-    setError("Document upload for Orbit is coming soon. For now, please enter your website URL above to analyze your business.");
-  };
 
   const handleAnalyze = () => {
     setError("");
@@ -139,27 +135,6 @@ export default function OrbitClaim() {
                 <span>Analyzing your website... This may take a moment.</span>
               </div>
             )}
-          </div>
-
-          <div className="text-center text-white/40 text-sm">or</div>
-
-          <div className="p-6 rounded-xl bg-white/5 border border-white/10 border-dashed space-y-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto">
-              <Upload className="w-6 h-6 text-white/60" />
-            </div>
-            <h2 className="text-lg font-semibold text-white">Upload Business Documents</h2>
-            <p className="text-sm text-white/60">
-              Upload PDFs, presentations, or other documents about your business
-            </p>
-            <Button 
-              variant="outline" 
-              onClick={handleUploadClick}
-              className="border-white/20 text-white/60" 
-              data-testid="button-upload"
-            >
-              Choose Files
-            </Button>
-            <p className="text-xs text-white/40 mt-2">Coming soon</p>
           </div>
         </div>
 
