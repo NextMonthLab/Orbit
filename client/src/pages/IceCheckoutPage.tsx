@@ -146,6 +146,11 @@ export default function IceCheckoutPage() {
   const pricingConfig = serverPricing?.pricingConfig;
   const grandTotal = serverPricing?.grandTotal ?? 0;
   
+  // Calculate total media cost from breakdown
+  const mediaTotalCost = serverPricing?.breakdown?.mediaBreakdown 
+    ? Object.values(serverPricing.breakdown.mediaBreakdown).reduce((sum, val) => sum + (val || 0), 0)
+    : 0;
+  
   const toggleMedia = (key: keyof MediaOptions) => {
     setMediaOptions(prev => ({ ...prev, [key]: !prev[key] }));
   };
@@ -360,7 +365,7 @@ export default function IceCheckoutPage() {
                     </div>
                   </div>
                   <span className="text-blue-400">
-                    +${(serverPricing?.breakdown?.expansion ?? 0).toFixed(2)}
+                    +${(serverPricing?.breakdown?.sceneExpansion ?? 0).toFixed(2)}
                   </span>
                 </div>
               )}
@@ -386,7 +391,7 @@ export default function IceCheckoutPage() {
               <div className="flex justify-between items-center pt-2 text-sm">
                 <span className="text-slate-500">Base subtotal</span>
                 <span className="text-white font-medium">
-                  ${((pricingConfig?.basePricePerIce ?? 9.99) + (serverPricing?.breakdown?.expansion ?? 0) + (serverPricing?.breakdown?.interactivity ?? 0)).toFixed(2)}
+                  ${((pricingConfig?.basePricePerIce ?? 9.99) + (serverPricing?.breakdown?.sceneExpansion ?? 0) + (serverPricing?.breakdown?.interactivity ?? 0)).toFixed(2)}
                 </span>
               </div>
             </CardContent>
@@ -437,11 +442,11 @@ export default function IceCheckoutPage() {
               ))}
               
               {/* Media Subtotal */}
-              {(serverPricing?.breakdown?.media ?? 0) > 0 && (
+              {mediaTotalCost > 0 && (
                 <div className="flex justify-between items-center pt-3 mt-2 border-t border-slate-700 text-sm">
                   <span className="text-slate-500">Media subtotal</span>
                   <span className="text-white font-medium">
-                    +${(serverPricing?.breakdown?.media ?? 0).toFixed(2)}
+                    +${mediaTotalCost.toFixed(2)}
                   </span>
                 </div>
               )}
@@ -619,10 +624,10 @@ export default function IceCheckoutPage() {
                   <span className="text-slate-400">Base Experience</span>
                   <span className="text-white">${(pricingConfig?.basePricePerIce ?? 9.99).toFixed(2)}</span>
                 </div>
-                {(serverPricing?.breakdown?.expansion ?? 0) > 0 && (
+                {(serverPricing?.breakdown?.sceneExpansion ?? 0) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Story Expansion</span>
-                    <span className="text-blue-400">+${(serverPricing?.breakdown?.expansion ?? 0).toFixed(2)}</span>
+                    <span className="text-blue-400">+${(serverPricing?.breakdown?.sceneExpansion ?? 0).toFixed(2)}</span>
                   </div>
                 )}
                 {(serverPricing?.breakdown?.interactivity ?? 0) > 0 && (
@@ -631,10 +636,10 @@ export default function IceCheckoutPage() {
                     <span className="text-white">+${(serverPricing?.breakdown?.interactivity ?? 0).toFixed(2)}</span>
                   </div>
                 )}
-                {(serverPricing?.breakdown?.media ?? 0) > 0 && (
+                {mediaTotalCost > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Media Enhancements</span>
-                    <span className="text-white">+${(serverPricing?.breakdown?.media ?? 0).toFixed(2)}</span>
+                    <span className="text-white">+${mediaTotalCost.toFixed(2)}</span>
                   </div>
                 )}
               </div>
