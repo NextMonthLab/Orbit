@@ -1339,7 +1339,7 @@ export * from "./models/chat";
 // ============ ORBIT SYSTEM ============
 
 // Generation status for Orbit pack generation
-export type OrbitGenerationStatus = 'idle' | 'generating' | 'ready' | 'failed';
+export type OrbitGenerationStatus = 'idle' | 'generating' | 'ready' | 'failed' | 'blocked';
 
 // Orbit tier levels (locked decision)
 export type OrbitTier = 'free' | 'grow' | 'insight' | 'intelligence';

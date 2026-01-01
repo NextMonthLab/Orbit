@@ -7452,11 +7452,61 @@ STRICT RULES:
 
       // First: Ingest site for brand metadata (preview data)
       let siteData;
+      let crawlStatus: 'ok' | 'blocked' | 'not_found' | 'server_error' | 'timeout' | 'no_content' = 'ok';
+      
       try {
         siteData = await ingestSite(url.trim());
       } catch (err: any) {
+        // Check if this is a blocked/access denied situation
+        const errMsg = err.message?.toLowerCase() || '';
+        const isBlocked = errMsg.includes('403') || errMsg.includes('blocked') || errMsg.includes('access denied') || errMsg.includes('401');
+        const isNotFound = errMsg.includes('404') || errMsg.includes('not found');
+        const isTimeout = errMsg.includes('timeout');
+        
+        if (isBlocked) {
+          crawlStatus = 'blocked';
+          // Don't fail - return success with import options
+          await storage.setOrbitGenerationStatus(businessSlug, "blocked");
+          
+          // Create minimal preview for tracking
+          const preview = await storage.createPreviewInstance({
+            id: genPreviewId(),
+            ownerUserId: userId,
+            ownerIp: userId ? null : req.ip || null,
+            sourceUrl: url.trim(),
+            sourceDomain: validation.domain!,
+            siteTitle: businessSlug.replace(/-/g, ' '),
+            siteSummary: null,
+            keyServices: null,
+            contactInfo: null,
+            siteIdentity: null,
+            expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+            ingestedPagesCount: 0,
+            totalCharsIngested: 0,
+            status: "active",
+          });
+          
+          await storage.setOrbitPreviewId(businessSlug, preview.id);
+          
+          return res.json({
+            success: true,
+            businessSlug,
+            previewId: preview.id,
+            status: "blocked",
+            crawlStatus: 'blocked',
+            showImportOptions: true,
+            message: "We couldn't read this site automatically. This website uses bot protection.",
+            importOptions: ['paste', 'csv', 'connect'],
+          });
+        }
+        
+        // Other errors are actual failures
+        crawlStatus = isNotFound ? 'not_found' : isTimeout ? 'timeout' : 'server_error';
         await storage.setOrbitGenerationStatus(businessSlug, "failed", err.message);
-        return res.status(400).json({ message: `Could not access website: ${err.message}` });
+        return res.status(400).json({ 
+          message: `Could not access website: ${err.message}`,
+          crawlStatus,
+        });
       }
 
       // Run deep site detection (same as auto-generate)

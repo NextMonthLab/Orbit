@@ -1,0 +1,121 @@
+Yep, the log tells the story. But I’m going to stop you right at the “stealth measures to bypass bot protection” bit.
+
+I can’t help you build or deploy scraper evasion
+
+Masking navigator.webdriver, spoofing headers, “stealth plugins”, and attempting to slip past Cloudflare or anti-bot protections is explicitly moving into bypass territory. Even if your intent is benign, it’s the same technique set used for abuse.
+
+What I can do is help you make the product robust and premium when a site blocks automation, and still get menus/catalogues in with minimal effort.
+
+And honestly: that’s the better product anyway.
+
+⸻
+
+The correct handling of 403s in Orbit
+
+1) Treat 403 as “Access restricted”, not an error or content card
+
+Never render “403 Forbidden” as a tile. Ever.
+
+Instead:
+	•	Store it as an internal crawl outcome: crawlStatus = blocked
+	•	Show a calm admin banner:
+
+“We couldn’t read parts of this site automatically.”
+“This website uses bot protection. Choose an import method below.”
+
+This turns embarrassment into control.
+
+⸻
+
+2) Add a “blocked site” fallback path that still feels magical
+
+When deep scan hits a block, instantly switch the admin into an Import Options screen with three best paths:
+
+Option A: Paste import (fastest, highest adoption)
+
+“Paste your menu or product list”
+	•	User copies from their own site / PDF / EPOS export
+	•	You parse sections, items, prices
+	•	Show preview table → approve
+
+This will save you over and over.
+
+Option B: CSV upload (power user / bulk edits)
+
+Download template + Upload CSV
+Also allow “Download current as CSV” once any data exists.
+
+Option C: Connect platform (where possible)
+
+If you detect Shopify/Woo etc, give:
+	•	“Connect Shopify” / “Connect WooCommerce”
+This is the cleanest long-term for big catalogues.
+
+⸻
+
+3) Consider a “User-assisted scan” that stays legit
+
+If you want it to still feel like “one click”, do it in a way that doesn’t bypass protections:
+
+“Import while you browse” (admin-only)
+	•	The user (logged in admin) opens their own website in a normal browser session
+	•	They paste the menu text, or upload the PDF, or export from their admin panel
+	•	Or you provide a bookmarklet / browser extension that extracts DOM on pages the user is already viewing
+
+This is fundamentally different from stealth scraping. It’s user-initiated and runs in their browser.
+
+⸻
+
+4) Make deep scan resilient with clear outcomes
+
+Upgrade your crawler behaviour, but for detection + messaging, not evasion:
+
+Add explicit states to your extraction results
+	•	ok
+	•	blocked (403/401/anti-bot suspected)
+	•	not_found (404)
+	•	server_error (5xx)
+	•	timeout
+	•	no_content_detected
+
+Then route handling becomes deterministic:
+	•	blocked → show import options and explain why
+	•	timeout → retry suggestion + import options
+	•	ok → normal flow
+
+⸻
+
+5) Batch/catalogue scaling still matters (but it’s separate)
+
+A blocked site is unrelated to “200+ items” concerns. That’s:
+	•	UI virtualisation
+	•	paging
+	•	chunked staging/commit
+
+So keep Phase 2/3 work, but don’t try to “solve blocked sites” by escalating scraping.
+
+⸻
+
+What I’d change in your current messaging (important)
+
+This line is risky and will bite you:
+
+“Try the URL again - stealth improvements should help bypass…”
+
+Replace your internal guidance with:
+	•	“This site blocks automated scanning. Orbit can still import your menu/catalogue using paste, CSV, or a platform connection.”
+
+That’s honest, compliant, and still sells the product.
+
+⸻
+
+Next practical step
+
+Implement this simple rule:
+
+If deep scan returns blocked, immediately:
+	1.	stop extraction (don’t keep hammering)
+	2.	set crawlStatus=blocked
+	3.	show the admin “Import Options” screen (Paste / CSV / Connect)
+
+If you paste the current extraction result object shape your deepScraper returns, I’ll tell you exactly where to add crawlStatus and how to thread it through the UI so this becomes a smooth “Plan B”, not a dead end.
