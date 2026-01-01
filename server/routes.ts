@@ -7280,6 +7280,7 @@ STRICT RULES:
       console.log(`[Orbit] Detected type: ${plan.type} (confidence: ${(plan.confidence * 100).toFixed(1)}%)`);
 
       let extractedItems: any[] = [];
+      let qualityInfo: { score: number; passed: boolean; issues: string[] } | null = null;
 
       // Extract based on detection
       if (plan.type === 'catalogue' || plan.type === 'hybrid') {
@@ -7298,19 +7299,23 @@ STRICT RULES:
         
         // Validate extraction quality
         const quality = validateExtractionQuality(menuItems);
-        console.log(`[Orbit] Extraction quality: ${quality.score}/100 (${quality.passed ? 'PASSED' : 'NEEDS IMPROVEMENT'})`);
+        qualityInfo = { score: quality.score, passed: quality.passed, issues: quality.issues };
+        console.log(`[Orbit] Extraction quality: ${quality.score}/100 (${quality.passed ? 'PASSED' : 'FAILED'})`);
         if (quality.issues.length > 0) {
           console.log(`[Orbit] Issues: ${quality.issues.join(', ')}`);
         }
         
-        // Filter out bad images before adding to results
-        const cleanedItems = menuItems.map(m => ({
-          ...m,
-          imageUrl: m.imageUrl && !isExtractionBadImage(m.imageUrl) ? m.imageUrl : null,
-        }));
-        
-        // Only add items if quality passed or we got at least some results
-        if (quality.passed || cleanedItems.length > 0) {
+        // QUALITY GATE: Only persist if quality passed
+        if (!quality.passed) {
+          console.log(`[Orbit] QUALITY GATE BLOCKED: Score ${quality.score}/100 below threshold. Recommendations: ${quality.recommendations.join(', ')}`);
+          // Don't add items - quality gate blocks persistence
+        } else {
+          // Filter out bad images before adding to results
+          const cleanedItems = menuItems.map(m => ({
+            ...m,
+            imageUrl: m.imageUrl && !isExtractionBadImage(m.imageUrl) ? m.imageUrl : null,
+          }));
+          
           extractedItems.push(...cleanedItems.map(m => ({
             title: m.name,
             description: m.description,
@@ -7324,9 +7329,6 @@ STRICT RULES:
             availability: 'available' as const,
           })));
           console.log(`[Orbit] Extracted ${menuItems.length} menu items with multi-page crawl`);
-        } else {
-          // Quality check failed and no items - log for future AI fallback
-          console.log(`[Orbit] Extraction quality too low (${quality.score}/100), skipping items. Recommendations: ${quality.recommendations.join(', ')}`);
         }
       }
 
@@ -7368,6 +7370,8 @@ STRICT RULES:
           rationale: plan.rationale,
         },
         itemsExtracted: extractedItems.length,
+        quality: qualityInfo,
+        qualityGateBlocked: qualityInfo && !qualityInfo.passed,
       });
     } catch (error: any) {
       console.error("Error auto-generating orbit:", error);
