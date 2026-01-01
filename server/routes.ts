@@ -5,6 +5,7 @@ import { sql, eq, desc, gte } from "drizzle-orm";
 import * as schema from "@shared/schema";
 import bcrypt from "bcrypt";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import multer from "multer";
@@ -178,9 +179,15 @@ export async function registerRoutes(
     app.set("trust proxy", 1);
   }
   
-  // Session middleware with secure cookie settings
+  // Session middleware with PostgreSQL store for persistence across restarts
+  const PgStore = connectPgSimple(session);
   app.use(
     session({
+      store: new PgStore({
+        conString: process.env.DATABASE_URL,
+        tableName: 'session',
+        createTableIfMissing: true,
+      }),
       secret: process.env.SESSION_SECRET || "storyflix-secret-change-in-production",
       resave: false,
       saveUninitialized: false,
