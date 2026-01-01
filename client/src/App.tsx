@@ -52,6 +52,7 @@ function OrbitRouter() {
 }
 
 import Home from "@/pages/Home";
+import Launchpad from "@/pages/Launchpad";
 import Today from "@/pages/Today";
 import CatchUp from "@/pages/CatchUp";
 import Chat from "@/pages/Chat";
@@ -93,6 +94,7 @@ function withAuth<P extends object>(Component: React.ComponentType<P>) {
 }
 
 const ProtectedHome = withAuth(Home);
+const ProtectedLaunchpad = withAuth(Launchpad);
 const ProtectedToday = withAuth(Today);
 const ProtectedCatchUp = withAuth(CatchUp);
 const ProtectedChat = withAuth(Chat);
@@ -168,7 +170,8 @@ function Router() {
       <Route path="/ice/preview/:id/checkout" component={IceCheckoutPage} />
       <Route path="/checkout/success" component={CheckoutSuccessPage} />
       <Route path="/checkout/cancel">{() => { window.location.href = "/icemaker"; return null; }}</Route>
-      <Route path="/app" component={ProtectedHome} />
+      <Route path="/app" component={ProtectedLaunchpad} />
+      <Route path="/stories" component={ProtectedHome} />
       <Route path="/onboarding" component={ProtectedOnboarding} />
       <Route path="/login" component={Login} />
       <Route path="/profile" component={ProtectedProfile} />
