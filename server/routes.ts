@@ -7447,11 +7447,14 @@ STRICT RULES:
         return res.status(400).json({ message: `Could not access website: ${err.message}` });
       }
 
+      // Get user ID if authenticated (for creator tracking)
+      const userId = req.isAuthenticated() ? (req.user as any)?.id : null;
+
       // Create preview instance using existing system
       const preview = await storage.createPreviewInstance({
         id: genPreviewId(),
-        ownerUserId: null,
-        ownerIp: null,
+        ownerUserId: userId, // Track creator for viewer-context admin detection
+        ownerIp: userId ? null : req.ip || null,
         sourceUrl: url.trim(),
         sourceDomain: validation.domain!,
         siteTitle: siteData.title,
@@ -7526,11 +7529,11 @@ STRICT RULES:
       const isAdmin = userId && orbitMeta.ownerId === userId;
       
       // Also check if this is the creator (for unclaimed orbits created in same session)
-      // We track this via the preview's creatorId or the session
+      // We track this via the preview's ownerUserId field
       let isCreator = false;
       if (!isClaimed && userId && orbitMeta.previewId) {
         const preview = await storage.getPreviewInstance(orbitMeta.previewId);
-        if (preview && (preview as any).creatorId === userId) {
+        if (preview && preview.ownerUserId === userId) {
           isCreator = true;
         }
       }
