@@ -1,7 +1,7 @@
 import { useRoute, useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Globe, ExternalLink, AlertCircle, CheckCircle, Mail, MessageCircle, LayoutDashboard } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -172,6 +172,9 @@ export default function OrbitView() {
   // Business Hub state
   const [showHub, setShowHub] = useState(false);
   const [hubPanel, setHubPanel] = useState<'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications' | 'data-sources' | 'cubes' | 'ai-discovery'>('overview');
+  
+  // Conversation history for AI chat
+  const chatHistoryRef = useRef<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
 
   useEffect(() => {
     if (slug && slug !== lastTrackedSlug) {
@@ -796,26 +799,16 @@ export default function OrbitView() {
                   trackMetric('conversations');
                   setConversationTracked(true);
                 }
-                // Use preview chat API if available, otherwise use orbit chat
-                if (preview?.id) {
-                  try {
-                    const response = await fetch(`/api/previews/${preview.id}/chat`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ 
-                        message,
-                        menuContext: menuContext.length > 0 ? menuContext : undefined,
-                      }),
-                    });
-                    if (response.ok) {
-                      const data = await response.json();
-                      return data.response || data.message || "I'm here to help you explore our menu.";
-                    }
-                  } catch (e) {
-                    console.error('Chat error:', e);
-                  }
+                
+                // Add user message to history
+                chatHistoryRef.current.push({ role: 'user', content: message });
+                
+                // Keep only last 10 messages to avoid token limits
+                if (chatHistoryRef.current.length > 10) {
+                  chatHistoryRef.current = chatHistoryRef.current.slice(-10);
                 }
-                // Fallback: use orbit-specific chat endpoint
+                
+                // Use orbit-specific chat endpoint with history
                 try {
                   const response = await fetch(`/api/orbit/${slug}/chat`, {
                     method: 'POST',
@@ -823,11 +816,17 @@ export default function OrbitView() {
                     body: JSON.stringify({ 
                       message,
                       menuContext,
+                      history: chatHistoryRef.current.slice(0, -1), // Exclude current message
                     }),
                   });
                   if (response.ok) {
                     const data = await response.json();
-                    return data.response || data.message || "I'm here to help you explore our menu.";
+                    const assistantResponse = data.response || data.message || "I'm here to help you explore our menu.";
+                    
+                    // Add assistant response to history
+                    chatHistoryRef.current.push({ role: 'assistant', content: assistantResponse });
+                    
+                    return assistantResponse;
                   }
                 } catch (e) {
                   console.error('Orbit chat error:', e);

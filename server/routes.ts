@@ -8111,11 +8111,11 @@ STRICT RULES:
     }
   });
 
-  // Orbit Chat - AI chat with menu/product context
+  // Orbit Chat - AI chat with menu/product context and conversation history
   app.post("/api/orbit/:slug/chat", async (req, res) => {
     try {
       const { slug } = req.params;
-      const { message, menuContext } = req.body;
+      const { message, menuContext, history } = req.body;
       
       if (!message || typeof message !== "string") {
         return res.status(400).json({ message: "Message is required" });
@@ -8139,9 +8139,9 @@ STRICT RULES:
       }
       
       // Build system prompt with menu context
-      const brandName = orbitMeta.customTitle || orbitMeta.businessName || slug.replace(/-/g, ' ');
+      const brandName = orbitMeta.customTitle || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       const menuSummary = items.slice(0, 40).map((item: any) => 
-        `- ${item.name}${item.price ? ` (£${item.price})` : ''}${item.category ? ` [${item.category}]` : ''}`
+        `- ${item.name}${item.price ? ` (£${item.price})` : ''}${item.category ? ` [${item.category}]` : ''}${item.description ? `: ${item.description.slice(0, 80)}` : ''}`
       ).join('\n');
       
       const systemPrompt = `You are a helpful assistant for ${brandName}. You help customers learn about our menu and offerings.
@@ -8152,9 +8152,28 @@ ${menuSummary}
 Guidelines:
 - Be friendly and helpful
 - Answer questions about specific dishes, prices, and categories
+- Reference the conversation history to provide contextual responses
 - If asked about something not on the menu, politely say you don't have that information
-- Keep responses concise and conversational
+- Keep responses concise and conversational (2-3 sentences max)
 - Use £ for prices`;
+
+      // Build messages array with history
+      const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+        { role: "system", content: systemPrompt },
+      ];
+      
+      // Add conversation history (last 6 messages max)
+      if (history && Array.isArray(history)) {
+        const recentHistory = history.slice(-6);
+        for (const msg of recentHistory) {
+          if (msg.role === 'user' || msg.role === 'assistant') {
+            messages.push({ role: msg.role, content: msg.content });
+          }
+        }
+      }
+      
+      // Add current message
+      messages.push({ role: "user", content: message });
 
       // Use OpenAI for chat
       const openai = (await import("openai")).default;
@@ -8162,18 +8181,17 @@ Guidelines:
       
       const completion = await client.chat.completions.create({
         model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message },
-        ],
+        messages,
         max_tokens: 300,
         temperature: 0.7,
       });
       
       const response = completion.choices[0]?.message?.content || "I'm here to help you explore our menu.";
       
-      // Track conversation metric
-      await storage.incrementOrbitMetric(slug, 'conversations');
+      // Track conversation metric (only on first message in conversation)
+      if (!history || history.length === 0) {
+        await storage.incrementOrbitMetric(slug, 'conversations');
+      }
       
       res.json({ response });
     } catch (error) {
