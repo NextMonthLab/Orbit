@@ -1,0 +1,217 @@
+Right — this is an important catch, and it explains why the experience feels wrong even to you.
+
+This isn’t just a copy or framing issue anymore.
+This is a state-leak / routing bug between admin, preview, and public modes.
+
+Let’s break it down cleanly.
+
+⸻
+
+What should have happened vs what did happen
+
+What you expected (correct mental model)
+
+You’re logged in as an admin.
+
+So after generating an Orbit you expect one of these:
+	1.	Admin Setup Flow
+	•	“Orbit created”
+	•	You’re taken into configuration / setup / review
+	•	Public preview is optional and clearly marked
+
+OR
+	2.	Admin Preview Mode
+	•	You see the Orbit as visitors will see it
+	•	BUT with admin affordances layered on top
+	•	And no claim CTA, no forbidden states
+
+⸻
+
+What actually happened
+
+You were logged in as an admin, but the system:
+	•	Dropped you straight into the public unclaimed Orbit view
+	•	Showed:
+	•	“403 – Forbidden”
+	•	“How can I gain access…”
+	•	“Claim for free”
+	•	Even exposed Deep Scan UI before intent
+
+That means the system misidentified your role/state at render time.
+
+⸻
+
+Root cause (this is the real problem)
+
+You currently have at least three conceptual states, but the UI is treating them as one:
+	1.	Public viewer (unclaimed)
+	2.	Admin, logged in, but Orbit not yet claimed/activated
+	3.	Admin, claimed + active Orbit
+
+Right now:
+	•	State 2 is being rendered as State 1
+	•	With some admin UI leaking through
+	•	And some paid/advanced affordances visible too early
+
+That’s why it feels incoherent.
+
+⸻
+
+The key mistake
+
+You’re using “claimed vs unclaimed” as the primary state check.
+
+But for rendering, the primary check must be:
+
+Who is viewing this Orbit right now?
+
+Not:
+	•	“Is this business claimed?”
+	•	“Is there data yet?”
+
+But:
+	•	Is the viewer the admin?
+	•	Is this a public visitor?
+
+Claim status is secondary.
+
+⸻
+
+The correct state hierarchy (lock this in)
+
+This needs to be explicit in code and UI logic:
+
+1. Viewer Role (top-level)
+	•	viewer = public | admin
+
+2. Orbit Status (secondary)
+	•	orbit = draft | preview | claimed | active
+
+3. Plan Status (gating)
+	•	plan = none | orbit_free | orbit_paid
+
+Rendering decisions should always start with viewer role.
+
+⸻
+
+What should happen in your exact scenario
+
+You are:
+	•	viewer = admin
+	•	orbit = draft / preview
+	•	plan = unknown or not yet active
+
+Therefore the UI should:
+	•	❌ Never show “403 Forbidden”
+	•	❌ Never show “Claim for free” (to the admin)
+	•	❌ Never show public-facing “Why am I seeing…” cards
+
+Instead it should show an Admin First-Run State, something like:
+
+Your Orbit has been created
+
+You’re currently viewing it in preview mode.
+
+Next steps:
+• Review what we’ve discovered
+• Customise appearance
+• Activate your Orbit to go live
+
+With buttons like:
+	•	“Review extracted data”
+	•	“Run advanced scan” (if eligible)
+	•	“Activate Orbit”
+
+⸻
+
+Why this happened (likely)
+
+Based on what you’ve described, one or more of these is true:
+	1.	The Orbit page is rendered via a public route, even for admins
+	2.	Admin identity is known globally, but not passed into the Orbit renderer
+	3.	The UI checks:
+	•	if (!claimed) → show unclaimed state
+	•	instead of:
+	•	if (viewer === admin) → admin view
+	4.	Claim CTA is being used as a catch-all for “not active yet”
+
+This is very common in early systems — but now you’re at the point where it has to be untangled.
+
+⸻
+
+Immediate fixes (do these before anything else)
+
+1. Hard rule: Admins never see public unclaimed UI
+
+Put this in stone.
+
+If viewer === admin:
+	•	Suppress:
+	•	403 language
+	•	“Why am I seeing…”
+	•	“Claim for free”
+	•	Replace with:
+	•	Admin setup / preview messaging
+
+Even if the Orbit is totally empty.
+
+⸻
+
+2. Split “Preview” from “Public”
+
+Right now Preview = Public + leaks.
+
+You need:
+	•	/orbit/:slug → public
+	•	/admin/orbit/:slug or admin-flagged render → admin preview
+
+They can look similar, but they are not the same state.
+
+⸻
+
+3. Gate Advanced Scan by plan, not by visibility
+
+That “Refresh Site Data (Deep Scan)” button appearing early is another leak.
+
+Rules:
+	•	Visible only when:
+	•	viewer = admin
+	•	AND orbit is claimed
+	•	AND plan allows it
+
+Never show it:
+	•	in public view
+	•	in draft preview unless explicitly allowed
+
+⸻
+
+Why this matters so much
+
+This isn’t cosmetic.
+
+If you, as the creator, feel:
+
+“Why is my own system telling me I’m forbidden?”
+
+A real business owner will feel:
+
+“This is embarrassing — my customers are seeing an error.”
+
+And they’ll bounce or never claim.
+
+⸻
+
+What I’d do next (in order)
+	1.	Fix viewer-role rendering logic
+	2.	Introduce an explicit Admin First-Run / Preview state
+	3.	Remove all error semantics from public discovery
+	4.	Only then revisit copy and conversion polish
+
+⸻
+
+If you want, next step I can:
+	•	Help you define the exact state matrix as a table (viewer × orbit × plan → UI)
+	•	Or help you write a Replit prompt to refactor routing/render logic cleanly
+	•	Or rewrite the Admin First-Run screen copy so it feels calm and intentional
+
+But you were absolutely right to stop and flag this. This was a systems issue, not you being picky.

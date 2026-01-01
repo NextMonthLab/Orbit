@@ -228,12 +228,43 @@ export default function OrbitView() {
     },
   });
 
-  const isOwner = currentUser && orbitData?.ownerId === currentUser.id;
-  const isUnclaimed = !orbitData?.ownerId;
+  // Viewer context - authoritative source for viewer role and permissions
+  interface ViewerContext {
+    viewerRole: 'admin' | 'public';
+    isClaimed: boolean;
+    isFirstRun: boolean;
+    planTier: string;
+    canEditAppearance: boolean;
+    canDeepScan: boolean;
+    canSeeClaimCTA: boolean;
+    canAccessHub: boolean;
+    businessSlug: string;
+    generationStatus: string;
+  }
+  
+  const { data: viewerContext } = useQuery<ViewerContext | null>({
+    queryKey: ["orbit-viewer-context", slug],
+    queryFn: async () => {
+      const response = await fetch(`/api/orbit/${slug}/viewer-context`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!slug,
+  });
+
+  // Use viewer context as primary source of truth - default to safe values until loaded
+  const viewerContextLoaded = !!viewerContext;
+  const isOwner = viewerContext?.viewerRole === 'admin' || (currentUser && orbitData?.ownerId === currentUser.id);
+  const isUnclaimed = viewerContext ? !viewerContext.isClaimed : !orbitData?.ownerId;
+  const isFirstRun = viewerContext?.isFirstRun ?? false;
+  // CRITICAL: Default to false to prevent showing claim CTA to admin before context loads
+  const canSeeClaimCTA = viewerContextLoaded ? (viewerContext?.canSeeClaimCTA ?? false) : false;
+  const canDeepScan = viewerContext?.canDeepScan ?? false;
   
   // Tier checks
-  const planTier = orbitData?.planTier || 'free';
-  const PAID_TIERS = ['grow', 'insight', 'intelligence'];
+  type PlanTierType = 'free' | 'grow' | 'insight' | 'intelligence';
+  const planTier = (viewerContext?.planTier || orbitData?.planTier || 'free') as PlanTierType;
+  const PAID_TIERS: PlanTierType[] = ['grow', 'insight', 'intelligence'];
   const isPaidTier = PAID_TIERS.includes(planTier);
 
   // Fetch hub analytics for owners
@@ -712,6 +743,8 @@ export default function OrbitView() {
                 defaultAccentColor="#ec4899"
                 imagePool={orbitData!.boxes!.map(b => b.imageUrl).filter(Boolean) as string[]}
                 previewId=""
+                canDeepScan={canDeepScan}
+                isFirstRun={isFirstRun}
                 onConfirm={handleCustomizationConfirm}
               />
             ) : (
@@ -842,6 +875,8 @@ export default function OrbitView() {
           defaultAccentColor={preview.siteIdentity.primaryColour || '#ffffff'}
           imagePool={preview.siteIdentity.imagePool || []}
           previewId={preview.id}
+          canDeepScan={canDeepScan}
+          isFirstRun={isFirstRun}
           onConfirm={handleCustomizationConfirm}
         />
       )}
@@ -947,7 +982,8 @@ export default function OrbitView() {
         </div>
       )}
 
-      {isUnclaimed && !showCustomization && (
+      {/* Public unclaimed CTA - only show to public viewers, never to admin */}
+      {canSeeClaimCTA && !showCustomization && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-t border-white/10 py-2 px-4">
           <div className="max-w-lg mx-auto flex flex-col items-center gap-1">
             <div className="w-full flex items-center justify-between gap-3">
@@ -964,7 +1000,7 @@ export default function OrbitView() {
               </Button>
             </div>
             <span className="text-[10px] text-zinc-500 text-center">
-              Own this Orbit? Claim it free to control your AI presence
+              This Orbit is in preview. The business owner hasn't activated it yet.
             </span>
           </div>
         </div>

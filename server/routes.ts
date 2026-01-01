@@ -7509,6 +7509,64 @@ STRICT RULES:
     }
   });
 
+  // Viewer Context - determines role-based UI rendering
+  app.get("/api/orbit/:slug/viewer-context", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+
+      const userId = req.isAuthenticated() ? (req.user as any)?.id : null;
+      const isClaimed = !!orbitMeta.ownerId;
+      
+      // Determine viewer role: admin if authenticated and owner
+      const isAdmin = userId && orbitMeta.ownerId === userId;
+      
+      // Also check if this is the creator (for unclaimed orbits created in same session)
+      // We track this via the preview's creatorId or the session
+      let isCreator = false;
+      if (!isClaimed && userId && orbitMeta.previewId) {
+        const preview = await storage.getPreviewInstance(orbitMeta.previewId);
+        if (preview && (preview as any).creatorId === userId) {
+          isCreator = true;
+        }
+      }
+      
+      const viewerRole = (isAdmin || isCreator) ? 'admin' : 'public';
+      
+      // Plan tier checks
+      const planTier = orbitMeta.planTier || 'free';
+      const PAID_TIERS = ['grow', 'insight', 'intelligence'];
+      const isPaidTier = PAID_TIERS.includes(planTier);
+      
+      // Permission flags based on hierarchy: viewerRole → claimStatus → planTier
+      const canEditAppearance = viewerRole === 'admin';
+      const canDeepScan = viewerRole === 'admin' && isClaimed && isPaidTier;
+      const canSeeClaimCTA = viewerRole === 'public' && !isClaimed;
+      const canAccessHub = viewerRole === 'admin' && isClaimed;
+      const isFirstRun = viewerRole === 'admin' && !isClaimed;
+      
+      res.json({
+        viewerRole,
+        isClaimed,
+        isFirstRun,
+        planTier,
+        canEditAppearance,
+        canDeepScan,
+        canSeeClaimCTA,
+        canAccessHub,
+        businessSlug: orbitMeta.businessSlug,
+        generationStatus: orbitMeta.generationStatus,
+      });
+    } catch (error) {
+      console.error("Error getting viewer context:", error);
+      res.status(500).json({ message: "Error getting viewer context" });
+    }
+  });
+
   // Get Orbit - returns previewId for rich experience
   app.get("/api/orbit/:slug", async (req, res) => {
     try {

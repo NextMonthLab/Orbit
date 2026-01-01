@@ -13,6 +13,8 @@ interface BrandCustomizationScreenProps {
   defaultAccentColor: string;
   imagePool: string[];
   previewId?: string;
+  canDeepScan?: boolean;
+  isFirstRun?: boolean;
   onConfirm: (preferences: BrandPreferences, experienceType?: ExperienceType) => void;
   onRefreshComplete?: (newData: RefreshResult) => void;
 }
@@ -94,6 +96,8 @@ export function BrandCustomizationScreen({
   defaultAccentColor,
   imagePool,
   previewId,
+  canDeepScan = false,
+  isFirstRun = false,
   onConfirm,
   onRefreshComplete,
 }: BrandCustomizationScreenProps) {
@@ -207,8 +211,29 @@ export function BrandCustomizationScreen({
           </p>
         </motion.div>
 
-        {/* Refresh Site Data Button */}
-        {previewId && (
+        {/* Admin First-Run Welcome Message */}
+        {isFirstRun && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="p-4 rounded-xl"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+              border: `1px solid ${theme === 'dark' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.3)'}`,
+            }}
+          >
+            <p className="text-sm font-medium" style={{ color: theme === 'dark' ? '#4ade80' : '#16a34a' }}>
+              Your Orbit is ready
+            </p>
+            <p className="text-xs mt-1" style={{ color: mutedColor }}>
+              You're in setup mode. Review what we found, customise the look, then activate when you're happy.
+            </p>
+          </motion.div>
+        )}
+
+        {/* Refresh Site Data Button - only show if admin has permission */}
+        {previewId && canDeepScan && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
