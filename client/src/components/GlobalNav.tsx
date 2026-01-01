@@ -78,7 +78,7 @@ export default function GlobalNav({
     { href: '/for/educator', label: 'For Educators', icon: GraduationCap },
   ];
   
-  const showTryFree = !user && context === 'marketing';
+  const showCTAs = !user && context === 'marketing';
 
   return (
     <header 
@@ -143,17 +143,30 @@ export default function GlobalNav({
             </nav>
 
             <div className="flex items-center gap-2">
-              {showTryFree && (
-                <Link href="/try">
-                  <Button 
-                    size="sm"
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-1.5 h-8 px-3 text-xs"
-                    data-testid="global-try-free"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Try Free
-                  </Button>
-                </Link>
+              {showCTAs && (
+                <>
+                  <Link href="/try">
+                    <Button 
+                      size="sm"
+                      className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white gap-1.5 h-8 px-3 text-xs"
+                      data-testid="global-cta-ice"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Try IceMaker
+                    </Button>
+                  </Link>
+                  <Link href="/orbit/claim">
+                    <Button 
+                      size="sm"
+                      variant="outline"
+                      className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10 gap-1.5 h-8 px-3 text-xs"
+                      data-testid="global-cta-orbit"
+                    >
+                      <Orbit className="w-3.5 h-3.5" />
+                      Claim Orbit
+                    </Button>
+                  </Link>
+                </>
               )}
               
               {user ? (
