@@ -20,10 +20,10 @@ interface OrbitsResponse {
 export default function OrbitLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
-  const { data: userData, isLoading: userLoading } = useQuery<{ id: number } | null>({
+  const { data: userData, isLoading: userLoading } = useQuery<{ user: { id: number } } | null>({
     queryKey: ["current-user"],
     queryFn: async () => {
-      const response = await fetch("/api/user");
+      const response = await fetch("/api/auth/me");
       if (!response.ok) return null;
       return response.json();
     },
@@ -37,11 +37,11 @@ export default function OrbitLayout({ children }: { children: React.ReactNode })
       if (!response.ok) return { orbits: [] };
       return response.json();
     },
-    enabled: !!userData,
+    enabled: !!userData?.user,
     staleTime: 60000,
   });
 
-  const isLoggedIn = !!userData;
+  const isLoggedIn = !!userData?.user;
   const hasOrbits = orbitsData && orbitsData.orbits.length > 0;
 
   const ownerNavItems = [
