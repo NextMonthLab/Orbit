@@ -7757,6 +7757,73 @@ STRICT RULES:
         console.log(`[Orbit/generate] INTENT-DRIVEN: No structured items found for "${plan.type}", but continuing with site data`);
       }
 
+      // UNIVERSAL ENRICHMENT: Always extract common pages (about, contact, blog) to enrich AI knowledge
+      const commonPagePatterns = [
+        { pattern: /\/(about|about-us|who-we-are|our-story|team|company)\/?$/i, boxType: 'page', category: 'About' },
+        { pattern: /\/(contact|contact-us|get-in-touch|reach-us)\/?$/i, boxType: 'page', category: 'Contact' },
+        { pattern: /\/(blog|news|articles|insights|resources|updates)/i, boxType: 'article', category: 'Blog' },
+        { pattern: /\/(faq|faqs|frequently-asked|help)\/?$/i, boxType: 'page', category: 'FAQ' },
+      ];
+      
+      try {
+        console.log(`[Orbit/generate] UNIVERSAL ENRICHMENT: Scanning for common pages...`);
+        const { deepScrapeMultiplePages } = await import("./services/deepScraper");
+        const parsedUrl = new URL(url);
+        const baseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`;
+        
+        // Candidate URLs to check
+        const candidateUrls = [
+          `${baseUrl}/about`, `${baseUrl}/about-us`, `${baseUrl}/who-we-are`, `${baseUrl}/our-story`,
+          `${baseUrl}/contact`, `${baseUrl}/contact-us`,
+          `${baseUrl}/blog`, `${baseUrl}/news`, `${baseUrl}/insights`,
+          `${baseUrl}/faq`, `${baseUrl}/faqs`,
+        ];
+        
+        // Use the existing deepScraper with explicit candidates
+        const enrichResult = await deepScrapeMultiplePages(baseUrl, {
+          maxPages: 8,
+          candidates: candidateUrls,
+          rateLimitMs: 300,
+        });
+        
+        let enrichedCount = 0;
+        for (const page of enrichResult.pages) {
+          // Skip homepage (already captured) and very short pages
+          if (page.url === baseUrl || page.url === `${baseUrl}/`) continue;
+          const textLength = page.text?.length || 0;
+          if (textLength < 200) continue;
+          
+          // Determine page type from URL
+          let boxType = 'page';
+          let category = 'General';
+          for (const p of commonPagePatterns) {
+            if (p.pattern.test(page.url)) {
+              boxType = p.boxType;
+              category = p.category;
+              break;
+            }
+          }
+          
+          // Add as enrichment box
+          extractedItems.push({
+            title: page.title || `${category} Page`,
+            description: page.text?.slice(0, 500) || null,
+            price: null,
+            currency: 'GBP',
+            category: category,
+            imageUrl: null,
+            sourceUrl: page.url,
+            tags: [{ key: 'enrichment', value: 'universal-page' }],
+            boxType: boxType,
+            availability: 'available' as const,
+          });
+          enrichedCount++;
+        }
+        console.log(`[Orbit/generate] UNIVERSAL ENRICHMENT: Added ${enrichedCount} common pages`);
+      } catch (enrichError: any) {
+        console.log(`[Orbit/generate] Universal enrichment skipped: ${enrichError.message}`);
+      }
+
       // Store extracted items as orbit boxes
       // Clear existing boxes if re-extracting
       const existingBoxes = await storage.getOrbitBoxes(businessSlug);
