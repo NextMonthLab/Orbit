@@ -23,14 +23,14 @@ export interface StructuredDataSignal {
 
 export interface PlatformSignal {
   platform: string;
-  type: 'ecommerce' | 'food_ordering' | 'cms' | 'delivery';
+  type: 'ecommerce' | 'food_ordering' | 'delivery' | 'cms';
   confidence: number;
   indicators: string[];
 }
 
 export interface UrlPatternSignal {
   pattern: string;
-  type: 'catalogue' | 'menu' | 'hybrid';
+  type: 'catalogue' | 'menu' | 'service' | 'hybrid';
   confidence: number;
   url: string;
 }
@@ -45,14 +45,15 @@ export interface DomHeuristicSignal {
 export interface DetectionScores {
   scoreCatalogue: number;
   scoreMenu: number;
+  scoreService: number;
   confidence: number;
-  primaryType: 'catalogue' | 'menu' | 'hybrid' | 'none';
+  primaryType: 'catalogue' | 'menu' | 'service' | 'hybrid' | 'none';
   signals: DetectionSignals;
 }
 
 export interface ExtractionPlan {
-  type: 'catalogue' | 'menu' | 'hybrid' | 'none';
-  priority: 'catalogue_first' | 'menu_first' | 'parallel';
+  type: 'catalogue' | 'menu' | 'service' | 'hybrid' | 'none';
+  priority: 'catalogue_first' | 'menu_first' | 'service_first' | 'parallel';
   confidence: number;
   rationale: string;
   estimatedItems: number;
@@ -82,6 +83,15 @@ export interface ExtractedMenuItem {
   sourceUrl: string | null;
 }
 
+export interface ExtractedServiceConcept {
+  name: string;
+  description: string | null;
+  category: string;
+  features: string[];
+  imageUrl: string | null;
+  sourceUrl: string | null;
+}
+
 const PLATFORM_FINGERPRINTS = {
   ecommerce: [
     { platform: 'Shopify', indicators: ['Shopify.shop', 'cdn.shopify.com', 'shopify-section', '/collections/', '/products/'] },
@@ -106,6 +116,12 @@ const PLATFORM_FINGERPRINTS = {
     { platform: 'Uber Eats', indicators: ['ubereats.com', 'uber.com/eats'] },
     { platform: 'DoorDash', indicators: ['doordash.com'] },
   ],
+  cms: [
+    { platform: 'WordPress', indicators: ['wp-content', 'wp-includes', 'wordpress'] },
+    { platform: 'Elementor', indicators: ['elementor', 'elementor-widget'] },
+    { platform: 'Webflow', indicators: ['webflow.io', 'wf-section'] },
+    { platform: 'Wix', indicators: ['wix.com', 'wixsite.com', 'wix-code'] },
+  ],
 };
 
 const CATALOGUE_URL_PATTERNS = [
@@ -126,6 +142,16 @@ const MENU_URL_PATTERNS = [
   { pattern: '/order', weight: 0.7 },
   { pattern: '/our-menu', weight: 0.95 },
   { pattern: '/food-menu', weight: 0.95 },
+];
+
+const SERVICE_URL_PATTERNS = [
+  { pattern: '/food-concepts', weight: 0.95 },
+  { pattern: '/food-solutions', weight: 0.95 },
+  { pattern: '/contract-catering', weight: 0.95 },
+  { pattern: '/sectors', weight: 0.8 },
+  { pattern: '/workplace-dining', weight: 0.9 },
+  { pattern: '/hospitality-solutions', weight: 0.9 },
+  { pattern: '/catering-services', weight: 0.85 },
 ];
 
 export async function detectSiteType(url: string): Promise<DetectionScores> {
@@ -256,6 +282,17 @@ async function detectUrlPatterns(page: Page, baseUrl: string): Promise<UrlPatter
     }
   }
 
+  for (const { pattern, weight } of SERVICE_URL_PATTERNS) {
+    if (urlLower.includes(pattern)) {
+      signals.push({
+        pattern,
+        type: 'service',
+        confidence: weight,
+        url: baseUrl,
+      });
+    }
+  }
+
   const internalLinks = await page.evaluate(() => {
     const links = Array.from(document.querySelectorAll('a[href]'));
     return links.map(a => a.getAttribute('href') || '').filter(href => 
@@ -282,6 +319,17 @@ async function detectUrlPatterns(page: Page, baseUrl: string): Promise<UrlPatter
         signals.push({
           pattern,
           type: 'menu',
+          confidence: weight * 0.8,
+          url: link,
+        });
+      }
+    }
+
+    for (const { pattern, weight } of SERVICE_URL_PATTERNS) {
+      if (linkLower.includes(pattern) && !signals.some(s => s.pattern === pattern && s.type === 'service')) {
+        signals.push({
+          pattern,
+          type: 'service',
           confidence: weight * 0.8,
           url: link,
         });
@@ -381,6 +429,7 @@ async function detectDomHeuristics(page: Page): Promise<DomHeuristicSignal[]> {
 function calculateScores(signals: DetectionSignals): DetectionScores {
   let rawCatalogue = 0;
   let rawMenu = 0;
+  let rawService = 0;
 
   // Accumulate raw scores from all signals
   for (const signal of signals.structuredData) {
@@ -389,6 +438,9 @@ function calculateScores(signals: DetectionSignals): DetectionScores {
     }
     if (['Restaurant', 'FoodEstablishment', 'Menu', 'MenuItem'].includes(signal.type)) {
       rawMenu += signal.confidence * (signal.count > 5 ? 1.5 : 1);
+    }
+    if (['Organization', 'LocalBusiness'].includes(signal.type)) {
+      rawService += signal.confidence * 0.5;
     }
   }
 
@@ -402,6 +454,9 @@ function calculateScores(signals: DetectionSignals): DetectionScores {
     if (signal.type === 'delivery') {
       rawMenu += signal.confidence * 0.5;
     }
+    if (signal.type === 'cms') {
+      rawService += signal.confidence * 0.3;
+    }
   }
 
   for (const signal of signals.urlPatterns) {
@@ -410,6 +465,9 @@ function calculateScores(signals: DetectionSignals): DetectionScores {
     }
     if (signal.type === 'menu') {
       rawMenu += signal.confidence * 0.8;
+    }
+    if (signal.type === 'service') {
+      rawService += signal.confidence * 1.0;
     }
   }
 
@@ -433,11 +491,15 @@ function calculateScores(signals: DetectionSignals): DetectionScores {
   
   const scoreCatalogue = clampToConfidence(rawCatalogue);
   const scoreMenu = clampToConfidence(rawMenu);
+  const scoreService = clampToConfidence(rawService);
 
   // Determine primary type based on normalized comparison
-  let primaryType: 'catalogue' | 'menu' | 'hybrid' | 'none';
+  // Priority: catalogue/menu/hybrid ALWAYS take precedence over service
+  // Service is only used when there's NO menu/catalogue evidence
+  let primaryType: 'catalogue' | 'menu' | 'service' | 'hybrid' | 'none';
   const threshold = 0.3;
   const hybridThreshold = 0.6;
+  const serviceThreshold = 0.4;
 
   if (scoreCatalogue > hybridThreshold && scoreMenu > hybridThreshold) {
     primaryType = 'hybrid';
@@ -447,16 +509,23 @@ function calculateScores(signals: DetectionSignals): DetectionScores {
     primaryType = 'menu';
   } else if (scoreCatalogue > threshold || scoreMenu > threshold) {
     primaryType = rawCatalogue > rawMenu ? 'catalogue' : 'menu';
+  } else if (scoreService > serviceThreshold && 
+             scoreCatalogue < 0.15 && 
+             scoreMenu < 0.15 &&
+             rawService > 0.5) {
+    // Service only when: strong service signals AND definitively no menu/catalogue evidence
+    primaryType = 'service';
   } else {
     primaryType = 'none';
   }
 
   // Confidence is the max score, reflecting how certain we are about the classification
-  const confidence = Math.max(scoreCatalogue, scoreMenu);
+  const confidence = Math.max(scoreCatalogue, scoreMenu, scoreService);
 
   return {
     scoreCatalogue,
     scoreMenu,
+    scoreService,
     confidence,
     primaryType,
     signals,
@@ -464,7 +533,7 @@ function calculateScores(signals: DetectionSignals): DetectionScores {
 }
 
 export function deriveExtractionPlan(scores: DetectionScores): ExtractionPlan {
-  const { primaryType, scoreCatalogue, scoreMenu, confidence, signals } = scores;
+  const { primaryType, scoreCatalogue, scoreMenu, scoreService, confidence, signals } = scores;
 
   let estimatedItems = 0;
   
@@ -495,14 +564,26 @@ export function deriveExtractionPlan(scores: DetectionScores): ExtractionPlan {
 
   rationale = signalSummary.join('; ') || 'No strong signals detected';
 
+  let priority: 'catalogue_first' | 'menu_first' | 'service_first' | 'parallel';
+  if (primaryType === 'hybrid') {
+    priority = scoreCatalogue > scoreMenu ? 'catalogue_first' : 'menu_first';
+  } else if (primaryType === 'service') {
+    priority = 'service_first';
+  } else {
+    priority = 'parallel';
+  }
+
+  if (primaryType === 'service') {
+    estimatedItems = Math.max(estimatedItems, 5);
+    rationale += '; B2B/service site detected - will extract concepts/solutions';
+  }
+
   return {
     type: primaryType,
-    priority: primaryType === 'hybrid' 
-      ? (scoreCatalogue > scoreMenu ? 'catalogue_first' : 'menu_first')
-      : 'parallel',
+    priority,
     confidence,
     rationale,
-    estimatedItems: Math.max(estimatedItems, 10),
+    estimatedItems: Math.max(estimatedItems, primaryType === 'service' ? 5 : 10),
   };
 }
 
@@ -1229,4 +1310,126 @@ Return ONLY valid JSON array, no markdown or explanation.`
   
   console.log(`[AI-Extract] Total extracted: ${allItems.length} items`);
   return allItems;
+}
+
+export async function extractServiceConceptsWithAI(crawlResult: MultiPageCrawlResult): Promise<ExtractedServiceConcept[]> {
+  console.log(`[Service-Extract] Starting AI extraction for ${crawlResult.pages.length} pages`);
+  
+  const allConcepts: ExtractedServiceConcept[] = [];
+  
+  for (const pageResult of crawlResult.pages) {
+    const pageContent = pageResult.text || pageResult.html;
+    if (!pageContent || pageContent.length < 100) continue;
+    
+    const categoryName = deriveCategoryFromUrl(pageResult.url);
+    
+    // For B2B sites, focus on finding service/concept descriptions
+    // Look for headings, feature lists, and descriptive content
+    const truncatedContent = pageContent.slice(0, 25000);
+    
+    try {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert at extracting B2B food service concepts and solutions from company websites.
+            
+Extract all food concepts, service offerings, or solutions from the text. This might include:
+- Food concepts (e.g., "Street Food", "Fine Dining", "Comfort Classics")
+- Service categories (e.g., "Catering", "Contract Services", "Events")
+- Brand partnerships or licensed concepts
+- Cuisine types or food styles they offer
+
+For each concept/service found, extract:
+- name: The name of the concept or service
+- description: A brief description (1-2 sentences)
+- category: The category it belongs to (e.g., "Food Concepts", "Services", "Solutions")
+- features: Key features or highlights (array of strings)
+
+Return ONLY valid JSON array. Example:
+[
+  {"name": "Street Eats", "description": "Authentic street food from around the world", "category": "Food Concepts", "features": ["Asian fusion", "Mexican street food", "Global flavors"]},
+  {"name": "Executive Catering", "description": "Premium catering for corporate events", "category": "Services", "features": ["White-glove service", "Custom menus", "Dietary accommodations"]}
+]
+
+If no service concepts are found, return an empty array: []`
+          },
+          {
+            role: 'user',
+            content: `Extract all B2B food service concepts and offerings from this page:\n\n${truncatedContent}`
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 3000,
+      });
+      
+      const content = response.choices[0]?.message?.content?.trim() || '[]';
+      
+      let concepts: any[] = [];
+      try {
+        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+        const jsonStr = jsonMatch ? jsonMatch[1].trim() : content;
+        concepts = JSON.parse(jsonStr);
+      } catch (parseErr) {
+        console.log(`[Service-Extract] JSON parse failed for ${pageResult.url}: ${(parseErr as Error).message}`);
+        continue;
+      }
+      
+      if (!Array.isArray(concepts)) {
+        console.log(`[Service-Extract] Expected array, got ${typeof concepts}`);
+        continue;
+      }
+      
+      for (const concept of concepts) {
+        if (!concept.name || typeof concept.name !== 'string') continue;
+        
+        allConcepts.push({
+          name: concept.name,
+          description: concept.description || null,
+          category: concept.category || categoryName,
+          features: Array.isArray(concept.features) ? concept.features : [],
+          imageUrl: null,
+          sourceUrl: pageResult.url,
+        });
+      }
+      
+      console.log(`[Service-Extract] Extracted ${concepts.length} concepts from ${pageResult.url}`);
+      
+    } catch (err) {
+      console.log(`[Service-Extract] Failed for ${pageResult.url}: ${(err as Error).message}`);
+    }
+  }
+  
+  console.log(`[Service-Extract] Total extracted: ${allConcepts.length} concepts`);
+  return allConcepts;
+}
+
+export async function extractServiceConceptsMultiPage(baseUrl: string, maxPages: number = 10): Promise<ExtractedServiceConcept[]> {
+  console.log(`[Service-MultiPage] Starting extraction for: ${baseUrl}`);
+  
+  // Crawl using service link patterns
+  const serviceLinkPatterns = [
+    /\/food-concepts?/i,
+    /\/concepts?/i,
+    /\/solutions?/i,
+    /\/services?/i,
+    /\/what-we-do/i,
+    /\/our-work/i,
+    /\/about/i,
+  ];
+  
+  const crawlResult = await deepScrapeMultiplePages(baseUrl, {
+    maxPages,
+    linkPatterns: serviceLinkPatterns,
+    timeout: 45000,
+    sameDomainOnly: true,
+    rateLimitMs: 300,
+    stopAfterEmptyPages: 3
+  });
+  
+  console.log(`[Service-MultiPage] Crawled ${crawlResult.pages.length} pages (${crawlResult.stoppedReason})`);
+  
+  // Use AI extraction for B2B content
+  return extractServiceConceptsWithAI(crawlResult);
 }

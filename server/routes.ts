@@ -7215,6 +7215,7 @@ STRICT RULES:
         scores: {
           catalogue: scores.scoreCatalogue,
           menu: scores.scoreMenu,
+          service: scores.scoreService,
           confidence: scores.confidence,
           primaryType: scores.primaryType,
         },
@@ -7255,7 +7256,7 @@ STRICT RULES:
       }
 
       const { generateSlug } = await import("./orbitPackGenerator");
-      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItemsMultiPage, validateExtractionQuality, fingerprintSite, extractMenuItemsWithAI } = await import("./services/catalogueDetection");
+      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItemsMultiPage, validateExtractionQuality, fingerprintSite, extractMenuItemsWithAI, extractServiceConceptsMultiPage } = await import("./services/catalogueDetection");
       
       const businessSlug = generateSlug(url);
 
@@ -7340,6 +7341,26 @@ STRICT RULES:
         }
       }
 
+      if (plan.type === 'service') {
+        // B2B service site - extract food concepts and solutions
+        console.log(`[Orbit] Detected B2B service site, extracting concepts/solutions...`);
+        const serviceConcepts = await extractServiceConceptsMultiPage(url, 10);
+        
+        extractedItems.push(...serviceConcepts.map(concept => ({
+          title: concept.name,
+          description: concept.description,
+          price: null,
+          currency: 'GBP',
+          category: concept.category,
+          imageUrl: concept.imageUrl,
+          sourceUrl: concept.sourceUrl,
+          tags: concept.features.map(f => ({ key: 'feature', value: f })),
+          boxType: 'service',
+          availability: 'available' as const,
+        })));
+        console.log(`[Orbit] Extracted ${serviceConcepts.length} service concepts`);
+      }
+
       // Store extracted items as orbit boxes
       if (extractedItems.length > 0) {
         for (let i = 0; i < extractedItems.length; i++) {
@@ -7406,7 +7427,7 @@ STRICT RULES:
       // Import helpers
       const { validateUrlSafety, ingestSitePreview: ingestSite, generatePreviewId: genPreviewId } = await import("./previewHelpers");
       const { generateSlug } = await import("./orbitPackGenerator");
-      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItemsMultiPage, validateExtractionQuality, fingerprintSite, extractMenuItemsWithAI } = await import("./services/catalogueDetection");
+      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItemsMultiPage, validateExtractionQuality, fingerprintSite, extractMenuItemsWithAI, extractServiceConceptsMultiPage } = await import("./services/catalogueDetection");
       const { deepScrapeMultiplePages } = await import("./services/deepScraper");
       
       const businessSlug = generateSlug(url);
@@ -7621,6 +7642,26 @@ STRICT RULES:
           })));
           console.log(`[Orbit/generate] Extracted ${menuItems.length} menu items with multi-page crawl`);
         }
+      }
+
+      // Handle B2B service sites
+      if (plan.type === 'service') {
+        console.log(`[Orbit/generate] Detected B2B service site, extracting concepts/solutions...`);
+        const serviceConcepts = await extractServiceConceptsMultiPage(url, 10);
+        
+        extractedItems.push(...serviceConcepts.map(concept => ({
+          title: concept.name,
+          description: concept.description,
+          price: null,
+          currency: 'GBP',
+          category: concept.category,
+          imageUrl: concept.imageUrl,
+          sourceUrl: concept.sourceUrl,
+          tags: concept.features.map(f => ({ key: 'feature', value: f })),
+          boxType: 'service',
+          availability: 'available' as const,
+        })));
+        console.log(`[Orbit/generate] Extracted ${serviceConcepts.length} service concepts`);
       }
 
       // If no catalogue/menu detected (type is 'none'), try deep scrape for general content

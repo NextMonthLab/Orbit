@@ -79,11 +79,27 @@ The `buildMergedSiteKnowledge()` function combines:
 - **ChatHub Stable Key**: Use `key="chat-hub-stable"` in RadarGrid to prevent message loss on item selection
 - **Boxes vs Preview Priority**: OrbitView prioritizes extracted boxes over preview siteIdentity for menu display
 
-### Test Case (Red Lion Bloxham)
-- Successfully extracts 107 menu items across 11 categories
-- Items include prices, descriptions, and dietary tags (Vg, Gf, etc.)
-- AI chat responds intelligently about specific dishes, vegan options, prices
-- URL: `/orbit/the-red-lion-at-bloxham-co-uk`
+### Multi-Type Detection System (January 2026)
+The site detection system now handles multiple business types:
+- **catalogue**: E-commerce shops with products/collections
+- **menu**: Restaurants with food menus and prices
+- **service**: B2B food service companies (like contract caterers) with food concepts/solutions
+- **hybrid**: Sites with both catalogue and menu elements
+- **none**: Fallback for sites without detectable patterns
+
+### B2B Service Extraction
+For B2B food service companies (e.g., Tugo, Compass Group):
+- Strict detection: Only classifies as 'service' when scoreMenu < 0.15 AND scoreCatalogue < 0.15
+- Food-service-specific URL patterns: `/food-concepts`, `/food-solutions`, `/contract-catering`, `/workplace-dining`
+- CMS platform fingerprinting: WordPress, Elementor, Webflow, Wix
+- AI-based extraction of food concepts, service offerings, and solutions
+- Extracted items include: name, description, category, and features array
+- Uses `extractServiceConceptsMultiPage()` for multi-page B2B crawling
+- Restaurant/menu detection ALWAYS takes priority over service detection
+
+### Test Cases
+- **Restaurant (Red Lion Bloxham)**: Successfully extracts 107 menu items across 11 categories with prices, descriptions, and dietary tags
+- **B2B Service (Tugo)**: Detects as 'service' type, extracts food concepts and solutions without prices
 
 ## External Dependencies
 -   **OpenAI API**: For chat completions (gpt-4o-mini) and Text-to-Speech (TTS).
