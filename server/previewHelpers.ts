@@ -1,6 +1,7 @@
 import dns from "dns/promises";
 import { randomUUID } from "crypto";
 import type { SiteIdentity } from "@shared/schema";
+import { isBadImageUrl } from "./utils/mediaFilter";
 
 // SSRF protection: validate URL safety
 export async function validateUrlSafety(url: string): Promise<{ safe: boolean; error?: string; domain?: string }> {
@@ -325,7 +326,6 @@ function extractImagePool(html: string, baseUrl: string): string[] {
     if (src.length < 20) continue;
     
     // Use shared media filter for pattern-based filtering
-    const { isBadImageUrl } = require('./utils/mediaFilter');
     if (isBadImageUrl(src)) continue;
     
     // Check for size hints in attributes
