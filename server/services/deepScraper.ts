@@ -15,10 +15,14 @@ function getChromiumPath(): string | undefined {
 
 const chromiumPath = getChromiumPath();
 
+// Standardized page result - every consumer works off this structure
 export interface DeepScrapeResult {
+  url: string;
+  finalUrl: string; // After redirects
   html: string;
   title: string | null;
-  url: string;
+  text?: string; // Optional plain text extraction
+  schemaBlocks?: any[]; // JSON-LD structured data
   screenshotBase64?: string;
   error?: string;
 }
@@ -28,6 +32,30 @@ export interface DeepScraperOptions {
   waitForSelector?: string;
   scrollPage?: boolean;
   captureScreenshot?: boolean;
+}
+
+// Crawl budget configuration
+export interface CrawlBudget {
+  maxPages: number;
+  stopAfterEmptyPages?: number; // Stop if N pages yield no new content
+  sameDomainOnly?: boolean;
+  rateLimitMs?: number; // Delay between requests
+}
+
+// Multi-page crawl options
+export interface MultiPageCrawlOptions extends CrawlBudget {
+  candidates?: string[]; // Explicit URLs to crawl (skips discovery)
+  linkPatterns?: RegExp[]; // Patterns for link discovery
+  timeout?: number;
+  scrollPage?: boolean;
+}
+
+// Multi-page crawl result
+export interface MultiPageCrawlResult {
+  pages: DeepScrapeResult[];
+  pagesVisited: string[];
+  candidatesDiscovered: string[];
+  stoppedReason: 'max_pages' | 'no_candidates' | 'empty_pages' | 'completed';
 }
 
 const DEFAULT_OPTIONS: DeepScraperOptions = {
@@ -122,20 +150,39 @@ export async function deepScrapeUrl(url: string, options: DeepScraperOptions = {
       screenshotBase64 = screenshot as string;
     }
     
-    console.log(`[DeepScraper] Successfully scraped ${url} (${html.length} chars, ${imgCount} images)`);
+    // Extract JSON-LD schema blocks
+    const schemaBlocks = await page.evaluate(() => {
+      const blocks: any[] = [];
+      const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+      scripts.forEach(script => {
+        try {
+          const data = JSON.parse(script.textContent || '');
+          blocks.push(data);
+        } catch {}
+      });
+      return blocks;
+    });
+    
+    // Get final URL after any redirects
+    const finalUrl = page.url();
+    
+    console.log(`[DeepScraper] Successfully scraped ${url} (${html.length} chars, ${imgCount} images, ${schemaBlocks.length} schema blocks)`);
     
     return {
+      url,
+      finalUrl,
       html,
       title: title || null,
-      url,
+      schemaBlocks: schemaBlocks.length > 0 ? schemaBlocks : undefined,
       screenshotBase64,
     };
   } catch (error: any) {
     console.error(`[DeepScraper] Error scraping ${url}:`, error.message);
     return {
+      url,
+      finalUrl: url,
       html: '',
       title: null,
-      url,
       error: error.message,
     };
   } finally {
@@ -200,13 +247,30 @@ export async function withPage<T>(
   }
 }
 
+// Default link patterns for different content types
+export const LINK_PATTERNS = {
+  menu: [
+    /burgers?/i, /chicken/i, /sides?/i, /drinks?/i, /desserts?/i,
+    /meals?/i, /buckets?/i, /wraps?/i, /salads?/i, /breakfast/i,
+    /lunch/i, /dinner/i, /appetizers?/i, /starters?/i, /mains?/i,
+    /pizzas?/i, /pasta/i, /sandwiches?/i, /sharing/i, /vegan/i,
+    /vegetarian/i, /kids/i, /combos?/i, /value/i, /specials?/i,
+    /rice/i, /bowls/i, /twisters?/i, /box/i, /savers/i, /classic/i, /dips/i,
+    /menu/i, /food/i, /order/i, /takeaway/i
+  ],
+  ecommerce: [
+    /products?/i, /collections?/i, /categories?/i, /shop/i,
+    /catalog/i, /store/i, /items?/i, /buy/i
+  ],
+  general: [
+    /about/i, /services/i, /products?/i, /team/i, /contact/i,
+    /pricing/i, /features/i, /solutions/i
+  ]
+};
+
 /**
- * Execute a callback on multiple pages, using the shared browser.
- * Uses configurable link patterns for discovery.
- * 
- * @param baseUrl - Starting URL
- * @param callback - Function to extract data from each page
- * @param options - Configuration for link discovery
+ * @deprecated Use deepScrapeMultiplePages instead - it returns raw pages for separate parsing.
+ * This function mixes crawling and parsing which violates single-responsibility.
  */
 export async function withMultiplePages<T>(
   baseUrl: string,
@@ -217,52 +281,39 @@ export async function withMultiplePages<T>(
     timeout?: number;
   } = {}
 ): Promise<{ items: T[]; pagesVisited: string[] }> {
-  const maxPages = options.maxPages || 10;
+  // Delegate to canonical crawler then apply callback
+  const result = await deepScrapeMultiplePages(baseUrl, {
+    maxPages: options.maxPages || 10,
+    linkPatterns: options.linkPatterns || LINK_PATTERNS.menu,
+    timeout: options.timeout || 45000,
+    sameDomainOnly: true
+  });
+  
+  // Apply callback to each page (for backwards compatibility)
   const allItems: T[] = [];
-  const visited = new Set<string>();
-  const toVisit: string[] = [baseUrl];
-  const pagesVisited: string[] = [];
-  
-  const parsedBase = new URL(baseUrl);
-  const baseDomain = parsedBase.hostname;
-  
-  while (toVisit.length > 0 && pagesVisited.length < maxPages) {
-    const url = toVisit.shift()!;
-    const normalizedUrl = normalizeUrl(url);
-    
-    if (visited.has(normalizedUrl)) continue;
-    visited.add(normalizedUrl);
-    
+  for (const pageResult of result.pages) {
     try {
-      const items = await withPage(url, async (page, html) => {
-        const extractedItems = await callback(page, html, url);
-        
-        // Extract links for further crawling using provided patterns or defaults
-        const linkPatterns = options.linkPatterns || [
-          /menu/i, /burgers?/i, /chicken/i, /sides?/i, /drinks?/i, /desserts?/i,
-          /meals?/i, /pizzas?/i, /salads?/i, /breakfast/i, /lunch/i, /dinner/i,
-          /products?/i, /collections?/i, /categories?/i, /shop/i
-        ];
-        
-        const links = extractNavigationLinksWithPatterns(html, url, baseDomain, linkPatterns);
-        for (const link of links) {
-          const normalizedLink = normalizeUrl(link);
-          if (!visited.has(normalizedLink) && !toVisit.includes(link)) {
-            toVisit.push(link);
-          }
-        }
-        
-        return extractedItems;
-      }, { timeout: options.timeout || 45000, scrollPage: true });
-      
+      // Create a minimal page-like parsing context from the result
+      const items = await parsePageWithCallback(pageResult, callback);
       allItems.push(...items);
-      pagesVisited.push(url);
     } catch (error: any) {
-      console.error(`[DeepScraper] Error visiting ${url}:`, error.message);
+      console.error(`[DeepScraper] Error parsing ${pageResult.url}:`, error.message);
     }
   }
   
-  return { items: allItems, pagesVisited };
+  return { items: allItems, pagesVisited: result.pagesVisited };
+}
+
+// Helper to parse a scraped page using a callback (for backwards compatibility)
+async function parsePageWithCallback<T>(
+  pageResult: DeepScrapeResult,
+  callback: (page: Page, html: string, pageUrl: string) => Promise<T[]>
+): Promise<T[]> {
+  // For backwards compat, we need to create a temporary page
+  // This is inefficient but maintains API compatibility during migration
+  return withPage(pageResult.url, async (page, html) => {
+    return callback(page, html, pageResult.url);
+  });
 }
 
 function extractNavigationLinksWithPatterns(
@@ -316,16 +367,41 @@ async function autoScroll(page: Page): Promise<void> {
   });
 }
 
+/**
+ * THE CANONICAL MULTI-PAGE CRAWLER
+ * This is the ONLY multi-page crawling mechanism in the codebase.
+ * All other code must use this function and parse the returned pages.
+ * 
+ * @param baseUrl - Starting URL for crawling
+ * @param options - Crawl configuration (maxPages, linkPatterns, etc.)
+ * @returns Standardized result with pages, visited URLs, and stop reason
+ */
 export async function deepScrapeMultiplePages(
   baseUrl: string,
-  maxPages: number = 5
-): Promise<{ pages: DeepScrapeResult[]; navigationLinks: string[] }> {
+  options: MultiPageCrawlOptions = { maxPages: 10 }
+): Promise<MultiPageCrawlResult> {
+  const maxPages = options.maxPages || 10;
+  const sameDomainOnly = options.sameDomainOnly !== false; // Default true
+  const rateLimitMs = options.rateLimitMs || 500;
+  const stopAfterEmpty = options.stopAfterEmptyPages || 5;
+  const linkPatterns = options.linkPatterns || LINK_PATTERNS.general;
+  
   const pages: DeepScrapeResult[] = [];
   const visited = new Set<string>();
-  const toVisit: string[] = [baseUrl];
+  const pagesVisited: string[] = [];
+  const candidatesDiscovered: string[] = [];
+  let emptyPageCount = 0;
+  let stoppedReason: MultiPageCrawlResult['stoppedReason'] = 'completed';
+  
+  // Use explicit candidates if provided, otherwise start with baseUrl
+  const toVisit: string[] = options.candidates?.length 
+    ? [...options.candidates] 
+    : [baseUrl];
   
   const parsedBase = new URL(baseUrl);
-  const baseDomain = parsedBase.hostname;
+  const baseDomain = parsedBase.hostname.replace(/^www\./, '');
+  
+  console.log(`[DeepScraper] Starting multi-page crawl: ${baseUrl}, maxPages=${maxPages}, patterns=${linkPatterns.length}`);
   
   while (toVisit.length > 0 && pages.length < maxPages) {
     const url = toVisit.shift()!;
@@ -334,24 +410,58 @@ export async function deepScrapeMultiplePages(
     if (visited.has(normalizedUrl)) continue;
     visited.add(normalizedUrl);
     
-    const result = await deepScrapeUrl(url);
-    if (result.html) {
+    // Rate limiting
+    if (pages.length > 0 && rateLimitMs > 0) {
+      await delay(rateLimitMs);
+    }
+    
+    const result = await deepScrapeUrl(url, { 
+      timeout: options.timeout || 45000,
+      scrollPage: options.scrollPage !== false 
+    });
+    
+    if (result.html && result.html.length > 500) {
       pages.push(result);
+      pagesVisited.push(url);
+      emptyPageCount = 0;
       
-      const links = extractNavigationLinks(result.html, url, baseDomain);
-      for (const link of links) {
-        const normalizedLink = normalizeUrl(link);
-        if (!visited.has(normalizedLink) && !toVisit.includes(link)) {
-          toVisit.push(link);
+      // Discover links for further crawling (only if not using explicit candidates)
+      if (!options.candidates?.length) {
+        const links = extractNavigationLinksWithPatterns(result.html, url, baseDomain, linkPatterns);
+        for (const link of links) {
+          const normalizedLink = normalizeUrl(link);
+          if (!visited.has(normalizedLink) && !toVisit.includes(link)) {
+            // Same domain check
+            if (sameDomainOnly) {
+              try {
+                const linkDomain = new URL(link).hostname.replace(/^www\./, '');
+                if (linkDomain !== baseDomain) continue;
+              } catch { continue; }
+            }
+            toVisit.push(link);
+            candidatesDiscovered.push(link);
+          }
         }
+      }
+    } else {
+      emptyPageCount++;
+      if (emptyPageCount >= stopAfterEmpty) {
+        console.log(`[DeepScraper] Stopping: ${emptyPageCount} empty pages in a row`);
+        stoppedReason = 'empty_pages';
+        break;
       }
     }
   }
   
-  const allLinks = pages.flatMap(p => extractNavigationLinks(p.html, p.url, baseDomain));
-  const uniqueLinks = Array.from(new Set(allLinks));
+  if (pages.length >= maxPages) {
+    stoppedReason = 'max_pages';
+  } else if (toVisit.length === 0 && stoppedReason === 'completed') {
+    stoppedReason = pages.length > 0 ? 'completed' : 'no_candidates';
+  }
   
-  return { pages, navigationLinks: uniqueLinks };
+  console.log(`[DeepScraper] Crawl complete: ${pages.length} pages, ${candidatesDiscovered.length} candidates discovered, stopped=${stoppedReason}`);
+  
+  return { pages, pagesVisited, candidatesDiscovered, stoppedReason };
 }
 
 function normalizeUrl(url: string): string {
