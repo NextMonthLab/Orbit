@@ -910,14 +910,15 @@ async function extractItemsFromPage(page: Page, categoryName: string): Promise<M
       // Strategy 2: Find repeating sibling structures (product grids/lists)
       if (results.length === 0) {
         // Look for containers with multiple similar children (grid patterns)
-        const containers = document.querySelectorAll('ul, ol, [role="list"], main, section, article');
+        const containers = Array.from(document.querySelectorAll('ul, ol, [role="list"], main, section, article'));
         
-        for (const container of containers) {
-          const children = Array.from(container.children);
+        for (let ci = 0; ci < containers.length; ci++) {
+          const container = containers[ci];
+          const children = Array.from(container.children) as Element[];
           if (children.length < 3) continue;
           
           // Check if children have similar structure (likely a product grid)
-          const childSignatures = children.slice(0, 5).map(child => {
+          const childSignatures = children.slice(0, 5).map((child: Element) => {
             const hasImg = child.querySelector('img') !== null;
             const hasPrice = priceRegex.test(child.textContent || '');
             const hasHeading = child.querySelector('h1, h2, h3, h4, h5, h6') !== null;
@@ -931,20 +932,21 @@ async function extractItemsFromPage(page: Page, categoryName: string): Promise<M
           const matchCount = childSignatures.filter(s => s === mostCommon).length;
           
           if (matchCount >= 3 && mostCommon.includes('true')) {
-            children.forEach(child => {
+            for (let i = 0; i < children.length; i++) {
+              const child = children[i];
               // Extract name from heading or first strong text
               const heading = child.querySelector('h1, h2, h3, h4, h5, h6, strong, b');
               const name = heading?.textContent?.trim();
-              if (!name || name.length < 2 || name.length > 80) return;
-              if (processedNames.has(name.toLowerCase())) return;
-              if (/^(add|buy|order|view|see)/i.test(name)) return; // Skip CTAs
+              if (!name || name.length < 2 || name.length > 80) continue;
+              if (processedNames.has(name.toLowerCase())) continue;
+              if (/^(add|buy|order|view|see)/i.test(name)) continue; // Skip CTAs
               
               // Extract price
               const priceMatch = child.textContent?.match(priceRegex);
               const price = priceMatch ? priceMatch[1] : null;
               
               // Extract image
-              const img = child.querySelector('img');
+              const img = child.querySelector('img') as HTMLImageElement | null;
               let imageUrl = img?.getAttribute('src') || img?.getAttribute('data-src') || null;
               if (imageUrl && !imageUrl.startsWith('http')) {
                 try { imageUrl = new URL(imageUrl, window.location.origin).href; } catch {}
@@ -957,7 +959,7 @@ async function extractItemsFromPage(page: Page, categoryName: string): Promise<M
               
               processedNames.add(name.toLowerCase());
               results.push({ name, description: desc, price, currency: 'GBP', category, imageUrl });
-            });
+            }
             
             if (results.length > 0) break;
           }
