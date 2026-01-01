@@ -44,6 +44,47 @@ Key architectural decisions include:
 -   **Canonical Routing Rules**: Specific routes for CTAs like "Launch Interactive Builder" (`/try`), "Sign In" (`/login`), and "Dashboard" (`/dashboard`), emphasizing guest-first creation.
 -   **Website Extraction System**: Automatically detects and extracts product/menu data from business websites using Site Detection, Multi-Page Crawling, Quality Validation, and Image Filtering. Includes Site Fingerprinting for various platforms and DOM Extraction Strategies (Microdata/Schema.org, Repeating Sibling Patterns, Image + Price Cards).
 
+## Orbit System (January 2026 - Fully Functional)
+
+### Menu Extraction Pipeline
+The Orbit system successfully extracts product/menu catalogues (50-200+ items) from diverse business websites:
+
+1. **Site Fingerprinting**: Detects website platform (Squarespace, WordPress, Shopify, etc.) and applies platform-specific extraction strategies
+2. **Multi-Page Crawling**: Discovers and crawls menu/product pages with deduplication to prevent double-processing
+3. **AI-Based Extraction**: Uses GPT-4o-mini to parse complex menu structures, including embedded JSON menus in Squarespace sites
+4. **Quality Validation**: Validates extracted items for completeness (title, price, category)
+5. **Image Filtering**: Filters and assigns relevant images from the site's image pool
+
+### Key Files
+- `server/services/catalogueDetection.ts` - Main extraction orchestration
+- `server/services/deepScraper.ts` - Multi-page crawling and content extraction
+- `client/src/pages/orbit/OrbitView.tsx` - Orbit view with merged site knowledge
+- `client/src/components/radar/RadarGrid.tsx` - Interactive knowledge grid with ChatHub
+- `client/src/components/radar/ChatHub.tsx` - AI chat interface with conversation persistence
+
+### Hybrid Knowledge System
+The `buildMergedSiteKnowledge()` function combines:
+- **Boxes data** (extracted menu items): titles, prices, categories, descriptions
+- **Preview branding**: logos, image pools, colors, site identity
+- Boxes take priority for content; preview provides visual assets
+
+### AI Chat with Conversation History
+- Endpoint: `POST /api/orbit/:slug/chat`
+- Accepts conversation history array for contextual multi-turn responses
+- Uses `getOpenAI()` helper for proper credential handling via `AI_INTEGRATIONS_OPENAI_API_KEY`
+- System prompt includes full menu context for intelligent dish recommendations
+
+### Critical Implementation Details
+- **OpenAI Integration**: Always use `getOpenAI()` helper function, never create new OpenAI instances directly
+- **ChatHub Stable Key**: Use `key="chat-hub-stable"` in RadarGrid to prevent message loss on item selection
+- **Boxes vs Preview Priority**: OrbitView prioritizes extracted boxes over preview siteIdentity for menu display
+
+### Test Case (Red Lion Bloxham)
+- Successfully extracts 107 menu items across 11 categories
+- Items include prices, descriptions, and dietary tags (Vg, Gf, etc.)
+- AI chat responds intelligently about specific dishes, vegan options, prices
+- URL: `/orbit/the-red-lion-at-bloxham-co-uk`
+
 ## External Dependencies
 -   **OpenAI API**: For chat completions (gpt-4o-mini) and Text-to-Speech (TTS).
 -   **Kling AI API**: For video generation.
