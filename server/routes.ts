@@ -7184,6 +7184,153 @@ STRICT RULES:
 
   // ============ ORBIT ROUTES ============
   
+  // Auto-detect catalogue/menu from URL
+  app.post("/api/orbit/detect", async (req, res) => {
+    try {
+      const { url } = req.body;
+
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({ message: "URL is required" });
+      }
+
+      const { detectSiteType, deriveExtractionPlan } = await import("./services/catalogueDetection");
+      
+      console.log(`[Orbit] Starting auto-detection for: ${url}`);
+      
+      const scores = await detectSiteType(url);
+      const plan = deriveExtractionPlan(scores);
+
+      console.log(`[Orbit] Detection complete: ${plan.type} (confidence: ${(plan.confidence * 100).toFixed(1)}%)`);
+
+      res.json({
+        success: true,
+        url,
+        scores: {
+          catalogue: scores.scoreCatalogue,
+          menu: scores.scoreMenu,
+          confidence: scores.confidence,
+          primaryType: scores.primaryType,
+        },
+        plan,
+        signals: {
+          structuredData: scores.signals.structuredData.length,
+          platforms: scores.signals.platform.map(p => p.platform),
+          urlPatterns: scores.signals.urlPatterns.map(p => p.pattern),
+          domHeuristics: scores.signals.domHeuristics.map(h => ({ type: h.type, count: h.count })),
+        },
+      });
+    } catch (error: any) {
+      console.error("Error detecting site type:", error);
+      res.status(500).json({ message: error.message || "Error detecting site type" });
+    }
+  });
+
+  // Auto-generate Orbit with detection and extraction
+  app.post("/api/orbit/auto-generate", async (req, res) => {
+    try {
+      const { url } = req.body;
+
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({ message: "URL is required" });
+      }
+
+      const { generateSlug } = await import("./orbitPackGenerator");
+      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItems } = await import("./services/catalogueDetection");
+      
+      const businessSlug = generateSlug(url);
+
+      // Create or get orbit meta
+      let orbitMeta = await storage.getOrbitMeta(businessSlug);
+      if (!orbitMeta) {
+        orbitMeta = await storage.createOrbitMeta({
+          businessSlug,
+          sourceUrl: url.trim(),
+          generationStatus: "generating",
+          requestedAt: new Date(),
+        });
+      } else {
+        await storage.setOrbitGenerationStatus(businessSlug, "generating");
+      }
+
+      // Run auto-detection
+      console.log(`[Orbit] Auto-generating orbit for: ${url}`);
+      const scores = await detectSiteType(url);
+      const plan = deriveExtractionPlan(scores);
+
+      console.log(`[Orbit] Detected type: ${plan.type} (confidence: ${(plan.confidence * 100).toFixed(1)}%)`);
+
+      let extractedItems: any[] = [];
+
+      // Extract based on detection
+      if (plan.type === 'catalogue' || plan.type === 'hybrid') {
+        const products = await extractCatalogueItems(url);
+        extractedItems.push(...products.map(p => ({
+          ...p,
+          boxType: 'product',
+        })));
+        console.log(`[Orbit] Extracted ${products.length} catalogue products`);
+      }
+
+      if (plan.type === 'menu' || plan.type === 'hybrid') {
+        const menuItems = await extractMenuItems(url);
+        extractedItems.push(...menuItems.map(m => ({
+          title: m.name,
+          description: m.description,
+          price: m.price,
+          currency: m.currency,
+          category: m.section,
+          tags: m.dietaryTags.map(t => ({ key: 'dietary', value: t })),
+          boxType: 'product',
+          availability: 'available' as const,
+        })));
+        console.log(`[Orbit] Extracted ${menuItems.length} menu items`);
+      }
+
+      // Store extracted items as orbit boxes
+      if (extractedItems.length > 0) {
+        for (let i = 0; i < extractedItems.length; i++) {
+          const item = extractedItems[i];
+          await storage.createOrbitBox({
+            businessSlug,
+            boxType: item.boxType || 'product',
+            title: item.title || 'Unknown Item',
+            description: item.description || null,
+            sourceUrl: item.sourceUrl || url,
+            content: null,
+            imageUrl: item.imageUrl || null,
+            sortOrder: i + 1,
+            isVisible: true,
+            iceId: null,
+            price: item.price || null,
+            currency: item.currency || 'GBP',
+            category: item.category || null,
+            subcategory: null,
+            tags: item.tags || [],
+            sku: null,
+            availability: item.availability || 'available',
+          });
+        }
+      }
+
+      await storage.setOrbitGenerationStatus(businessSlug, "ready");
+
+      res.json({
+        success: true,
+        businessSlug,
+        status: "ready",
+        detection: {
+          type: plan.type,
+          confidence: plan.confidence,
+          rationale: plan.rationale,
+        },
+        itemsExtracted: extractedItems.length,
+      });
+    } catch (error: any) {
+      console.error("Error auto-generating orbit:", error);
+      res.status(500).json({ message: error.message || "Error generating orbit" });
+    }
+  });
+
   // Generate Orbit from URL - creates/reuses preview and links to orbit
   app.post("/api/orbit/generate", async (req, res) => {
     try {

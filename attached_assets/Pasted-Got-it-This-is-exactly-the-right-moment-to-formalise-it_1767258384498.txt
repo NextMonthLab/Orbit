@@ -1,0 +1,188 @@
+Got it. This is exactly the right moment to formalise it as a canonical Replit build prompt so the behaviour becomes universal, not a one-off clever trick.
+
+Below is a copy-paste ready prompt for Replit. It’s written to be unambiguous, implementation-focused, and to lock this in as default system behaviour whenever a URL is entered.
+
+⸻
+
+Replit Prompt: Universal Catalogue & Menu Auto-Detection
+
+Context
+
+We already have:
+	•	A working schema capable of representing products, menus, and items
+	•	A UI that can display extracted data correctly once it exists
+	•	A URL-based ingestion flow (user pastes a website URL)
+
+What is missing is automatic detection and extraction logic so the system intelligently decides what kind of structured data exists on the site without asking the user any questions or showing tick boxes.
+
+This prompt upgrades the ingestion pipeline so that any URL entered by a user is automatically analysed, classified, and extracted using the appropriate strategy.
+
+⸻
+
+Objective
+
+When a user enters a URL, the system must automatically:
+	1.	Detect whether the site contains:
+	•	an e-commerce product catalogue
+	•	a food/drinks menu (restaurant, pub, takeaway)
+	•	both
+	•	or neither
+	2.	Extract structured data accordingly
+	3.	Populate the existing schema
+	4.	Do this universally, without user configuration or manual selection
+
+The system should feel intelligent, not form-driven.
+
+⸻
+
+Core Behaviour (Must Be Implemented)
+
+1. Multi-Signal Site Classification Engine
+
+On URL submission, run a classification pass using multiple signals in parallel:
+
+A. Structured Data Detection (Highest Priority)
+Scan for schema.org JSON-LD, microdata, or RDFa including but not limited to:
+	•	Product
+	•	Offer / AggregateOffer
+	•	ItemList
+	•	Restaurant
+	•	FoodEstablishment
+	•	Menu / MenuSection / MenuItem
+
+If present:
+	•	Parse directly into internal schema
+	•	Assign high confidence to detected type
+
+B. Platform Fingerprinting
+Detect common platforms via DOM, JS globals, URLs, or assets:
+
+E-commerce indicators
+	•	Shopify
+	•	WooCommerce
+	•	Magento
+	•	Wix Stores
+	•	Squarespace Commerce
+
+Food / Ordering indicators
+	•	Square Ordering
+	•	GloriaFood
+	•	Toast
+	•	Flipdish
+	•	External delivery links (Deliveroo, Just Eat, Uber Eats)
+
+Fingerprint matches should influence classification and extractor choice.
+
+C. URL & Navigation Pattern Analysis
+Shallow crawl homepage + prominent internal links and detect:
+
+Catalogue patterns
+	•	/shop, /products, /collections, /category
+	•	Grid layouts with pricing
+	•	Add-to-cart language
+
+Menu patterns
+	•	/menu, /food, /drinks, /takeaway
+	•	PDF menu links
+	•	Anchors like starters, mains, desserts
+
+D. DOM Item Grammar Heuristics
+On candidate pages, detect repeated item blocks and classify them by language and structure:
+
+Product cards
+	•	Price + currency
+	•	Variants (size, colour)
+	•	Cart / checkout language
+	•	Stock indicators
+
+Menu items
+	•	Section headings (starters, mains, drinks)
+	•	Item name + description + price
+	•	Dietary markers (V, VE, GF)
+	•	Portion sizes (small/large, pint/half)
+	•	No checkout/cart flow
+
+⸻
+
+2. Confidence Scoring & Decision Logic
+
+Implement a scoring model:
+	•	score_catalogue
+	•	score_menu
+
+Rules:
+	•	If one score exceeds the other by a defined threshold → auto-extract
+	•	If both scores are high → extract both as separate datasets
+	•	If scores are close → default to extraction but flag confidence as low (no user blocking)
+
+No checkboxes. No “what type of business are you?” questions.
+
+⸻
+
+3. Extraction Strategy (Post-Classification)
+
+Catalogue Extraction
+Priority order:
+	1.	Structured data
+	2.	Platform-specific APIs / patterns
+	3.	DOM-based extraction
+
+Normalise to existing product schema fields:
+	•	title
+	•	description
+	•	price
+	•	currency
+	•	images
+	•	category
+	•	variants
+	•	availability
+	•	url
+
+Menu Extraction
+Support:
+	•	HTML menus
+	•	PDF menus (text-based preferred, OCR only if unavoidable)
+
+Normalise to menu schema:
+	•	section
+	•	item_name
+	•	description
+	•	price
+	•	dietary_tags
+	•	options (eg small/large)
+
+⸻
+
+4. Schema Population & UI Integration
+	•	Populate the existing universal schema (do not invent a new one)
+	•	Support multiple datasets per site (eg Menu + Shop)
+	•	UI should automatically render whichever datasets exist
+	•	No user-facing configuration required
+
+⸻
+
+5. Non-Goals (Explicitly Do Not Do)
+	•	Do not ask the user to identify their business type
+	•	Do not add manual toggles or checkboxes
+	•	Do not block ingestion if confidence is imperfect
+	•	Do not hardcode assumptions per industry
+
+⸻
+
+Definition of Success
+	•	A pub URL automatically surfaces a structured menu
+	•	A Shopify store automatically surfaces a product catalogue
+	•	A hybrid site surfaces both
+	•	A generic brochure site gracefully extracts nothing but still completes ingestion
+	•	All of this happens from a single pasted URL
+
+This behaviour must be default and universal for all URL-based ingestion going forward.
+
+⸻
+
+If you want, next we can:
+	•	Turn this into a technical task breakdown (files, services, functions)
+	•	Design the confidence scoring weights
+	•	Or create a test URL suite to validate detection accuracy before rollout
+
+This is a strong move. You’re not building a scraper anymore, you’re building an interpreter.
