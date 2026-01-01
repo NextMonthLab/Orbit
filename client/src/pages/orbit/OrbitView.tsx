@@ -11,6 +11,7 @@ import { BrandCustomizationScreen, type BrandPreferences } from "@/components/pr
 import { PreviewShareBar } from "@/components/preview/PreviewShareBar";
 import { BusinessHubSidebar } from "@/components/orbit/BusinessHubSidebar";
 import { HubPanelContainer } from "@/components/orbit/HubPanelContainer";
+import { OrbitGrid } from "@/components/orbit/OrbitGrid";
 import type { SiteKnowledge } from "@/lib/siteKnowledge";
 import GlobalNav from "@/components/GlobalNav";
 import {
@@ -121,6 +122,11 @@ interface OrbitBox {
   sortOrder: number;
   isVisible: boolean;
   iceId: number | null;
+  price?: string | null;
+  currency?: string | null;
+  category?: string | null;
+  availability?: string | null;
+  tags?: Array<{ key: string; value: string }> | null;
 }
 
 interface OrbitResponse {
@@ -624,7 +630,45 @@ export default function OrbitView() {
     );
   }
 
+  const hasBoxes = orbitData?.boxes && orbitData.boxes.length > 0;
+  const transformedBoxes = hasBoxes ? orbitData!.boxes!.map(box => ({
+    id: String(box.id),
+    type: (box.boxType === 'product' ? 'product' : box.boxType) as "page" | "service" | "faq" | "testimonial" | "blog" | "document" | "custom" | "product" | "menu_item",
+    title: box.title,
+    summary: box.description || '',
+    themes: [],
+    price: box.price ? Number(box.price) : undefined,
+    currency: box.currency || 'USD',
+    category: box.category || undefined,
+    imageUrl: box.imageUrl || undefined,
+    availability: (box.availability === 'available' ? 'in_stock' : box.availability === 'limited' ? 'limited' : 'out_of_stock') as 'in_stock' | 'out_of_stock' | 'limited',
+    tags: box.tags?.map((t: any) => t.value).filter(Boolean) || [],
+  })) : [];
+
   if (!preview?.siteIdentity) {
+    if (hasBoxes) {
+      return (
+        <div className="min-h-screen bg-background text-foreground flex flex-col">
+          <GlobalNav context="orbit" showBreadcrumb breadcrumbLabel="Orbit" />
+          <main className="flex-1 container mx-auto px-4 py-8">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-zinc-100" data-testid="text-business-name">
+                {orbitData?.customTitle || slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+              </h1>
+              {orbitData?.customDescription && (
+                <p className="text-zinc-400 mt-2">{orbitData.customDescription}</p>
+              )}
+              <p className="text-sm text-zinc-500 mt-1">{transformedBoxes.length} products</p>
+            </div>
+            <OrbitGrid 
+              boxes={transformedBoxes} 
+              isUnclaimed={isUnclaimed}
+              enableCategoryClustering={true}
+            />
+          </main>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center space-y-4">
