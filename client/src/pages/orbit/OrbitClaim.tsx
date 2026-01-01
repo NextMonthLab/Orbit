@@ -1,4 +1,4 @@
-import { Building2, Globe, Loader2, AlertCircle } from "lucide-react";
+import { Building2, Globe, Loader2, AlertCircle, ClipboardPaste, FileSpreadsheet, Link2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import OrbitLayout from "@/components/OrbitLayout";
@@ -14,6 +14,9 @@ interface OrbitGenerateResponse {
   status: string;
   brandName?: string;
   message?: string;
+  crawlStatus?: 'ok' | 'blocked' | 'not_found' | 'server_error' | 'timeout' | 'no_content';
+  showImportOptions?: boolean;
+  importOptions?: string[];
 }
 
 export default function OrbitClaim() {
@@ -21,6 +24,7 @@ export default function OrbitClaim() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [error, setError] = useState("");
   const [brandName, setBrandName] = useState<string | undefined>();
+  const [blockedData, setBlockedData] = useState<OrbitGenerateResponse | null>(null);
 
   const analyzeWebsiteMutation = useMutation({
     mutationFn: async (url: string): Promise<OrbitGenerateResponse> => {
@@ -41,6 +45,12 @@ export default function OrbitClaim() {
       if (data.brandName) {
         setBrandName(data.brandName);
       }
+      
+      if (data.showImportOptions || data.crawlStatus === 'blocked') {
+        setBlockedData(data);
+        return;
+      }
+      
       if (data.businessSlug) {
         setTimeout(() => {
           setLocation(`/orbit/${data.businessSlug}`);
@@ -54,6 +64,7 @@ export default function OrbitClaim() {
 
   const handleAnalyze = () => {
     setError("");
+    setBlockedData(null);
     
     if (!websiteUrl.trim()) {
       setError("Please enter your website URL");
@@ -75,7 +86,7 @@ export default function OrbitClaim() {
   };
 
   const isLoading = analyzeWebsiteMutation.isPending;
-  const isComplete = analyzeWebsiteMutation.isSuccess;
+  const isComplete = analyzeWebsiteMutation.isSuccess && !blockedData;
 
   if (isLoading || isComplete) {
     return (
@@ -89,6 +100,94 @@ export default function OrbitClaim() {
           }
         }}
       />
+    );
+  }
+
+  if (blockedData) {
+    return (
+      <OrbitLayout>
+        <div className="p-6 max-w-2xl mx-auto space-y-8">
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
+              <Shield className="w-8 h-8 text-amber-400" />
+            </div>
+            <h1 className="text-3xl font-bold text-white" data-testid="text-blocked-title">
+              Website Protected
+            </h1>
+            <p className="text-white/60 max-w-md mx-auto">
+              {blockedData.message || "This website uses security measures that prevent automatic reading."}
+            </p>
+          </div>
+
+          <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <p className="text-sm text-amber-300 text-center">
+              No problem! You can still set up your Orbit using one of these alternatives:
+            </p>
+          </div>
+
+          <div className="grid gap-4">
+            <Button
+              onClick={() => setLocation(`/orbit/${blockedData.businessSlug}/import`)}
+              variant="outline"
+              className="w-full p-6 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10"
+              data-testid="button-paste-import"
+            >
+              <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                <ClipboardPaste className="w-6 h-6 text-blue-400" />
+              </div>
+              <div className="text-left">
+                <span className="text-white font-medium block">Paste Your Menu or Catalogue</span>
+                <span className="text-white/60 text-sm">Copy products from your website and paste as JSON or plain text</span>
+              </div>
+            </Button>
+
+            <Button
+              onClick={() => setLocation(`/orbit/${blockedData.businessSlug}/import`)}
+              variant="outline"
+              className="w-full p-6 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10"
+              data-testid="button-csv-import"
+            >
+              <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                <FileSpreadsheet className="w-6 h-6 text-green-400" />
+              </div>
+              <div className="text-left">
+                <span className="text-white font-medium block">Upload CSV or Excel</span>
+                <span className="text-white/60 text-sm">Export your product list from your system and upload it</span>
+              </div>
+            </Button>
+
+            <Button
+              onClick={() => setLocation(`/orbit/${blockedData.businessSlug}/import`)}
+              variant="outline"
+              className="w-full p-6 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10"
+              data-testid="button-connect-platform"
+            >
+              <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                <Link2 className="w-6 h-6 text-purple-400" />
+              </div>
+              <div className="text-left">
+                <span className="text-white font-medium block">Connect Platform</span>
+                <span className="text-white/60 text-sm">Link Shopify, Square, or other platforms for automatic sync</span>
+              </div>
+            </Button>
+          </div>
+
+          <div className="pt-4 flex justify-center gap-4">
+            <Button
+              onClick={() => {
+                setBlockedData(null);
+                setWebsiteUrl("");
+                analyzeWebsiteMutation.reset();
+              }}
+              variant="ghost"
+              className="text-white/60 hover:text-white"
+              data-testid="button-try-different"
+            >
+              Try a Different Website
+            </Button>
+          </div>
+        </div>
+      </OrbitLayout>
     );
   }
 
