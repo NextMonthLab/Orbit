@@ -8175,11 +8175,8 @@ Guidelines:
       // Add current message
       messages.push({ role: "user", content: message });
 
-      // Use OpenAI for chat
-      const openai = (await import("openai")).default;
-      const client = new openai();
-      
-      const completion = await client.chat.completions.create({
+      // Use OpenAI for chat (using the configured getOpenAI helper)
+      const completion = await getOpenAI().chat.completions.create({
         model: "gpt-4o-mini",
         messages,
         max_tokens: 300,
