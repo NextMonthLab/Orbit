@@ -645,27 +645,108 @@ export default function OrbitView() {
     tags: box.tags?.map((t: any) => t.value).filter(Boolean) || [],
   })) : [];
 
+  const generateSiteKnowledgeFromBoxes = (boxes: OrbitBox[]): SiteKnowledge => {
+    const brandName = orbitData?.customTitle || slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Business';
+    
+    const categorySet = new Set<string>();
+    boxes.forEach(b => { if (b.category) categorySet.add(b.category); });
+    const categories = Array.from(categorySet);
+    
+    const topics = boxes.slice(0, 30).map((box, i) => ({
+      id: `box_${box.id}`,
+      label: box.title.length > 40 ? box.title.slice(0, 40) + '...' : box.title,
+      keywords: [...box.title.toLowerCase().split(/\s+/).filter(w => w.length > 2), box.category?.toLowerCase() || 'product'],
+      type: 'topic' as const,
+      summary: box.description || `${box.title}${box.price ? ` - ${box.currency || '£'}${box.price}` : ''}`,
+      imageUrl: box.imageUrl || undefined,
+    }));
+
+    const pages = categories.slice(0, 8).map((cat, i) => ({
+      id: `cat_${i}`,
+      title: cat,
+      url: '#',
+      summary: `Browse our ${cat} selection`,
+      keywords: [cat.toLowerCase(), 'category', 'menu'],
+      type: 'page' as const,
+      imageUrl: boxes.find(b => b.category === cat && b.imageUrl)?.imageUrl || undefined,
+    }));
+
+    return {
+      brand: {
+        name: brandName,
+        domain: slug || '',
+        tagline: orbitData?.customDescription || `${boxes.length} products available`,
+        primaryColor: '#ec4899',
+      },
+      topics,
+      pages,
+      people: [],
+      proof: [],
+      actions: [
+        {
+          id: 'a_order',
+          label: 'View Menu',
+          summary: 'Browse our full menu',
+          keywords: ['menu', 'order', 'food'],
+          type: 'action' as const,
+          actionType: 'quote' as const,
+        },
+      ],
+      blogs: [],
+      socials: [],
+    };
+  };
+
   if (!preview?.siteIdentity) {
     if (hasBoxes) {
+      const boxSiteKnowledge = generateSiteKnowledgeFromBoxes(orbitData!.boxes!);
       return (
-        <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <div className="min-h-screen bg-background text-foreground flex flex-col relative">
           <GlobalNav context="orbit" showBreadcrumb breadcrumbLabel="Orbit" />
-          <main className="flex-1 container mx-auto px-4 py-8">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-zinc-100" data-testid="text-business-name">
-                {orbitData?.customTitle || slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-              </h1>
-              {orbitData?.customDescription && (
-                <p className="text-zinc-400 mt-2">{orbitData.customDescription}</p>
-              )}
-              <p className="text-sm text-zinc-500 mt-1">{transformedBoxes.length} products</p>
+          <div className="flex-1">
+            {showCustomization ? (
+              <BrandCustomizationScreen
+                logoUrl={null}
+                faviconUrl={null}
+                brandName={boxSiteKnowledge.brand.name}
+                defaultAccentColor="#ec4899"
+                imagePool={orbitData!.boxes!.map(b => b.imageUrl).filter(Boolean) as string[]}
+                previewId=""
+                onConfirm={handleCustomizationConfirm}
+              />
+            ) : (
+              <RadarGrid
+                knowledge={boxSiteKnowledge}
+                accentColor={brandPreferences?.accentColor || '#ec4899'}
+                lightMode={brandPreferences?.theme === 'light'}
+                onInteraction={() => trackMetric('interactions')}
+                onSendMessage={async (message) => {
+                  if (!conversationTracked) {
+                    trackMetric('conversations');
+                    setConversationTracked(true);
+                  }
+                  return `I'm here to help you explore our menu. We have ${orbitData!.boxes!.length} items available. What would you like to know?`;
+                }}
+              />
+            )}
+          </div>
+          {!showCustomization && isUnclaimed && (
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-t border-white/10 py-2 px-4">
+              <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+                <span className="text-xs text-white/60">
+                  Powered by <span className="text-pink-400 font-medium">NextMonth</span>
+                </span>
+                <Button
+                  size="sm"
+                  className="bg-pink-500/90 hover:bg-pink-500 text-white text-xs px-3 py-1 h-7"
+                  onClick={() => setShowClaimModal(true)}
+                  data-testid="button-claim-orbit"
+                >
+                  Claim This Orbit
+                </Button>
+              </div>
             </div>
-            <OrbitGrid 
-              boxes={transformedBoxes} 
-              isUnclaimed={isUnclaimed}
-              enableCategoryClustering={true}
-            />
-          </main>
+          )}
         </div>
       );
     }
