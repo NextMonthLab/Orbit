@@ -8111,6 +8111,77 @@ STRICT RULES:
     }
   });
 
+  // Orbit Chat - AI chat with menu/product context
+  app.post("/api/orbit/:slug/chat", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { message, menuContext } = req.body;
+      
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ message: "Message is required" });
+      }
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      // Get boxes if no menuContext provided
+      let items = menuContext;
+      if (!items || items.length === 0) {
+        const boxes = await storage.getOrbitBoxes(slug);
+        items = boxes.slice(0, 60).map(b => ({
+          name: b.title,
+          description: b.description,
+          price: b.price,
+          category: b.category,
+        }));
+      }
+      
+      // Build system prompt with menu context
+      const brandName = orbitMeta.customTitle || orbitMeta.businessName || slug.replace(/-/g, ' ');
+      const menuSummary = items.slice(0, 40).map((item: any) => 
+        `- ${item.name}${item.price ? ` (£${item.price})` : ''}${item.category ? ` [${item.category}]` : ''}`
+      ).join('\n');
+      
+      const systemPrompt = `You are a helpful assistant for ${brandName}. You help customers learn about our menu and offerings.
+
+Here are some of our menu items:
+${menuSummary}
+
+Guidelines:
+- Be friendly and helpful
+- Answer questions about specific dishes, prices, and categories
+- If asked about something not on the menu, politely say you don't have that information
+- Keep responses concise and conversational
+- Use £ for prices`;
+
+      // Use OpenAI for chat
+      const openai = (await import("openai")).default;
+      const client = new openai();
+      
+      const completion = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message },
+        ],
+        max_tokens: 300,
+        temperature: 0.7,
+      });
+      
+      const response = completion.choices[0]?.message?.content || "I'm here to help you explore our menu.";
+      
+      // Track conversation metric
+      await storage.incrementOrbitMetric(slug, 'conversations');
+      
+      res.json({ response });
+    } catch (error) {
+      console.error("Error in orbit chat:", error);
+      res.status(500).json({ message: "Error processing chat" });
+    }
+  });
+
   // Orbit Data Hub - Get analytics summary (owner only for full data, public for counts)
   app.get("/api/orbit/:slug/hub", async (req, res) => {
     try {

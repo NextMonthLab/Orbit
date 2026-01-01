@@ -676,38 +676,55 @@ export default function OrbitView() {
     tags: box.tags?.map((t: any) => t.value).filter(Boolean) || [],
   })) : [];
 
-  const generateSiteKnowledgeFromBoxes = (boxes: OrbitBox[]): SiteKnowledge => {
-    const brandName = orbitData?.customTitle || slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Business';
+  const buildMergedSiteKnowledge = (boxes: OrbitBox[], previewData?: PreviewInstance | null): SiteKnowledge => {
+    const siteIdentity = previewData?.siteIdentity;
+    const brandName = orbitData?.customTitle || 
+                      siteIdentity?.validatedContent?.brandName || 
+                      siteIdentity?.title?.split(' - ')[0]?.split(' | ')[0] || 
+                      slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Business';
     
-    const categorySet = new Set<string>();
-    boxes.forEach(b => { if (b.category) categorySet.add(b.category); });
-    const categories = Array.from(categorySet);
+    // Merge image pools: preview images + box images
+    const previewImages = siteIdentity?.imagePool || [];
+    const boxImages = boxes.map(b => b.imageUrl).filter(Boolean) as string[];
+    const allImagesSet: string[] = [];
+    boxImages.forEach(img => { if (!allImagesSet.includes(img)) allImagesSet.push(img); });
+    previewImages.forEach(img => { if (!allImagesSet.includes(img)) allImagesSet.push(img); });
     
-    const topics = boxes.slice(0, 30).map((box, i) => ({
+    const categorySet: Record<string, boolean> = {};
+    boxes.forEach(b => { if (b.category) categorySet[b.category] = true; });
+    const categories = Object.keys(categorySet);
+    
+    // Create topics from boxes with fallback images from preview
+    const topics = boxes.slice(0, 50).map((box, i) => ({
       id: `box_${box.id}`,
       label: box.title.length > 40 ? box.title.slice(0, 40) + '...' : box.title,
       keywords: [...box.title.toLowerCase().split(/\s+/).filter(w => w.length > 2), box.category?.toLowerCase() || 'product'],
       type: 'topic' as const,
       summary: box.description || `${box.title}${box.price ? ` - ${box.currency || '£'}${box.price}` : ''}`,
-      imageUrl: box.imageUrl || undefined,
+      imageUrl: box.imageUrl || (previewImages.length > 0 ? previewImages[i % previewImages.length] : undefined),
     }));
 
-    const pages = categories.slice(0, 8).map((cat, i) => ({
-      id: `cat_${i}`,
-      title: cat,
-      url: '#',
-      summary: `Browse our ${cat} selection`,
-      keywords: [cat.toLowerCase(), 'category', 'menu'],
-      type: 'page' as const,
-      imageUrl: boxes.find(b => b.category === cat && b.imageUrl)?.imageUrl || undefined,
-    }));
+    // Create category pages
+    const pages = categories.slice(0, 10).map((cat, i) => {
+      const catImage = boxes.find(b => b.category === cat && b.imageUrl)?.imageUrl || 
+                       (previewImages.length > 0 ? previewImages[i % previewImages.length] : undefined);
+      return {
+        id: `cat_${i}`,
+        title: cat,
+        url: '#',
+        summary: `Browse our ${cat} selection (${boxes.filter(b => b.category === cat).length} items)`,
+        keywords: [cat.toLowerCase(), 'category', 'menu'],
+        type: 'page' as const,
+        imageUrl: catImage,
+      };
+    });
 
     return {
       brand: {
         name: brandName,
-        domain: slug || '',
-        tagline: orbitData?.customDescription || `${boxes.length} products available`,
-        primaryColor: '#ec4899',
+        domain: siteIdentity?.sourceDomain || slug || '',
+        tagline: siteIdentity?.heroHeadline || orbitData?.customDescription || `${boxes.length} items available`,
+        primaryColor: brandPreferences?.accentColor || siteIdentity?.primaryColour || '#ec4899',
       },
       topics,
       pages,
@@ -715,10 +732,10 @@ export default function OrbitView() {
       proof: [],
       actions: [
         {
-          id: 'a_order',
-          label: 'View Menu',
-          summary: 'Browse our full menu',
-          keywords: ['menu', 'order', 'food'],
+          id: 'a_menu',
+          label: 'View Full Menu',
+          summary: `Browse all ${boxes.length} items`,
+          keywords: ['menu', 'order', 'food', 'browse'],
           type: 'action' as const,
           actionType: 'quote' as const,
         },
@@ -730,11 +747,27 @@ export default function OrbitView() {
 
   // Priority: Boxes (extracted menu/products) > Preview siteIdentity (scraped pages)
   // Boxes contain real product data; siteIdentity often only has page titles
+  // Use merged knowledge that combines boxes data with preview branding/images
   if (hasBoxes) {
-    const boxSiteKnowledge = generateSiteKnowledgeFromBoxes(orbitData!.boxes!);
+    const mergedKnowledge = buildMergedSiteKnowledge(orbitData!.boxes!, preview);
     const logoUrl = preview?.siteIdentity?.logoUrl || null;
     const faviconUrl = preview?.siteIdentity?.faviconUrl || null;
-    const accentColor = brandPreferences?.accentColor || preview?.siteIdentity?.primaryColour || '#ec4899';
+    const accentColor = mergedKnowledge.brand.primaryColor;
+    
+    // Merge image pools for brand customization
+    const previewImages = preview?.siteIdentity?.imagePool || [];
+    const boxImages = orbitData!.boxes!.map(b => b.imageUrl).filter(Boolean) as string[];
+    const mergedImagePool: string[] = [];
+    boxImages.forEach(img => { if (!mergedImagePool.includes(img)) mergedImagePool.push(img); });
+    previewImages.forEach(img => { if (!mergedImagePool.includes(img)) mergedImagePool.push(img); });
+    
+    // Build menu context for AI chat
+    const menuContext = orbitData!.boxes!.slice(0, 60).map(box => ({
+      name: box.title,
+      description: box.description,
+      price: box.price,
+      category: box.category,
+    }));
     
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col relative">
@@ -744,9 +777,9 @@ export default function OrbitView() {
             <BrandCustomizationScreen
               logoUrl={logoUrl}
               faviconUrl={faviconUrl}
-              brandName={boxSiteKnowledge.brand.name}
+              brandName={mergedKnowledge.brand.name}
               defaultAccentColor={accentColor}
-              imagePool={orbitData!.boxes!.map(b => b.imageUrl).filter(Boolean) as string[]}
+              imagePool={mergedImagePool}
               previewId={preview?.id || ""}
               canDeepScan={canDeepScan}
               isFirstRun={isFirstRun}
@@ -754,7 +787,7 @@ export default function OrbitView() {
             />
           ) : (
             <RadarGrid
-              knowledge={boxSiteKnowledge}
+              knowledge={mergedKnowledge}
               accentColor={accentColor}
               lightMode={brandPreferences?.theme === 'light'}
               onInteraction={() => trackMetric('interactions')}
@@ -762,6 +795,42 @@ export default function OrbitView() {
                 if (!conversationTracked) {
                   trackMetric('conversations');
                   setConversationTracked(true);
+                }
+                // Use preview chat API if available, otherwise use orbit chat
+                if (preview?.id) {
+                  try {
+                    const response = await fetch(`/api/previews/${preview.id}/chat`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ 
+                        message,
+                        menuContext: menuContext.length > 0 ? menuContext : undefined,
+                      }),
+                    });
+                    if (response.ok) {
+                      const data = await response.json();
+                      return data.response || data.message || "I'm here to help you explore our menu.";
+                    }
+                  } catch (e) {
+                    console.error('Chat error:', e);
+                  }
+                }
+                // Fallback: use orbit-specific chat endpoint
+                try {
+                  const response = await fetch(`/api/orbit/${slug}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                      message,
+                      menuContext,
+                    }),
+                  });
+                  if (response.ok) {
+                    const data = await response.json();
+                    return data.response || data.message || "I'm here to help you explore our menu.";
+                  }
+                } catch (e) {
+                  console.error('Orbit chat error:', e);
                 }
                 return `I'm here to help you explore our menu. We have ${orbitData!.boxes!.length} items available. What would you like to know?`;
               }}
