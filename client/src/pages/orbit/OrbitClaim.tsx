@@ -1,4 +1,4 @@
-import { Building2, Globe, Loader2, AlertCircle, ClipboardPaste, FileSpreadsheet, Link2, Shield, UtensilsCrossed, ShoppingCart, Layers, HelpCircle, ArrowLeft } from "lucide-react";
+import { Building2, Globe, Loader2, AlertCircle, ClipboardPaste, FileSpreadsheet, Link2, Shield, UtensilsCrossed, ShoppingCart, Briefcase, BookOpen, FileText, MapPin, Sparkles, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import OrbitLayout from "@/components/OrbitLayout";
@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { SiteIngestionLoader } from "@/components/preview/SiteIngestionLoader";
 
-type SiteTypeHint = 'menu' | 'catalogue' | 'hybrid' | 'auto';
+type ExtractionIntent = 'menu' | 'catalogue' | 'service' | 'case_studies' | 'content' | 'locations' | null;
 
 interface OrbitGenerateResponse {
   success: boolean;
@@ -31,11 +31,11 @@ export default function OrbitClaim() {
   const [validatedUrl, setValidatedUrl] = useState("");
 
   const analyzeWebsiteMutation = useMutation({
-    mutationFn: async ({ url, siteTypeHint }: { url: string; siteTypeHint: SiteTypeHint }): Promise<OrbitGenerateResponse> => {
+    mutationFn: async ({ url, extractionIntent }: { url: string; extractionIntent: ExtractionIntent }): Promise<OrbitGenerateResponse> => {
       const response = await fetch('/api/orbit/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, siteTypeHint }),
+        body: JSON.stringify({ url, extractionIntent }),
       });
       
       if (!response.ok) {
@@ -90,15 +90,13 @@ export default function OrbitClaim() {
     }
   };
 
-  const handleStartExtraction = (siteTypeHint: SiteTypeHint) => {
+  const handleStartExtraction = (extractionIntent: ExtractionIntent) => {
     if (!validatedUrl) {
-      // Stay on classification screen and show error there
       setError("Please enter a valid URL first");
       return;
     }
-    // Only clear classification after confirming URL is valid - mutation will trigger loading state
     setShowClassification(false);
-    analyzeWebsiteMutation.mutate({ url: validatedUrl, siteTypeHint });
+    analyzeWebsiteMutation.mutate({ url: validatedUrl, extractionIntent });
   };
 
   const isLoading = analyzeWebsiteMutation.isPending;
@@ -125,13 +123,13 @@ export default function OrbitClaim() {
         <div className="p-6 max-w-2xl mx-auto space-y-8">
           <div className="text-center space-y-2">
             <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
-              <HelpCircle className="w-8 h-8 text-blue-400" />
+              <Sparkles className="w-8 h-8 text-blue-400" />
             </div>
-            <h1 className="text-3xl font-bold text-white" data-testid="text-classification-title">
-              What type of website is this?
+            <h1 className="text-2xl font-bold text-white" data-testid="text-classification-title">
+              What information on your site would be most valuable to visitors?
             </h1>
             <p className="text-white/60 max-w-md mx-auto">
-              Help us extract your content more accurately by telling us about your website
+              Orbit will focus on understanding and structuring this information first.
             </p>
           </div>
 
@@ -142,64 +140,109 @@ export default function OrbitClaim() {
             </div>
           )}
 
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             <Button
               onClick={() => handleStartExtraction('menu')}
               variant="outline"
-              className="w-full p-6 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all"
-              data-testid="button-type-menu"
+              className="w-full p-5 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all"
+              data-testid="button-intent-menu"
             >
-              <div className="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                <UtensilsCrossed className="w-6 h-6 text-orange-400" />
+              <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                <UtensilsCrossed className="w-5 h-5 text-orange-400" />
               </div>
               <div className="text-left">
-                <span className="text-white font-medium block">Restaurant / Menu</span>
-                <span className="text-white/60 text-sm">Food & drink menus with items and prices</span>
+                <span className="text-white font-medium block">Menu & pricing</span>
+                <span className="text-white/60 text-sm">What you sell, organised into clear sections</span>
               </div>
             </Button>
 
             <Button
               onClick={() => handleStartExtraction('catalogue')}
               variant="outline"
-              className="w-full p-6 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all"
-              data-testid="button-type-catalogue"
+              className="w-full p-5 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all"
+              data-testid="button-intent-catalogue"
             >
-              <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                <ShoppingCart className="w-6 h-6 text-green-400" />
+              <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                <ShoppingCart className="w-5 h-5 text-green-400" />
               </div>
               <div className="text-left">
-                <span className="text-white font-medium block">Online Store</span>
-                <span className="text-white/60 text-sm">E-commerce with products, prices, and categories</span>
+                <span className="text-white font-medium block">Products & shop items</span>
+                <span className="text-white/60 text-sm">Individual products, variations and details</span>
               </div>
             </Button>
 
             <Button
-              onClick={() => handleStartExtraction('hybrid')}
+              onClick={() => handleStartExtraction('service')}
               variant="outline"
-              className="w-full p-6 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all"
-              data-testid="button-type-hybrid"
+              className="w-full p-5 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all"
+              data-testid="button-intent-service"
             >
-              <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                <Layers className="w-6 h-6 text-purple-400" />
+              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                <Briefcase className="w-5 h-5 text-purple-400" />
               </div>
               <div className="text-left">
-                <span className="text-white font-medium block">Both Menu & Products</span>
-                <span className="text-white/60 text-sm">Mixed content like cafes with merchandise</span>
+                <span className="text-white font-medium block">Services & capabilities</span>
+                <span className="text-white/60 text-sm">What you do, who it's for, and how it helps</span>
               </div>
             </Button>
 
             <Button
-              onClick={() => handleStartExtraction('auto')}
+              onClick={() => handleStartExtraction('case_studies')}
               variant="outline"
-              className="w-full p-6 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all"
-              data-testid="button-type-auto"
+              className="w-full p-5 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all"
+              data-testid="button-intent-case-studies"
             >
-              <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                <Globe className="w-6 h-6 text-blue-400" />
+              <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                <BookOpen className="w-5 h-5 text-amber-400" />
               </div>
               <div className="text-left">
-                <span className="text-white font-medium block">Not Sure / Other</span>
-                <span className="text-white/60 text-sm">Let us auto-detect your content type</span>
+                <span className="text-white font-medium block">Case studies & work</span>
+                <span className="text-white/60 text-sm">Examples, projects and results</span>
+              </div>
+            </Button>
+
+            <Button
+              onClick={() => handleStartExtraction('content')}
+              variant="outline"
+              className="w-full p-5 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all"
+              data-testid="button-intent-content"
+            >
+              <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-5 h-5 text-cyan-400" />
+              </div>
+              <div className="text-left">
+                <span className="text-white font-medium block">Articles & resources</span>
+                <span className="text-white/60 text-sm">Blogs, guides and helpful content</span>
+              </div>
+            </Button>
+
+            <Button
+              onClick={() => handleStartExtraction('locations')}
+              variant="outline"
+              className="w-full p-5 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all"
+              data-testid="button-intent-locations"
+            >
+              <div className="w-10 h-10 rounded-lg bg-rose-500/20 flex items-center justify-center flex-shrink-0">
+                <MapPin className="w-5 h-5 text-rose-400" />
+              </div>
+              <div className="text-left">
+                <span className="text-white font-medium block">Locations & contact details</span>
+                <span className="text-white/60 text-sm">Where you operate and how to get in touch</span>
+              </div>
+            </Button>
+
+            <Button
+              onClick={() => handleStartExtraction(null)}
+              variant="outline"
+              className="w-full p-5 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all"
+              data-testid="button-intent-auto"
+            >
+              <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-5 h-5 text-blue-400" />
+              </div>
+              <div className="text-left">
+                <span className="text-white font-medium block">Let Orbit decide</span>
+                <span className="text-white/60 text-sm">We'll try to work it out automatically</span>
               </div>
             </Button>
           </div>

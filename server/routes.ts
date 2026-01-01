@@ -7411,17 +7411,21 @@ STRICT RULES:
   // Generate Orbit from URL - UNIFIED with deep extraction (everyone gets the best experience)
   app.post("/api/orbit/generate", async (req, res) => {
     try {
-      const { url, siteTypeHint } = req.body;
+      const { url, extractionIntent } = req.body;
 
       if (!url || typeof url !== "string") {
         return res.status(400).json({ message: "URL is required" });
       }
       
-      // Validate siteTypeHint if provided
-      const validHints = ['menu', 'catalogue', 'hybrid', 'auto', undefined] as const;
-      const userHint = validHints.includes(siteTypeHint) ? siteTypeHint : undefined;
-      if (userHint && userHint !== 'auto') {
-        console.log(`[Orbit/generate] User provided site type hint: ${userHint}`);
+      // Validate extractionIntent if provided (null = auto-detect)
+      type ExtractionIntent = 'menu' | 'catalogue' | 'service' | 'case_studies' | 'content' | 'locations' | null;
+      const validIntents: ExtractionIntent[] = ['menu', 'catalogue', 'service', 'case_studies', 'content', 'locations', null];
+      const userIntent: ExtractionIntent = validIntents.includes(extractionIntent) ? extractionIntent : null;
+      
+      if (userIntent !== null) {
+        console.log(`[Orbit/generate] INTENT-DRIVEN: User selected "${userIntent}" extraction`);
+      } else {
+        console.log(`[Orbit/generate] AUTO-DETECT: No intent provided, will detect site type`);
       }
 
       // Import helpers
@@ -7537,25 +7541,37 @@ STRICT RULES:
         });
       }
 
-      // Run deep site detection (same as auto-generate)
-      console.log(`[Orbit/generate] Deep extraction for: ${url}`);
+      // Run extraction based on user intent OR auto-detect
+      console.log(`[Orbit/generate] Starting extraction for: ${url}`);
       let scores, plan;
       try {
-        // If user provided a hint (not 'auto'), use it directly instead of detecting
-        if (userHint && userHint !== 'auto') {
-          console.log(`[Orbit/generate] Using user-provided site type: ${userHint}`);
-          plan = {
-            type: userHint as 'menu' | 'catalogue' | 'hybrid',
-            confidence: 1.0, // User is always confident
-            rationale: `User selected: ${userHint}`,
-            strategies: userHint === 'menu' ? ['menu-dom'] : userHint === 'catalogue' ? ['catalogue-dom'] : ['menu-dom', 'catalogue-dom'],
+        // If user provided an intent, bypass detection and use it directly
+        if (userIntent !== null) {
+          console.log(`[Orbit/generate] INTENT-DRIVEN: Bypassing detection, using "${userIntent}" extractor`);
+          
+          // Map intent to extraction plan
+          const intentToStrategies: Record<NonNullable<ExtractionIntent>, string[]> = {
+            'menu': ['menu-dom', 'ai-menu'],
+            'catalogue': ['catalogue-dom', 'ai-catalogue'],
+            'service': ['service-ai'],
+            'case_studies': ['content-ai'],
+            'content': ['content-ai'],
+            'locations': ['content-ai'],
           };
-          scores = null; // Not used when hint provided
+          
+          plan = {
+            type: userIntent as any, // Trust user intent
+            confidence: 1.0, // User selection = 100% confident
+            rationale: `User selected: ${userIntent}`,
+            strategies: intentToStrategies[userIntent] || ['ai-fallback'],
+            intentDriven: true,
+          };
+          scores = null; // Not used when intent provided
         } else {
           // Auto-detect
           scores = await detectSiteType(url);
-          plan = deriveExtractionPlan(scores);
-          console.log(`[Orbit/generate] Detected type: ${plan.type} (confidence: ${(plan.confidence * 100).toFixed(1)}%)`);
+          plan = { ...deriveExtractionPlan(scores), intentDriven: false };
+          console.log(`[Orbit/generate] AUTO-DETECT: Detected type "${plan.type}" (confidence: ${(plan.confidence * 100).toFixed(1)}%)`);
         }
       } catch (detectErr: any) {
         await storage.setOrbitGenerationStatus(businessSlug, "failed", `Detection failed: ${detectErr.message}`);
@@ -7646,7 +7662,7 @@ STRICT RULES:
 
       // Handle B2B service sites
       if (plan.type === 'service') {
-        console.log(`[Orbit/generate] Detected B2B service site, extracting concepts/solutions...`);
+        console.log(`[Orbit/generate] Extracting services & capabilities...`);
         const serviceConcepts = await extractServiceConceptsMultiPage(url, 10);
         
         extractedItems.push(...serviceConcepts.map(concept => ({
@@ -7662,6 +7678,34 @@ STRICT RULES:
           availability: 'available' as const,
         })));
         console.log(`[Orbit/generate] Extracted ${serviceConcepts.length} service concepts`);
+      }
+
+      // Handle content-based extractions (case_studies, content, locations)
+      // These use general content extraction instead of price/product patterns
+      const contentTypes = ['case_studies', 'content', 'locations'];
+      if (contentTypes.includes(plan.type)) {
+        console.log(`[Orbit/generate] Extracting ${plan.type} content...`);
+        const { deepScrapeMultiplePages: deepScrape } = await import("./services/deepScraper");
+        const deepResult = await deepScrape(url, { maxPages: 15 });
+        
+        // For content types, we're storing site sections/pages as boxes
+        for (const page of deepResult.pages) {
+          if (page.title && page.text && page.text.length > 100) {
+            extractedItems.push({
+              title: page.title,
+              description: page.text.slice(0, 500),
+              price: null,
+              currency: 'GBP',
+              category: plan.type,
+              imageUrl: null, // Content types focus on text, not images
+              sourceUrl: page.url,
+              tags: [],
+              boxType: plan.type === 'locations' ? 'location' : plan.type === 'case_studies' ? 'case_study' : 'content',
+              availability: 'available' as const,
+            });
+          }
+        }
+        console.log(`[Orbit/generate] Extracted ${extractedItems.length} ${plan.type} items from ${deepResult.pages.length} pages`);
       }
 
       // If no catalogue/menu detected (type is 'none'), try deep scrape for general content
@@ -7694,13 +7738,23 @@ STRICT RULES:
       }
 
       // QUALITY GATE: Block if no items extracted
-      if (extractedItems.length === 0) {
+      // Exception: Intent-driven service/content extractions should not fail on empty items
+      // (per spec: "A lack of prices or products must never trigger a failure" for service/content extractors)
+      const noQualityGateTypes = ['service', 'case_studies', 'content', 'locations'];
+      const skipQualityGate = plan.intentDriven && noQualityGateTypes.includes(plan.type);
+      
+      if (extractedItems.length === 0 && !skipQualityGate) {
         await storage.setOrbitGenerationStatus(businessSlug, "failed", "No catalogue items could be extracted from this website");
         return res.status(400).json({ 
           message: "Could not extract any products or menu items from this website. The site may not have a standard catalogue structure.",
           qualityGateBlocked: true,
           itemsExtracted: 0,
         });
+      }
+      
+      // For intent-driven content types with zero items, log but continue with site data
+      if (extractedItems.length === 0 && skipQualityGate) {
+        console.log(`[Orbit/generate] INTENT-DRIVEN: No structured items found for "${plan.type}", but continuing with site data`);
       }
 
       // Store extracted items as orbit boxes
