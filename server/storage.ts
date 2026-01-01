@@ -248,6 +248,16 @@ export interface IStorage {
   logOrbitEvent(data: schema.InsertOrbitEvent): Promise<schema.OrbitEvent>;
   getOrbitEvents(sessionId: string): Promise<schema.OrbitEvent[]>;
   getOrbitEventsBySlug(businessSlug: string, limit?: number): Promise<schema.OrbitEvent[]>;
+  
+  // Product Analytics Events
+  logOrbitProductEvent(data: {
+    businessSlug: string;
+    eventType: string;
+    intent?: string;
+    messageContent?: string;
+    productId?: string;
+    conversationId?: number | null;
+  }): Promise<void>;
 
   // Phase 2: Orbit Conversations (Insight tier)
   createOrbitConversation(data: schema.InsertOrbitConversation): Promise<schema.OrbitConversation>;
@@ -1923,6 +1933,35 @@ export class DatabaseStorage implements IStorage {
       orderBy: [desc(schema.orbitEvents.createdAt)],
       limit,
     });
+  }
+
+  async logOrbitProductEvent(data: {
+    businessSlug: string;
+    eventType: string;
+    intent?: string;
+    messageContent?: string;
+    productId?: string;
+    conversationId?: number | null;
+  }): Promise<void> {
+    try {
+      const session = await this.getOrCreateOrbitSession(`product-analytics-${Date.now()}`, data.businessSlug);
+      
+      await db.insert(schema.orbitEvents).values({
+        businessSlug: data.businessSlug,
+        sessionId: session.sessionId,
+        eventType: 'chat_message' as schema.OrbitEventType,
+        conversationId: data.conversationId || undefined,
+        metadataJson: {
+          productAnalytics: true,
+          analyticsType: data.eventType,
+          intent: data.intent,
+          messagePreview: data.messageContent?.slice(0, 100),
+          productId: data.productId,
+        },
+      });
+    } catch (err) {
+      console.error('Error logging product event:', err);
+    }
   }
 
   // Phase 2: Orbit Conversations

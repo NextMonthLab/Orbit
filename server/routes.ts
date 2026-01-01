@@ -6846,13 +6846,58 @@ Stay engaging, reference story details, and help the audience understand the nar
         baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
       });
 
+      // Build product context if the orbit has catalogue items
+      let productContext = '';
+      if (orbit) {
+        const boxes = await storage.getOrbitBoxes(orbit.businessSlug);
+        const productBoxes = boxes.filter(b => b.boxType === 'product' || b.boxType === 'menu_item');
+        
+        if (productBoxes.length > 0) {
+          // Group by category and get top items per category
+          const categoryMap = new Map<string, typeof productBoxes>();
+          for (const box of productBoxes) {
+            const cat = box.category || 'Other';
+            if (!categoryMap.has(cat)) {
+              categoryMap.set(cat, []);
+            }
+            categoryMap.get(cat)!.push(box);
+          }
+          
+          const catalogueSummary: string[] = [];
+          catalogueSummary.push(`\nCATALOGUE (${productBoxes.length} items):`);
+          
+          for (const [category, items] of categoryMap.entries()) {
+            // Show top 5 items per category (sorted by popularity if available, else by title)
+            const sortedItems = items.sort((a, b) => 
+              (b.popularityScore || 0) - (a.popularityScore || 0)
+            ).slice(0, 5);
+            
+            catalogueSummary.push(`\n${category} (${items.length} total):`);
+            for (const item of sortedItems) {
+              const priceNum = item.price != null ? Number(item.price) : null;
+              const priceStr = priceNum != null && !isNaN(priceNum) ? ` - ${item.currency || '$'}${priceNum.toFixed(2)}` : '';
+              const tagsStr = item.tags && item.tags.length > 0 ? ` [${item.tags.slice(0, 3).join(', ')}]` : '';
+              catalogueSummary.push(`  • ${item.title}${priceStr}${tagsStr}`);
+              if (item.description) {
+                catalogueSummary.push(`    ${item.description.slice(0, 100)}...`);
+              }
+            }
+            if (items.length > 5) {
+              catalogueSummary.push(`  • ...and ${items.length - 5} more items`);
+            }
+          }
+          
+          productContext = catalogueSummary.join('\n');
+        }
+      }
+
       const systemPrompt = `You are Echo, a calm and knowledgeable guide for ${preview.siteTitle}.
 
 CONTEXT:
 ${preview.siteSummary}
 
 ${preview.keyServices && preview.keyServices.length > 0 ? `SERVICES:
-${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
+${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}${productContext}
 
 RESPONSE STRUCTURE:
 1. Lead with the key insight or answer (1 sentence)
@@ -6864,7 +6909,12 @@ VOICE:
 • Benefit-led: "Here's what this means for you..." not "Let me explain..."
 • Direct: state facts, don't hedge with "I think" or "I believe"
 • Concise: 2-4 sentences typical. Only expand when detail adds value
-
+${productContext ? `
+PRODUCT QUERIES:
+• When asked about products/menu items, cite specific items with prices
+• Suggest complementary items when relevant (e.g., "That pairs well with...")
+• For dietary questions, check item tags before recommending
+• If asked about something not in the catalogue, acknowledge and suggest alternatives` : ''}
 STRICT RULES:
 • Never repeat the same information twice in one response
 • Never use ALL CAPS except for acronyms (UK, VAT, API)
@@ -6906,6 +6956,58 @@ STRICT RULES:
         costEstimatePence: (preview.costEstimatePence || 0) + 1,
         llmCallCount: (preview.llmCallCount || 0) + 1,
       });
+      
+      // Detect product-related intents and log analytics
+      let productQueryIntent: string | null = null;
+      if (orbit) {
+        const lowerMessage = message.toLowerCase();
+        
+        // Detect add-to-cart/purchase intent
+        const purchasePatterns = [
+          /\b(order|buy|purchase|get|want|add|cart)\b/i,
+          /how much (is|are|does|do)/i,
+          /price (of|for)/i,
+          /can i (have|get|order)/i,
+        ];
+        
+        // Detect dietary/filter queries
+        const dietaryPatterns = [
+          /\b(vegan|vegetarian|gluten.?free|dairy.?free|nut.?free|allerg)/i,
+          /\b(organic|healthy|low.?calorie|keto|halal|kosher)\b/i,
+        ];
+        
+        // Detect recommendation queries
+        const recommendPatterns = [
+          /\b(recommend|suggest|best|popular|what should|what do you)/i,
+          /\b(similar to|like|instead of|alternative)\b/i,
+        ];
+        
+        // Detect availability queries
+        const availabilityPatterns = [
+          /\b(available|in stock|out of stock|sold out|when)\b/i,
+        ];
+        
+        if (purchasePatterns.some(p => p.test(lowerMessage))) {
+          productQueryIntent = 'purchase_intent';
+        } else if (dietaryPatterns.some(p => p.test(lowerMessage))) {
+          productQueryIntent = 'dietary_filter';
+        } else if (recommendPatterns.some(p => p.test(lowerMessage))) {
+          productQueryIntent = 'recommendation_request';
+        } else if (availabilityPatterns.some(p => p.test(lowerMessage))) {
+          productQueryIntent = 'availability_check';
+        }
+        
+        // Log product intent analytics asynchronously
+        if (productQueryIntent) {
+          storage.logOrbitProductEvent({
+            businessSlug: orbit.businessSlug,
+            eventType: 'product_query',
+            intent: productQueryIntent,
+            messageContent: message.slice(0, 200),
+            conversationId: null,
+          }).catch(err => console.error('Error logging product event:', err));
+        }
+      }
       
       // Increment orbit analytics AFTER message is successfully processed
       if (orbit && !isPaidOrbit) {

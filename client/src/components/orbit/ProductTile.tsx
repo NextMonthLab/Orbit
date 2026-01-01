@@ -53,10 +53,28 @@ export function ProductTile({
   const availabilityInfo = availability ? availabilityConfig[availability] : null;
   const AvailabilityIcon = availabilityInfo?.icon;
 
+  const handleClick = () => {
+    setIsExpanded(!isExpanded);
+    
+    const event = {
+      type: 'product_tile_click',
+      timestamp: Date.now(),
+      data: {
+        productId: id,
+        productTitle: title,
+        category: category,
+        price: price,
+        expanded: !isExpanded,
+      }
+    };
+    const existing = JSON.parse(localStorage.getItem('sessionEvents') || '[]');
+    localStorage.setItem('sessionEvents', JSON.stringify([...existing, event]));
+  };
+
   return (
     <Card
       className="group orbit-tile cursor-pointer border-zinc-800 bg-zinc-900/50 hover:border-pink-500/30 transition-colors overflow-hidden"
-      onClick={() => setIsExpanded(!isExpanded)}
+      onClick={handleClick}
       data-testid={`product-tile-${id}`}
     >
       {imageUrl && !imageError ? (
