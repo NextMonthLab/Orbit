@@ -7249,7 +7249,7 @@ STRICT RULES:
       }
 
       const { generateSlug } = await import("./orbitPackGenerator");
-      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItems } = await import("./services/catalogueDetection");
+      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItemsMultiPage } = await import("./services/catalogueDetection");
       
       const businessSlug = generateSlug(url);
 
@@ -7286,18 +7286,22 @@ STRICT RULES:
       }
 
       if (plan.type === 'menu' || plan.type === 'hybrid') {
-        const menuItems = await extractMenuItems(url);
+        // Use multi-page extraction to follow category links and get actual menu items with images
+        console.log(`[Orbit] Using multi-page extraction to follow category links...`);
+        const menuItems = await extractMenuItemsMultiPage(url, 15); // Follow up to 15 category pages
         extractedItems.push(...menuItems.map(m => ({
           title: m.name,
           description: m.description,
           price: m.price,
           currency: m.currency,
-          category: m.section,
-          tags: m.dietaryTags.map(t => ({ key: 'dietary', value: t })),
+          category: m.category,
+          imageUrl: m.imageUrl,
+          sourceUrl: m.sourceUrl,
+          tags: [],
           boxType: 'product',
           availability: 'available' as const,
         })));
-        console.log(`[Orbit] Extracted ${menuItems.length} menu items`);
+        console.log(`[Orbit] Extracted ${menuItems.length} menu items with multi-page crawl`);
       }
 
       // Store extracted items as orbit boxes

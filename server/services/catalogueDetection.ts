@@ -668,3 +668,229 @@ export async function extractMenuItems(url: string): Promise<ExtractedMenuItem[]
     await browser.close();
   }
 }
+
+// Multi-page menu extraction - follows category links to get actual items
+export interface MultiPageMenuItem {
+  name: string;
+  description: string | null;
+  price: string | null;
+  currency: string;
+  category: string;
+  imageUrl: string | null;
+  sourceUrl: string;
+}
+
+export async function extractMenuItemsMultiPage(baseUrl: string, maxPages: number = 10): Promise<MultiPageMenuItem[]> {
+  const browser = await puppeteer.launch({
+    headless: true,
+    ...(chromiumPath && { executablePath: chromiumPath }),
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+  });
+
+  const allItems: MultiPageMenuItem[] = [];
+  const visitedUrls = new Set<string>();
+
+  try {
+    const page = await browser.newPage();
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    await page.setViewport({ width: 1920, height: 1080 });
+
+    console.log(`[MultiPage] Loading main menu page: ${baseUrl}`);
+    await page.goto(baseUrl, { waitUntil: 'networkidle2', timeout: 45000 });
+    
+    // Wait for content to load
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Find category/section links on the main page
+    const categoryLinks = await page.evaluate((base) => {
+      const links: { url: string; name: string }[] = [];
+      const baseHost = new URL(base).hostname;
+      
+      // Look for menu category links
+      const menuPatterns = [
+        /\/menu\//i,
+        /\/our-menu\//i,
+        /\/food\//i,
+        /\/category\//i,
+        /burgers?/i,
+        /chicken/i,
+        /sides?/i,
+        /drinks?/i,
+        /desserts?/i,
+        /meals?/i,
+        /buckets?/i,
+        /wraps?/i,
+        /salads?/i,
+        /breakfast/i,
+      ];
+
+      const allLinks = document.querySelectorAll('a[href]');
+      allLinks.forEach(a => {
+        const href = a.getAttribute('href');
+        if (!href) return;
+        
+        try {
+          const fullUrl = new URL(href, base).href;
+          const urlHost = new URL(fullUrl).hostname;
+          
+          // Must be same domain
+          if (urlHost !== baseHost) return;
+          
+          // Check if it matches menu patterns
+          const isMenuLink = menuPatterns.some(pattern => pattern.test(href));
+          if (!isMenuLink) return;
+          
+          // Get link text for category name
+          const text = (a.textContent || a.getAttribute('title') || '').trim();
+          if (text && text.length < 50 && !links.some(l => l.url === fullUrl)) {
+            links.push({ url: fullUrl, name: text });
+          }
+        } catch {}
+      });
+
+      return links;
+    }, baseUrl);
+
+    console.log(`[MultiPage] Found ${categoryLinks.length} category links`);
+    
+    // Also extract items from the main page first
+    const mainPageItems = await extractItemsFromPage(page, 'Menu');
+    allItems.push(...mainPageItems);
+    visitedUrls.add(baseUrl);
+
+    // Visit each category page (up to maxPages)
+    const pagesToVisit = categoryLinks.slice(0, maxPages);
+    
+    for (const category of pagesToVisit) {
+      if (visitedUrls.has(category.url)) continue;
+      visitedUrls.add(category.url);
+
+      try {
+        console.log(`[MultiPage] Visiting category: ${category.name} (${category.url})`);
+        await page.goto(category.url, { waitUntil: 'networkidle2', timeout: 30000 });
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        const items = await extractItemsFromPage(page, category.name);
+        console.log(`[MultiPage] Found ${items.length} items in ${category.name}`);
+        allItems.push(...items);
+      } catch (err: any) {
+        console.error(`[MultiPage] Error visiting ${category.url}:`, err.message);
+      }
+    }
+
+    console.log(`[MultiPage] Total items extracted: ${allItems.length}`);
+    return allItems;
+  } finally {
+    await browser.close();
+  }
+}
+
+async function extractItemsFromPage(page: Page, categoryName: string): Promise<MultiPageMenuItem[]> {
+  const pageUrl = page.url();
+  
+  const items = await page.evaluate((category) => {
+    const results: any[] = [];
+    
+    // Try structured data first
+    const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    scripts.forEach(script => {
+      try {
+        const data = JSON.parse(script.textContent || '');
+        const processItem = (item: any, section: string) => {
+          if (item['@type'] === 'MenuItem' || item['@type'] === 'Product') {
+            let imageUrl = item.image;
+            if (Array.isArray(imageUrl)) imageUrl = imageUrl[0];
+            if (typeof imageUrl === 'object' && imageUrl?.url) imageUrl = imageUrl.url;
+            
+            results.push({
+              name: item.name || 'Unknown',
+              description: item.description || null,
+              price: item.offers?.price || item.price || null,
+              currency: item.offers?.priceCurrency || item.priceCurrency || 'GBP',
+              category: section,
+              imageUrl: imageUrl || null,
+            });
+          }
+          if (item.hasMenuItem) {
+            (Array.isArray(item.hasMenuItem) ? item.hasMenuItem : [item.hasMenuItem])
+              .forEach((mi: any) => processItem(mi, item.name || section));
+          }
+          if (item.hasMenuSection) {
+            (Array.isArray(item.hasMenuSection) ? item.hasMenuSection : [item.hasMenuSection])
+              .forEach((ms: any) => processItem(ms, ms.name || section));
+          }
+          if (item.itemListElement) {
+            item.itemListElement.forEach((el: any) => processItem(el.item || el, section));
+          }
+        };
+        if (Array.isArray(data)) {
+          data.forEach(d => processItem(d, category));
+        } else {
+          processItem(data, category);
+        }
+      } catch {}
+    });
+
+    // If no structured data, try DOM extraction
+    if (results.length === 0) {
+      // Look for product/menu cards
+      const cardSelectors = [
+        '[class*="product"]',
+        '[class*="menu-item"]',
+        '[class*="item-card"]',
+        '[class*="food-item"]',
+        '[data-testid*="product"]',
+        '[data-testid*="menu"]',
+        'article',
+      ];
+
+      for (const selector of cardSelectors) {
+        const cards = document.querySelectorAll(selector);
+        if (cards.length < 3) continue;
+
+        cards.forEach(card => {
+          // Find name
+          const nameEl = card.querySelector('h1, h2, h3, h4, [class*="title"], [class*="name"]');
+          const name = nameEl?.textContent?.trim();
+          if (!name || name.length > 100) return;
+
+          // Find price
+          const priceRegex = /[£$€]\s*(\d+(?:\.\d{2})?)/;
+          const priceMatch = card.textContent?.match(priceRegex);
+          const price = priceMatch ? priceMatch[1] : null;
+
+          // Find image
+          const img = card.querySelector('img');
+          let imageUrl = img?.getAttribute('src') || img?.getAttribute('data-src') || null;
+          if (imageUrl && !imageUrl.startsWith('http')) {
+            imageUrl = new URL(imageUrl, window.location.origin).href;
+          }
+
+          // Find description
+          const descEl = card.querySelector('p, [class*="desc"]');
+          const description = descEl?.textContent?.trim() || null;
+
+          if (name && !results.some(r => r.name === name)) {
+            results.push({
+              name,
+              description,
+              price,
+              currency: 'GBP',
+              category,
+              imageUrl,
+            });
+          }
+        });
+
+        if (results.length > 0) break;
+      }
+    }
+
+    return results;
+  }, categoryName);
+
+  return items.map(item => ({
+    ...item,
+    sourceUrl: pageUrl,
+  }));
+}
