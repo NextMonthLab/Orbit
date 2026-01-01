@@ -474,7 +474,7 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6', o
       {/* Fixed ChatHub - NEVER moves with canvas */}
       <AnimatePresence mode="wait">
         <ChatHub
-          key={selectedItem?.id || 'default'}
+          key="chat-hub-stable"
           brandName={knowledge.brand.name}
           accentColor={accentColor}
           lightMode={lightMode}
