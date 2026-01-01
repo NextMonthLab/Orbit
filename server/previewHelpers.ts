@@ -320,27 +320,13 @@ function extractImagePool(html: string, baseUrl: string): string[] {
     
     const src = srcMatch[1];
     
-    // Skip unsuitable images
+    // Skip unsuitable images using shared media filter
     if (src.startsWith('data:')) continue;
-    if (src.includes('icon')) continue;
-    if (src.includes('logo')) continue;
-    if (src.includes('avatar')) continue;
-    if (src.includes('sprite')) continue;
-    if (src.includes('1x1')) continue;
     if (src.length < 20) continue;
-    // Skip payment/card images
-    if (src.includes('card') && (src.includes('visa') || src.includes('master') || src.includes('payment') || src.includes('pp-card'))) continue;
-    if (src.includes('visa')) continue;
-    if (src.includes('mastercard')) continue;
-    if (src.includes('paypal')) continue;
-    if (src.includes('payment')) continue;
-    if (src.includes('stripe')) continue;
-    if (src.includes('footer')) continue;
-    if (src.includes('social')) continue;
-    if (src.includes('facebook')) continue;
-    if (src.includes('twitter')) continue;
-    if (src.includes('instagram')) continue;
-    if (src.includes('linkedin')) continue;
+    
+    // Use shared media filter for pattern-based filtering
+    const { isBadImageUrl } = require('./utils/mediaFilter');
+    if (isBadImageUrl(src)) continue;
     
     // Check for size hints in attributes
     const widthMatch = img.match(/width=["']?(\d+)/i);

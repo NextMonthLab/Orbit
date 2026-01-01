@@ -1086,16 +1086,10 @@ export function validateExtractionQuality(items: MultiPageMenuItem[], expectedMi
   };
 }
 
-// Helper to detect payment/bad images
+// Helper to detect payment/bad images (delegates to shared mediaFilter)
 function isPaymentOrBadImage(url: string): boolean {
-  const lowerUrl = url.toLowerCase();
-  const badPatterns = [
-    'visa', 'mastercard', 'paypal', 'payment', 'card', 'stripe',
-    'footer', 'social', 'facebook', 'twitter', 'instagram', 'linkedin',
-    'icon', 'logo', 'avatar', 'sprite', '1x1', 'pixel', 'blank',
-    'loading', 'spinner', 'placeholder'
-  ];
-  return badPatterns.some(p => lowerUrl.includes(p));
+  const { isBadImageUrl } = require('../utils/mediaFilter');
+  return isBadImageUrl(url);
 }
 
 // Site fingerprinting for strategy selection

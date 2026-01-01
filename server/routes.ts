@@ -7232,16 +7232,10 @@ STRICT RULES:
     }
   });
 
-  // Helper to filter out bad images during extraction
+  // Helper to filter out bad images during extraction (delegates to shared mediaFilter)
   function isExtractionBadImage(url: string): boolean {
-    const lowerUrl = url.toLowerCase();
-    const badPatterns = [
-      'visa', 'mastercard', 'paypal', 'payment', 'pp-card', 'stripe',
-      'footer', 'social', 'facebook', 'twitter', 'instagram', 'linkedin',
-      'icon', 'logo', 'avatar', 'sprite', '1x1', 'pixel', 'blank',
-      'loading', 'spinner', 'placeholder', 'amex', 'discover'
-    ];
-    return badPatterns.some(p => lowerUrl.includes(p));
+    const { isBadImageUrl } = require('./utils/mediaFilter');
+    return isBadImageUrl(url);
   }
 
   // Auto-generate Orbit with detection and extraction
