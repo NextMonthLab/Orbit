@@ -7255,7 +7255,7 @@ STRICT RULES:
       }
 
       const { generateSlug } = await import("./orbitPackGenerator");
-      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItemsMultiPage, validateExtractionQuality, fingerprintSite } = await import("./services/catalogueDetection");
+      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItemsMultiPage, validateExtractionQuality, fingerprintSite, extractMenuItemsWithAI } = await import("./services/catalogueDetection");
       
       const businessSlug = generateSlug(url);
 
@@ -7399,7 +7399,7 @@ STRICT RULES:
       // Import helpers
       const { validateUrlSafety, ingestSitePreview: ingestSite, generatePreviewId: genPreviewId } = await import("./previewHelpers");
       const { generateSlug } = await import("./orbitPackGenerator");
-      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItemsMultiPage, validateExtractionQuality, fingerprintSite } = await import("./services/catalogueDetection");
+      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItemsMultiPage, validateExtractionQuality, fingerprintSite, extractMenuItemsWithAI } = await import("./services/catalogueDetection");
       const { deepScrapeMultiplePages } = await import("./services/deepScraper");
       
       const businessSlug = generateSlug(url);
@@ -7548,7 +7548,29 @@ STRICT RULES:
       
       if (shouldTryMenu) {
         console.log(`[Orbit/generate] Using multi-page extraction to follow category links...`);
-        const menuItems = await extractMenuItemsMultiPage(url, 15);
+        const { deepScrapeMultiplePages, LINK_PATTERNS } = await import("./services/deepScraper");
+        
+        // First, crawl the pages
+        const crawlResult = await deepScrapeMultiplePages(url, {
+          maxPages: 15,
+          linkPatterns: LINK_PATTERNS.menu,
+          timeout: 45000,
+          sameDomainOnly: true,
+          rateLimitMs: 300,
+          stopAfterEmptyPages: 3
+        });
+        console.log(`[Orbit/generate] Crawled ${crawlResult.pages.length} pages`);
+        
+        // Try DOM-based extraction first
+        let menuItems = await extractMenuItemsMultiPage(url, 15);
+        console.log(`[Orbit/generate] DOM extraction found ${menuItems.length} items`);
+        
+        // If DOM extraction returned 0 items, try AI fallback
+        if (menuItems.length === 0 && crawlResult.pages.length > 0) {
+          console.log(`[Orbit/generate] DOM extraction returned 0 items, trying AI fallback...`);
+          menuItems = await extractMenuItemsWithAI(crawlResult);
+          console.log(`[Orbit/generate] AI extraction found ${menuItems.length} items`);
+        }
         
         // Validate extraction quality
         const quality = validateExtractionQuality(menuItems);
@@ -7588,18 +7610,20 @@ STRICT RULES:
         }
       }
 
-      // If no catalogue/menu detected, try deep scrape for general content
-      if (extractedItems.length === 0 && (plan.type === 'unknown' || plan.type === 'content')) {
+      // If no catalogue/menu detected (type is 'none'), try deep scrape for general content
+      if (extractedItems.length === 0 && plan.type === 'none') {
         console.log(`[Orbit/generate] No catalogue/menu found, running deep scrape for content...`);
         try {
-          const deepResult = await deepScrapeMultiplePages(url, { maxPages: 10, maxDepth: 2 });
+          const { deepScrapeMultiplePages: deepScrape } = await import("./services/deepScraper");
+          const deepResult = await deepScrape(url, { maxPages: 10 });
           
           // Check for HTTP errors in content
-          const hasHttpErrors = deepResult.pages.some(p => 
-            p.content.toLowerCase().includes('403 forbidden') ||
-            p.content.toLowerCase().includes('404 not found') ||
-            p.content.toLowerCase().includes('access denied')
-          );
+          const hasHttpErrors = deepResult.pages.some(p => {
+            const content = (p.text || p.html || '').toLowerCase();
+            return content.includes('403 forbidden') ||
+              content.includes('404 not found') ||
+              content.includes('access denied');
+          });
           
           if (hasHttpErrors) {
             await storage.setOrbitGenerationStatus(businessSlug, "failed", "Website returned error pages (403/404)");

@@ -1,5 +1,11 @@
 import { Page } from 'puppeteer';
-import { withPage, deepScrapeMultiplePages, LINK_PATTERNS, DeepScrapeResult } from './deepScraper';
+import { withPage, deepScrapeMultiplePages, LINK_PATTERNS, MultiPageCrawlResult } from './deepScraper';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
 
 export interface DetectionSignals {
   structuredData: StructuredDataSignal[];
@@ -1090,4 +1096,104 @@ export async function fingerprintSite(url: string): Promise<SiteFingerprint> {
   return withPage(url, async (page, html) => {
     return detectSiteFingerprint(url, html);
   });
+}
+
+// AI-based extraction fallback using OpenAI
+export async function extractMenuItemsWithAI(crawlResult: MultiPageCrawlResult): Promise<MultiPageMenuItem[]> {
+  console.log(`[AI-Extract] Starting AI extraction for ${crawlResult.pages.length} pages`);
+  
+  const allItems: MultiPageMenuItem[] = [];
+  
+  for (const pageResult of crawlResult.pages) {
+    // Use text if available, otherwise fall back to html
+    const pageContent = pageResult.text || pageResult.html;
+    if (!pageContent || pageContent.length < 100) continue;
+    
+    const categoryName = deriveCategoryFromUrl(pageResult.url);
+    
+    // Truncate content to avoid token limits (keep first 8000 chars)
+    const truncatedContent = pageContent.slice(0, 8000);
+    
+    try {
+      console.log(`[AI-Extract] Processing ${pageResult.url} (${truncatedContent.length} chars)`);
+      
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a menu/catalogue extraction expert. Extract all menu items or products from the provided website content.
+Return a JSON array of items. Each item should have:
+- name: string (required)
+- description: string or null
+- price: string or null (e.g., "12.95", "£15.00")
+- category: string (use the provided category or infer from content)
+
+Only extract actual menu items, products, or services with names. Skip navigation, headers, footers, addresses, etc.
+If no items found, return an empty array [].
+Return ONLY valid JSON array, no markdown or explanation.`
+          },
+          {
+            role: 'user',
+            content: `Category: ${categoryName}\n\nWebsite content:\n${truncatedContent}`
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 2000,
+      });
+      
+      const content = response.choices[0]?.message?.content?.trim() || '[]';
+      
+      // Parse JSON response
+      let items: any[] = [];
+      try {
+        // Handle markdown code blocks
+        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+        const jsonStr = jsonMatch ? jsonMatch[1].trim() : content;
+        items = JSON.parse(jsonStr);
+      } catch (parseErr) {
+        console.log(`[AI-Extract] JSON parse failed for ${pageResult.url}: ${(parseErr as Error).message}`);
+        continue;
+      }
+      
+      if (!Array.isArray(items)) {
+        console.log(`[AI-Extract] Expected array, got ${typeof items}`);
+        continue;
+      }
+      
+      // Convert to MultiPageMenuItem format
+      for (const item of items) {
+        if (!item.name || typeof item.name !== 'string') continue;
+        
+        // Detect currency from price string
+        const priceStr = item.price ? String(item.price) : '';
+        let currency = 'GBP'; // Default for UK sites
+        if (priceStr.includes('$') || priceStr.toLowerCase().includes('usd')) {
+          currency = 'USD';
+        } else if (priceStr.includes('€') || priceStr.toLowerCase().includes('eur')) {
+          currency = 'EUR';
+        } else if (priceStr.includes('£') || priceStr.toLowerCase().includes('gbp')) {
+          currency = 'GBP';
+        }
+        
+        allItems.push({
+          name: item.name,
+          description: item.description || null,
+          price: priceStr || null,
+          currency,
+          category: item.category || categoryName,
+          imageUrl: null,
+          sourceUrl: pageResult.url,
+        });
+      }
+      
+      console.log(`[AI-Extract] Extracted ${items.length} items from ${pageResult.url}`);
+      
+    } catch (err) {
+      console.log(`[AI-Extract] Failed for ${pageResult.url}: ${(err as Error).message}`);
+    }
+  }
+  
+  console.log(`[AI-Extract] Total extracted: ${allItems.length} items`);
+  return allItems;
 }

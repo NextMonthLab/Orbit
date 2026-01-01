@@ -106,16 +106,24 @@ const progressStages = [
 
 const deepExtractionStages = [
   { progress: 5, label: "Connecting to your website..." },
-  { progress: 12, label: "Downloading page content..." },
-  { progress: 18, label: "Analyzing initial content..." },
-  { progress: 25, label: "Switching to deep extraction mode..." },
+  { progress: 10, label: "Downloading main page..." },
+  { progress: 15, label: "Analyzing site structure..." },
+  { progress: 20, label: "Discovering menu pages..." },
+  { progress: 25, label: "Crawling page 1 of many..." },
+  { progress: 30, label: "Crawling additional pages..." },
   { progress: 35, label: "Rendering JavaScript content..." },
-  { progress: 45, label: "Extracting dynamic elements..." },
-  { progress: 55, label: "Capturing images & media..." },
-  { progress: 65, label: "Building knowledge base..." },
-  { progress: 75, label: "Validating content quality..." },
-  { progress: 85, label: "Preparing your Orbit..." },
-  { progress: 95, label: "Final optimizations..." },
+  { progress: 40, label: "Extracting from page 2..." },
+  { progress: 45, label: "Extracting from page 3..." },
+  { progress: 50, label: "Extracting from page 4..." },
+  { progress: 55, label: "Extracting from page 5..." },
+  { progress: 60, label: "Processing menu items..." },
+  { progress: 65, label: "Running AI extraction..." },
+  { progress: 70, label: "Parsing extracted content..." },
+  { progress: 75, label: "Building knowledge base..." },
+  { progress: 80, label: "Validating content quality..." },
+  { progress: 85, label: "Organizing categories..." },
+  { progress: 90, label: "Preparing your Orbit..." },
+  { progress: 95, label: "Almost there..." },
 ];
 
 export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", isComplete = false, onReady, isDeepExtracting = false }: SiteIngestionLoaderProps) {
@@ -140,14 +148,19 @@ export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", isComp
       return;
     }
     
+    // Deep extraction takes longer (2-3 minutes for multi-page crawl + AI)
+    // Use 8 second intervals for deep extraction (19 stages * 8s = ~2.5 minutes)
+    // Use 3 second intervals for regular extraction
+    const intervalMs = isDeepExtracting ? 8000 : 3000;
+    
     const stageInterval = setInterval(() => {
       setCurrentStage((prev) => {
         if (prev < stages.length - 1) return prev + 1;
         return prev;
       });
-    }, 3000);
+    }, intervalMs);
     return () => clearInterval(stageInterval);
-  }, [isComplete, stages.length]);
+  }, [isComplete, stages.length, isDeepExtracting]);
 
   useEffect(() => {
     if (isComplete) {
