@@ -230,10 +230,13 @@ export interface IStorage {
 
   // Orbit Boxes (Grid Curation)
   getOrbitBoxes(businessSlug: string, includeHidden?: boolean): Promise<schema.OrbitBox[]>;
+  getOrbitBoxesByCategory(businessSlug: string): Promise<Map<string, schema.OrbitBox[]>>;
   getOrbitBox(id: number): Promise<schema.OrbitBox | undefined>;
   createOrbitBox(data: schema.InsertOrbitBox): Promise<schema.OrbitBox>;
+  bulkImportOrbitBoxes(businessSlug: string, items: schema.InsertOrbitBox[], clearExisting?: boolean): Promise<{ imported: number; skipped: number }>;
   updateOrbitBox(id: number, data: Partial<schema.InsertOrbitBox>): Promise<schema.OrbitBox | undefined>;
   deleteOrbitBox(id: number): Promise<void>;
+  deleteOrbitBoxesByType(businessSlug: string, boxType: schema.OrbitBoxType): Promise<number>;
   reorderOrbitBoxes(businessSlug: string, boxIds: number[]): Promise<void>;
 
   // Phase 2: Orbit Sessions
@@ -1794,6 +1797,74 @@ export class DatabaseStorage implements IStorage {
           ));
       }
     });
+  }
+
+  async getOrbitBoxesByCategory(businessSlug: string): Promise<Map<string, schema.OrbitBox[]>> {
+    const boxes = await this.getOrbitBoxes(businessSlug);
+    const categoryMap = new Map<string, schema.OrbitBox[]>();
+    
+    for (const box of boxes) {
+      const category = box.category || 'Uncategorized';
+      if (!categoryMap.has(category)) {
+        categoryMap.set(category, []);
+      }
+      categoryMap.get(category)!.push(box);
+    }
+    
+    return categoryMap;
+  }
+
+  async bulkImportOrbitBoxes(
+    businessSlug: string, 
+    items: schema.InsertOrbitBox[], 
+    clearExisting: boolean = false
+  ): Promise<{ imported: number; skipped: number }> {
+    let imported = 0;
+    let skipped = 0;
+    
+    await db.transaction(async (tx) => {
+      if (clearExisting) {
+        await tx.delete(schema.orbitBoxes)
+          .where(and(
+            eq(schema.orbitBoxes.businessSlug, businessSlug),
+            inArray(schema.orbitBoxes.boxType, ['product', 'menu_item'])
+          ));
+      }
+      
+      const existingBoxes = await tx.query.orbitBoxes.findMany({
+        where: eq(schema.orbitBoxes.businessSlug, businessSlug),
+      });
+      const existingSkus = new Set(existingBoxes.map(b => b.sku).filter(Boolean));
+      const maxOrder = Math.max(0, ...existingBoxes.map(b => b.sortOrder));
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        
+        if (item.sku && existingSkus.has(item.sku) && !clearExisting) {
+          skipped++;
+          continue;
+        }
+        
+        await tx.insert(schema.orbitBoxes).values({
+          ...item,
+          businessSlug,
+          sortOrder: maxOrder + i + 1,
+        });
+        imported++;
+      }
+    });
+    
+    return { imported, skipped };
+  }
+
+  async deleteOrbitBoxesByType(businessSlug: string, boxType: schema.OrbitBoxType): Promise<number> {
+    const result = await db.delete(schema.orbitBoxes)
+      .where(and(
+        eq(schema.orbitBoxes.businessSlug, businessSlug),
+        eq(schema.orbitBoxes.boxType, boxType)
+      ))
+      .returning({ id: schema.orbitBoxes.id });
+    return result.length;
   }
 
   // Phase 2: Orbit Sessions

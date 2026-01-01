@@ -7777,6 +7777,139 @@ STRICT RULES:
     }
   });
 
+  // Orbit Catalogue Import - Bulk import products/menu items (owner only, Grow+ tier required)
+  app.post("/api/orbit/:slug/import", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { items, clearExisting, boxType } = req.body;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can import catalogue items" });
+      }
+      
+      const PAID_TIERS = ['grow', 'insight', 'intelligence'];
+      const tier = orbitMeta.planTier;
+      if (!tier || !PAID_TIERS.includes(tier)) {
+        return res.status(403).json({ message: "Upgrade to Grow to import catalogue items" });
+      }
+      
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ message: "items must be an array" });
+      }
+      
+      if (items.length > 200) {
+        return res.status(400).json({ message: "Maximum 200 items per import" });
+      }
+      
+      const validBoxType = boxType === 'menu_item' ? 'menu_item' : 'product';
+      
+      const validatedItems: schema.InsertOrbitBox[] = [];
+      const errors: { index: number; error: string }[] = [];
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        
+        if (!item.title || typeof item.title !== 'string') {
+          errors.push({ index: i, error: 'Title is required' });
+          continue;
+        }
+        
+        const priceValue = item.price != null ? String(item.price) : null;
+        if (priceValue && isNaN(parseFloat(priceValue))) {
+          errors.push({ index: i, error: 'Price must be a valid number' });
+          continue;
+        }
+        
+        validatedItems.push({
+          businessSlug: slug,
+          boxType: validBoxType,
+          title: item.title.slice(0, 200),
+          description: item.description?.slice(0, 1000) || null,
+          content: item.content?.slice(0, 5000) || null,
+          imageUrl: item.imageUrl || item.image_url || null,
+          price: priceValue,
+          currency: item.currency || 'GBP',
+          category: item.category?.slice(0, 100) || null,
+          subcategory: item.subcategory?.slice(0, 100) || null,
+          tags: Array.isArray(item.tags) ? item.tags.map((t: any) => ({
+            key: String(t.key || t.type || 'tag').slice(0, 50),
+            value: String(t.value || t.name || '').slice(0, 100),
+            label: t.label ? String(t.label).slice(0, 100) : undefined,
+          })) : null,
+          sku: item.sku?.slice(0, 100) || null,
+          availability: ['available', 'out_of_stock', 'limited'].includes(item.availability) ? item.availability : 'available',
+          isVisible: item.isVisible !== false,
+        });
+      }
+      
+      if (validatedItems.length === 0) {
+        return res.status(400).json({ 
+          message: "No valid items to import", 
+          errors: errors.slice(0, 10) 
+        });
+      }
+      
+      const result = await storage.bulkImportOrbitBoxes(slug, validatedItems, clearExisting === true);
+      
+      console.log(`[Orbit Import] ${slug}: ${result.imported} imported, ${result.skipped} skipped, ${errors.length} validation errors`);
+      
+      res.json({
+        success: true,
+        imported: result.imported,
+        skipped: result.skipped,
+        validationErrors: errors.length,
+        errors: errors.slice(0, 10),
+      });
+    } catch (error) {
+      console.error("Error importing orbit catalogue:", error);
+      res.status(500).json({ message: "Error importing catalogue" });
+    }
+  });
+
+  // Orbit Catalogue - Get items by category (for clustered display)
+  app.get("/api/orbit/:slug/catalogue", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const boxes = await storage.getOrbitBoxes(slug);
+      const productBoxes = boxes.filter(b => b.boxType === 'product' || b.boxType === 'menu_item');
+      
+      const categories: Record<string, typeof productBoxes> = {};
+      for (const box of productBoxes) {
+        const cat = box.category || 'Uncategorized';
+        if (!categories[cat]) {
+          categories[cat] = [];
+        }
+        categories[cat].push(box);
+      }
+      
+      const categoryList = Object.entries(categories).map(([name, items]) => ({
+        name,
+        itemCount: items.length,
+        items: items.sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0)),
+      })).sort((a, b) => b.itemCount - a.itemCount);
+      
+      res.json({
+        totalItems: productBoxes.length,
+        categoryCount: categoryList.length,
+        categories: categoryList,
+      });
+    } catch (error) {
+      console.error("Error getting orbit catalogue:", error);
+      res.status(500).json({ message: "Error fetching catalogue" });
+    }
+  });
+
   // Orbit Brand Settings - Update (owner only, Grow+ tier required)
   app.patch("/api/orbit/:slug/brand", async (req, res) => {
     try {
