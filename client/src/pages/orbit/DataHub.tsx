@@ -14,7 +14,8 @@ import {
   Users,
   Mail,
   Phone,
-  Building2
+  Building2,
+  Package
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -252,18 +253,30 @@ export default function DataHub() {
             </div>
           </div>
           
-          <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as '7' | '30')}>
-            <TabsList className="bg-zinc-900">
-              <TabsTrigger value="7" className="text-xs" data-testid="tab-7-days">
-                <Calendar className="w-3 h-3 mr-1" />
-                7 days
-              </TabsTrigger>
-              <TabsTrigger value="30" className="text-xs" data-testid="tab-30-days">
-                <Calendar className="w-3 h-3 mr-1" />
-                30 days
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation(`/orbit/${slug}/import`)}
+              className="text-pink-400 border-pink-500/30 hover:bg-pink-500/10"
+              data-testid="button-import-catalogue"
+            >
+              <Package className="w-4 h-4 mr-1.5" />
+              Import Catalogue
+            </Button>
+            <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as '7' | '30')}>
+              <TabsList className="bg-zinc-900">
+                <TabsTrigger value="7" className="text-xs" data-testid="tab-7-days">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  7 days
+                </TabsTrigger>
+                <TabsTrigger value="30" className="text-xs" data-testid="tab-30-days">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  30 days
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
 
         {!hubData.isClaimed && (
