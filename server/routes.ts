@@ -7232,6 +7232,18 @@ STRICT RULES:
     }
   });
 
+  // Helper to filter out bad images during extraction
+  function isExtractionBadImage(url: string): boolean {
+    const lowerUrl = url.toLowerCase();
+    const badPatterns = [
+      'visa', 'mastercard', 'paypal', 'payment', 'pp-card', 'stripe',
+      'footer', 'social', 'facebook', 'twitter', 'instagram', 'linkedin',
+      'icon', 'logo', 'avatar', 'sprite', '1x1', 'pixel', 'blank',
+      'loading', 'spinner', 'placeholder', 'amex', 'discover'
+    ];
+    return badPatterns.some(p => lowerUrl.includes(p));
+  }
+
   // Auto-generate Orbit with detection and extraction
   app.post("/api/orbit/auto-generate", async (req, res) => {
     try {
@@ -7249,7 +7261,7 @@ STRICT RULES:
       }
 
       const { generateSlug } = await import("./orbitPackGenerator");
-      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItemsMultiPage } = await import("./services/catalogueDetection");
+      const { detectSiteType, deriveExtractionPlan, extractCatalogueItems, extractMenuItemsMultiPage, validateExtractionQuality, detectSiteFingerprint } = await import("./services/catalogueDetection");
       
       const businessSlug = generateSlug(url);
 
@@ -7289,7 +7301,21 @@ STRICT RULES:
         // Use multi-page extraction to follow category links and get actual menu items with images
         console.log(`[Orbit] Using multi-page extraction to follow category links...`);
         const menuItems = await extractMenuItemsMultiPage(url, 15); // Follow up to 15 category pages
-        extractedItems.push(...menuItems.map(m => ({
+        
+        // Validate extraction quality
+        const quality = validateExtractionQuality(menuItems);
+        console.log(`[Orbit] Extraction quality: ${quality.score}/100 (${quality.passed ? 'PASSED' : 'NEEDS IMPROVEMENT'})`);
+        if (quality.issues.length > 0) {
+          console.log(`[Orbit] Issues: ${quality.issues.join(', ')}`);
+        }
+        
+        // Filter out bad images before adding to results
+        const cleanedItems = menuItems.map(m => ({
+          ...m,
+          imageUrl: m.imageUrl && !isExtractionBadImage(m.imageUrl) ? m.imageUrl : null,
+        }));
+        
+        extractedItems.push(...cleanedItems.map(m => ({
           title: m.name,
           description: m.description,
           price: m.price,

@@ -1019,3 +1019,164 @@ async function extractItemsFromPage(page: Page, categoryName: string): Promise<M
     sourceUrl: pageUrl,
   }));
 }
+
+// Extraction quality validation
+export interface ExtractionQuality {
+  score: number; // 0-100
+  passed: boolean;
+  issues: string[];
+  recommendations: string[];
+}
+
+export function validateExtractionQuality(items: MultiPageMenuItem[], expectedMinItems: number = 3): ExtractionQuality {
+  const issues: string[] = [];
+  const recommendations: string[] = [];
+  let score = 100;
+  
+  // Check item count
+  if (items.length === 0) {
+    issues.push('No items extracted');
+    score -= 50;
+    recommendations.push('Try AI-assisted extraction');
+  } else if (items.length < expectedMinItems) {
+    issues.push(`Only ${items.length} items extracted (expected at least ${expectedMinItems})`);
+    score -= 20;
+    recommendations.push('Consider following more category links');
+  }
+  
+  // Check for prices
+  const itemsWithPrices = items.filter(i => i.price && parseFloat(i.price) > 0);
+  const priceRatio = items.length > 0 ? itemsWithPrices.length / items.length : 0;
+  if (priceRatio < 0.3) {
+    issues.push(`Low price extraction rate: ${Math.round(priceRatio * 100)}%`);
+    score -= 15;
+  }
+  
+  // Check for images
+  const itemsWithImages = items.filter(i => i.imageUrl && !isPaymentOrBadImage(i.imageUrl));
+  const imageRatio = items.length > 0 ? itemsWithImages.length / items.length : 0;
+  if (imageRatio < 0.2) {
+    issues.push(`Low image extraction rate: ${Math.round(imageRatio * 100)}%`);
+    score -= 15;
+  }
+  
+  // Check for duplicate names
+  const names = items.map(i => i.name.toLowerCase());
+  const uniqueNames = new Set(names);
+  if (names.length > 0 && uniqueNames.size < names.length * 0.8) {
+    issues.push('High duplicate rate in item names');
+    score -= 10;
+  }
+  
+  // Check for suspicious patterns (e.g., navigation text extracted as items)
+  const suspiciousPatterns = ['home', 'about', 'contact', 'menu', 'order', 'sign in', 'login', 'cart'];
+  const suspiciousItems = items.filter(i => 
+    suspiciousPatterns.some(p => i.name.toLowerCase() === p)
+  );
+  if (suspiciousItems.length > 0) {
+    issues.push(`Found ${suspiciousItems.length} suspicious navigation items`);
+    score -= 10;
+  }
+  
+  return {
+    score: Math.max(0, score),
+    passed: score >= 50,
+    issues,
+    recommendations,
+  };
+}
+
+// Helper to detect payment/bad images
+function isPaymentOrBadImage(url: string): boolean {
+  const lowerUrl = url.toLowerCase();
+  const badPatterns = [
+    'visa', 'mastercard', 'paypal', 'payment', 'card', 'stripe',
+    'footer', 'social', 'facebook', 'twitter', 'instagram', 'linkedin',
+    'icon', 'logo', 'avatar', 'sprite', '1x1', 'pixel', 'blank',
+    'loading', 'spinner', 'placeholder'
+  ];
+  return badPatterns.some(p => lowerUrl.includes(p));
+}
+
+// Site fingerprinting for strategy selection
+export interface SiteFingerprint {
+  platform: string;
+  type: 'ecommerce' | 'restaurant' | 'legacy_php' | 'spa' | 'static' | 'unknown';
+  strategies: ('structured_data' | 'multi_page' | 'single_page' | 'api_intercept' | 'ai_fallback')[];
+  confidence: number;
+}
+
+export function detectSiteFingerprint(url: string, html: string): SiteFingerprint {
+  const urlLower = url.toLowerCase();
+  const htmlLower = html.toLowerCase();
+  
+  // Check for known platforms
+  const platformChecks = [
+    { platform: 'Shopify', pattern: /shopify|cdn\.shopify|shop\.app/i, type: 'ecommerce' as const },
+    { platform: 'WooCommerce', pattern: /woocommerce|wc-block|add_to_cart/i, type: 'ecommerce' as const },
+    { platform: 'Toast', pattern: /toasttab\.com|toast-menu/i, type: 'restaurant' as const },
+    { platform: 'Square', pattern: /squareup\.com|square-menu/i, type: 'restaurant' as const },
+    { platform: 'GloriaFood', pattern: /gloriafood|gloria\.food/i, type: 'restaurant' as const },
+    { platform: 'Wix', pattern: /wix\.com|wixsite|wixstatic/i, type: 'spa' as const },
+    { platform: 'Squarespace', pattern: /squarespace|sqsp/i, type: 'spa' as const },
+    { platform: 'WordPress', pattern: /wp-content|wordpress/i, type: 'static' as const },
+    { platform: 'zen-cart', pattern: /zen-cart|main_page=index|cPath=/i, type: 'legacy_php' as const },
+    { platform: 'osCommerce', pattern: /oscommerce|products_id=/i, type: 'legacy_php' as const },
+  ];
+  
+  for (const check of platformChecks) {
+    if (check.pattern.test(html) || check.pattern.test(url)) {
+      return {
+        platform: check.platform,
+        type: check.type,
+        strategies: getStrategiesForType(check.type),
+        confidence: 0.8,
+      };
+    }
+  }
+  
+  // Check for JS-heavy SPA indicators
+  if (htmlLower.includes('react') || htmlLower.includes('angular') || htmlLower.includes('vue')) {
+    return {
+      platform: 'SPA',
+      type: 'spa',
+      strategies: ['api_intercept', 'multi_page', 'ai_fallback'],
+      confidence: 0.6,
+    };
+  }
+  
+  // Check for legacy PHP patterns
+  if (urlLower.includes('.php') || urlLower.includes('?id=') || urlLower.includes('&cat=')) {
+    return {
+      platform: 'Legacy PHP',
+      type: 'legacy_php',
+      strategies: ['multi_page', 'single_page', 'ai_fallback'],
+      confidence: 0.5,
+    };
+  }
+  
+  // Default: unknown, try everything
+  return {
+    platform: 'Unknown',
+    type: 'unknown',
+    strategies: ['structured_data', 'multi_page', 'single_page', 'ai_fallback'],
+    confidence: 0.3,
+  };
+}
+
+function getStrategiesForType(type: SiteFingerprint['type']): SiteFingerprint['strategies'] {
+  switch (type) {
+    case 'ecommerce':
+      return ['structured_data', 'multi_page', 'ai_fallback'];
+    case 'restaurant':
+      return ['structured_data', 'multi_page', 'single_page', 'ai_fallback'];
+    case 'legacy_php':
+      return ['multi_page', 'single_page', 'ai_fallback'];
+    case 'spa':
+      return ['api_intercept', 'multi_page', 'ai_fallback'];
+    case 'static':
+      return ['structured_data', 'single_page', 'ai_fallback'];
+    default:
+      return ['structured_data', 'multi_page', 'single_page', 'ai_fallback'];
+  }
+}
