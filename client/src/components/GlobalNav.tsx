@@ -184,6 +184,12 @@ export default function GlobalNav({
                         My Account
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/orbit/my" className="cursor-pointer text-white/80 hover:text-white" data-testid="global-menu-orbits">
+                        <Orbit className="w-4 h-4 mr-2" />
+                        My Orbits
+                      </Link>
+                    </DropdownMenuItem>
                     {user.isAdmin && (
                       <DropdownMenuItem asChild>
                         <Link href="/admin" className="cursor-pointer text-white/80 hover:text-white" data-testid="global-menu-admin">
