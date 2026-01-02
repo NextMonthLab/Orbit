@@ -166,6 +166,55 @@ export function IceCardEditor({
     }
   }, [videoStatus, videoGenStartTime]);
   
+  // Poll for video generation status
+  useEffect(() => {
+    if (videoStatus !== "processing") return;
+    
+    let cancelled = false;
+    const pollInterval = setInterval(async () => {
+      if (cancelled) return;
+      
+      try {
+        const res = await fetch(`/api/ice/preview/${previewId}/cards/${card.id}/video/status`, {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        
+        const data = await res.json();
+        if (cancelled) return;
+        
+        if (data.status === "completed" && data.videoUrl) {
+          setVideoStatus("completed");
+          onCardUpdate(card.id, { generatedVideoUrl: data.videoUrl, videoGenerationStatus: "completed" });
+          toast({ title: "Video ready!", description: "Your AI video has been generated." });
+        } else if (data.status === "failed") {
+          setVideoStatus("failed");
+          toast({ 
+            title: "Video generation failed", 
+            description: data.error || "Please try again", 
+            variant: "destructive" 
+          });
+        }
+      } catch (err) {
+        console.error("Error polling video status:", err);
+      }
+    }, 10000); // Poll every 10 seconds
+    
+    return () => {
+      cancelled = true;
+      clearInterval(pollInterval);
+    };
+  }, [videoStatus, previewId, card.id, onCardUpdate, toast]);
+  
+  // Initialize video status from card data
+  useEffect(() => {
+    if (card.videoGenerationStatus === "processing" && !videoStatus) {
+      setVideoStatus("processing");
+    } else if (card.generatedVideoUrl && videoStatus !== "completed") {
+      setVideoStatus("completed");
+    }
+  }, [card.videoGenerationStatus, card.generatedVideoUrl, videoStatus]);
+  
   const handleGenerateImage = async () => {
     if (!canGenerateImages) {
       onUpgradeClick();
