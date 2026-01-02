@@ -14,9 +14,15 @@ export class OpenAITTSProvider implements TTSProvider {
   private client: OpenAI | null = null;
 
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY;
+    // Use Replit AI integration key first, fall back to direct OPENAI_API_KEY
+    const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+    
     if (apiKey) {
-      this.client = new OpenAI({ apiKey });
+      this.client = new OpenAI({ 
+        apiKey,
+        ...(baseURL && { baseURL })
+      });
     }
   }
 
