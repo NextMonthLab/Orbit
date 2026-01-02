@@ -167,6 +167,7 @@ export default function IceCheckoutPage() {
           interactivityNodeCount,
           planName: outputChoice === "publish" && selectedPlan ? selectedPlan : undefined,
           priceId: outputChoice === "publish" && selectedPlan ? PLAN_STRIPE_PRICE_IDS[selectedPlan] : undefined,
+          devBypass: true, // DEV: Skip Stripe checkout
         }),
         credentials: "include",
       });
@@ -175,6 +176,11 @@ export default function IceCheckoutPage() {
       return response.json();
     },
     onSuccess: (data) => {
+      // DEV BYPASS: Handle direct upgrade
+      if (data.devBypass && data.success) {
+        window.location.href = data.redirectUrl || '/dashboard';
+        return;
+      }
       if (data.url) {
         window.location.href = data.url;
       }

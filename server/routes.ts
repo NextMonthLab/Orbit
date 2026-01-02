@@ -4474,7 +4474,44 @@ export async function registerRoutes(
   // Create checkout session for subscription
   app.post("/api/checkout", requireAuth, async (req, res) => {
     try {
-      const { priceId, planName, previewId, mediaOptions, outputChoice, interactivityNodeCount, expansionScope } = req.body;
+      const { priceId, planName, previewId, mediaOptions, outputChoice, interactivityNodeCount, expansionScope, devBypass } = req.body;
+      
+      // DEV BYPASS: Skip Stripe and directly upgrade the user (for testing)
+      if (devBypass === true) {
+        const plan = await storage.getPlanByName(planName);
+        if (!plan) {
+          return res.status(400).json({ message: "Invalid plan" });
+        }
+        
+        // Directly update user subscription
+        const existingSub = await storage.getSubscription(req.user!.id);
+        if (existingSub) {
+          await storage.updateSubscription(existingSub.id, {
+            planId: plan.id,
+            status: 'active',
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          });
+        } else {
+          await storage.createSubscription({
+            userId: req.user!.id,
+            planId: plan.id,
+            status: 'active',
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            stripeSubscriptionId: `dev_bypass_${Date.now()}`,
+            stripeCustomerId: `dev_customer_${req.user!.id}`,
+          });
+        }
+        
+        console.log(`[DEV BYPASS] User ${req.user!.id} upgraded to ${planName} plan`);
+        
+        return res.json({ 
+          devBypass: true,
+          success: true,
+          redirectUrl: previewId ? `/checkout/success?session_id=dev_bypass&preview_id=${previewId}` : '/dashboard',
+        });
+      }
       
       const { getUncachableStripeClient, getStripePublishableKey } = await import("./stripeClient");
       const stripe = await getUncachableStripeClient();

@@ -55,15 +55,23 @@ export function UpgradeModal({ open, onOpenChange, feature, reason }: UpgradeMod
         body: JSON.stringify({
           priceId: plan.stripePriceIdMonthly,
           planName: plan.name,
+          devBypass: true, // DEV: Skip Stripe checkout
         }),
         credentials: "include",
       });
       
       if (!response.ok) throw new Error("Failed to create checkout session");
       
-      const { url } = await response.json();
-      if (url) {
-        window.location.href = url;
+      const data = await response.json();
+      
+      // DEV BYPASS: Handle direct upgrade
+      if (data.devBypass && data.success) {
+        window.location.href = data.redirectUrl || '/dashboard';
+        return;
+      }
+      
+      if (data.url) {
+        window.location.href = data.url;
       }
     } catch (error) {
       console.error("Upgrade error:", error);
