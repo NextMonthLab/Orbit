@@ -5712,8 +5712,8 @@ Guidelines:
       
       // Rate limiting by IP (userIp defined earlier)
       const dailyCount = await storage.countIpIcePreviewsToday(userIp);
-      if (dailyCount >= 10) {
-        return res.status(429).json({ message: "Daily preview limit reached (10 per day)" });
+      if (dailyCount >= 50) {
+        return res.status(429).json({ message: "Daily preview limit reached (50 per day)" });
       }
       
       const previewCards = cards.map((card, idx) => ({
@@ -5852,8 +5852,8 @@ Stay engaging, reference story details, and help the audience understand the nar
       
       // Rate limiting by IP
       const dailyCount = await storage.countIpIcePreviewsToday(userIp);
-      if (dailyCount >= 10) {
-        return res.status(429).json({ message: "Daily preview limit reached (10 per day)" });
+      if (dailyCount >= 50) {
+        return res.status(429).json({ message: "Daily preview limit reached (50 per day)" });
       }
       
       let contentText = "";
