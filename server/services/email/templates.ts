@@ -8,7 +8,8 @@ const baseStyles = `
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a2e; margin: 0; padding: 0; background-color: #0f0f23; }
   .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
   .card { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1); }
-  .logo { font-family: 'Cinzel', serif; font-size: 24px; font-weight: 700; background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 24px; }
+  .logo { margin-bottom: 24px; }
+  .logo img { height: 32px; width: auto; }
   h1 { color: #ffffff; font-size: 28px; margin: 0 0 16px 0; font-weight: 600; }
   p { color: #a1a1aa; font-size: 16px; margin: 0 0 16px 0; }
   .button { display: inline-block; background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 24px 0; }
@@ -18,6 +19,8 @@ const baseStyles = `
   .warning { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
   .warning p { color: #fbbf24; font-size: 14px; margin: 0; }
 `;
+
+const LOGO_URL = 'https://nextmonth.io/logo.png';
 
 function wrapHtml(content: string): string {
   return `<!DOCTYPE html>
@@ -30,7 +33,9 @@ function wrapHtml(content: string): string {
 <body>
   <div class="container">
     <div class="card">
-      <div class="logo">NextMonth</div>
+      <div class="logo">
+        <img src="${LOGO_URL}" alt="NextMonth" style="height: 32px; width: auto;" />
+      </div>
       ${content}
       <div class="footer">
         <p>This email was sent by NextMonth. If you didn't expect this email, you can safely ignore it.</p>

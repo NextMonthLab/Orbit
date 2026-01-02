@@ -8193,7 +8193,7 @@ STRICT RULES:
       const emailResult = await sendEmail({
         to: email.toLowerCase(),
         template: orbitClaimMagicLink({
-          businessName: orbitMeta.businessName,
+          businessName: sourceDomain,
           claimUrl: magicLink,
           expiryMinutes,
           isFreeEmailDomain: isFreeDomain,
