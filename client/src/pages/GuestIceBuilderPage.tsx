@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { Sparkles, Globe, FileText, ArrowRight, Loader2, GripVertical, Lock, Play, Image, Mic, Upload, Check, Circle, Eye, Pencil, Film, X, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
+import { Sparkles, Globe, FileText, ArrowRight, Loader2, GripVertical, Lock, Play, Image, Mic, Upload, Check, Circle, Eye, Pencil, Film, X, ChevronLeft, ChevronRight, MessageCircle, Wand2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +20,8 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import previewCardBackground from "@assets/generated_images/minimal_sunset_with_top_silhouettes.png";
 import { InteractivityNode, AddInteractivityButton, StoryCharacter } from "@/components/InteractivityNode";
 import { GuidedWalkthrough } from "@/components/GuidedWalkthrough";
+import { MediaGenerationPanel } from "@/components/MediaGenerationPanel";
+import { UpgradeModal } from "@/components/UpgradeModal";
 
 const CREATION_STAGES = [
   { id: "fetch", label: "Fetching your content", duration: 1500 },
@@ -103,6 +105,8 @@ export default function GuestIceBuilderPage() {
   const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(true);
   const [cardFont, setCardFont] = useState<CardFont>("cinzel");
   const [cardFontColor, setCardFontColor] = useState("#ffffff");
+  const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
   const paceDelays = { slow: 12000, normal: 5000, fast: 3000 };
   
@@ -618,15 +622,24 @@ export default function GuestIceBuilderPage() {
                         onDragStart={() => handleDragStart(index)}
                         onDragOver={(e) => handleDragOver(e, index)}
                         onDragEnd={handleDragEnd}
-                        className={`group relative bg-gradient-to-r from-slate-900 to-slate-900/90 border border-slate-700 rounded-lg overflow-hidden cursor-move transition-all hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 ${
-                          draggedIndex === index ? "opacity-50 scale-[1.02] shadow-xl" : ""
-                        }`}
+                        onClick={() => setSelectedCardIndex(selectedCardIndex === index ? null : index)}
+                        className={`group relative bg-gradient-to-r from-slate-900 to-slate-900/90 border rounded-lg overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:shadow-purple-500/10 ${
+                          selectedCardIndex === index 
+                            ? "border-purple-500 ring-2 ring-purple-500/30 shadow-lg shadow-purple-500/20" 
+                            : "border-slate-700 hover:border-purple-500/50"
+                        } ${draggedIndex === index ? "opacity-50 scale-[1.02] shadow-xl" : ""}`}
                         data-testid={`card-preview-${index}`}
                       >
                         {/* Card frame number - film style */}
-                        <div className="absolute left-0 top-0 bottom-0 w-10 sm:w-12 bg-slate-950/60 border-r border-slate-700/50 flex flex-col items-center justify-center">
-                          <GripVertical className="w-4 h-4 text-slate-600 mb-1 group-hover:text-purple-400 transition-colors" />
-                          <span className="text-xs font-mono text-slate-500 group-hover:text-purple-400 transition-colors">{String(index + 1).padStart(2, '0')}</span>
+                        <div className={`absolute left-0 top-0 bottom-0 w-10 sm:w-12 border-r flex flex-col items-center justify-center ${
+                          selectedCardIndex === index ? "bg-purple-900/40 border-purple-500/30" : "bg-slate-950/60 border-slate-700/50"
+                        }`}>
+                          <GripVertical className={`w-4 h-4 mb-1 transition-colors ${
+                            selectedCardIndex === index ? "text-purple-400" : "text-slate-600 group-hover:text-purple-400"
+                          }`} />
+                          <span className={`text-xs font-mono transition-colors ${
+                            selectedCardIndex === index ? "text-purple-400" : "text-slate-500 group-hover:text-purple-400"
+                          }`}>{String(index + 1).padStart(2, '0')}</span>
                         </div>
                         
                         <div className="pl-12 sm:pl-14 pr-3 py-3 sm:pr-4 sm:py-4">
@@ -634,6 +647,7 @@ export default function GuestIceBuilderPage() {
                             value={card.title}
                             onChange={(e) => handleCardEdit(index, "title", e.target.value)}
                             onBlur={handleCardBlur}
+                            onClick={(e) => e.stopPropagation()}
                             placeholder="Card title..."
                             className="bg-transparent border-transparent hover:border-slate-600 focus:border-purple-500 focus:bg-slate-800/50 font-semibold text-white text-sm sm:text-base h-8 sm:h-9 px-2"
                             data-testid={`input-card-title-${index}`}
@@ -642,6 +656,7 @@ export default function GuestIceBuilderPage() {
                             value={card.content}
                             onChange={(e) => handleCardEdit(index, "content", e.target.value)}
                             onBlur={handleCardBlur}
+                            onClick={(e) => e.stopPropagation()}
                             placeholder="Card content..."
                             rows={2}
                             className="bg-transparent border-transparent hover:border-slate-600 focus:border-purple-500 focus:bg-slate-800/50 text-slate-300 text-xs sm:text-sm resize-none mt-1 px-2"
@@ -649,13 +664,51 @@ export default function GuestIceBuilderPage() {
                           />
                         </div>
                         
-                        {/* Hover edit indicator */}
-                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="bg-purple-500/20 rounded p-1">
-                            <Pencil className="w-3 h-3 text-purple-400" />
-                          </div>
+                        {/* Media generation button - always visible */}
+                        <div className="absolute right-2 top-2 flex gap-1">
+                          {selectedCardIndex === index ? (
+                            <div className="bg-purple-500/30 rounded px-2 py-1 text-xs text-purple-300 flex items-center gap-1">
+                              <Wand2 className="w-3 h-3" />
+                              Selected
+                            </div>
+                          ) : (
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                              <div className="bg-purple-500/20 rounded p-1">
+                                <Wand2 className="w-3 h-3 text-purple-400" />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
+                      
+                      {/* Media Generation Panel - shows when card is selected */}
+                      <AnimatePresence>
+                        {selectedCardIndex === index && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-2 p-4 bg-slate-800/50 rounded-lg border border-purple-500/20">
+                              <MediaGenerationPanel
+                                previewId={preview?.id || ""}
+                                cardId={card.id}
+                                cardTitle={card.title}
+                                cardContent={card.content}
+                                canGenerateImages={entitlements?.canGenerateImages || false}
+                                canGenerateVideos={isProfessionalMode || false}
+                                canGenerateVoiceover={isProfessionalMode || false}
+                                onUpgradeClick={() => setShowUpgradeModal(true)}
+                                onMediaGenerated={() => {
+                                  toast({ title: "Media generated!", description: "Your AI media has been created." });
+                                }}
+                              />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       
                       {/* Interactivity node slot between cards */}
                       {index < cards.length - 1 && (
@@ -973,6 +1026,14 @@ export default function GuestIceBuilderPage() {
           />
         )}
       </AnimatePresence>
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="AI Media Generation"
+        reason="Unlock AI-powered image and video generation, character interactions, voiceover narration, and more."
+      />
     </div>
   );
 }

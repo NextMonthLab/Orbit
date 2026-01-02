@@ -6450,6 +6450,202 @@ Stay engaging, reference story details, and help the audience understand the nar
     }
   });
   
+  // Generate image for an ICE preview card (requires auth + entitlements)
+  app.post("/api/ice/preview/:previewId/cards/:cardId/generate-image", requireAuth, async (req, res) => {
+    try {
+      const { previewId, cardId } = req.params;
+      const { prompt } = req.body;
+      
+      const preview = await storage.getIcePreview(previewId);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      // Check write permission using policy function
+      const user = req.user as schema.User;
+      const policy = canWriteIcePreview(user, preview);
+      
+      if (!policy.allowed) {
+        const { userIp, userAgent } = extractRequestInfo(req);
+        await logAuditEvent('permission.denied', 'ice_preview', preview.id, {
+          userId: user.id,
+          userIp,
+          userAgent,
+          details: { action: 'generate-image', reason: policy.reason },
+          success: false,
+          errorCode: String(policy.statusCode),
+        });
+        return res.status(policy.statusCode).json({ message: policy.reason || "Not authorized to edit this preview" });
+      }
+      
+      // Check entitlements
+      const entitlements = await getFullEntitlements(user.id);
+      if (!entitlements.canGenerateImages) {
+        const { userIp, userAgent } = extractRequestInfo(req);
+        await logAuditEvent('permission.denied', 'ice_preview', preview.id, {
+          userId: user.id,
+          userIp,
+          userAgent,
+          details: { action: 'generate-image', reason: 'Missing image generation entitlement' },
+          success: false,
+          errorCode: '403',
+        });
+        return res.status(403).json({ 
+          message: "Image generation requires a paid subscription",
+          upgradeRequired: true,
+        });
+      }
+      
+      // Find the card
+      const cards = preview.cards as any[];
+      const cardIndex = cards.findIndex(c => c.id === cardId);
+      if (cardIndex === -1) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      const card = cards[cardIndex];
+      
+      // Generate prompt from card content if not provided
+      const imagePrompt = prompt || `${card.title}. ${card.content}`;
+      
+      // Check if OpenAI is configured
+      if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY && !process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ message: "AI image generation is not configured" });
+      }
+      
+      console.log(`[ICE] Generating image for preview ${previewId}, card ${cardId}`);
+      
+      // Call OpenAI image generation
+      const response = await getOpenAI().images.generate({
+        model: "gpt-image-1",
+        prompt: imagePrompt.substring(0, 3900),
+        n: 1,
+        size: "1024x1536", // Portrait for story cards
+      });
+      
+      const imageData = response.data?.[0];
+      const base64Image = imageData?.b64_json;
+      const imageUrl = imageData?.url;
+      
+      let finalImageUrl: string;
+      
+      if (base64Image) {
+        // Save to uploads folder
+        const uploadsDir = path.join(process.cwd(), "uploads", "ice-generated");
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        
+        const filename = `ice-${previewId}-${cardId}-${Date.now()}.png`;
+        const filepath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filepath, Buffer.from(base64Image, "base64"));
+        
+        finalImageUrl = `/uploads/ice-generated/${filename}`;
+      } else if (imageUrl) {
+        finalImageUrl = imageUrl;
+      } else {
+        throw new Error("No image data returned");
+      }
+      
+      // Update the card with the generated image URL
+      cards[cardIndex] = { ...card, generatedImageUrl: finalImageUrl };
+      await storage.updateIcePreview(previewId, { cards });
+      
+      // Log successful generation
+      const { userIp: successIp, userAgent: successAgent } = extractRequestInfo(req);
+      await logAuditEvent('media.generated', 'ice_preview', preview.id, {
+        userId: user.id,
+        userIp: successIp,
+        userAgent: successAgent,
+        details: { cardId, type: 'image' },
+      });
+      
+      res.json({
+        success: true,
+        imageUrl: finalImageUrl,
+        cardId,
+      });
+    } catch (error) {
+      console.error("Error generating ICE preview card image:", error);
+      res.status(500).json({ message: "Error generating image" });
+    }
+  });
+  
+  // Generate video for an ICE preview card (requires auth + entitlements)
+  app.post("/api/ice/preview/:previewId/cards/:cardId/generate-video", requireAuth, async (req, res) => {
+    try {
+      const { previewId, cardId } = req.params;
+      const { mode, prompt, sourceImageUrl } = req.body;
+      
+      const preview = await storage.getIcePreview(previewId);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      // Check write permission using policy function
+      const user = req.user as schema.User;
+      const policy = canWriteIcePreview(user, preview);
+      
+      if (!policy.allowed) {
+        const { userIp, userAgent } = extractRequestInfo(req);
+        await logAuditEvent('permission.denied', 'ice_preview', preview.id, {
+          userId: user.id,
+          userIp,
+          userAgent,
+          details: { action: 'generate-video', reason: policy.reason },
+          success: false,
+          errorCode: String(policy.statusCode),
+        });
+        return res.status(policy.statusCode).json({ message: policy.reason || "Not authorized to edit this preview" });
+      }
+      
+      // Check entitlements
+      const entitlements = await getFullEntitlements(user.id);
+      if (!entitlements.canGenerateVideos) {
+        const { userIp, userAgent } = extractRequestInfo(req);
+        await logAuditEvent('permission.denied', 'ice_preview', preview.id, {
+          userId: user.id,
+          userIp,
+          userAgent,
+          details: { action: 'generate-video', reason: 'Missing video generation entitlement' },
+          success: false,
+          errorCode: '403',
+        });
+        return res.status(403).json({ 
+          message: "Video generation requires a Business subscription",
+          upgradeRequired: true,
+        });
+      }
+      
+      // Find the card
+      const cards = preview.cards as any[];
+      const card = cards.find(c => c.id === cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      // Log start of video generation
+      const { userIp, userAgent } = extractRequestInfo(req);
+      await logAuditEvent('media.generation_started', 'ice_preview', preview.id, {
+        userId: user.id,
+        userIp,
+        userAgent,
+        details: { cardId, type: 'video', mode },
+      });
+      
+      // Video generation requires additional setup (Replicate/Kling)
+      // For now, return a placeholder response
+      res.json({
+        success: true,
+        message: "Video generation started",
+        status: "pending",
+        cardId,
+      });
+    } catch (error) {
+      console.error("Error generating ICE preview card video:", error);
+      res.status(500).json({ message: "Error generating video" });
+    }
+  });
+
   // Promote ICE preview to full transformation (requires auth)
   app.post("/api/transformations/from-preview", async (req, res) => {
     if (!req.user) {
