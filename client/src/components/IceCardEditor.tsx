@@ -108,6 +108,8 @@ export function IceCardEditor({
   const [videoMode, setVideoMode] = useState<"text-to-video" | "image-to-video">("text-to-video");
   const [videoModel, setVideoModel] = useState("");
   const [videoDuration, setVideoDuration] = useState<5 | 10>(5);
+  const [videoPrompt, setVideoPrompt] = useState("");
+  const [referenceImageUrl, setReferenceImageUrl] = useState("");
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoStatus, setVideoStatus] = useState<string | null>(null);
   const [videoGenElapsed, setVideoGenElapsed] = useState(0);
@@ -206,6 +208,11 @@ export function IceCardEditor({
     setVideoGenStartTime(Date.now());
     
     try {
+      const effectivePrompt = videoPrompt || `Cinematic scene: ${card.title}. ${card.content}`;
+      const effectiveImageUrl = videoMode === "image-to-video" 
+        ? (referenceImageUrl || card.generatedImageUrl) 
+        : undefined;
+      
       const res = await fetch(`/api/ice/preview/${previewId}/cards/${card.id}/generate-video`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -214,7 +221,8 @@ export function IceCardEditor({
           mode: videoMode,
           model: videoModel,
           duration: videoDuration,
-          sourceImageUrl: videoMode === "image-to-video" ? card.generatedImageUrl : undefined,
+          prompt: effectivePrompt,
+          sourceImageUrl: effectiveImageUrl,
         }),
       });
       
@@ -586,9 +594,7 @@ export function IceCardEditor({
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="text-to-video">Text to Video</SelectItem>
-                              <SelectItem value="image-to-video" disabled={!card.generatedImageUrl}>
-                                Image to Video
-                              </SelectItem>
+                              <SelectItem value="image-to-video">Image to Video</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -619,6 +625,40 @@ export function IceCardEditor({
                             </SelectContent>
                           </Select>
                         </div>
+                      </div>
+                      
+                      {videoMode === "image-to-video" && (
+                        <div className="space-y-2">
+                          <Label className="text-slate-300">Reference Image URL</Label>
+                          <Input
+                            placeholder={card.generatedImageUrl ? "Using generated image (or paste URL)" : "Paste image URL for animation"}
+                            value={referenceImageUrl}
+                            onChange={(e) => setReferenceImageUrl(e.target.value)}
+                            className="bg-slate-800 border-slate-700 text-white"
+                            data-testid="input-reference-image-url"
+                          />
+                          {card.generatedImageUrl && !referenceImageUrl && (
+                            <p className="text-xs text-green-400">Will use card's generated image</p>
+                          )}
+                          {!card.generatedImageUrl && !referenceImageUrl && (
+                            <p className="text-xs text-yellow-400">Paste an image URL to animate</p>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="space-y-2">
+                        <Label className="text-slate-300">Video Prompt</Label>
+                        <Textarea
+                          placeholder="Describe the video motion and scene (e.g., 'Slow zoom into the scene, gentle camera movement...')"
+                          value={videoPrompt}
+                          onChange={(e) => setVideoPrompt(e.target.value)}
+                          rows={3}
+                          className="bg-slate-800 border-slate-700 text-white"
+                          data-testid="input-video-prompt"
+                        />
+                        <p className="text-xs text-slate-500">
+                          Leave empty to auto-generate from card content
+                        </p>
                       </div>
                       
                       {videoStatus === "processing" && (
