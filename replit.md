@@ -101,6 +101,39 @@ For B2B food service companies (e.g., Tugo, Compass Group):
 - **Restaurant (Red Lion Bloxham)**: Successfully extracts 107 menu items across 11 categories with prices, descriptions, and dietary tags
 - **B2B Service (Tugo)**: Detects as 'service' type, extracts food concepts and solutions without prices
 
+## Launchpad Hub (January 2026)
+
+The Launchpad (`/launchpad`) is the unified command center combining Orbit metrics with IceMaker content creation.
+
+### Architecture
+- **Two-Column Layout**: Left side (2/3) for insights feed, right side (1/3) for IceBuilder panel
+- **Bottom Strip**: Recent drafts display for quick access
+- **Mobile Adaptation**: Tab-based navigation (Insights | Builder | Recent) with responsive layouts
+
+### Key Components
+- `client/src/pages/Launchpad.tsx` - Main hub page with orbit selection and state management
+- `client/src/components/launchpad/LaunchpadHeader.tsx` - Orbit selector dropdown with status badge
+- `client/src/components/launchpad/SignalTiles.tsx` - Metrics grid (visits, conversations, ice views, leads)
+- `client/src/components/launchpad/TopInsightCard.tsx` - Featured insight with Make Ice CTA
+- `client/src/components/launchpad/InsightFeed.tsx` - Scrollable insights list with loading skeletons
+- `client/src/components/launchpad/IceBuilderPanel.tsx` - Draft generation with format/tone/output controls
+- `client/src/components/launchpad/RecentStrip.tsx` - Horizontal scrollable recent drafts
+- `client/src/components/launchpad/PowerUpBanner.tsx` - Upgrade prompt for basic tier orbits
+
+### Data Flow
+1. **Orbit Selection**: Persisted to localStorage, loads stats and insights on change
+2. **Insights Generation**: `GET /api/orbit/:slug/insights` generates insights dynamically from analytics, conversations, and catalogue data (hash-based deterministic IDs, no DB persistence)
+3. **Draft Generation**: `POST /api/orbit/:slug/ice/generate` creates ICE drafts stored in `ice_drafts` table
+4. **Draft Listing**: `GET /api/orbit/:slug/ice/drafts` returns recent drafts for RecentStrip
+
+### Database Schema
+- `ice_drafts` table with fields: id, businessSlug, insightId, format, tone, outputType, status, headline, captions (JSON array), ctaText, previewFrameUrl, predictionId, createdAt, publishedAt
+
+### Power-Up System
+- Orbits with `planTier = "free"` show as "basic" status
+- PowerUpBanner displayed for basic orbits prompting upgrade
+- Upgrade route: `/orbit/:slug/upgrade`
+
 ## External Dependencies
 -   **OpenAI API**: For chat completions (gpt-4o-mini) and Text-to-Speech (TTS).
 -   **Kling AI API**: For video generation.
