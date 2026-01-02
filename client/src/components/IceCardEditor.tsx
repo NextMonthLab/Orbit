@@ -44,6 +44,7 @@ interface IceCardEditorProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onCardUpdate: (cardId: string, updates: Partial<PreviewCard>) => void;
+  onCardSave: (cardId: string, updates: Partial<PreviewCard>) => void;
   onUpgradeClick: () => void;
 }
 
@@ -83,6 +84,7 @@ export function IceCardEditor({
   isExpanded,
   onToggleExpand,
   onCardUpdate,
+  onCardSave,
   onUpgradeClick,
 }: IceCardEditorProps) {
   const { toast } = useToast();
@@ -93,7 +95,14 @@ export function IceCardEditor({
   const canGenerateVoiceover = entitlements?.canUploadAudio ?? false;
   const isPro = entitlements && entitlements.tier !== "free";
   
-  const [activeTab, setActiveTab] = useState<"image" | "video" | "narration">("image");
+  const [activeTab, setActiveTab] = useState<"content" | "image" | "video" | "narration">("content");
+  const [editedTitle, setEditedTitle] = useState(card.title);
+  const [editedContent, setEditedContent] = useState(card.content);
+  
+  useEffect(() => {
+    setEditedTitle(card.title);
+    setEditedContent(card.content);
+  }, [card.title, card.content]);
   const [imagePrompt, setImagePrompt] = useState("");
   const [imageLoading, setImageLoading] = useState(false);
   const [videoMode, setVideoMode] = useState<"text-to-video" | "image-to-video">("text-to-video");
@@ -371,10 +380,22 @@ export function IceCardEditor({
             transition={{ duration: 0.2 }}
           >
             <div className="p-4 space-y-4">
-              <div className="flex gap-2 border-b border-slate-700 pb-2">
+              <div className="flex gap-2 border-b border-slate-700 pb-2 overflow-x-auto">
+                <button
+                  onClick={() => setActiveTab("content")}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
+                    activeTab === "content" 
+                      ? "bg-purple-600 text-white" 
+                      : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  }`}
+                  data-testid="tab-content"
+                >
+                  <Wand2 className="w-4 h-4" />
+                  Content
+                </button>
                 <button
                   onClick={() => setActiveTab("image")}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
                     activeTab === "image" 
                       ? "bg-purple-600 text-white" 
                       : "text-slate-400 hover:text-white hover:bg-slate-800"
@@ -387,7 +408,7 @@ export function IceCardEditor({
                 </button>
                 <button
                   onClick={() => setActiveTab("video")}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
                     activeTab === "video" 
                       ? "bg-purple-600 text-white" 
                       : "text-slate-400 hover:text-white hover:bg-slate-800"
@@ -412,6 +433,47 @@ export function IceCardEditor({
                   {!canGenerateVoiceover && <Lock className="w-3 h-3 ml-1 text-yellow-400" />}
                 </button>
               </div>
+              
+              {activeTab === "content" && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Card Title</Label>
+                    <Input
+                      value={editedTitle}
+                      onChange={(e) => {
+                        setEditedTitle(e.target.value);
+                        onCardUpdate(card.id, { title: e.target.value });
+                      }}
+                      onBlur={() => onCardSave(card.id, { title: editedTitle, content: editedContent })}
+                      placeholder="Enter card title..."
+                      className="bg-slate-800 border-slate-700 text-white font-semibold"
+                      data-testid="input-card-title"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Card Content</Label>
+                    <Textarea
+                      value={editedContent}
+                      onChange={(e) => {
+                        setEditedContent(e.target.value);
+                        onCardUpdate(card.id, { content: e.target.value });
+                      }}
+                      onBlur={() => onCardSave(card.id, { title: editedTitle, content: editedContent })}
+                      placeholder="Enter card content..."
+                      rows={5}
+                      className="bg-slate-800 border-slate-700 text-white"
+                      data-testid="input-card-content"
+                    />
+                  </div>
+                  
+                  <div className="p-3 bg-slate-800/50 rounded-lg">
+                    <p className="text-xs text-slate-400">
+                      This content will be used to generate AI images, videos, and narration for this card.
+                    </p>
+                  </div>
+                </div>
+              )}
               
               {activeTab === "image" && (
                 <div className="relative space-y-4">

@@ -6645,6 +6645,149 @@ Stay engaging, reference story details, and help the audience understand the nar
       res.status(500).json({ message: "Error generating video" });
     }
   });
+  
+  // Preview narration for an ICE preview card (short audio, not stored)
+  app.post("/api/ice/preview/:previewId/cards/:cardId/narration/preview", requireAuth, async (req, res) => {
+    try {
+      const { text, voice, speed } = req.body;
+      
+      const { isTTSConfigured, synthesiseSpeech } = await import("./tts");
+      
+      if (!isTTSConfigured()) {
+        return res.status(503).json({ message: "TTS not configured" });
+      }
+      
+      // Limit preview to first 300 characters
+      const previewText = (text || "").slice(0, 300);
+      if (!previewText.trim()) {
+        return res.status(400).json({ message: "Preview text cannot be empty" });
+      }
+      
+      const result = await synthesiseSpeech({
+        text: previewText,
+        voice: voice || "alloy",
+        speed: speed || 1.0,
+      });
+      
+      res.set("Content-Type", result.contentType);
+      res.send(result.audioBuffer);
+    } catch (error) {
+      console.error("Error generating ICE narration preview:", error);
+      res.status(500).json({ message: "Error generating preview" });
+    }
+  });
+  
+  // Generate narration for an ICE preview card (requires auth + entitlements)
+  app.post("/api/ice/preview/:previewId/cards/:cardId/narration/generate", requireAuth, async (req, res) => {
+    try {
+      const { previewId, cardId } = req.params;
+      const { text, voice, speed } = req.body;
+      
+      const preview = await storage.getIcePreview(previewId);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      // Check write permission using policy function
+      const user = req.user as schema.User;
+      const policy = canWriteIcePreview(user, preview);
+      
+      if (!policy.allowed) {
+        const { userIp, userAgent } = extractRequestInfo(req);
+        await logAuditEvent('permission.denied', 'ice_preview', preview.id, {
+          userId: user.id,
+          userIp,
+          userAgent,
+          details: { action: 'generate-narration', reason: policy.reason },
+          success: false,
+          errorCode: String(policy.statusCode),
+        });
+        return res.status(policy.statusCode).json({ message: policy.reason || "Not authorized to edit this preview" });
+      }
+      
+      // Check entitlements (TTS requires audio/voiceover entitlement)
+      const entitlements = await getFullEntitlements(user.id);
+      if (!entitlements.canUploadAudio) {
+        const { userIp, userAgent } = extractRequestInfo(req);
+        await logAuditEvent('permission.denied', 'ice_preview', preview.id, {
+          userId: user.id,
+          userIp,
+          userAgent,
+          details: { action: 'generate-narration', reason: 'Missing voiceover entitlement' },
+          success: false,
+          errorCode: '403',
+        });
+        return res.status(403).json({ 
+          message: "Voiceover narration requires a paid subscription",
+          upgradeRequired: true,
+        });
+      }
+      
+      // Find the card
+      const cards = preview.cards as any[];
+      const cardIndex = cards.findIndex(c => c.id === cardId);
+      if (cardIndex === -1) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      const card = cards[cardIndex];
+      
+      // Use provided text or fall back to card content
+      const narrationText = text || card.content;
+      if (!narrationText || narrationText.trim() === "") {
+        return res.status(400).json({ message: "Narration text is empty" });
+      }
+      
+      const { isTTSConfigured, synthesiseSpeech, validateNarrationText } = await import("./tts");
+      const { isObjectStorageConfigured, putObject } = await import("./storage/objectStore");
+      
+      if (!isTTSConfigured()) {
+        return res.status(503).json({ message: "TTS not configured: OPENAI_API_KEY is missing" });
+      }
+      
+      if (!isObjectStorageConfigured()) {
+        return res.status(503).json({ message: "Object storage not configured" });
+      }
+      
+      const validation = validateNarrationText(narrationText);
+      if (!validation.valid) {
+        return res.status(400).json({ message: validation.error });
+      }
+      
+      console.log(`[ICE] Generating narration for preview ${previewId}, card ${cardId}`);
+      
+      const result = await synthesiseSpeech({
+        text: narrationText,
+        voice: voice || "alloy",
+        speed: speed || 1.0,
+      });
+      
+      // Save to object storage
+      const key = `.private/ice-narration/${previewId}-${cardId}-${Date.now()}.mp3`;
+      const audioUrl = await putObject(key, result.audioBuffer, result.contentType);
+      
+      // Update the card with the generated audio URL
+      cards[cardIndex] = { ...card, narrationAudioUrl: audioUrl };
+      await storage.updateIcePreview(previewId, { cards });
+      
+      // Log successful generation
+      const { userIp: successIp, userAgent: successAgent } = extractRequestInfo(req);
+      await logAuditEvent('media.generated', 'ice_preview', preview.id, {
+        userId: user.id,
+        userIp: successIp,
+        userAgent: successAgent,
+        details: { cardId, type: 'narration' },
+      });
+      
+      res.json({
+        success: true,
+        audioUrl,
+        cardId,
+      });
+    } catch (error) {
+      console.error("Error generating ICE narration:", error);
+      res.status(500).json({ message: "Error generating narration" });
+    }
+  });
 
   // Promote ICE preview to full transformation (requires auth)
   app.post("/api/transformations/from-preview", async (req, res) => {

@@ -22,6 +22,7 @@ import { InteractivityNode, AddInteractivityButton, StoryCharacter } from "@/com
 import { GuidedWalkthrough } from "@/components/GuidedWalkthrough";
 import { MediaGenerationPanel } from "@/components/MediaGenerationPanel";
 import { UpgradeModal } from "@/components/UpgradeModal";
+import { IceCardEditor } from "@/components/IceCardEditor";
 
 const CREATION_STAGES = [
   { id: "fetch", label: "Fetching your content", duration: 1500 },
@@ -36,6 +37,9 @@ interface PreviewCard {
   title: string;
   content: string;
   order: number;
+  generatedImageUrl?: string;
+  generatedVideoUrl?: string;
+  narrationAudioUrl?: string;
 }
 
 interface PreviewData {
@@ -60,6 +64,8 @@ interface InteractivityNodeData {
 interface Entitlements {
   canUseCloudLlm: boolean;
   canGenerateImages: boolean;
+  canGenerateVideos: boolean;
+  canUploadAudio: boolean;
   canExport: boolean;
   canUseCharacterChat: boolean;
   maxCardsPerStory: number;
@@ -308,6 +314,86 @@ export default function GuestIceBuilderPage() {
     createPreviewMutation.mutate({ type: inputType, value });
   };
 
+  // Use refs to track pending save operations and serialize mutations
+  const pendingSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cardsRef = useRef(cards);
+  const saveQueuedRef = useRef(false);
+  const savingRef = useRef(false);
+  
+  // Keep cardsRef in sync with cards state
+  useEffect(() => {
+    cardsRef.current = cards;
+  }, [cards]);
+  
+  // Cleanup pending saves on unmount
+  useEffect(() => {
+    return () => {
+      if (pendingSaveRef.current) {
+        clearTimeout(pendingSaveRef.current);
+      }
+    };
+  }, []);
+  
+  // Perform the actual save, serializing mutations to prevent race conditions
+  const performSave = async () => {
+    if (savingRef.current || !preview) {
+      // If already saving, mark that another save is needed after current completes
+      saveQueuedRef.current = true;
+      return;
+    }
+    
+    savingRef.current = true;
+    saveQueuedRef.current = false;
+    
+    try {
+      await saveCardsMutation.mutateAsync(cardsRef.current);
+    } finally {
+      savingRef.current = false;
+      
+      // If another save was queued while we were saving, perform it now
+      if (saveQueuedRef.current && cardsRef.current.length > 0) {
+        saveQueuedRef.current = false;
+        performSave();
+      }
+    }
+  };
+  
+  // Save cards with current updates - debounced to handle rapid edits
+  const saveCardsWithUpdates = (cardId: string, updates: Partial<PreviewCard>) => {
+    // Clear any pending save
+    if (pendingSaveRef.current) {
+      clearTimeout(pendingSaveRef.current);
+    }
+    
+    // Update state immediately
+    setCards(currentCards => {
+      const newCards = currentCards.map(card => 
+        card.id === cardId ? { ...card, ...updates } : card
+      );
+      // Store the new cards in ref for the debounced save
+      cardsRef.current = newCards;
+      return newCards;
+    });
+    
+    // Debounce the save by 500ms to batch rapid edits
+    if (preview) {
+      pendingSaveRef.current = setTimeout(() => {
+        pendingSaveRef.current = null;
+        performSave();
+      }, 500);
+    }
+  };
+
+  const handleCardUpdate = (cardId: string, updates: Partial<PreviewCard>) => {
+    setCards(currentCards => {
+      const newCards = currentCards.map(card => 
+        card.id === cardId ? { ...card, ...updates } : card
+      );
+      cardsRef.current = newCards;
+      return newCards;
+    });
+  };
+
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
@@ -321,27 +407,28 @@ export default function GuestIceBuilderPage() {
     newCards.splice(index, 0, removed);
     newCards.forEach((card, i) => card.order = i);
     setCards(newCards);
+    cardsRef.current = newCards;
     setDraggedIndex(index);
   };
 
   const handleDragEnd = () => {
     setDraggedIndex(null);
-    if (preview) {
-      saveCardsMutation.mutate(cards);
-    }
+    // Trigger serialized save - cardsRef is already up to date from handleDragOver
+    performSave();
   };
 
   const handleCardEdit = (index: number, field: "title" | "content", value: string) => {
     const newCards = [...cards];
     newCards[index] = { ...newCards[index], [field]: value };
     setCards(newCards);
+    cardsRef.current = newCards;
   };
 
   const handleCardBlur = () => {
-    if (preview) {
-      saveCardsMutation.mutate(cards);
-    }
+    // Legacy handler - no longer used directly
   };
+
+  const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
 
   if (loadingExisting) {
     return (
@@ -600,201 +687,104 @@ export default function GuestIceBuilderPage() {
             <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-500/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 flex items-center gap-2">
               <Wand2 className="w-4 h-4 text-purple-400 flex-shrink-0" />
               <p className="text-xs sm:text-sm text-purple-200">
-                <span className="font-medium">Tap any card</span> to {isProfessionalMode ? "generate AI media" : "edit"}. <span className="hidden sm:inline">Click ➕ between cards to add AI interactions.</span>
+                <span className="font-medium">Tap any card</span> to edit content and generate AI media. <span className="hidden sm:inline">Click ➕ between cards to add AI interactions.</span>
               </p>
             </div>
 
-            {/* Film strip style cards */}
-            <div className="relative">
-              {/* Film strip perforations - left side */}
-              <div className="absolute left-0 top-0 bottom-0 w-6 sm:w-8 bg-slate-950/80 rounded-l-lg border-r border-slate-700 hidden sm:flex flex-col items-center justify-around py-4">
-                {cards.slice(0, 8).map((_, i) => (
-                  <div key={i} className="w-3 h-3 rounded-sm bg-slate-800 border border-slate-600" />
-                ))}
-              </div>
-              
-              <div className="space-y-0 sm:pl-10">
-                {cards.map((card, index) => {
-                  const nodeAtPosition = interactivityNodes.find(n => n.afterCardIndex === index);
-                  
-                  return (
-                    <div key={card.id}>
-                      <div
-                        draggable
-                        onDragStart={() => handleDragStart(index)}
-                        onDragOver={(e) => handleDragOver(e, index)}
-                        onDragEnd={handleDragEnd}
-                        onClick={() => setSelectedCardIndex(selectedCardIndex === index ? null : index)}
-                        className={`group relative bg-gradient-to-r from-slate-900 to-slate-900/90 border rounded-lg overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:shadow-purple-500/10 ${
-                          selectedCardIndex === index 
-                            ? "border-purple-500 ring-2 ring-purple-500/30 shadow-lg shadow-purple-500/20" 
-                            : "border-slate-700 hover:border-purple-500/50"
-                        } ${draggedIndex === index ? "opacity-50 scale-[1.02] shadow-xl" : ""}`}
-                        data-testid={`card-preview-${index}`}
-                      >
-                        {/* Card frame number - film style */}
-                        <div className={`absolute left-0 top-0 bottom-0 w-10 sm:w-12 border-r flex flex-col items-center justify-center ${
-                          selectedCardIndex === index ? "bg-purple-900/40 border-purple-500/30" : "bg-slate-950/60 border-slate-700/50"
-                        }`}>
-                          <GripVertical className={`w-4 h-4 mb-1 transition-colors ${
-                            selectedCardIndex === index ? "text-purple-400" : "text-slate-600 group-hover:text-purple-400"
-                          }`} />
-                          <span className={`text-xs font-mono transition-colors ${
-                            selectedCardIndex === index ? "text-purple-400" : "text-slate-500 group-hover:text-purple-400"
-                          }`}>{String(index + 1).padStart(2, '0')}</span>
-                        </div>
-                        
-                        <div className="pl-12 sm:pl-14 pr-3 py-3 sm:pr-4 sm:py-4">
-                          <Input
-                            value={card.title}
-                            onChange={(e) => handleCardEdit(index, "title", e.target.value)}
-                            onBlur={handleCardBlur}
-                            onClick={(e) => e.stopPropagation()}
-                            placeholder="Card title..."
-                            className="bg-transparent border-transparent hover:border-slate-600 focus:border-purple-500 focus:bg-slate-800/50 font-semibold text-white text-sm sm:text-base h-8 sm:h-9 px-2"
-                            data-testid={`input-card-title-${index}`}
+            {/* Professional ICE Editor cards */}
+            <div className="space-y-3">
+              {cards.map((card, index) => {
+                const nodeAtPosition = interactivityNodes.find(n => n.afterCardIndex === index);
+                
+                return (
+                  <div key={card.id}>
+                    <IceCardEditor
+                      previewId={preview?.id || ""}
+                      card={card}
+                      cardIndex={index}
+                      entitlements={entitlements || null}
+                      isExpanded={expandedCardIndex === index}
+                      onToggleExpand={() => setExpandedCardIndex(expandedCardIndex === index ? null : index)}
+                      onCardUpdate={handleCardUpdate}
+                      onCardSave={saveCardsWithUpdates}
+                      onUpgradeClick={() => setShowUpgradeModal(true)}
+                    />
+                    
+                    {/* Interactivity node slot between cards */}
+                    {index < cards.length - 1 && (
+                      <div className="py-1">
+                        {nodeAtPosition ? (
+                          <InteractivityNode
+                            nodeId={nodeAtPosition.id}
+                            afterCardIndex={index}
+                            previewId={preview?.id || ""}
+                            previewAccessToken={previewAccessToken}
+                            isActive={nodeAtPosition.isActive}
+                            characters={preview?.characters || []}
+                            selectedCharacterId={nodeAtPosition.selectedCharacterId}
+                            onCharacterSelect={(charId) => {
+                              setInteractivityNodes(nodes =>
+                                nodes.map(n =>
+                                  n.id === nodeAtPosition.id
+                                    ? { ...n, selectedCharacterId: charId }
+                                    : n
+                                )
+                              );
+                            }}
+                            onActivate={() => {
+                              setInteractivityNodes(nodes =>
+                                nodes.map(n =>
+                                  n.id === nodeAtPosition.id
+                                    ? { ...n, isActive: !n.isActive }
+                                    : n
+                                )
+                              );
+                            }}
+                            onRemove={() => {
+                              setInteractivityNodes(nodes =>
+                                nodes.filter(n => n.id !== nodeAtPosition.id)
+                              );
+                            }}
                           />
-                          <Textarea
-                            value={card.content}
-                            onChange={(e) => handleCardEdit(index, "content", e.target.value)}
-                            onBlur={handleCardBlur}
-                            onClick={(e) => e.stopPropagation()}
-                            placeholder="Card content..."
-                            rows={2}
-                            className="bg-transparent border-transparent hover:border-slate-600 focus:border-purple-500 focus:bg-slate-800/50 text-slate-300 text-xs sm:text-sm resize-none mt-1 px-2"
-                            data-testid={`input-card-content-${index}`}
+                        ) : (
+                          <AddInteractivityButton
+                            afterCardIndex={index}
+                            characters={preview?.characters || []}
+                            previewId={preview?.id}
+                            onCharacterSelect={(charId) => {
+                              const newNode: InteractivityNodeData = {
+                                id: `node-${Date.now()}-${index}`,
+                                afterCardIndex: index,
+                                isActive: false,
+                                selectedCharacterId: charId,
+                              };
+                              setInteractivityNodes(nodes => [...nodes, newNode]);
+                            }}
+                            onCharacterCreated={(newChar) => {
+                              if (preview) {
+                                setPreview({
+                                  ...preview,
+                                  characters: [...(preview.characters || []), newChar],
+                                });
+                              }
+                            }}
+                            onAdd={() => {
+                              const chars = preview?.characters || [];
+                              const newNode: InteractivityNodeData = {
+                                id: `node-${Date.now()}-${index}`,
+                                afterCardIndex: index,
+                                isActive: false,
+                                selectedCharacterId: chars.length > 0 ? chars[0].id : undefined,
+                              };
+                              setInteractivityNodes(nodes => [...nodes, newNode]);
+                            }}
                           />
-                        </div>
-                        
-                        {/* Media generation button - always visible */}
-                        <div className="absolute right-2 top-2 flex gap-1">
-                          {selectedCardIndex === index ? (
-                            <div className="bg-purple-500/30 rounded px-2 py-1 text-xs text-purple-300 flex items-center gap-1">
-                              <Wand2 className="w-3 h-3" />
-                              Selected
-                            </div>
-                          ) : (
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                              <div className="bg-purple-500/20 rounded p-1">
-                                <Wand2 className="w-3 h-3 text-purple-400" />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Media Generation Panel - shows when card is selected */}
-                      <AnimatePresence>
-                        {selectedCardIndex === index && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="mt-2 p-4 bg-slate-800/50 rounded-lg border border-purple-500/20">
-                              <MediaGenerationPanel
-                                previewId={preview?.id || ""}
-                                cardId={card.id}
-                                cardTitle={card.title}
-                                cardContent={card.content}
-                                canGenerateImages={entitlements?.canGenerateImages || false}
-                                canGenerateVideos={isProfessionalMode || false}
-                                canGenerateVoiceover={isProfessionalMode || false}
-                                onUpgradeClick={() => setShowUpgradeModal(true)}
-                                onMediaGenerated={() => {
-                                  toast({ title: "Media generated!", description: "Your AI media has been created." });
-                                }}
-                              />
-                            </div>
-                          </motion.div>
                         )}
-                      </AnimatePresence>
-                      
-                      {/* Interactivity node slot between cards */}
-                      {index < cards.length - 1 && (
-                        <div className="py-1">
-                          {nodeAtPosition ? (
-                            <InteractivityNode
-                              nodeId={nodeAtPosition.id}
-                              afterCardIndex={index}
-                              previewId={preview?.id || ""}
-                              previewAccessToken={previewAccessToken}
-                              isActive={nodeAtPosition.isActive}
-                              characters={preview?.characters || []}
-                              selectedCharacterId={nodeAtPosition.selectedCharacterId}
-                              onCharacterSelect={(charId) => {
-                                setInteractivityNodes(nodes =>
-                                  nodes.map(n =>
-                                    n.id === nodeAtPosition.id
-                                      ? { ...n, selectedCharacterId: charId }
-                                      : n
-                                  )
-                                );
-                              }}
-                              onActivate={() => {
-                                setInteractivityNodes(nodes =>
-                                  nodes.map(n =>
-                                    n.id === nodeAtPosition.id
-                                      ? { ...n, isActive: !n.isActive }
-                                      : n
-                                  )
-                                );
-                              }}
-                              onRemove={() => {
-                                setInteractivityNodes(nodes =>
-                                  nodes.filter(n => n.id !== nodeAtPosition.id)
-                                );
-                              }}
-                            />
-                          ) : (
-                            <AddInteractivityButton
-                              afterCardIndex={index}
-                              characters={preview?.characters || []}
-                              previewId={preview?.id}
-                              onCharacterSelect={(charId) => {
-                                const newNode: InteractivityNodeData = {
-                                  id: `node-${Date.now()}-${index}`,
-                                  afterCardIndex: index,
-                                  isActive: false,
-                                  selectedCharacterId: charId,
-                                };
-                                setInteractivityNodes(nodes => [...nodes, newNode]);
-                              }}
-                              onCharacterCreated={(newChar) => {
-                                if (preview) {
-                                  setPreview({
-                                    ...preview,
-                                    characters: [...(preview.characters || []), newChar],
-                                  });
-                                }
-                              }}
-                              onAdd={() => {
-                                const chars = preview?.characters || [];
-                                const newNode: InteractivityNodeData = {
-                                  id: `node-${Date.now()}-${index}`,
-                                  afterCardIndex: index,
-                                  isActive: false,
-                                  selectedCharacterId: chars.length > 0 ? chars[0].id : undefined,
-                                };
-                                setInteractivityNodes(nodes => [...nodes, newNode]);
-                              }}
-                            />
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {/* Film strip perforations - right side */}
-              <div className="absolute right-0 top-0 bottom-0 w-6 sm:w-8 bg-slate-950/80 rounded-r-lg border-l border-slate-700 hidden sm:flex flex-col items-center justify-around py-4">
-                {cards.slice(0, 8).map((_, i) => (
-                  <div key={i} className="w-3 h-3 rounded-sm bg-slate-800 border border-slate-600" />
-                ))}
-              </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             <UiCard className="bg-slate-900/50 border-slate-800 border-dashed">
