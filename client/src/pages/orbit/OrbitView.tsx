@@ -876,6 +876,171 @@ export default function OrbitView() {
             </div>
           </div>
         )}
+        
+        {/* Claim Modal for boxes view */}
+        <Dialog open={showClaimModal} onOpenChange={(open) => {
+          setShowClaimModal(open);
+          if (!open) {
+            setClaimStep('intro');
+            setClaimStatus('idle');
+          }
+        }}>
+          <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                {claimStatus === 'success' ? 'Orbit Claimed!' : 'Claim your business Orbit'}
+                {claimStatus === 'idle' && claimStep === 'intro' && (
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-medium">FREE</span>
+                )}
+              </DialogTitle>
+              <DialogDescription className="text-zinc-400">
+                {claimStatus === 'verifying' 
+                  ? 'Verifying your claim...'
+                  : claimStatus === 'success'
+                  ? 'You now own this Orbit and can customize it.'
+                  : claimStep === 'intro'
+                  ? `Take control of how AI represents ${preview?.sourceDomain || slug}`
+                  : `Verify ownership of ${preview?.sourceDomain || slug}`}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 pt-2">
+              {claimStep === 'intro' && claimStatus === 'idle' && (
+                <>
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <p className="text-sm text-blue-300 font-medium">
+                      Your Orbit is your AI-powered business presence
+                    </p>
+                    <p className="text-xs text-blue-400/80 mt-1">
+                      When AI assistants search for businesses like yours, your Orbit ensures they get accurate, up-to-date information directly from you.
+                    </p>
+                  </div>
+                  <p className="text-sm text-zinc-300 leading-relaxed">
+                    Claiming is free and unlocks:
+                  </p>
+                  <ul className="space-y-2.5 text-sm text-zinc-400">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-pink-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-zinc-300">AI conversation assistant</span>
+                        <span className="text-xs text-zinc-500 block">Answers visitor questions 24/7 using your business knowledge</span>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-pink-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-zinc-300">Brand control & customization</span>
+                        <span className="text-xs text-zinc-500 block">Edit responses, add FAQs, and set your brand voice</span>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-pink-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-zinc-300">Lead capture & analytics</span>
+                        <span className="text-xs text-zinc-500 block">See what questions visitors ask and capture their contact info</span>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-pink-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-zinc-300">AI discovery protection</span>
+                        <span className="text-xs text-zinc-500 block">Ensure AI search tools represent your business accurately</span>
+                      </div>
+                    </li>
+                  </ul>
+                  <p className="text-xs text-zinc-500 border-t border-zinc-800 pt-3">
+                    Once verified, this Orbit is exclusively reserved for {preview?.sourceDomain || slug}.
+                  </p>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      className="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-medium"
+                      onClick={() => setClaimStep('verify')}
+                      data-testid="button-verify-claim"
+                    >
+                      Claim for free
+                    </Button>
+                  </div>
+                  <button 
+                    className="w-full text-center text-xs text-zinc-500 hover:text-zinc-400"
+                    onClick={() => setShowClaimModal(false)}
+                  >
+                    Learn more about Orbit
+                  </button>
+                </>
+              )}
+
+              {claimStatus === 'verifying' && (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-8 h-8 animate-spin text-pink-400" />
+                </div>
+              )}
+
+              {claimStatus === 'success' && (
+                <div className="flex flex-col items-center justify-center py-6 gap-2">
+                  <CheckCircle className="w-12 h-12 text-green-400" />
+                  <p className="text-green-400 text-sm">{claimMessage}</p>
+                </div>
+              )}
+
+              {claimStatus === 'error' && (
+                <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                  <p className="text-red-400 text-sm">{claimMessage}</p>
+                </div>
+              )}
+
+              {claimStatus === 'sent' && (
+                <div className="flex flex-col items-center justify-center py-6 gap-3">
+                  <Mail className="w-10 h-10 text-pink-400" />
+                  <p className="text-zinc-300 text-center text-sm">{claimMessage}</p>
+                  <p className="text-zinc-500 text-xs text-center">
+                    Check your console for the magic link (email delivery coming soon).
+                  </p>
+                </div>
+              )}
+
+              {claimStep === 'verify' && (claimStatus === 'idle' || claimStatus === 'sending') && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm text-zinc-400">Your email address</label>
+                    <Input
+                      type="email"
+                      placeholder={`you@${preview?.sourceDomain || 'example.com'}`}
+                      value={claimEmail}
+                      onChange={(e) => setClaimEmail(e.target.value)}
+                      className="bg-zinc-800 border-zinc-700 text-white"
+                      data-testid="input-claim-email"
+                    />
+                    <p className="text-xs text-zinc-500">
+                      For instant verification, use an email @{preview?.sourceDomain || 'your domain'}.
+                    </p>
+                  </div>
+                  <Button
+                    className="w-full bg-pink-500 hover:bg-pink-600 text-white"
+                    onClick={handleClaimRequest}
+                    disabled={!claimEmail || claimStatus === 'sending'}
+                    data-testid="button-send-verification"
+                  >
+                    {claimStatus === 'sending' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      'Send verification email'
+                    )}
+                  </Button>
+                  <button 
+                    className="w-full text-center text-xs text-zinc-500 hover:text-zinc-400"
+                    onClick={() => setClaimStep('intro')}
+                  >
+                    Back
+                  </button>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
