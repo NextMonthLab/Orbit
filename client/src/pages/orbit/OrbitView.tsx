@@ -326,14 +326,14 @@ export default function OrbitView() {
       if (!response.ok) throw new Error(data.message || 'Failed to verify claim');
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setClaimStatus('success');
-      setClaimMessage('You\'ve successfully claimed this orbit!');
+      setClaimMessage('You\'ve successfully claimed this orbit! Redirecting to your hub...');
       refetch();
       setTimeout(() => {
         setShowClaimModal(false);
-        setLocation(`/orbit/${slug}`);
-      }, 2000);
+        setLocation(data.redirectUrl || `/orbit/${slug}/hub`);
+      }, 1500);
     },
     onError: (error: Error) => {
       setClaimStatus('error');

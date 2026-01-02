@@ -8273,13 +8273,15 @@ STRICT RULES:
       // Send confirmation email
       const { sendEmail, orbitClaimConfirmed } = await import("./services/email");
       const baseUrl = getAppBaseUrl(req);
-      const orbitUrl = `${baseUrl}/orbit/${slug}`;
+      const hubUrl = `${baseUrl}/orbit/${slug}/hub`;
+      const sourceUrl = new URL(orbitMeta.sourceUrl);
+      const sourceDomain = sourceUrl.hostname.replace(/^www\./, '');
       
       await sendEmail({
         to: claimToken.email,
         template: orbitClaimConfirmed({
-          businessName: orbitMeta.businessName,
-          orbitUrl,
+          businessName: sourceDomain,
+          orbitUrl: hubUrl,
         }),
       });
 
@@ -8287,6 +8289,7 @@ STRICT RULES:
         success: true,
         message: "Orbit claimed successfully!",
         domainMatch: claimToken.domainMatch,
+        redirectUrl: `/orbit/${slug}/hub`,
       });
     } catch (error) {
       console.error("Error verifying claim:", error);
