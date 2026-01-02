@@ -58,14 +58,14 @@ export default function ForKnowledge() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-pink-500/10 border border-pink-500/20 rounded-full backdrop-blur-sm">
-                <GraduationCap className="w-4 h-4 text-pink-400" />
-                <span className="text-pink-300">For Knowledge & Learning</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-sm">
+                <GraduationCap className="w-4 h-4 text-blue-400" />
+                <span className="text-blue-300">For Knowledge & Learning</span>
               </div>
               
               <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-[0.9]" data-testid="text-hero-title">
                 <span className="block text-white">Make information</span>
-                <span className="block bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   unforgettable
                 </span>
               </h1>
@@ -76,7 +76,7 @@ export default function ForKnowledge() {
               </p>
               
               <Link href="/try">
-                <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-hero-cta" data-nm-cta="build-learning-experience-hero">
+                <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-hero-cta" data-nm-cta="build-learning-experience-hero">
                   Build a Learning Experience
                   <ArrowRight className="w-5 h-5" />
                 </Button>
@@ -91,7 +91,7 @@ export default function ForKnowledge() {
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold mb-4">
-                How it <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">works</span>
+                How it <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">works</span>
               </h2>
             </div>
             
@@ -106,7 +106,7 @@ export default function ForKnowledge() {
                   className="p-8 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10"
                 >
                   <div className="flex items-start gap-5">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-pink-500/20">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
                       <feature.icon className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -129,7 +129,7 @@ export default function ForKnowledge() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center mx-auto mb-8 shadow-xl shadow-pink-500/30">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-500/30">
                 <BookOpen className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-3xl md:text-5xl font-bold mb-6">
@@ -167,7 +167,7 @@ export default function ForKnowledge() {
                   transition={{ duration: 0.5, delay: index * 0.05 }}
                   className="flex items-center gap-3 p-4 rounded-lg bg-white/5 border border-white/10"
                 >
-                  <CheckCircle2 className="w-5 h-5 text-pink-400 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-blue-400 flex-shrink-0" />
                   <span className="text-white/80">{useCase}</span>
                 </motion.div>
               ))}
@@ -187,12 +187,12 @@ export default function ForKnowledge() {
             >
               <h2 className="text-4xl md:text-6xl font-bold mb-6">
                 Ready to make learning<br />
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   unforgettable?
                 </span>
               </h2>
               <Link href="/try">
-                <Button size="lg" className="h-16 px-12 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-footer-cta" data-nm-cta="build-learning-experience-footer">
+                <Button size="lg" className="h-16 px-12 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-footer-cta" data-nm-cta="build-learning-experience-footer">
                   Build a Learning Experience
                   <ArrowRight className="w-5 h-5" />
                 </Button>

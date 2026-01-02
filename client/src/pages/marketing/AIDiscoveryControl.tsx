@@ -60,14 +60,14 @@ export default function AIDiscoveryControl() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-pink-500/10 border border-pink-500/20 rounded-full backdrop-blur-sm">
-                <Radio className="w-4 h-4 text-pink-400" />
-                <span className="text-pink-300">AI Discovery Control</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-sm">
+                <Radio className="w-4 h-4 text-blue-400" />
+                <span className="text-blue-300">AI Discovery Control</span>
               </div>
               
               <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-8 leading-[1.1]" data-testid="text-hero-title">
                 <span className="text-white">When AI answers questions about your business, </span>
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">who decides what it says?</span>
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">who decides what it says?</span>
               </h1>
 
               <div className="text-lg md:text-xl text-white/70 max-w-3xl mx-auto mb-12 leading-relaxed space-y-4 text-left" data-testid="text-hero-intro">
@@ -84,7 +84,7 @@ export default function AIDiscoveryControl() {
                 <Button 
                   size="lg" 
                   onClick={handleClaimClick}
-                  className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" 
+                  className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" 
                   data-testid="button-hero-claim-cta"
                 >
                   Claim your business Orbit
@@ -119,7 +119,7 @@ export default function AIDiscoveryControl() {
               transition={{ duration: 0.6 }}
             >
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center shadow-lg shadow-pink-500/20">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
                   <Zap className="w-6 h-6 text-white" />
                 </div>
                 <h2 className="text-3xl md:text-4xl font-bold">
@@ -134,19 +134,19 @@ export default function AIDiscoveryControl() {
                 
                 <ul className="space-y-2 pl-6">
                   <li className="flex items-start gap-3">
-                    <span className="text-pink-400 mt-1">•</span>
+                    <span className="text-blue-400 mt-1">•</span>
                     <span>Who should I trust for this?</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-pink-400 mt-1">•</span>
+                    <span className="text-blue-400 mt-1">•</span>
                     <span>What does this company actually do?</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-pink-400 mt-1">•</span>
+                    <span className="text-blue-400 mt-1">•</span>
                     <span>Are they credible?</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-pink-400 mt-1">•</span>
+                    <span className="text-blue-400 mt-1">•</span>
                     <span>Who's best for my situation?</span>
                   </li>
                 </ul>
@@ -248,7 +248,7 @@ export default function AIDiscoveryControl() {
                     <span className="font-bold text-white/60">Then</span>
                   </div>
                   <div className="p-4 bg-white/5 border-b border-white/10">
-                    <span className="font-bold text-pink-400">Now</span>
+                    <span className="font-bold text-blue-400">Now</span>
                   </div>
                   {comparisonData.map((row, index) => (
                     <motion.div
@@ -281,7 +281,7 @@ export default function AIDiscoveryControl() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="p-8 rounded-2xl bg-gradient-to-br from-pink-500/10 to-purple-500/10 border border-pink-500/20 text-center"
+              className="p-8 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 text-center"
             >
               <h3 className="text-2xl md:text-3xl font-bold mb-6">
                 Businesses need a source of truth for AI
@@ -307,7 +307,7 @@ export default function AIDiscoveryControl() {
               transition={{ duration: 0.6 }}
             >
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center shadow-lg shadow-pink-500/20">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
                   <Globe className="w-6 h-6 text-white" />
                 </div>
                 <h2 className="text-3xl md:text-4xl font-bold">
@@ -331,7 +331,7 @@ export default function AIDiscoveryControl() {
                       transition={{ duration: 0.3, delay: index * 0.1 }}
                       className="flex items-start gap-3 p-4 rounded-lg bg-white/5 border border-white/10"
                     >
-                      <CheckCircle2 className="w-5 h-5 text-pink-400 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
                       <span className="text-white/80">{item}</span>
                     </motion.div>
                   ))}
@@ -355,7 +355,7 @@ export default function AIDiscoveryControl() {
               transition={{ duration: 0.6 }}
             >
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
                   <Shield className="w-6 h-6 text-white" />
                 </div>
                 <h2 className="text-3xl md:text-4xl font-bold">
@@ -391,7 +391,7 @@ export default function AIDiscoveryControl() {
                 <Button 
                   size="lg" 
                   onClick={handleClaimClick}
-                  className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" 
+                  className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" 
                   data-testid="button-section-claim-cta"
                 >
                   Claim your business Orbit
@@ -462,7 +462,7 @@ export default function AIDiscoveryControl() {
               <Button 
                 size="lg" 
                 onClick={handleClaimClick}
-                className="h-16 px-10 text-xl bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-400 hover:to-purple-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" 
+                className="h-16 px-10 text-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-400 hover:to-purple-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" 
                 data-testid="button-final-claim-cta"
               >
                 Claim your business Orbit

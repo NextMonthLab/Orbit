@@ -58,7 +58,7 @@ export default function ForCreators() {
         {/* Hero */}
         <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden pt-20 scroll-mt-24" data-nm-section="hero">
           <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-black" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-pink-900/20 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent" />
           
           <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
             <motion.div
@@ -73,7 +73,7 @@ export default function ForCreators() {
               
               <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-[0.9]" data-testid="text-hero-title">
                 <span className="block text-white">Your story,</span>
-                <span className="block bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   one moment at a time
                 </span>
               </h1>
@@ -94,7 +94,7 @@ export default function ForCreators() {
               
               <div className="flex flex-col items-center gap-4">
                 <Link href="/try">
-                  <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-hero-cta" data-nm-cta="build-story-experience-hero">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-hero-cta" data-nm-cta="build-story-experience-hero">
                     Build a Story Experience
                     <ArrowRight className="w-5 h-5" />
                   </Button>
@@ -113,7 +113,7 @@ export default function ForCreators() {
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-6">
               <h2 className="text-3xl md:text-5xl font-bold mb-4">
-                From script to <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">screen</span>
+                From script to <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">screen</span>
               </h2>
             </div>
             <p className="text-white/60 text-center max-w-2xl mx-auto mb-12">
@@ -131,7 +131,7 @@ export default function ForCreators() {
                   className="p-8 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10"
                 >
                   <div className="flex items-start gap-5">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
                       <feature.icon className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -158,7 +158,7 @@ export default function ForCreators() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-8 shadow-xl shadow-purple-500/30">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mx-auto mb-8 shadow-xl shadow-purple-500/30">
                 <Zap className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-3xl md:text-5xl font-bold mb-6">
@@ -205,7 +205,7 @@ export default function ForCreators() {
                   transition={{ duration: 0.5, delay: index * 0.05 }}
                   className="flex items-center gap-3 p-4 rounded-lg bg-white/5 border border-white/10"
                 >
-                  <CheckCircle2 className="w-5 h-5 text-pink-400 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-blue-400 flex-shrink-0" />
                   <span className="text-white/80">{item}</span>
                 </motion.div>
               ))}
@@ -219,7 +219,7 @@ export default function ForCreators() {
           <div className="max-w-5xl mx-auto relative z-10">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-bold mb-4">
-                Creator <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">Stories</span>
+                Creator <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">Stories</span>
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
                 See how filmmakers and writers bring their visions to life
@@ -249,7 +249,7 @@ export default function ForCreators() {
             >
               <h2 className="text-4xl md:text-6xl font-bold mb-4">
                 Ready to bring your<br />
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   story to life?
                 </span>
               </h2>
@@ -258,7 +258,7 @@ export default function ForCreators() {
               </p>
               <div className="flex flex-col items-center gap-4">
                 <Link href="/try">
-                  <Button size="lg" className="h-16 px-12 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-footer-cta" data-nm-cta="build-story-experience-footer">
+                  <Button size="lg" className="h-16 px-12 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-footer-cta" data-nm-cta="build-story-experience-footer">
                     Build a Story Experience
                     <ArrowRight className="w-5 h-5" />
                   </Button>

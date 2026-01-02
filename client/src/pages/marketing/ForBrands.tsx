@@ -149,10 +149,10 @@ export default function ForBrands() {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="inline-flex items-center gap-2 px-4 py-2 mb-8 bg-pink-500/10 border border-pink-500/20 rounded-full backdrop-blur-sm"
+                className="inline-flex items-center gap-2 px-4 py-2 mb-8 bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-sm"
               >
-                <Sparkles className="w-4 h-4 text-pink-400" />
-                <span className="text-pink-300 text-sm font-medium">Orbit Preview</span>
+                <Sparkles className="w-4 h-4 text-blue-400" />
+                <span className="text-blue-300 text-sm font-medium">Orbit Preview</span>
               </motion.div>
               <motion.h1 
                 initial={{ opacity: 0, y: 10 }}
@@ -161,7 +161,7 @@ export default function ForBrands() {
                 className="text-5xl md:text-6xl font-black tracking-tight mb-6 leading-[1.1]"
               >
                 Your website is passive.<br />
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   Launch your Orbit.
                 </span>
               </motion.h1>
@@ -193,7 +193,7 @@ export default function ForBrands() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 mb-4">
                   <div className="relative flex-1">
-                    <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-pink-500/20 via-purple-500/20 to-blue-500/20 blur-xl opacity-0 animate-pulse" />
+                    <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 blur-xl opacity-0 animate-pulse" />
                     <div className="absolute inset-0 rounded-lg" style={{
                       animation: 'pulse-border 3s ease-in-out infinite',
                     }} />
@@ -207,7 +207,7 @@ export default function ForBrands() {
                       }}
                       onKeyDown={(e) => e.key === 'Enter' && handleCreatePreview()}
                       disabled={createPreviewMutation.isPending}
-                      className="relative h-14 px-5 text-base bg-white/5 border-0 text-white placeholder:text-white/40 focus-visible:ring-pink-500 focus-visible:border-pink-400 transition-all duration-300 rounded-lg w-full"
+                      className="relative h-14 px-5 text-base bg-white/5 border-0 text-white placeholder:text-white/40 focus-visible:ring-blue-500 focus-visible:border-blue-400 transition-all duration-300 rounded-lg w-full"
                       data-testid="input-preview-url"
                     />
                   </div>
@@ -215,7 +215,7 @@ export default function ForBrands() {
                     onClick={handleCreatePreview}
                     disabled={createPreviewMutation.isPending || !siteUrl.trim()}
                     size="lg"
-                    className="gap-2 h-14 px-6 sm:px-8 bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/40 transition-all duration-300 rounded-lg whitespace-nowrap"
+                    className="gap-2 h-14 px-6 sm:px-8 bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/40 transition-all duration-300 rounded-lg whitespace-nowrap"
                     data-testid="button-create-preview"
                   >
                     {createPreviewMutation.isPending ? (
@@ -307,14 +307,14 @@ export default function ForBrands() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-pink-500/10 border border-pink-500/20 rounded-full backdrop-blur-sm">
-                <Globe className="w-4 h-4 text-pink-400" />
-                <span className="text-pink-300">For Brands & Businesses</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-sm">
+                <Globe className="w-4 h-4 text-blue-400" />
+                <span className="text-blue-300">For Brands & Businesses</span>
               </div>
               
               <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-[0.9]" data-testid="text-hero-title">
                 <span className="block text-white">How Orbit</span>
-                <span className="block bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   works
                 </span>
               </h1>
@@ -324,7 +324,7 @@ export default function ForBrands() {
               </p>
               
               <Link href="/try">
-                <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-hero-cta">
+                <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-hero-cta">
                   Build a Brand Experience
                   <ArrowRight className="w-5 h-5" />
                 </Button>
@@ -339,7 +339,7 @@ export default function ForBrands() {
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold mb-4">
-                What happens when you <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">create a preview</span>
+                What happens when you <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">create a preview</span>
               </h2>
               <p className="text-white/50 text-lg max-w-3xl mx-auto mt-4">
                 We create your Orbit - an intelligent layer on top of your existing website. Customers can ask it questions. It answers using your real content. You see what your website would do if it could actually respond.
@@ -357,7 +357,7 @@ export default function ForBrands() {
                   className="p-8 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10"
                 >
                   <div className="flex items-start gap-5">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-pink-500/20">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
                       <benefit.icon className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -389,15 +389,15 @@ export default function ForBrands() {
               </div>
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-pink-400 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                   <span className="text-white/70 text-sm">Source-grounded answers</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-pink-400 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                   <span className="text-white/70 text-sm">Guardrails to reduce hallucination</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-pink-400 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                   <span className="text-white/70 text-sm">Human review options for publish flows</span>
                 </div>
               </div>
@@ -411,7 +411,7 @@ export default function ForBrands() {
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold mb-4">
-                Export <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">anywhere</span>
+                Export <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">anywhere</span>
               </h2>
               <p className="text-white/50 text-lg">Three ways to share your brand story</p>
             </div>
@@ -426,8 +426,8 @@ export default function ForBrands() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="p-8 rounded-2xl bg-gradient-to-b from-white/5 to-transparent border border-white/10 text-center"
                 >
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-6">
-                    <option.icon className="w-7 h-7 text-pink-400" />
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-6">
+                    <option.icon className="w-7 h-7 text-blue-400" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">{option.title}</h3>
                   <p className="text-white/50">{option.description}</p>
@@ -457,7 +457,7 @@ export default function ForBrands() {
                   transition={{ duration: 0.5, delay: index * 0.05 }}
                   className="flex items-center gap-3 p-4 rounded-lg bg-white/5 border border-white/10"
                 >
-                  <CheckCircle2 className="w-5 h-5 text-pink-400 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-blue-400 flex-shrink-0" />
                   <span className="text-white/80">{useCase}</span>
                 </motion.div>
               ))}
@@ -476,12 +476,12 @@ export default function ForBrands() {
               className="text-center"
             >
               <h2 className="text-2xl md:text-3xl font-bold mb-8">
-                What you unlock when you <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">claim your Orbit</span>
+                What you unlock when you <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">claim your Orbit</span>
               </h2>
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="p-6 rounded-xl bg-white/5 border border-white/10">
-                  <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center mx-auto mb-4">
-                    <BarChart3 className="w-5 h-5 text-pink-400" />
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
+                    <BarChart3 className="w-5 h-5 text-blue-400" />
                   </div>
                   <h3 className="font-bold mb-2">Free Claim</h3>
                   <p className="text-white/50 text-sm">Analytics and activity counts</p>
@@ -517,13 +517,13 @@ export default function ForBrands() {
             >
               <h2 className="text-4xl md:text-6xl font-bold mb-6">
                 Ready to transform<br />
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   your brand story?
                 </span>
               </h2>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/try">
-                  <Button size="lg" className="h-16 px-12 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-footer-cta">
+                  <Button size="lg" className="h-16 px-12 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-footer-cta">
                     Build a Brand Experience
                     <ArrowRight className="w-5 h-5" />
                   </Button>

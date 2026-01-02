@@ -8,7 +8,7 @@ const influencerPersona = {
   heroSubtitle: "Transform your content into serialized story experiences with AI characters your audience can actually talk to.",
   description: "Creators use NextMonth to build deeper connections through immersive narratives, daily content drops, and interactive AI characters.",
   icon: Star,
-  color: "from-purple-500/10 via-transparent to-pink-500/10",
+  color: "from-purple-500/10 via-transparent to-blue-500/10",
   useCases: [
     {
       title: "Serialized Content Series",

@@ -14,7 +14,7 @@ const useCases = [
     description: "Orbit is a Business-to-AI interface that helps you control how your brand is represented in AI-powered discovery.",
     icon: Building2,
     href: "/for/brands",
-    color: "from-pink-500 to-purple-500",
+    color: "from-blue-500 to-purple-500",
     microCta: "Claim your business Orbit",
     intent: "brands",
     secondaryLink: "/ai-discovery-control",
@@ -26,7 +26,7 @@ const useCases = [
     description: "Bring scripts and ideas to life, one moment at a time.",
     icon: Film,
     href: "/for/creators",
-    color: "from-purple-500 to-blue-500",
+    color: "from-blue-600 to-purple-600",
     microCta: "Bring my script to life",
     intent: "creators",
   },
@@ -149,13 +149,13 @@ const iceUseCases = [
     title: "Marketing & Sales",
     description: "Interactive landing pages, product explainers, and pitch experiences that convert.",
     icon: Megaphone,
-    color: "from-pink-500 to-rose-500",
+    color: "from-blue-500 to-purple-500",
   },
   {
     title: "Content & Publishing",
     description: "Turn articles, blogs, or scripts into interactive stories people actually finish.",
     icon: BookOpen,
-    color: "from-purple-500 to-violet-500",
+    color: "from-blue-600 to-purple-600",
   },
   {
     title: "Training & Knowledge",
@@ -167,7 +167,7 @@ const iceUseCases = [
     title: "Creative & Storytelling",
     description: "Narrative prototypes, interactive films, and character-driven experiences.",
     icon: Lightbulb,
-    color: "from-amber-500 to-orange-500",
+    color: "from-blue-400 to-purple-500",
   },
 ];
 
@@ -205,14 +205,14 @@ export default function MarketingHome() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-pink-500/10 border border-pink-500/20 rounded-full backdrop-blur-sm">
-                <Sparkles className="w-4 h-4 text-pink-400" />
+              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-sm">
+                <Sparkles className="w-4 h-4 text-blue-400" />
                 <span className="text-white/80">This is how stories are experienced now</span>
               </div>
               
               <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[0.95]" data-testid="text-hero-title">
                 Turn anything into an{' '}
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">interactive experience</span>
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">interactive experience</span>
               </h1>
               
               <p className="text-xl md:text-2xl text-white/60 max-w-3xl mx-auto mb-6 leading-relaxed" data-testid="text-hero-description">
@@ -225,7 +225,7 @@ export default function MarketingHome() {
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/try">
-                  <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3 rounded-xl" data-testid="button-hero-cta">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3 rounded-xl" data-testid="button-hero-cta">
                     Launch Experience Builder
                     <ArrowRight className="w-5 h-5" />
                   </Button>
@@ -251,7 +251,7 @@ export default function MarketingHome() {
               <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-xl">
                 <div className="aspect-video bg-neutral-900 flex items-center justify-center">
                   <div className="text-center">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/20 cursor-pointer hover:from-pink-400 hover:via-purple-400 hover:to-blue-400 transition-all">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-blue-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/20 cursor-pointer hover:from-blue-400 hover:via-purple-400 hover:to-blue-400 transition-all">
                       <Play className="w-8 h-8 text-white ml-1 fill-white" />
                     </div>
                     <p className="text-white/40 text-sm">See NextMonth in action</p>
@@ -278,7 +278,7 @@ export default function MarketingHome() {
               <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-value-title">
                 <span className="text-white/80">Weeks</span>{' '}
                 <span className="text-white/40">→</span>{' '}
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">Minutes</span>
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">Minutes</span>
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
                 Creating interactive experiences used to take forever. Not anymore.
@@ -321,9 +321,9 @@ export default function MarketingHome() {
                     
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        item.highlight ? 'bg-pink-500/20' : 'bg-white/10'
+                        item.highlight ? 'bg-blue-500/20' : 'bg-white/10'
                       }`}>
-                        <DollarSign className={`w-5 h-5 ${item.highlight ? 'text-pink-400' : 'text-white/40'}`} />
+                        <DollarSign className={`w-5 h-5 ${item.highlight ? 'text-blue-400' : 'text-white/40'}`} />
                       </div>
                       <div>
                         <p className={`text-2xl font-bold ${item.highlight ? 'text-white' : 'text-white/70'}`}>
@@ -337,7 +337,7 @@ export default function MarketingHome() {
                   {item.highlight && (
                     <div className="mt-6 pt-4 border-t border-purple-500/20">
                       <Link href="/try">
-                        <Button size="sm" className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0" data-testid="button-comparison-cta">
+                        <Button size="sm" className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-blue-500 text-white border-0" data-testid="button-comparison-cta">
                           Try it now <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                       </Link>
@@ -362,7 +362,7 @@ export default function MarketingHome() {
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-usecases-title">
                 What people use{' '}
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">ICE</span>{' '}
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">ICE</span>{' '}
                 for
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
@@ -406,7 +406,7 @@ export default function MarketingHome() {
               className="mt-10 text-center"
             >
               <Link href="/try">
-                <Button size="lg" className="h-12 px-8 bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-2" data-testid="button-usecases-cta">
+                <Button size="lg" className="h-12 px-8 bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-2" data-testid="button-usecases-cta">
                   Start building your experience
                   <ArrowRight className="w-5 h-5" />
                 </Button>
@@ -428,7 +428,7 @@ export default function MarketingHome() {
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-scenarios-title">
                 See how{' '}
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">real people</span>{' '}
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">real people</span>{' '}
                 use ICE
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
@@ -458,14 +458,14 @@ export default function MarketingHome() {
               transition={{ duration: 0.6 }}
               className="text-center"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 text-sm font-medium bg-pink-500/10 border border-pink-500/20 rounded-full backdrop-blur-sm">
-                <Radio className="w-4 h-4 text-pink-400" />
-                <span className="text-pink-300">AI Discovery</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 text-sm font-medium bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-sm">
+                <Radio className="w-4 h-4 text-blue-400" />
+                <span className="text-blue-300">AI Discovery</span>
               </div>
               
               <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-ai-discovery-title">
                 Discovery has changed.{' '}
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">AI now answers.</span>
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">AI now answers.</span>
               </h2>
               
               <p className="text-lg md:text-xl text-white/60 max-w-3xl mx-auto mb-10 leading-relaxed">
@@ -476,7 +476,7 @@ export default function MarketingHome() {
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/ai-discovery-control">
-                  <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-ai-discovery-learn">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-ai-discovery-learn">
                     Learn about AI discovery
                     <ArrowRight className="w-5 h-5" />
                   </Button>
@@ -497,7 +497,7 @@ export default function MarketingHome() {
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-pipeline-title">
-                What is <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextMonth?</span>
+                What is <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextMonth?</span>
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
                 From content to cinematic experience in five steps
@@ -540,7 +540,7 @@ export default function MarketingHome() {
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-usecases-title">
-                Three ways to use <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextMonth</span>
+                Three ways to use <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextMonth</span>
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
                 One engine, built for every storyteller
@@ -572,7 +572,7 @@ export default function MarketingHome() {
                     <div className="flex flex-col gap-2">
                       <Link href={useCase.href}>
                         <button 
-                          className="flex items-center gap-2 text-pink-400 hover:text-pink-300 text-sm font-medium transition-colors cursor-pointer"
+                          className="flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors cursor-pointer"
                           data-testid={`button-microcta-${useCase.id}`}
                         >
                           {useCase.microCta} <ArrowRight className="w-4 h-4" />
@@ -599,7 +599,7 @@ export default function MarketingHome() {
           <div className="max-w-5xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-different-title">
-                Why NextMonth is <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">different</span>
+                Why NextMonth is <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">different</span>
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
                 Replace flat links with guided journeys. Great for pitches, onboarding, learning, and sales.
@@ -676,13 +676,13 @@ export default function MarketingHome() {
             >
               <h2 className="text-4xl md:text-6xl font-bold mb-6" data-testid="text-website-title">
                 Turn your website into an<br />
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">interactive experience</span>
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">interactive experience</span>
               </h2>
               <p className="text-xl text-white/60 mb-10 max-w-2xl mx-auto leading-relaxed">
                 Close the gap between where visitors land and where your best information lives. Guide them through what matters instead of hoping they find it.
               </p>
               <Link href="/try">
-                <Button size="lg" className="h-14 px-8 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3 rounded-xl" data-testid="button-website-cta">
+                <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3 rounded-xl" data-testid="button-website-cta">
                   Launch Experience Builder
                   <ArrowRight className="w-5 h-5" />
                 </Button>
@@ -708,13 +708,13 @@ export default function MarketingHome() {
             >
               <h2 className="text-4xl md:text-6xl font-bold mb-6" data-testid="text-cta-title">
                 Stop sending links.<br />
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">Start guiding people.</span>
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">Start guiding people.</span>
               </h2>
               <p className="text-xl text-white/50 mb-10 max-w-xl mx-auto">
                 Turn your content into an interactive journey that people actually finish.
               </p>
               <Link href="/try">
-                <Button size="lg" className="h-16 px-12 text-lg bg-pink-500 hover:bg-pink-400 text-white border-0 shadow-lg shadow-pink-500/30 gap-3" data-testid="button-footer-cta">
+                <Button size="lg" className="h-16 px-12 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-footer-cta">
                   Launch Experience Builder
                   <ArrowRight className="w-5 h-5" />
                 </Button>
@@ -726,7 +726,7 @@ export default function MarketingHome() {
         {/* Proof Strip */}
         <Link href="/ai-discovery-control">
           <section className="py-8 px-6 relative cursor-pointer group" data-testid="section-proof-strip">
-            <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 via-purple-500/5 to-blue-500/5 group-hover:from-pink-500/10 group-hover:via-purple-500/10 group-hover:to-blue-500/10 transition-all" />
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-blue-500/5 group-hover:from-blue-500/10 group-hover:via-purple-500/10 group-hover:to-blue-500/10 transition-all" />
             <div className="max-w-4xl mx-auto relative z-10 text-center">
               <p className="text-lg md:text-xl text-white/60 group-hover:text-white/80 transition-colors">
                 Stop being interpreted by default. Give AI a source it can trust.
