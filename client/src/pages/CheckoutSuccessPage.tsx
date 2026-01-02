@@ -65,6 +65,28 @@ export default function CheckoutSuccessPage() {
 
   useEffect(() => {
     if (sessionId && phase === "verifying") {
+      // DEV BYPASS: Skip verification for dev sessions
+      if (sessionId === "dev_bypass") {
+        const previewId = urlParams.get("preview_id");
+        setResult({
+          success: true,
+          subscription: { planId: 2, status: "active" },
+          plan: { name: "pro", displayName: "Pro" },
+          pendingAction: previewId ? {
+            previewId,
+            checkoutOptions: {
+              mediaOptions: { images: true, video: true, music: true, voiceover: true },
+              outputChoice: "publish",
+              expansionScope: "preview_only",
+              selectedPlan: "pro",
+              interactivityNodeCount: 0,
+            },
+          } : null,
+        });
+        setPhase("success");
+        setTimeout(() => setPhase("transitioning"), 2000);
+        return;
+      }
       verifyMutation.mutate(sessionId);
     }
   }, [sessionId]);
