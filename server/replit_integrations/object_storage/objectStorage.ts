@@ -66,10 +66,12 @@ export class ObjectStorageService {
       resumable: false,
     });
     
-    // Return a signed URL for accessing the file (valid for 7 days)
-    const [signedUrl] = await file.getSignedUrl({
-      action: "read",
-      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+    // Use the Replit sidecar for signing URLs (not the GCS library which requires client_email)
+    const signedUrl = await signObjectURL({
+      bucketName,
+      objectName,
+      method: "GET",
+      ttlSec: 7 * 24 * 60 * 60, // 7 days
     });
     
     return signedUrl;
