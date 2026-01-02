@@ -16,8 +16,9 @@ export type IceTone = "direct" | "warm" | "playful" | "premium";
 export type IceOutputType = "video_card" | "interactive";
 
 export interface IceDraft {
-  id: string;
-  orbitSlug: string;
+  id: string | number;
+  businessSlug?: string;
+  orbitSlug?: string;
   insightId: string;
   format: IceFormat;
   tone: IceTone;
@@ -25,10 +26,10 @@ export interface IceDraft {
   status: "draft" | "published";
   headline: string;
   captions: string[];
-  ctaText?: string;
-  previewFrameUrl?: string;
+  ctaText?: string | null;
+  previewFrameUrl?: string | null;
   createdAt: string;
-  publishedAt?: string;
+  publishedAt?: string | null;
 }
 
 interface IceBuilderPanelProps {

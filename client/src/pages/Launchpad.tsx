@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useEffect, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
@@ -61,6 +61,7 @@ export default function Launchpad() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [selectedOrbit, setSelectedOrbit] = useState<OrbitSummary | null>(null);
   const [selectedInsight, setSelectedInsight] = useState<Insight | null>(null);
@@ -114,6 +115,21 @@ export default function Launchpad() {
     enabled: !!selectedOrbit?.slug,
   });
 
+  const { data: draftsData } = useQuery<{ drafts: IceDraft[] }>({
+    queryKey: ["orbit-drafts", selectedOrbit?.slug],
+    queryFn: async () => {
+      if (!selectedOrbit?.slug) return { drafts: [] };
+      const response = await fetch(`/api/orbit/${selectedOrbit.slug}/ice/drafts`, {
+        credentials: "include",
+      });
+      if (!response.ok) return { drafts: [] };
+      return response.json();
+    },
+    enabled: !!selectedOrbit?.slug,
+  });
+
+  const recentDrafts = draftsData?.drafts || [];
+
   const insights = insightsData?.insights || [];
   const topInsight = insights.find((i) => i.kind === "top") || insights[0] || null;
   const feedInsights = insights.filter((i) => i.kind !== "top" || i.id !== topInsight?.id);
@@ -163,6 +179,7 @@ export default function Launchpad() {
 
         const draft = await response.json();
         setCurrentDraft(draft);
+        queryClient.invalidateQueries({ queryKey: ["orbit-drafts", selectedOrbit.slug] });
         toast({
           title: "Draft generated!",
           description: "Your content is ready for review.",
@@ -244,7 +261,7 @@ export default function Launchpad() {
         </div>
       </div>
 
-      <RecentStrip drafts={[]} />
+      <RecentStrip drafts={recentDrafts} />
     </div>
   );
 }

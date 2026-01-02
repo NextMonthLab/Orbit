@@ -1630,6 +1630,42 @@ export const insertOrbitInsightsSummarySchema = createInsertSchema(orbitInsights
 export type InsertOrbitInsightsSummary = z.infer<typeof insertOrbitInsightsSummarySchema>;
 export type OrbitInsightsSummary = typeof orbitInsightsSummary.$inferSelect;
 
+// ICE Drafts - generated content from insights (Launchpad builder output)
+export type IceDraftFormat = 'hook_bullets' | 'myth_reality' | 'checklist' | 'problem_solution_proof';
+export type IceDraftTone = 'direct' | 'warm' | 'playful' | 'premium';
+export type IceDraftOutputType = 'video_card' | 'interactive';
+export type IceDraftStatus = 'draft' | 'published';
+
+export const iceDrafts = pgTable("ice_drafts", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  
+  // Source linking
+  insightId: text("insight_id").notNull(),
+  
+  // Content configuration
+  format: text("format").$type<IceDraftFormat>().notNull(),
+  tone: text("tone").$type<IceDraftTone>().notNull(),
+  outputType: text("output_type").$type<IceDraftOutputType>().notNull(),
+  
+  // Generated content
+  headline: text("headline").notNull(),
+  captions: text("captions").array().notNull(),
+  ctaText: text("cta_text"),
+  previewFrameUrl: text("preview_frame_url"),
+  
+  // Status
+  status: text("status").$type<IceDraftStatus>().default("draft").notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  publishedAt: timestamp("published_at"),
+});
+
+export const insertIceDraftSchema = createInsertSchema(iceDrafts).omit({ id: true, createdAt: true });
+export type InsertIceDraft = z.infer<typeof insertIceDraftSchema>;
+export type IceDraft = typeof iceDrafts.$inferSelect;
+
 // Notification Types
 export type NotificationType = 
   | 'lead_captured' 

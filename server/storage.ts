@@ -330,6 +330,13 @@ export interface IStorage {
   getNextSnapshotVersion(endpointId: number): Promise<number>;
   findSnapshotByHash(endpointId: number, requestHash: string): Promise<schema.ApiSnapshot | undefined>;
   
+  // ICE Drafts (Launchpad)
+  createIceDraft(data: schema.InsertIceDraft): Promise<schema.IceDraft>;
+  getIceDraft(id: number): Promise<schema.IceDraft | undefined>;
+  getIceDraftsByOrbit(businessSlug: string, limit?: number): Promise<schema.IceDraft[]>;
+  updateIceDraft(id: number, data: Partial<schema.InsertIceDraft>): Promise<schema.IceDraft | undefined>;
+  deleteIceDraft(id: number): Promise<void>;
+  
   // Curated Items
   createApiCuratedItem(data: schema.InsertApiCuratedItem): Promise<schema.ApiCuratedItem>;
   createApiCuratedItems(data: schema.InsertApiCuratedItem[]): Promise<schema.ApiCuratedItem[]>;
@@ -2305,6 +2312,38 @@ export class DatabaseStorage implements IStorage {
         eq(schema.apiSnapshots.requestHash, requestHash)
       ),
     });
+  }
+
+  // ICE Drafts (Launchpad)
+  async createIceDraft(data: schema.InsertIceDraft): Promise<schema.IceDraft> {
+    const [draft] = await db.insert(schema.iceDrafts).values(data).returning();
+    return draft;
+  }
+
+  async getIceDraft(id: number): Promise<schema.IceDraft | undefined> {
+    return db.query.iceDrafts.findFirst({
+      where: eq(schema.iceDrafts.id, id),
+    });
+  }
+
+  async getIceDraftsByOrbit(businessSlug: string, limit: number = 20): Promise<schema.IceDraft[]> {
+    return db.query.iceDrafts.findMany({
+      where: eq(schema.iceDrafts.businessSlug, businessSlug),
+      orderBy: [desc(schema.iceDrafts.createdAt)],
+      limit,
+    });
+  }
+
+  async updateIceDraft(id: number, data: Partial<schema.InsertIceDraft>): Promise<schema.IceDraft | undefined> {
+    const [draft] = await db.update(schema.iceDrafts)
+      .set(data)
+      .where(eq(schema.iceDrafts.id, id))
+      .returning();
+    return draft;
+  }
+
+  async deleteIceDraft(id: number): Promise<void> {
+    await db.delete(schema.iceDrafts).where(eq(schema.iceDrafts.id, id));
   }
 
   // Curated Items
