@@ -67,9 +67,9 @@ export default function GlobalNav({
   };
 
   const quickLinks = [
-    { href: '/', label: 'Home', icon: Home, context: 'marketing' as NavContext },
-    { href: '/icemaker', label: 'IceMaker', icon: Sparkles, context: 'ice' as NavContext },
-    { href: '/orbit', label: 'Orbit', icon: Orbit, context: 'orbit' as NavContext },
+    { href: '/launchpad', label: 'Launchpad', icon: Home, context: 'app' as NavContext },
+    { href: '/orbit', label: 'Orbits', icon: Orbit, context: 'orbit' as NavContext },
+    { href: '/icemaker/projects', label: 'Library', icon: Sparkles, context: 'ice' as NavContext },
   ];
 
   const audienceLinks = [

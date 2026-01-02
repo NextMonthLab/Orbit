@@ -1,0 +1,87 @@
+Ohhh yes. This is the version where it starts feeling real.
+You’ve killed most of the “purple wallpaper” problem and the builder now reads as a tool, not a blank void. Proper progress.
+
+What’s now working
+	•	Insight cards are dark-first with accent edges. That’s the premium direction you wanted.
+	•	Builder empty state is finally correct: top-aligned, controls visible-but-disabled. Huge.
+	•	Insights feed header with search + filters is exactly the kind of “producty” scaffolding that makes it feel serious.
+	•	Recent placeholders are there. Good. No more “empty page shame”.
+
+⸻
+
+The remaining issues (and they’re all fixable)
+
+1) The only remaining “purple slab” that matters
+
+In the populated builder view, the selected insight summary card is still a purple block. It’s smaller now, but it’s the last thing that will keep triggering your bugbear.
+
+Fix: make that selected insight card match the left-side styling:
+	•	dark surface
+	•	thin accent border
+	•	confidence pill + tags
+	•	optional tiny gradient edge, not fill
+
+Keep purple for:
+	•	selected buttons
+	•	the primary CTA (Generate draft)
+	•	small accents/borders
+
+Not for full panels.
+
+2) Navigation still tells the old story
+
+Top nav still says Home / IceMaker / Orbit. This undermines your whole “one hub” narrative.
+
+Fix (do it now):
+	•	Launchpad (default)
+	•	Orbits
+	•	Library
+	•	Account
+
+IceMaker shouldn’t be in the global nav anymore. It’s “the engine”, not a destination. (You can still keep /icemaker route, but it should redirect to Library.)
+
+3) “Create Ice” vs “Make Ice” language
+
+Top right button still says Create Ice, while cards say Make Ice.
+
+Rule:
+	•	Make Ice = from an insight
+	•	New Ice = blank / from scratch (if you even need it)
+
+If you keep “Create Ice” in the header, it reads like a side quest.
+
+4) The page is still “too empty” in the middle
+
+This is not a design flaw, it’s just because you only have one feed item in the screenshot. But visually, it makes the product look like it has nothing going on.
+
+Fix: enforce a minimum feed density:
+	•	If fewer than 5 insights, show “Suggested insights” placeholders (grey skeletons) or “System insights” generated from metrics.
+	•	Or show sections: New, High confidence, Opportunities so it never looks barren.
+
+5) Tiny alignment polish that’ll make it feel expensive
+	•	The builder panel’s spacing is good, but you can tighten vertical gaps slightly so more fits above the fold.
+	•	Make the “Latest” sort dropdown align with the search bar baseline (it’s slightly floaty).
+
+⸻
+
+Your “definition of done” for the Launchpad UI
+
+If these are true, you’re basically ready to show it publicly:
+	1.	Launchpad is default post-login page
+	2.	Nav reads Launchpad / Orbits / Library
+	3.	Left side: metrics + top insight + scrollable feed with at least 5 items (real or generated)
+	4.	Right side:
+	•	empty state shows disabled controls
+	•	selected state shows insight summary (dark, not purple slab)
+	•	draft state shows preview + actions
+	5.	Button language is consistent (Make Ice / Generate draft / Publish interactive)
+
+⸻
+
+What I’d do next (one sprint, high impact)
+	1.	Remove the purple fill from the selected insight card in the builder
+	2.	Rename nav + remove IceMaker from global nav
+	3.	Unify “Create Ice” wording
+	4.	Add minimum insight feed density (fallback generation or placeholders)
+
+Send me the next screenshot once the builder’s selected insight card is no longer purple-filled and the nav has been renamed. That’s the moment it stops feeling like “a new page” and starts feeling like the product.

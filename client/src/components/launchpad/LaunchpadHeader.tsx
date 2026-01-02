@@ -108,11 +108,11 @@ export function LaunchpadHeader({
         <Button
           onClick={onCreateIce}
           className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-sm md:text-base px-3 md:px-4"
-          data-testid="button-create-ice"
-          aria-label="Create Ice"
+          data-testid="button-new-ice"
+          aria-label="New Ice"
         >
           <Plus className="w-4 h-4 md:mr-2" />
-          <span className="hidden md:inline">Create Ice</span>
+          <span className="hidden md:inline">New Ice</span>
         </Button>
       </div>
     </div>

@@ -190,14 +190,14 @@ export function IceBuilderPanel({
         </p>
       </div>
 
-      <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
+      <div className="p-4 rounded-lg bg-white/[0.03] border-l-2 border-l-purple-500 border border-white/10">
         <p className="text-white font-medium">{insight.title}</p>
         <p className="text-sm text-white/60 mt-1 line-clamp-2">
           {insight.meaning}
         </p>
         <Badge
           variant="outline"
-          className="mt-2 border-purple-500/30 text-purple-400"
+          className="mt-2 border-white/20 text-white/60"
         >
           ★ {insight.confidence}
         </Badge>
