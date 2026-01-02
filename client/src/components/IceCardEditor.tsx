@@ -111,6 +111,10 @@ export function IceCardEditor({
   const [videoPrompt, setVideoPrompt] = useState("");
   const [referenceImageUrl, setReferenceImageUrl] = useState("");
   const [videoLoading, setVideoLoading] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const [videoStatus, setVideoStatus] = useState<string | null>(null);
   const [videoGenElapsed, setVideoGenElapsed] = useState(0);
   const [videoGenStartTime, setVideoGenStartTime] = useState<number | null>(null);
@@ -337,6 +341,80 @@ export function IceCardEditor({
     }
   };
   
+  const handleUploadMedia = async (file: File, type: "image" | "video") => {
+    const setUploading = type === "image" ? setImageUploading : setVideoUploading;
+    setUploading(true);
+    
+    try {
+      const urlRes = await fetch("/api/uploads/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: file.name,
+          size: file.size,
+          contentType: file.type,
+        }),
+      });
+      
+      if (!urlRes.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+      
+      const { uploadURL, objectPath } = await urlRes.json();
+      
+      const uploadRes = await fetch(uploadURL, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      
+      if (!uploadRes.ok) {
+        throw new Error("Failed to upload file");
+      }
+      
+      const mediaUrl = objectPath;
+      
+      if (type === "image") {
+        onCardUpdate(card.id, { generatedImageUrl: mediaUrl });
+        onCardSave(card.id, { generatedImageUrl: mediaUrl });
+        toast({ title: "Image uploaded!", description: "Your image has been added to the card." });
+      } else {
+        onCardUpdate(card.id, { generatedVideoUrl: mediaUrl });
+        onCardSave(card.id, { generatedVideoUrl: mediaUrl });
+        toast({ title: "Video uploaded!", description: "Your video has been added to the card." });
+      }
+    } catch (error: any) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+  
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast({ title: "Invalid file", description: "Please select an image file.", variant: "destructive" });
+        return;
+      }
+      handleUploadMedia(file, "image");
+    }
+    e.target.value = "";
+  };
+  
+  const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("video/")) {
+        toast({ title: "Invalid file", description: "Please select a video file.", variant: "destructive" });
+        return;
+      }
+      handleUploadMedia(file, "video");
+    }
+    e.target.value = "";
+  };
+  
   return (
     <div className="border border-slate-700 rounded-lg overflow-hidden bg-slate-900/80">
       <div 
@@ -530,19 +608,43 @@ export function IceCardEditor({
                     </p>
                   </div>
                   
-                  <Button
-                    onClick={handleGenerateImage}
-                    disabled={imageLoading}
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 gap-2"
-                    data-testid="button-generate-image"
-                  >
-                    {imageLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Wand2 className="w-4 h-4" />
-                    )}
-                    {imageLoading ? "Generating..." : "Generate AI Image"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleGenerateImage}
+                      disabled={imageLoading || imageUploading}
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 gap-2"
+                      data-testid="button-generate-image"
+                    >
+                      {imageLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-4 h-4" />
+                      )}
+                      {imageLoading ? "Generating..." : "Generate AI Image"}
+                    </Button>
+                    <Button
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={imageLoading || imageUploading}
+                      variant="outline"
+                      className="border-slate-600 hover:bg-slate-800 gap-2"
+                      data-testid="button-upload-image"
+                    >
+                      {imageUploading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4" />
+                      )}
+                      {imageUploading ? "Uploading..." : "Upload"}
+                    </Button>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageFileChange}
+                      data-testid="input-upload-image"
+                    />
+                  </div>
                 </div>
               )}
               
@@ -677,19 +779,43 @@ export function IceCardEditor({
                         </div>
                       )}
                       
-                      <Button
-                        onClick={handleGenerateVideo}
-                        disabled={videoLoading || videoStatus === "processing"}
-                        className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 gap-2"
-                        data-testid="button-generate-video"
-                      >
-                        {videoLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Video className="w-4 h-4" />
-                        )}
-                        {videoLoading ? "Starting..." : "Generate AI Video"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleGenerateVideo}
+                          disabled={videoLoading || videoStatus === "processing" || videoUploading}
+                          className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 gap-2"
+                          data-testid="button-generate-video"
+                        >
+                          {videoLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Video className="w-4 h-4" />
+                          )}
+                          {videoLoading ? "Starting..." : "Generate AI Video"}
+                        </Button>
+                        <Button
+                          onClick={() => videoInputRef.current?.click()}
+                          disabled={videoLoading || videoStatus === "processing" || videoUploading}
+                          variant="outline"
+                          className="border-slate-600 hover:bg-slate-800 gap-2"
+                          data-testid="button-upload-video"
+                        >
+                          {videoUploading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Upload className="w-4 h-4" />
+                          )}
+                          {videoUploading ? "Uploading..." : "Upload"}
+                        </Button>
+                        <input
+                          ref={videoInputRef}
+                          type="file"
+                          accept="video/*"
+                          className="hidden"
+                          onChange={handleVideoFileChange}
+                          data-testid="input-upload-video"
+                        />
+                      </div>
                     </>
                   )}
                 </div>
