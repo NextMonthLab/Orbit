@@ -10,11 +10,25 @@ interface RecentStripProps {
 export function RecentStrip({ drafts, onDraftClick }: RecentStripProps) {
   if (drafts.length === 0) {
     return (
-      <div className="border-t border-white/10 py-4 px-6">
+      <div className="border-t border-white/10 py-4 px-6" data-testid="recent-strip-empty">
         <h3 className="text-sm font-medium text-white/60 mb-3">Recent</h3>
-        <p className="text-sm text-white/40">
-          Your recent drafts and published content will appear here.
-        </p>
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="flex-shrink-0 p-4 rounded-lg bg-white/[0.02] border border-dashed border-white/10 min-w-[200px]"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-4 h-4 rounded bg-white/5" />
+                <div className="h-4 bg-white/5 rounded w-24" />
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-12 bg-white/5 rounded" />
+                <div className="h-3 bg-white/5 rounded w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
