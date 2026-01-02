@@ -247,8 +247,9 @@ export default function CardPlayer({
 
   const primaryCharacter = characters[0];
 
+  // Force 9:16 portrait aspect ratio on all devices for consistent mobile-first experience
   const containerClass = fullScreen
-    ? "relative w-full h-full overflow-hidden"
+    ? "relative h-full max-h-screen aspect-[9/16] mx-auto overflow-hidden"
     : "relative w-full aspect-[9/16] overflow-hidden rounded-2xl shadow-2xl";
 
   return (
@@ -298,18 +299,14 @@ export default function CardPlayer({
                   loop
                   muted
                   playsInline
-                  className={fullScreen && isTabletLandscape 
-                    ? "max-w-full max-h-full object-contain" 
-                    : "w-full h-full object-cover"}
+                  className="w-full h-full object-cover"
                   data-testid="video-player"
                 />
               ) : card.image ? (
                 <img
                   src={card.image}
                   alt={card.title}
-                  className={fullScreen && isTabletLandscape 
-                    ? "max-w-full max-h-full object-contain" 
-                    : "w-full h-full object-cover"}
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary/40 via-background to-primary/20" />
