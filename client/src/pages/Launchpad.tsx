@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { useEffect, useState, useCallback } from "react";
+import { useLocation, useSearch } from "wouter";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Loader2, Lightbulb, Sparkles, Clock } from "lucide-react";
 import GlobalNav from "@/components/GlobalNav";
 import { useAuth } from "@/lib/auth";
@@ -64,8 +64,10 @@ function setStoredOrbitSlug(slug: string): void {
 export default function Launchpad() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const searchString = useSearch();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const processedQueryParams = useRef(false);
 
   const [selectedOrbit, setSelectedOrbit] = useState<OrbitSummary | null>(null);
   const [selectedInsight, setSelectedInsight] = useState<Insight | null>(null);
@@ -73,6 +75,7 @@ export default function Launchpad() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTab>("insights");
   const [mobileBuilderOpen, setMobileBuilderOpen] = useState(false);
+  const [highlightedInsightId, setHighlightedInsightId] = useState<string | null>(null);
 
   const { data: orbitsData, isLoading: orbitsLoading, isError: orbitsError } = useQuery<OrbitsResponse>({
     queryKey: ["my-orbits"],
@@ -107,6 +110,38 @@ export default function Launchpad() {
       setSelectedOrbit(found || orbitSummaries[0]);
     }
   }, [orbitSummaries, selectedOrbit]);
+
+  // Handle query params for returning from editor (origin trace back-link)
+  useEffect(() => {
+    if (processedQueryParams.current) return;
+    if (!orbitSummaries.length) return; // Wait for orbits to load
+    
+    const params = new URLSearchParams(searchString);
+    const orbitSlug = params.get("orbit");
+    const insightId = params.get("insight");
+    
+    if (!orbitSlug) {
+      // No query params to process, mark as done
+      processedQueryParams.current = true;
+      return;
+    }
+    
+    const targetOrbit = orbitSummaries.find((o) => o.slug === orbitSlug);
+    if (targetOrbit) {
+      setSelectedOrbit(targetOrbit);
+      setStoredOrbitSlug(orbitSlug);
+      if (insightId) {
+        setHighlightedInsightId(insightId);
+        // Clear highlight after a few seconds
+        const timer = setTimeout(() => setHighlightedInsightId(null), 3000);
+        // Cleanup on unmount
+        return () => clearTimeout(timer);
+      }
+      processedQueryParams.current = true;
+      // Clear URL params without navigation
+      window.history.replaceState({}, "", "/launchpad");
+    }
+  }, [searchString, orbitSummaries]);
 
   const { data: insightsData, isLoading: insightsLoading } = useQuery<{ insights: Insight[] }>({
     queryKey: ["orbit-insights", selectedOrbit?.slug],
@@ -264,6 +299,7 @@ export default function Launchpad() {
             <InsightFeed
               insights={feedInsights}
               selectedInsightId={selectedInsight?.id}
+              highlightedInsightId={highlightedInsightId}
               onMakeIce={handleMakeIce}
               isLoading={insightsLoading}
             />
@@ -299,6 +335,7 @@ export default function Launchpad() {
             <InsightFeed
               insights={feedInsights}
               selectedInsightId={selectedInsight?.id}
+              highlightedInsightId={highlightedInsightId}
               onMakeIce={handleMakeIce}
               isLoading={insightsLoading}
             />

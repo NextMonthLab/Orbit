@@ -42,6 +42,13 @@ interface PreviewCard {
   narrationAudioUrl?: string;
 }
 
+interface InsightOrigin {
+  insightId: string;
+  insightTitle: string;
+  insightMeaning: string;
+  businessSlug: string;
+}
+
 interface PreviewData {
   id: string;
   title: string;
@@ -623,6 +630,25 @@ export default function GuestIceBuilderPage() {
                 <p className="text-xs sm:text-sm text-white/50 mt-1">
                   <Film className="w-3 h-3 inline mr-1" />
                   {cards.length} story cards
+                  {preview.sourceType === "insight" && (() => {
+                    try {
+                      const origin: InsightOrigin = JSON.parse(preview.sourceValue);
+                      return (
+                        <span className="ml-2">
+                          <span className="text-white/30">•</span>
+                          <button
+                            onClick={() => navigate(`/launchpad?orbit=${origin.businessSlug}&insight=${origin.insightId}`)}
+                            className="ml-2 text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+                            data-testid="link-origin-insight"
+                          >
+                            Made from insight
+                          </button>
+                        </span>
+                      );
+                    } catch {
+                      return null;
+                    }
+                  })()}
                 </p>
               </div>
               <div className="flex gap-2 w-full sm:w-auto">

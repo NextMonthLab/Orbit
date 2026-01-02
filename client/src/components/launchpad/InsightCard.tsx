@@ -19,6 +19,7 @@ export interface Insight {
 interface InsightCardProps {
   insight: Insight;
   isSelected?: boolean;
+  isHighlighted?: boolean;
   onMakeIce: (insight: Insight) => void;
 }
 
@@ -31,12 +32,15 @@ const confidenceColors = {
 export function InsightCard({
   insight,
   isSelected,
+  isHighlighted,
   onMakeIce,
 }: InsightCardProps) {
   return (
     <div
       className={`p-4 rounded-lg border transition-all cursor-pointer ${
-        isSelected
+        isHighlighted
+          ? "bg-blue-500/10 border-blue-500 ring-2 ring-blue-500/50 animate-pulse"
+          : isSelected
           ? "bg-white/[0.03] border-l-2 border-l-blue-500 border-white/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]"
           : "bg-white/[0.02] border-white/10 hover:border-blue-500/30 hover:bg-white/[0.04]"
       }`}

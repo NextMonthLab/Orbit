@@ -7,6 +7,7 @@ import { InsightCard, type Insight } from "./InsightCard";
 interface InsightFeedProps {
   insights: Insight[];
   selectedInsightId?: string;
+  highlightedInsightId?: string | null;
   onMakeIce: (insight: Insight) => void;
   isLoading?: boolean;
 }
@@ -17,6 +18,7 @@ const sortOptions = ["Latest", "Impact"];
 export function InsightFeed({
   insights,
   selectedInsightId,
+  highlightedInsightId,
   onMakeIce,
   isLoading,
 }: InsightFeedProps) {
@@ -121,6 +123,7 @@ export function InsightFeed({
             key={insight.id}
             insight={insight}
             isSelected={insight.id === selectedInsightId}
+            isHighlighted={insight.id === highlightedInsightId}
             onMakeIce={onMakeIce}
           />
         ))}

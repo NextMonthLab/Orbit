@@ -9281,12 +9281,17 @@ Guidelines:
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30); // 30-day expiry for insight previews
       
-      // Create ice preview with source linking to insight
+      // Create ice preview with source linking to insight (store origin for back-link)
       const savedPreview = await storage.createIcePreview({
         id: previewId,
         ownerUserId: user.id,
-        sourceType: "text" as any,
-        sourceValue: `Insight: ${title}\n\n${content}`,
+        sourceType: "insight" as any,
+        sourceValue: JSON.stringify({
+          insightId,
+          insightTitle: title,
+          insightMeaning: content,
+          businessSlug: slug,
+        }),
         title,
         cards: previewCards,
         tier: "short",
