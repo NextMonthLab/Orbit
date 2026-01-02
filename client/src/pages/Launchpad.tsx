@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useEffect, useState, useCallback } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lightbulb, Sparkles, Clock } from "lucide-react";
 import GlobalNav from "@/components/GlobalNav";
 import { useAuth } from "@/lib/auth";
 import {
@@ -11,6 +11,7 @@ import {
   InsightFeed,
   IceBuilderPanel,
   RecentStrip,
+  PowerUpBanner,
   type OrbitSummary,
   type Insight,
   type IceDraft,
@@ -18,7 +19,10 @@ import {
   type IceTone,
   type IceOutputType,
 } from "@/components/launchpad";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+
+type MobileTab = "insights" | "builder" | "recent";
 
 interface OwnedOrbit {
   businessSlug: string;
@@ -67,6 +71,8 @@ export default function Launchpad() {
   const [selectedInsight, setSelectedInsight] = useState<Insight | null>(null);
   const [currentDraft, setCurrentDraft] = useState<IceDraft | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [mobileTab, setMobileTab] = useState<MobileTab>("insights");
+  const [mobileBuilderOpen, setMobileBuilderOpen] = useState(false);
 
   const { data: orbitsData, isLoading: orbitsLoading, isError: orbitsError } = useQuery<OrbitsResponse>({
     queryKey: ["my-orbits"],
@@ -146,12 +152,16 @@ export default function Launchpad() {
   const handleMakeIce = useCallback((insight: Insight) => {
     setSelectedInsight(insight);
     setCurrentDraft(null);
+    setMobileBuilderOpen(true);
+    setMobileTab("builder");
   }, []);
 
   const handleCreateIce = useCallback(() => {
     if (topInsight) {
       setSelectedInsight(topInsight);
       setCurrentDraft(null);
+      setMobileBuilderOpen(true);
+      setMobileTab("builder");
     }
   }, [topInsight]);
 
@@ -230,7 +240,15 @@ export default function Launchpad() {
         onCreateIce={handleCreateIce}
       />
 
-      <div className="flex-1 flex">
+      {selectedOrbit?.status === "basic" && (
+        <PowerUpBanner
+          orbitSlug={selectedOrbit.slug}
+          onUpgrade={() => setLocation(`/orbit/${selectedOrbit.slug}/upgrade`)}
+        />
+      )}
+
+      {/* Desktop Layout */}
+      <div className="flex-1 hidden lg:flex">
         <div className="flex-1 flex flex-col lg:flex-row">
           <div className="lg:w-2/3 p-6 space-y-6 overflow-y-auto">
             <SignalTiles
@@ -261,7 +279,116 @@ export default function Launchpad() {
         </div>
       </div>
 
-      <RecentStrip drafts={recentDrafts} />
+      {/* Desktop RecentStrip */}
+      <div className="hidden lg:block">
+        <RecentStrip drafts={recentDrafts} />
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="flex-1 flex flex-col lg:hidden pb-16">
+        {mobileTab === "insights" && (
+          <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+            <SignalTiles
+              visits={currentOrbitStats?.visits || 0}
+              conversations={currentOrbitStats?.conversations || 0}
+              iceViews={currentOrbitStats?.iceViews || 0}
+              leads={0}
+            />
+            <TopInsightCard insight={topInsight} onMakeIce={handleMakeIce} />
+            <InsightFeed
+              insights={feedInsights}
+              selectedInsightId={selectedInsight?.id}
+              onMakeIce={handleMakeIce}
+              isLoading={insightsLoading}
+            />
+          </div>
+        )}
+
+        {mobileTab === "builder" && (
+          <div className="flex-1 overflow-y-auto bg-white/[0.02]">
+            <IceBuilderPanel
+              selectedInsight={selectedInsight}
+              draft={currentDraft}
+              onGenerateDraft={handleGenerateDraft}
+              isGenerating={isGenerating}
+            />
+          </div>
+        )}
+
+        {mobileTab === "recent" && (
+          <div className="flex-1 p-4 overflow-y-auto">
+            <h2 className="text-lg font-semibold text-white mb-4">Recent Content</h2>
+            {recentDrafts.length === 0 ? (
+              <p className="text-white/60 text-sm">No recent drafts yet. Create your first content from an insight.</p>
+            ) : (
+              <div className="space-y-3">
+                {recentDrafts.map((draft) => (
+                  <div
+                    key={draft.id}
+                    onClick={() => {
+                      setCurrentDraft(draft);
+                      setMobileTab("builder");
+                    }}
+                    className="p-4 rounded-lg bg-white/5 border border-white/10"
+                    data-testid={`mobile-draft-${draft.id}`}
+                  >
+                    <p className="font-medium text-white truncate">{draft.headline}</p>
+                    <p className="text-xs text-white/50 mt-1">{draft.status === "published" ? "Published" : "Draft"}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Tab Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-black/95 backdrop-blur border-t border-white/10 z-50">
+        <div className="flex">
+          <button
+            onClick={() => setMobileTab("insights")}
+            className={`flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${
+              mobileTab === "insights" ? "text-purple-400" : "text-white/60"
+            }`}
+            data-testid="tab-insights"
+          >
+            <Lightbulb className="w-5 h-5" />
+            <span className="text-xs">Insights</span>
+          </button>
+          <button
+            onClick={() => setMobileTab("builder")}
+            className={`flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${
+              mobileTab === "builder" ? "text-purple-400" : "text-white/60"
+            }`}
+            data-testid="tab-builder"
+          >
+            <Sparkles className="w-5 h-5" />
+            <span className="text-xs">Builder</span>
+          </button>
+          <button
+            onClick={() => setMobileTab("recent")}
+            className={`flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${
+              mobileTab === "recent" ? "text-purple-400" : "text-white/60"
+            }`}
+            data-testid="tab-recent"
+          >
+            <Clock className="w-5 h-5" />
+            <span className="text-xs">Recent</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Builder Sheet (alternative full-screen approach) */}
+      <Sheet open={mobileBuilderOpen && mobileTab !== "builder"} onOpenChange={setMobileBuilderOpen}>
+        <SheetContent side="bottom" className="h-[90vh] bg-black border-white/10 p-0">
+          <IceBuilderPanel
+            selectedInsight={selectedInsight}
+            draft={currentDraft}
+            onGenerateDraft={handleGenerateDraft}
+            isGenerating={isGenerating}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

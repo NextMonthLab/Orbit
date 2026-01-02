@@ -12,3 +12,4 @@ export {
 } from "./IceBuilderPanel";
 export { RecentStrip } from "./RecentStrip";
 export { EmptyState } from "./EmptyStates";
+export { PowerUpBanner } from "./PowerUpBanner";

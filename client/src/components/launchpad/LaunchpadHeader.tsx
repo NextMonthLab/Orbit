@@ -33,20 +33,20 @@ export function LaunchpadHeader({
   const isPowered = selectedOrbit?.status === "powered";
 
   return (
-    <div className="flex items-center justify-between py-4 px-6 border-b border-white/10">
-      <div className="flex items-center gap-4">
+    <div className="flex items-center justify-between py-3 md:py-4 px-4 md:px-6 border-b border-white/10">
+      <div className="flex items-center gap-2 md:gap-4 min-w-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="flex items-center gap-2 text-white hover:bg-white/10"
+              className="flex items-center gap-1 md:gap-2 text-white hover:bg-white/10 px-2 md:px-3"
               data-testid="dropdown-orbit-selector"
             >
               <span className="text-yellow-400">★</span>
-              <span className="font-medium">
+              <span className="font-medium truncate max-w-[120px] md:max-w-none">
                 {selectedOrbit?.name || "Select Orbit"}
               </span>
-              <ChevronDown className="w-4 h-4 opacity-60" />
+              <ChevronDown className="w-4 h-4 opacity-60 flex-shrink-0" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -69,7 +69,7 @@ export function LaunchpadHeader({
 
         <Badge
           variant="outline"
-          className={`${
+          className={`hidden sm:flex ${
             isPowered
               ? "border-green-500/50 text-green-400"
               : "border-amber-500/50 text-amber-400"
@@ -80,7 +80,7 @@ export function LaunchpadHeader({
         </Badge>
 
         {!isPowered && (
-          <Link href={`/orbit/${selectedOrbit?.slug}/settings`}>
+          <Link href={`/orbit/${selectedOrbit?.slug}/settings`} className="hidden md:block">
             <Button
               variant="outline"
               size="sm"
@@ -88,14 +88,14 @@ export function LaunchpadHeader({
               data-testid="button-power-up"
             >
               <Zap className="w-4 h-4 mr-1" />
-              Power up Orbit
+              Power up
             </Button>
           </Link>
         )}
       </div>
 
-      <div className="flex items-center gap-3">
-        <Link href="/icemaker/projects">
+      <div className="flex items-center gap-2 md:gap-3">
+        <Link href="/icemaker/projects" className="hidden md:block">
           <Button
             variant="ghost"
             className="text-white/60 hover:text-white hover:bg-white/10"
@@ -107,11 +107,12 @@ export function LaunchpadHeader({
         </Link>
         <Button
           onClick={onCreateIce}
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-sm md:text-base px-3 md:px-4"
           data-testid="button-create-ice"
+          aria-label="Create Ice"
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Ice
+          <Plus className="w-4 h-4 md:mr-2" />
+          <span className="hidden md:inline">Create Ice</span>
         </Button>
       </div>
     </div>
