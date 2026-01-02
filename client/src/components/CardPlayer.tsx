@@ -571,21 +571,7 @@ export default function CardPlayer({
                     Chat with {primaryCharacter.name}
                   </Button>
                 </div>
-              ) : (
-                <div className="space-y-3 mb-4">
-                  <Link href="/journal">
-                    <Button 
-                      size="lg" 
-                      variant="outline"
-                      className="w-full gap-2 py-6 text-base border-white/20 hover:bg-white/5"
-                      data-testid="button-journal"
-                    >
-                      <BookOpen className="w-5 h-5" />
-                      View Case Journal
-                    </Button>
-                  </Link>
-                </div>
-              )}
+              ) : null}
               
               <MessageBoard cardId={card.id} compact={true} />
             </div>
