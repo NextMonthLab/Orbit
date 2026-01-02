@@ -7987,7 +7987,9 @@ STRICT RULES:
       }
 
       const userId = req.isAuthenticated() ? (req.user as any)?.id : null;
-      const userEmail = req.isAuthenticated() ? (req.user as any)?.email?.toLowerCase() : null;
+      const user = req.isAuthenticated() ? (req.user as any) : null;
+      // Check both email and username fields (username often stores email for email-based login)
+      const userEmail = (user?.email || user?.username)?.toLowerCase() || null;
       
       // Claimed = has owner ID, owner email, or verified timestamp
       const isClaimed = !!(orbitMeta.ownerId || orbitMeta.ownerEmail || orbitMeta.verifiedAt);
