@@ -7987,10 +7987,15 @@ STRICT RULES:
       }
 
       const userId = req.isAuthenticated() ? (req.user as any)?.id : null;
-      const isClaimed = !!orbitMeta.ownerId;
+      const userEmail = req.isAuthenticated() ? (req.user as any)?.email?.toLowerCase() : null;
       
-      // Determine viewer role: admin if authenticated and owner
-      const isAdmin = userId && orbitMeta.ownerId === userId;
+      // Claimed = has owner ID, owner email, or verified timestamp
+      const isClaimed = !!(orbitMeta.ownerId || orbitMeta.ownerEmail || orbitMeta.verifiedAt);
+      
+      // Determine viewer role: admin if authenticated and owner (by ID or email)
+      const isOwnerById = userId && orbitMeta.ownerId === userId;
+      const isOwnerByEmail = userEmail && orbitMeta.ownerEmail?.toLowerCase() === userEmail;
+      const isAdmin = isOwnerById || isOwnerByEmail;
       
       // Also check if this is the creator (for unclaimed orbits created in same session)
       // We track this via the preview's ownerUserId field
