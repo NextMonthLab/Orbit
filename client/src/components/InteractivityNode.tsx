@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, Send, Loader2, X, Sparkles, Plus, ChevronDown, User } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { MessageCircle, Send, Loader2, X, Sparkles, Plus, ChevronDown, User, Wand2, PenLine, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DropdownMenu,
@@ -9,6 +11,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface Message {
   role: "user" | "assistant";
@@ -317,6 +326,8 @@ interface AddInteractivityButtonProps {
   onAdd: () => void;
   characters?: StoryCharacter[];
   onCharacterSelect?: (characterId: string) => void;
+  previewId?: string;
+  onCharacterCreated?: (character: StoryCharacter) => void;
 }
 
 export function AddInteractivityButton({
@@ -324,19 +335,19 @@ export function AddInteractivityButton({
   onAdd,
   characters = [],
   onCharacterSelect,
+  previewId,
+  onCharacterCreated,
 }: AddInteractivityButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showCharacterMenu, setShowCharacterMenu] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customRole, setCustomRole] = useState("");
+  const [customGreeting, setCustomGreeting] = useState("");
 
   const handleClick = () => {
-    if (characters.length > 1) {
-      setShowCharacterMenu(true);
-    } else {
-      if (characters.length === 1 && onCharacterSelect) {
-        onCharacterSelect(characters[0].id);
-      }
-      onAdd();
-    }
+    setShowCharacterMenu(true);
   };
 
   const handleCharacterSelect = (charId: string) => {
@@ -345,65 +356,215 @@ export function AddInteractivityButton({
     setShowCharacterMenu(false);
   };
 
-  return (
-    <div
-      className="relative h-8 flex items-center justify-center group cursor-pointer"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => { setIsHovered(false); setShowCharacterMenu(false); }}
-      data-testid={`button-add-node-after-${afterCardIndex}`}
-    >
-      <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+  const handleCreateCustom = () => {
+    setShowCharacterMenu(false);
+    setShowCreateDialog(true);
+  };
+
+  const handleSaveCustomCharacter = async () => {
+    if (!customName.trim()) return;
+    
+    setIsCreating(true);
+    
+    try {
+      const newCharacter: StoryCharacter = {
+        id: `custom-${Date.now()}`,
+        name: customName.trim(),
+        role: customRole.trim() || "AI Assistant",
+        openingMessage: customGreeting.trim() || `Hello! I'm ${customName.trim()}. How can I help you today?`,
+      };
+
+      if (previewId) {
+        const response = await fetch(`/api/ice/preview/${previewId}/characters`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newCharacter),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          newCharacter.id = data.id || newCharacter.id;
+        }
+      }
+
+      onCharacterCreated?.(newCharacter);
+      onCharacterSelect?.(newCharacter.id);
+      onAdd();
       
-      {showCharacterMenu ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="relative z-20 bg-slate-900 border border-purple-500/40 rounded-lg p-2 shadow-xl"
-        >
-          <p className="text-[10px] text-purple-300 mb-2 px-2">Who should they talk to?</p>
-          <div className="flex flex-wrap gap-1">
-            {characters.map((char) => (
-              <Button
-                key={char.id}
-                variant="ghost"
-                size="sm"
-                onClick={() => handleCharacterSelect(char.id)}
-                className="h-auto py-1 px-2 text-xs text-purple-200 hover:bg-purple-500/20 hover:text-white"
-                data-testid={`button-select-char-${char.id}-after-${afterCardIndex}`}
-              >
-                <User className="w-3 h-3 mr-1" />
-                {char.name}
-              </Button>
-            ))}
-          </div>
-        </motion.div>
-      ) : (
-        <>
-          <motion.button
-            initial={false}
-            animate={{
-              scale: isHovered ? 1.1 : 1,
-              backgroundColor: isHovered ? "rgb(147, 51, 234)" : "rgb(30, 41, 59)",
-            }}
-            onClick={handleClick}
-            className="relative z-10 w-6 h-6 rounded-full border border-purple-500/50 flex items-center justify-center transition-colors"
+      setShowCreateDialog(false);
+      setCustomName("");
+      setCustomRole("");
+      setCustomGreeting("");
+    } catch (error) {
+      console.error("Failed to create character:", error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <>
+      <div
+        className="relative h-8 flex items-center justify-center group cursor-pointer"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => { setIsHovered(false); if (!showCreateDialog) setShowCharacterMenu(false); }}
+        data-testid={`button-add-node-after-${afterCardIndex}`}
+      >
+        <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+        
+        {showCharacterMenu ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative z-20 bg-slate-900 border border-purple-500/40 rounded-lg p-3 shadow-xl min-w-[200px]"
           >
-            <Plus className={`w-3 h-3 ${isHovered ? "text-white" : "text-purple-400"}`} />
-          </motion.button>
-          <AnimatePresence>
-            {isHovered && (
-              <motion.span
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                className="absolute left-1/2 translate-x-4 text-xs text-purple-300 whitespace-nowrap bg-slate-900/90 px-2 py-1 rounded"
-              >
-                Add Character Chat
-              </motion.span>
+            <p className="text-[10px] text-purple-300 mb-2 font-medium">Choose character type</p>
+            
+            {characters.length > 0 && (
+              <>
+                <div className="flex items-center gap-2 mb-2">
+                  <Wand2 className="w-3 h-3 text-purple-400" />
+                  <span className="text-[10px] text-slate-400">AI-Generated</span>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {characters.map((char) => (
+                    <Button
+                      key={char.id}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCharacterSelect(char.id)}
+                      className="h-auto py-1.5 px-2 text-xs text-purple-200 hover:bg-purple-500/20 hover:text-white"
+                      data-testid={`button-select-char-${char.id}-after-${afterCardIndex}`}
+                    >
+                      <User className="w-3 h-3 mr-1" />
+                      {char.name}
+                    </Button>
+                  ))}
+                </div>
+                <div className="border-t border-slate-700 my-2" />
+              </>
             )}
-          </AnimatePresence>
-        </>
-      )}
-    </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCreateCustom}
+              className="w-full h-auto py-2 text-xs border-dashed border-purple-500/40 text-purple-300 hover:bg-purple-500/10 hover:text-white"
+              data-testid={`button-create-custom-after-${afterCardIndex}`}
+            >
+              <PenLine className="w-3 h-3 mr-2" />
+              Create Custom Character
+            </Button>
+          </motion.div>
+        ) : (
+          <>
+            <motion.button
+              initial={false}
+              animate={{
+                scale: isHovered ? 1.1 : 1,
+                backgroundColor: isHovered ? "rgb(147, 51, 234)" : "rgb(30, 41, 59)",
+              }}
+              onClick={handleClick}
+              className="relative z-10 w-6 h-6 rounded-full border border-purple-500/50 flex items-center justify-center transition-colors"
+            >
+              <Plus className={`w-3 h-3 ${isHovered ? "text-white" : "text-purple-400"}`} />
+            </motion.button>
+            <AnimatePresence>
+              {isHovered && (
+                <motion.span
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="absolute left-1/2 translate-x-4 text-xs text-purple-300 whitespace-nowrap bg-slate-900/90 px-2 py-1 rounded"
+                >
+                  Add Character Chat
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </>
+        )}
+      </div>
+
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="bg-slate-900 border-purple-500/30 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <PenLine className="w-5 h-5 text-purple-400" />
+              Create Custom Character
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Define a custom AI character for your audience to chat with.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="char-name" className="text-sm text-slate-300">Character Name *</Label>
+              <Input
+                id="char-name"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                placeholder="e.g., Alex, Product Expert, Chef Marco"
+                className="bg-slate-800 border-slate-700 text-white"
+                data-testid="input-custom-char-name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="char-role" className="text-sm text-slate-300">Role / Title</Label>
+              <Input
+                id="char-role"
+                value={customRole}
+                onChange={(e) => setCustomRole(e.target.value)}
+                placeholder="e.g., Customer Success Lead, Head Chef"
+                className="bg-slate-800 border-slate-700 text-white"
+                data-testid="input-custom-char-role"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="char-greeting" className="text-sm text-slate-300">Opening Message</Label>
+              <Textarea
+                id="char-greeting"
+                value={customGreeting}
+                onChange={(e) => setCustomGreeting(e.target.value)}
+                placeholder="What should this character say when someone starts chatting?"
+                className="bg-slate-800 border-slate-700 text-white min-h-[80px]"
+                data-testid="input-custom-char-greeting"
+              />
+            </div>
+          </div>
+          
+          <div className="flex gap-2 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateDialog(false)}
+              className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800"
+              data-testid="button-cancel-create-char"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveCustomCharacter}
+              disabled={!customName.trim() || isCreating}
+              className="flex-1 bg-purple-600 hover:bg-purple-700"
+              data-testid="button-save-custom-char"
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Create Character
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

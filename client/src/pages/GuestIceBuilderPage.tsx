@@ -697,6 +697,7 @@ export default function GuestIceBuilderPage() {
                             <AddInteractivityButton
                               afterCardIndex={index}
                               characters={preview?.characters || []}
+                              previewId={preview?.id}
                               onCharacterSelect={(charId) => {
                                 const newNode: InteractivityNodeData = {
                                   id: `node-${Date.now()}-${index}`,
@@ -705,6 +706,14 @@ export default function GuestIceBuilderPage() {
                                   selectedCharacterId: charId,
                                 };
                                 setInteractivityNodes(nodes => [...nodes, newNode]);
+                              }}
+                              onCharacterCreated={(newChar) => {
+                                if (preview) {
+                                  setPreview({
+                                    ...preview,
+                                    characters: [...(preview.characters || []), newChar],
+                                  });
+                                }
                               }}
                               onAdd={() => {
                                 const chars = preview?.characters || [];

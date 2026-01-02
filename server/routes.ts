@@ -6221,6 +6221,54 @@ Stay engaging, reference story details, and help the audience understand the nar
     }
   });
   
+  // ICE Preview - Add custom character
+  app.post("/api/ice/preview/:id/characters", async (req, res) => {
+    try {
+      const previewId = req.params.id;
+      const { name, role, openingMessage } = req.body;
+      
+      if (!name || typeof name !== "string") {
+        return res.status(400).json({ message: "Character name is required" });
+      }
+      
+      const preview = await storage.getIcePreview(previewId);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      // Check expiry
+      if (preview.expiresAt < new Date() && preview.status !== "promoted") {
+        return res.status(410).json({ message: "Preview has expired" });
+      }
+      
+      // Create new character
+      const newCharacter: schema.IcePreviewCharacter = {
+        id: `custom-${Date.now()}`,
+        name: name.trim(),
+        role: (role || "AI Assistant").trim(),
+        description: `Custom character: ${name}`,
+        systemPrompt: `You are ${name}, ${role || "an AI assistant"}. You are helpful, friendly, and knowledgeable about the content in this experience. Answer questions naturally and stay in character.`,
+        openingMessage: openingMessage || `Hello! I'm ${name}. How can I help you today?`,
+      };
+      
+      // Add to existing characters
+      const existingCharacters = (preview.characters || []) as schema.IcePreviewCharacter[];
+      const updatedCharacters = [...existingCharacters, newCharacter];
+      
+      // Update the preview
+      await storage.updateIcePreview(previewId, { characters: updatedCharacters });
+      
+      res.json({ 
+        success: true, 
+        id: newCharacter.id,
+        character: newCharacter,
+      });
+    } catch (error) {
+      console.error("Error adding custom character:", error);
+      res.status(500).json({ message: "Error adding character" });
+    }
+  });
+  
   // ICE Preview Chat - Talk to story characters
   app.post("/api/ice/preview/:id/chat", chatRateLimiter, async (req, res) => {
     try {
