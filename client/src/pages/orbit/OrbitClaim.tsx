@@ -108,6 +108,8 @@ export default function OrbitClaim() {
   const [tryAnotherUrl, setTryAnotherUrl] = useState("");
   const [tryAnotherError, setTryAnotherError] = useState("");
   const [isBuilding, setIsBuilding] = useState(false);
+  const [powerUpResult, setPowerUpResult] = useState<{ planTier: string; strengthScore: number } | null>(null);
+  const [powerUpError, setPowerUpError] = useState("");
 
   const MAX_SELECTIONS = 3;
 
@@ -260,68 +262,81 @@ export default function OrbitClaim() {
     const hasFaq = quickSetupData.faqMode === 'url' ? quickSetupData.faqUrl.trim() : quickSetupData.faqText.trim();
     
     if (!hasAbout && !hasServices && !hasFaq) {
+      setPowerUpError("Please provide at least one source");
       return;
     }
     
     setIsBuilding(true);
+    setPowerUpError("");
     
-    // TODO: Wire up to backend endpoint for multi-source ingestion
-    // For now, simulate building process
     try {
-      // Collect all sources
-      const sources: { type: 'url' | 'text'; label: string; content: string }[] = [];
+      // Collect all sources in the format expected by the API
+      const sources: Array<{ label: string; sourceType: string; value: string }> = [];
       
       if (hasAbout) {
         sources.push({
-          type: quickSetupData.aboutMode,
           label: 'about',
-          content: quickSetupData.aboutMode === 'url' ? quickSetupData.aboutUrl : quickSetupData.aboutText,
+          sourceType: quickSetupData.aboutMode === 'url' ? 'page_url' : 'page_text',
+          value: quickSetupData.aboutMode === 'url' ? quickSetupData.aboutUrl : quickSetupData.aboutText,
         });
       }
       if (hasServices) {
         sources.push({
-          type: quickSetupData.servicesMode,
           label: 'services',
-          content: quickSetupData.servicesMode === 'url' ? quickSetupData.servicesUrl : quickSetupData.servicesText,
+          sourceType: quickSetupData.servicesMode === 'url' ? 'page_url' : 'page_text',
+          value: quickSetupData.servicesMode === 'url' ? quickSetupData.servicesUrl : quickSetupData.servicesText,
         });
       }
       if (hasFaq) {
         sources.push({
-          type: quickSetupData.faqMode,
           label: 'faq',
-          content: quickSetupData.faqMode === 'url' ? quickSetupData.faqUrl : quickSetupData.faqText,
+          sourceType: quickSetupData.faqMode === 'url' ? 'page_url' : 'page_text',
+          value: quickSetupData.faqMode === 'url' ? quickSetupData.faqUrl : quickSetupData.faqText,
         });
       }
       
-      // TODO: Call actual backend endpoint
-      // const response = await fetch('/api/orbit/ingest-sources', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     businessSlug: blockedData?.businessSlug,
-      //     sources,
-      //     homepage: quickSetupData.homepage,
-      //     socials: {
-      //       linkedin: quickSetupData.socialLinkedIn,
-      //       instagram: quickSetupData.socialInstagram,
-      //       facebook: quickSetupData.socialFacebook,
-      //       tiktok: quickSetupData.socialTikTok,
-      //     },
-      //     prioritizeSocials: quickSetupData.prioritizeSocials,
-      //   }),
-      // });
-      
-      // Simulate delay for demo
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setShowQuickSetup(false);
-      setIsBuilding(false);
-      
-      if (blockedData?.businessSlug) {
-        setLocation(`/orbit/${blockedData.businessSlug}`);
+      // Add social links if provided
+      if (quickSetupData.socialLinkedIn.trim()) {
+        sources.push({ label: 'linkedin', sourceType: 'social_link', value: quickSetupData.socialLinkedIn.trim() });
       }
+      if (quickSetupData.socialInstagram.trim()) {
+        sources.push({ label: 'instagram', sourceType: 'social_link', value: quickSetupData.socialInstagram.trim() });
+      }
+      if (quickSetupData.socialFacebook.trim()) {
+        sources.push({ label: 'facebook', sourceType: 'social_link', value: quickSetupData.socialFacebook.trim() });
+      }
+      if (quickSetupData.socialTikTok.trim()) {
+        sources.push({ label: 'tiktok', sourceType: 'social_link', value: quickSetupData.socialTikTok.trim() });
+      }
+      if (quickSetupData.homepage.trim()) {
+        sources.push({ label: 'homepage', sourceType: 'page_url', value: quickSetupData.homepage.trim() });
+      }
+      
+      // Call the real backend endpoint
+      const response = await fetch(`/api/orbit/${blockedData?.businessSlug}/ingest-sources`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ sources }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to power up orbit');
+      }
+      
+      const result = await response.json();
+      
+      // Show success screen
+      setPowerUpResult({
+        planTier: result.orbit.planTier,
+        strengthScore: result.orbit.strengthScore,
+      });
+      setQuickSetupStep(3); // Move to success step
+      setIsBuilding(false);
     } catch (err) {
       setIsBuilding(false);
+      setPowerUpError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       console.error('Quick setup failed:', err);
     }
   };
@@ -950,6 +965,13 @@ export default function OrbitClaim() {
                       </label>
                     </div>
 
+                    {/* Error message */}
+                    {powerUpError && (
+                      <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                        <p className="text-sm text-red-400">{powerUpError}</p>
+                      </div>
+                    )}
+
                     {/* Actions */}
                     <div className="flex justify-between gap-3 pt-4 border-t border-white/10">
                       <Button
@@ -957,6 +979,7 @@ export default function OrbitClaim() {
                         variant="ghost"
                         className="text-white/60 hover:text-white hover:bg-white/5"
                         data-testid="button-wizard-back"
+                        disabled={isBuilding}
                       >
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Back
@@ -965,8 +988,87 @@ export default function OrbitClaim() {
                         onClick={handleQuickSetupSubmit}
                         className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                         data-testid="button-build-orbit"
+                        disabled={isBuilding}
                       >
-                        Build Orbit
+                        {isBuilding ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Building...
+                          </>
+                        ) : (
+                          'Build Orbit'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Success */}
+                {quickSetupStep === 3 && powerUpResult && (
+                  <div className="space-y-6 mt-4 text-center py-4">
+                    {/* Success indicator */}
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 flex items-center justify-center">
+                        <Sparkles className="w-8 h-8 text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-white mb-2">Orbit Powered Up</h3>
+                        <p className="text-sm text-white/60">
+                          We'll now generate richer insights and content-ready ideas.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Strength score */}
+                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-white/60">Orbit Strength</span>
+                        <span className="text-lg font-semibold text-white">{powerUpResult.strengthScore}/100</span>
+                      </div>
+                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
+                          style={{ width: `${powerUpResult.strengthScore}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-white/40 mt-2">
+                        Add more sources to increase your strength score
+                      </p>
+                    </div>
+
+                    {/* Status badge */}
+                    <div className="flex justify-center">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30">
+                        <span className="w-2 h-2 rounded-full bg-blue-400" />
+                        <span className="text-sm font-medium text-blue-300">Powered</span>
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-col gap-3 pt-4 border-t border-white/10">
+                      <Button
+                        onClick={() => {
+                          setShowQuickSetup(false);
+                          setLocation('/launchpad');
+                        }}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        data-testid="button-go-launchpad"
+                      >
+                        Go to Launchpad
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setShowQuickSetup(false);
+                          if (blockedData?.businessSlug) {
+                            setLocation(`/orbit/${blockedData.businessSlug}`);
+                          }
+                        }}
+                        variant="ghost"
+                        className="w-full text-white/60 hover:text-white hover:bg-white/5"
+                        data-testid="button-manage-orbit"
+                      >
+                        Manage Orbit
                       </Button>
                     </div>
                   </div>
