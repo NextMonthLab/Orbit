@@ -1,0 +1,172 @@
+# NEXTMONTH 2.0 — Orbit + ICE UX Polish (Style Guide Alignment + Smarter Flow)
+
+You are working inside the existing NextMonth app. DO NOT rebuild the architecture. DO NOT introduce mock data. Keep existing routes and DB wiring intact. This is a UX + UI polish pass and a small IA improvement.
+
+CRITICAL:
+- Use the existing Amalgamated Editor for all ICE editing.
+- Preserve the current nav: Launchpad, Orbits, Library.
+- Maintain the new NextMonth gradient accent system used in Launchpad/Editor/Library.
+- Keep all changes consistent with the new style guide: dark glass UI, subtle borders, soft shadows, minimal colours, gradient reserved for primary actions and selected states.
+
+## Goal
+Make Orbits onboarding/setup screens feel as premium and coherent as Launchpad/Editor/Library.
+Remove “prototype” UI elements, reduce colour noise, and ensure the “New Ice” entry supports all inputs (Insight, URL, Paste, Upload) without creating a separate IceMaker nav page.
+
+---
+
+# A) Information Priority Screen (Orbit setup step)
+Screen: "What information on your site would be most valuable to visitors?"
+
+## Changes
+1) Visual system alignment
+- Convert option rows into the same “module card” style as Launchpad insight cards:
+  - Dark glass background
+  - Subtle border
+  - Soft hover lift
+  - Clear selected state using NextMonth gradient border/glow (not random colours)
+
+2) Reduce colour noise
+- Remove/avoid multi-colour category accents.
+- Only allow:
+  - NextMonth gradient = primary/selection/CTA
+  - Green = success only
+  - Amber = warning only
+
+3) Add “Step indicator”
+- Add a lightweight stepper at top: “Step 1 of 3” (or appropriate number).
+- Keep it minimal and consistent with the design language.
+
+4) Make “Let Orbit decide” special
+- Give it a “Recommended” treatment:
+  - gradient border
+  - sparkles icon
+  - short helper line: “Fastest setup”
+
+5) Add clear affordance
+- Add a right-side chevron or “Select” affordance on each option to make it feel actionable.
+
+Acceptance criteria
+- Screen looks and feels like part of the same product as Launchpad/Editor.
+- No rainbow/colourful UI elements.
+- “Let Orbit decide” stands out as the default option.
+
+---
+
+# B) Orbit Appearance / Branding Customisation Screen
+Screen includes logo selection, image selection, accent colour picker, theme toggle.
+
+## Changes
+1) Replace the rainbow colour picker (prototype feel)
+- Replace the full rainbow slider with curated swatches first:
+  - Include “NextMonth (Recommended)” as the default accent (gradient).
+  - Include a small set of tasteful swatches (8–12 max).
+- Add an “Advanced” toggle that reveals the full colour picker only if the user wants it.
+
+2) Ensure selection styles match Launchpad
+- Selected tiles use gradient border/glow.
+- Buttons use consistent gradient for primary CTA only.
+
+Acceptance criteria
+- Default experience feels premium, not like a dev tool.
+- Advanced controls exist, but are hidden behind an “Advanced” toggle.
+
+---
+
+# C) “Website Protected” Bot Protection Screen
+Current screen detects bot protection (e.g. Cloudflare) and offers alternatives.
+
+## Changes
+1) Reframe as progress, not failure
+- Update messaging to lead with reassurance:
+  - “We can’t read this site automatically (bot protection). No problem — choose the fastest option below.”
+
+2) Add “Sitemap import” option FIRST
+Add a new top option:
+- Title: “Try sitemap.xml (fastest)”
+- Subtitle: “We’ll attempt to import your public sitemap without crawling your pages.”
+- If sitemap exists, ingest URLs as sources.
+- If not, show a helpful error and keep user on this screen.
+
+3) Add “Install snippet” option (authorised approach)
+Add option:
+- Title: “Install the Orbit snippet (recommended)”
+- Subtitle: “Securely authorise your site to send pages to Orbit.”
+- For now, if full snippet flow is not implemented, show a modal with placeholder instructions and “Copy snippet” button (do NOT claim it works if it doesn’t). Keep it honest.
+
+4) Add “time to complete” labels to each option
+Example:
+- sitemap.xml: ~1 min
+- paste: ~2 min
+- upload csv/excel: ~5 min
+- connect platform: ~10 min
+- install snippet: ~3 min
+
+Acceptance criteria
+- Screen feels like a helpful detour, not a dead end.
+- Users are guided toward a quick, legitimate path forward.
+
+---
+
+# D) ICE Creation Entry Point (No dedicated IceMaker page)
+We keep navigation as Launchpad / Orbits / Library.
+
+## Changes
+1) “New Ice” should open a single modal with 4 input modes
+Modal title: “Create a new ICE”
+Options:
+- From an insight (default)
+- From a URL
+- Paste text
+- Upload (PDF / doc / text)
+
+2) All paths feed the SAME builder panel and SAME draft generation endpoint
+- Insight mode preselects an insight as today.
+- URL mode: user enters URL → system ingests to source text → generates draft.
+- Paste mode: textarea → generates draft.
+- Upload mode: file upload → extract text → generates draft.
+
+3) After “Generate draft”, always navigate into the Amalgamated Editor
+- Persist the draft
+- Route to editor by ID
+- Library should show the draft immediately.
+
+Acceptance criteria
+- No extra “IceMaker” nav page needed.
+- Users always know where to start: Launchpad + New Ice.
+- All content sources are supported in one obvious entry point.
+
+---
+
+# E) Copy tweaks (premium OS tone, minimal gamification)
+Current “Starter insights (3)” and “Level up” language.
+
+## Changes
+- Replace “Level up” with “Add sources to unlock full insights”
+- Badge: “Starter insights: 3”
+- CTA: “Add sources” (primary) and “Upgrade” only where monetisation is intended.
+
+Acceptance criteria
+- Tone feels premium and consistent.
+- Still rewarding, but not arcade/gamified unless we commit to that later.
+
+---
+
+# Implementation notes
+- Keep components reusable: create shared UI components for:
+  - OptionCard / ModuleCard
+  - StepIndicator
+  - CuratedSwatchPicker + AdvancedColorPicker
+- Ensure all changes are responsive and match existing spacing, typography, radii.
+- Do not introduce new external UI libraries unless already used in the project.
+
+Deliverables
+1) Updated Orbit information priority screen (style-aligned, stepper, recommended option)
+2) Updated appearance screen (curated swatches + advanced toggle)
+3) Updated “Website Protected” screen (sitemap + snippet + time labels + improved copy)
+4) New “Create a new ICE” modal with 4 input modes feeding into existing draft generation + editor navigation
+5) Copy adjustments for starter insight messaging
+
+When finished, provide:
+- The file paths changed
+- A short QA checklist of how to test each flow
+- Confirmation that no mock data was added

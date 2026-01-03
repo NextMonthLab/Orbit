@@ -1,5 +1,5 @@
 import { type ComponentType, Fragment } from "react";
-import { Building2, Globe, Loader2, AlertCircle, ClipboardPaste, FileSpreadsheet, Link2, Shield, UtensilsCrossed, ShoppingCart, Briefcase, BookOpen, FileText, MapPin, Sparkles, ArrowLeft, Check, ArrowRight, X, Clock, Zap, Upload, ExternalLink } from "lucide-react";
+import { Building2, Globe, Loader2, AlertCircle, ClipboardPaste, FileSpreadsheet, Link2, Shield, UtensilsCrossed, ShoppingCart, Briefcase, BookOpen, FileText, MapPin, Sparkles, ArrowLeft, Check, ArrowRight, X, Clock, Zap, Upload, ExternalLink, Code, FileCode, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -421,6 +421,36 @@ export default function OrbitClaim() {
               </div>
             )}
 
+            {/* Let Orbit decide - Recommended option at top */}
+            <button
+              onClick={handleLetOrbitDecide}
+              className="w-full p-4 rounded-xl border border-transparent bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/15 hover:to-purple-500/15 text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 ring-1 ring-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
+              data-testid="button-intent-auto"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center flex-shrink-0 ring-1 ring-blue-500/50">
+                  <Sparkles className="w-5 h-5 text-blue-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-white">Let Orbit decide</span>
+                    <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium">
+                      Recommended
+                    </span>
+                  </div>
+                  <span className="text-white/50 text-sm">Fastest setup — we'll analyse your site automatically</span>
+                </div>
+                <ArrowRight className="w-5 h-5 text-blue-400 flex-shrink-0 mt-2" />
+              </div>
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 text-white/30">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-xs uppercase tracking-wide">Or choose manually</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+
             {/* Options grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {priorityOptions.map((option) => {
@@ -448,7 +478,7 @@ export default function OrbitClaim() {
                     {/* Recommended chip */}
                     {isRecommended && (
                       <span className="absolute -top-2 right-3 px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium">
-                        Recommended
+                        Suggested
                       </span>
                     )}
 
@@ -487,17 +517,6 @@ export default function OrbitClaim() {
                   </button>
                 );
               })}
-            </div>
-
-            {/* Let Orbit decide link */}
-            <div className="text-center pt-2">
-              <button
-                onClick={handleLetOrbitDecide}
-                className="text-white/40 hover:text-white/70 text-sm transition-colors underline underline-offset-2"
-                data-testid="button-intent-auto"
-              >
-                Or let Orbit decide automatically
-              </button>
             </div>
           </div>
         </div>
@@ -545,64 +564,134 @@ export default function OrbitClaim() {
     return (
       <OrbitLayout>
         <div className="p-6 max-w-[720px] mx-auto space-y-6">
-          {/* Header */}
+          {/* Header - Positive framing */}
           <div className="text-center space-y-3">
-            <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto">
-              <Shield className="w-7 h-7 text-white/60" />
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 flex items-center justify-center mx-auto">
+              <Shield className="w-7 h-7 text-blue-400" />
             </div>
             <h1 className="text-2xl font-semibold text-white" data-testid="text-blocked-title">
-              This site blocks automated scanning
+              This site has extra protection
             </h1>
             <p className="text-white/60 max-w-md mx-auto">
-              No problem. Orbit can still be built from your content in a few minutes.
+              No problem — choose the fastest option below to build your Orbit.
             </p>
           </div>
 
-          {/* Status panel */}
-          <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
-            <p className="text-sm text-white/50">
-              Protected site detected (e.g. Cloudflare, bot protection)
-            </p>
-          </div>
-
-          {/* Recommended Path Card */}
-          <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="px-2 py-0.5 rounded text-xs font-medium bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-400 border border-blue-500/20">
-                Recommended
+          {/* Primary options - Sitemap first */}
+          <div className="space-y-3">
+            {/* Sitemap option - FIRST and fastest */}
+            <button
+              onClick={async () => {
+                try {
+                  const sitemapUrl = new URL('/sitemap.xml', validatedUrl || blockedData.sourceUrl).href;
+                  setTryAnotherUrl(sitemapUrl);
+                  // Auto-trigger scan with sitemap URL
+                  analyzeWebsiteMutation.mutate({
+                    url: sitemapUrl,
+                    extractionIntent: null,
+                    extractionPriorities: [],
+                  });
+                } catch (e) {
+                  setTryAnotherError('Could not construct sitemap URL');
+                }
+              }}
+              disabled={analyzeWebsiteMutation.isPending}
+              className="w-full p-4 rounded-xl border border-transparent bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/15 hover:to-purple-500/15 text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 ring-1 ring-blue-500/30"
+              data-testid="button-try-sitemap"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center flex-shrink-0 ring-1 ring-blue-500/50">
+                    <FileCode className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-white">Try sitemap.xml</span>
+                      <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium">
+                        Fastest
+                      </span>
+                      <span className="text-xs text-white/40 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> ~1 min
+                      </span>
+                    </div>
+                    <span className="text-white/50 text-sm">Import your public sitemap without crawling pages</span>
+                  </div>
+                </div>
+                {analyzeWebsiteMutation.isPending ? (
+                  <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-blue-400" />
+                )}
               </div>
-              <span className="text-white/40 text-xs flex items-center gap-1">
-                <Clock className="w-3 h-3" /> 2–3 minutes
-              </span>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Quick Setup</h2>
-              <p className="text-sm text-white/60 mt-1">
-                Paste your key pages and Orbit will build your knowledge map from them.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => {
-                  setQuickSetupStep(1);
-                  setShowQuickSetup(true);
-                  if (validatedUrl) {
-                    setQuickSetupData(prev => ({ ...prev, homepage: validatedUrl }));
-                  }
-                }}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                data-testid="button-quick-setup"
-              >
-                <Zap className="w-4 h-4 mr-2" />
-                Start Quick Setup
-              </Button>
-            </div>
+            </button>
+
+            {/* Quick Setup - Recommended */}
+            <button
+              onClick={() => {
+                setQuickSetupStep(1);
+                setShowQuickSetup(true);
+                if (validatedUrl) {
+                  setQuickSetupData(prev => ({ ...prev, homepage: validatedUrl }));
+                }
+              }}
+              className="w-full p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] hover:border-white/20 text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              data-testid="button-quick-setup"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-white/[0.05] flex items-center justify-center flex-shrink-0">
+                    <Zap className="w-5 h-5 text-white/60" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-white">Quick Setup</span>
+                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-white/10 text-white/60">
+                        Recommended
+                      </span>
+                      <span className="text-xs text-white/40 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> ~2 min
+                      </span>
+                    </div>
+                    <span className="text-white/50 text-sm">Paste your key pages and we'll build your knowledge map</span>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-white/40" />
+              </div>
+            </button>
+
+            {/* Install snippet option */}
+            <button
+              onClick={() => {
+                // Show snippet modal
+                alert('Snippet installation coming soon. For now, use Quick Setup.');
+              }}
+              className="w-full p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] hover:border-white/20 text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              data-testid="button-install-snippet"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-white/[0.05] flex items-center justify-center flex-shrink-0">
+                    <Code className="w-5 h-5 text-white/60" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-white">Install the Orbit snippet</span>
+                      <span className="text-xs text-white/40 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> ~3 min
+                      </span>
+                    </div>
+                    <span className="text-white/50 text-sm">Securely authorise your site to send pages to Orbit</span>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-white/40" />
+              </div>
+            </button>
           </div>
 
           {/* Try another page */}
-          <div className="p-4 rounded-lg bg-white/5 border border-white/10 space-y-3">
-            <p className="text-sm text-white/50">
-              Try scanning a public page instead (About / Services often works)
+          <div className="p-4 rounded-lg bg-white/[0.02] border border-white/5 space-y-3">
+            <p className="text-sm text-white/40">
+              Or try scanning a different page (About / Services often work)
             </p>
             <div className="flex gap-2">
               <Input
@@ -622,7 +711,7 @@ export default function OrbitClaim() {
                 className="border-white/10 text-white hover:bg-white/10"
                 data-testid="button-try-scan"
               >
-                Try scan
+                Scan
               </Button>
             </div>
             {tryAnotherError && (
@@ -630,40 +719,34 @@ export default function OrbitClaim() {
             )}
           </div>
 
-          {/* Secondary Options */}
+          {/* More options - collapsed */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-white/40 uppercase tracking-wide">Other options</h3>
+            <h3 className="text-xs font-medium text-white/30 uppercase tracking-wide">More options</h3>
             <div className="grid gap-3 sm:grid-cols-3">
               {/* Paste menu/catalogue */}
               <button
                 onClick={() => setLocation(`/orbit/${blockedData.businessSlug}/import`)}
-                className="p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors text-left group"
+                className="p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-white/10 transition-colors text-left"
                 data-testid="button-paste-import"
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <ClipboardPaste className="w-4 h-4 text-white/40" />
-                  <span className="text-xs text-white/40 flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> 2–5 min
-                  </span>
+                <div className="flex items-center gap-2 mb-1">
+                  <ClipboardPaste className="w-4 h-4 text-white/30" />
+                  <span className="text-xs text-white/30">~5 min</span>
                 </div>
-                <span className="text-sm font-medium text-white block">Paste your menu or catalogue</span>
-                <span className="text-xs text-white/50 mt-1 block">Copy from your site or export</span>
+                <span className="text-sm font-medium text-white/70 block">Paste content</span>
               </button>
 
               {/* Upload CSV/Excel */}
               <button
                 onClick={() => setLocation(`/orbit/${blockedData.businessSlug}/import`)}
-                className="p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors text-left group"
+                className="p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-white/10 transition-colors text-left"
                 data-testid="button-csv-import"
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <FileSpreadsheet className="w-4 h-4 text-white/40" />
-                  <span className="text-xs text-white/40 flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> 5–10 min
-                  </span>
+                <div className="flex items-center gap-2 mb-1">
+                  <FileSpreadsheet className="w-4 h-4 text-white/30" />
+                  <span className="text-xs text-white/30">~10 min</span>
                 </div>
-                <span className="text-sm font-medium text-white block">Upload CSV or Excel</span>
-                <span className="text-xs text-white/50 mt-1 block">Product list from your system</span>
+                <span className="text-sm font-medium text-white/70 block">Upload spreadsheet</span>
               </button>
 
               {/* Connect platform */}
@@ -672,20 +755,17 @@ export default function OrbitClaim() {
                   setQuickSetupStep(1);
                   setShowQuickSetup(true);
                 }}
-                className="p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors text-left group relative"
+                className="p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-white/10 transition-colors text-left relative"
                 data-testid="button-connect-platform"
               >
-                <div className="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] uppercase tracking-wide bg-white/10 text-white/40 rounded">
-                  Coming soon
+                <div className="absolute top-1.5 right-1.5 px-1 py-0.5 text-[9px] uppercase tracking-wide bg-white/5 text-white/30 rounded">
+                  Soon
                 </div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Link2 className="w-4 h-4 text-white/40" />
-                  <span className="text-xs text-white/40 flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> 2 min
-                  </span>
+                <div className="flex items-center gap-2 mb-1">
+                  <Link2 className="w-4 h-4 text-white/30" />
+                  <span className="text-xs text-white/30">~2 min</span>
                 </div>
-                <span className="text-sm font-medium text-white block">Connect a platform</span>
-                <span className="text-xs text-white/50 mt-1 block">Shopify, Squarespace, Wix</span>
+                <span className="text-sm font-medium text-white/70 block">Connect platform</span>
               </button>
             </div>
           </div>
