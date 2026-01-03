@@ -1,7 +1,9 @@
-import { type ComponentType } from "react";
-import { Building2, Globe, Loader2, AlertCircle, ClipboardPaste, FileSpreadsheet, Link2, Shield, UtensilsCrossed, ShoppingCart, Briefcase, BookOpen, FileText, MapPin, Sparkles, ArrowLeft, Check, ArrowRight } from "lucide-react";
+import { type ComponentType, Fragment } from "react";
+import { Building2, Globe, Loader2, AlertCircle, ClipboardPaste, FileSpreadsheet, Link2, Shield, UtensilsCrossed, ShoppingCart, Briefcase, BookOpen, FileText, MapPin, Sparkles, ArrowLeft, Check, ArrowRight, X, Clock, Zap, Upload, ExternalLink } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import OrbitLayout from "@/components/OrbitLayout";
 import { Link, useLocation } from "wouter";
 import { useState, useCallback } from "react";
@@ -82,6 +84,30 @@ export default function OrbitClaim() {
   const [showClassification, setShowClassification] = useState(false);
   const [validatedUrl, setValidatedUrl] = useState("");
   const [selectedPriorities, setSelectedPriorities] = useState<ExtractionIntent[]>([]);
+  
+  // Quick Setup wizard state
+  const [showQuickSetup, setShowQuickSetup] = useState(false);
+  const [quickSetupStep, setQuickSetupStep] = useState(1);
+  const [quickSetupData, setQuickSetupData] = useState({
+    aboutUrl: '',
+    aboutText: '',
+    aboutMode: 'url' as 'url' | 'text',
+    servicesUrl: '',
+    servicesText: '',
+    servicesMode: 'url' as 'url' | 'text',
+    faqUrl: '',
+    faqText: '',
+    faqMode: 'url' as 'url' | 'text',
+    homepage: '',
+    socialLinkedIn: '',
+    socialInstagram: '',
+    socialFacebook: '',
+    socialTikTok: '',
+    prioritizeSocials: true,
+  });
+  const [tryAnotherUrl, setTryAnotherUrl] = useState("");
+  const [tryAnotherError, setTryAnotherError] = useState("");
+  const [isBuilding, setIsBuilding] = useState(false);
 
   const MAX_SELECTIONS = 3;
 
@@ -201,6 +227,110 @@ export default function OrbitClaim() {
 
   const handleLetOrbitDecide = () => {
     handleStartExtraction([]);
+  };
+
+  const handleTryAnotherPage = async () => {
+    if (!tryAnotherUrl.trim()) {
+      setTryAnotherError("Please enter a URL");
+      return;
+    }
+    
+    let url = tryAnotherUrl.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    
+    try {
+      new URL(url);
+    } catch {
+      setTryAnotherError("Please enter a valid URL");
+      return;
+    }
+    
+    setTryAnotherError("");
+    setBlockedData(null);
+    setValidatedUrl(url);
+    setShowClassification(true);
+  };
+
+  const handleQuickSetupSubmit = async () => {
+    // Validate at least one source is provided
+    const hasAbout = quickSetupData.aboutMode === 'url' ? quickSetupData.aboutUrl.trim() : quickSetupData.aboutText.trim();
+    const hasServices = quickSetupData.servicesMode === 'url' ? quickSetupData.servicesUrl.trim() : quickSetupData.servicesText.trim();
+    const hasFaq = quickSetupData.faqMode === 'url' ? quickSetupData.faqUrl.trim() : quickSetupData.faqText.trim();
+    
+    if (!hasAbout && !hasServices && !hasFaq) {
+      return;
+    }
+    
+    setIsBuilding(true);
+    
+    // TODO: Wire up to backend endpoint for multi-source ingestion
+    // For now, simulate building process
+    try {
+      // Collect all sources
+      const sources: { type: 'url' | 'text'; label: string; content: string }[] = [];
+      
+      if (hasAbout) {
+        sources.push({
+          type: quickSetupData.aboutMode,
+          label: 'about',
+          content: quickSetupData.aboutMode === 'url' ? quickSetupData.aboutUrl : quickSetupData.aboutText,
+        });
+      }
+      if (hasServices) {
+        sources.push({
+          type: quickSetupData.servicesMode,
+          label: 'services',
+          content: quickSetupData.servicesMode === 'url' ? quickSetupData.servicesUrl : quickSetupData.servicesText,
+        });
+      }
+      if (hasFaq) {
+        sources.push({
+          type: quickSetupData.faqMode,
+          label: 'faq',
+          content: quickSetupData.faqMode === 'url' ? quickSetupData.faqUrl : quickSetupData.faqText,
+        });
+      }
+      
+      // TODO: Call actual backend endpoint
+      // const response = await fetch('/api/orbit/ingest-sources', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     businessSlug: blockedData?.businessSlug,
+      //     sources,
+      //     homepage: quickSetupData.homepage,
+      //     socials: {
+      //       linkedin: quickSetupData.socialLinkedIn,
+      //       instagram: quickSetupData.socialInstagram,
+      //       facebook: quickSetupData.socialFacebook,
+      //       tiktok: quickSetupData.socialTikTok,
+      //     },
+      //     prioritizeSocials: quickSetupData.prioritizeSocials,
+      //   }),
+      // });
+      
+      // Simulate delay for demo
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setShowQuickSetup(false);
+      setIsBuilding(false);
+      
+      if (blockedData?.businessSlug) {
+        setLocation(`/orbit/${blockedData.businessSlug}`);
+      }
+    } catch (err) {
+      setIsBuilding(false);
+      console.error('Quick setup failed:', err);
+    }
+  };
+
+  const quickSetupHasContent = () => {
+    const hasAbout = quickSetupData.aboutMode === 'url' ? quickSetupData.aboutUrl.trim() : quickSetupData.aboutText.trim();
+    const hasServices = quickSetupData.servicesMode === 'url' ? quickSetupData.servicesUrl.trim() : quickSetupData.servicesText.trim();
+    const hasFaq = quickSetupData.faqMode === 'url' ? quickSetupData.faqUrl.trim() : quickSetupData.faqText.trim();
+    return !!(hasAbout || hasServices || hasFaq);
   };
 
   const isLoading = analyzeWebsiteMutation.isPending;
@@ -399,87 +529,452 @@ export default function OrbitClaim() {
   if (blockedData) {
     return (
       <OrbitLayout>
-        <div className="p-6 max-w-2xl mx-auto space-y-8">
-          <div className="text-center space-y-2">
-            <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
-              <Shield className="w-8 h-8 text-amber-400" />
+        <div className="p-6 max-w-[720px] mx-auto space-y-6">
+          {/* Header */}
+          <div className="text-center space-y-3">
+            <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto">
+              <Shield className="w-7 h-7 text-white/60" />
             </div>
-            <h1 className="text-3xl font-bold text-white" data-testid="text-blocked-title">
-              Website Protected
+            <h1 className="text-2xl font-semibold text-white" data-testid="text-blocked-title">
+              This site blocks automated scanning
             </h1>
             <p className="text-white/60 max-w-md mx-auto">
-              {blockedData.message || "This website uses security measures that prevent automatic reading."}
+              No problem. Orbit can still be built from your content in a few minutes.
             </p>
           </div>
 
-          <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <p className="text-sm text-amber-300 text-center">
-              No problem! You can still set up your Orbit using one of these alternatives:
+          {/* Status panel */}
+          <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
+            <p className="text-sm text-white/50">
+              Protected site detected (e.g. Cloudflare, bot protection)
             </p>
           </div>
 
-          <div className="grid gap-4">
-            <Button
-              onClick={() => setLocation(`/orbit/${blockedData.businessSlug}/import`)}
-              variant="outline"
-              className="w-full p-6 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10"
-              data-testid="button-paste-import"
-            >
-              <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                <ClipboardPaste className="w-6 h-6 text-blue-400" />
+          {/* Recommended Path Card */}
+          <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="px-2 py-0.5 rounded text-xs font-medium bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-400 border border-blue-500/20">
+                Recommended
               </div>
-              <div className="text-left">
-                <span className="text-white font-medium block">Paste Your Menu or Catalogue</span>
-                <span className="text-white/60 text-sm">Copy products from your website and paste as JSON or plain text</span>
-              </div>
-            </Button>
-
-            <Button
-              onClick={() => setLocation(`/orbit/${blockedData.businessSlug}/import`)}
-              variant="outline"
-              className="w-full p-6 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10"
-              data-testid="button-csv-import"
-            >
-              <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                <FileSpreadsheet className="w-6 h-6 text-green-400" />
-              </div>
-              <div className="text-left">
-                <span className="text-white font-medium block">Upload CSV or Excel</span>
-                <span className="text-white/60 text-sm">Export your product list from your system and upload it</span>
-              </div>
-            </Button>
-
-            <Button
-              onClick={() => setLocation(`/orbit/${blockedData.businessSlug}/import`)}
-              variant="outline"
-              className="w-full p-6 h-auto flex items-start gap-4 bg-white/5 border-white/10 hover:bg-white/10"
-              data-testid="button-connect-platform"
-            >
-              <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                <Link2 className="w-6 h-6 text-purple-400" />
-              </div>
-              <div className="text-left">
-                <span className="text-white font-medium block">Connect Platform</span>
-                <span className="text-white/60 text-sm">Link Shopify, Square, or other platforms for automatic sync</span>
-              </div>
-            </Button>
+              <span className="text-white/40 text-xs flex items-center gap-1">
+                <Clock className="w-3 h-3" /> 2–3 minutes
+              </span>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white">Quick Setup</h2>
+              <p className="text-sm text-white/60 mt-1">
+                Paste your key pages and Orbit will build your knowledge map from them.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {
+                  setQuickSetupStep(1);
+                  setShowQuickSetup(true);
+                  if (validatedUrl) {
+                    setQuickSetupData(prev => ({ ...prev, homepage: validatedUrl }));
+                  }
+                }}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                data-testid="button-quick-setup"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Start Quick Setup
+              </Button>
+            </div>
           </div>
 
-          <div className="pt-4 flex justify-center gap-4">
-            <Button
+          {/* Try another page */}
+          <div className="p-4 rounded-lg bg-white/5 border border-white/10 space-y-3">
+            <p className="text-sm text-white/50">
+              Try scanning a public page instead (About / Services often works)
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="https://yoursite.com/about"
+                value={tryAnotherUrl}
+                onChange={(e) => {
+                  setTryAnotherUrl(e.target.value);
+                  setTryAnotherError("");
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && handleTryAnotherPage()}
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/30 flex-1"
+                data-testid="input-try-another-url"
+              />
+              <Button
+                onClick={handleTryAnotherPage}
+                variant="outline"
+                className="border-white/10 text-white hover:bg-white/10"
+                data-testid="button-try-scan"
+              >
+                Try scan
+              </Button>
+            </div>
+            {tryAnotherError && (
+              <p className="text-xs text-red-400">{tryAnotherError}</p>
+            )}
+          </div>
+
+          {/* Secondary Options */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-white/40 uppercase tracking-wide">Other options</h3>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {/* Paste menu/catalogue */}
+              <button
+                onClick={() => setLocation(`/orbit/${blockedData.businessSlug}/import`)}
+                className="p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors text-left group"
+                data-testid="button-paste-import"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <ClipboardPaste className="w-4 h-4 text-white/40" />
+                  <span className="text-xs text-white/40 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> 2–5 min
+                  </span>
+                </div>
+                <span className="text-sm font-medium text-white block">Paste your menu or catalogue</span>
+                <span className="text-xs text-white/50 mt-1 block">Copy from your site or export</span>
+              </button>
+
+              {/* Upload CSV/Excel */}
+              <button
+                onClick={() => setLocation(`/orbit/${blockedData.businessSlug}/import`)}
+                className="p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors text-left group"
+                data-testid="button-csv-import"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <FileSpreadsheet className="w-4 h-4 text-white/40" />
+                  <span className="text-xs text-white/40 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> 5–10 min
+                  </span>
+                </div>
+                <span className="text-sm font-medium text-white block">Upload CSV or Excel</span>
+                <span className="text-xs text-white/50 mt-1 block">Product list from your system</span>
+              </button>
+
+              {/* Connect platform */}
+              <button
+                onClick={() => {
+                  setQuickSetupStep(1);
+                  setShowQuickSetup(true);
+                }}
+                className="p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors text-left group relative"
+                data-testid="button-connect-platform"
+              >
+                <div className="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] uppercase tracking-wide bg-white/10 text-white/40 rounded">
+                  Coming soon
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Link2 className="w-4 h-4 text-white/40" />
+                  <span className="text-xs text-white/40 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> 2 min
+                  </span>
+                </div>
+                <span className="text-sm font-medium text-white block">Connect a platform</span>
+                <span className="text-xs text-white/50 mt-1 block">Shopify, Squarespace, Wix</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom link */}
+          <div className="pt-2 text-center">
+            <button
               onClick={() => {
                 setBlockedData(null);
                 setWebsiteUrl("");
+                setTryAnotherUrl("");
                 analyzeWebsiteMutation.reset();
               }}
-              variant="ghost"
-              className="text-white/60 hover:text-white"
+              className="text-sm text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors"
               data-testid="button-try-different"
             >
-              Try a Different Website
-            </Button>
+              Try scanning a different page
+            </button>
           </div>
         </div>
+
+        {/* Quick Setup Wizard Modal */}
+        <Dialog open={showQuickSetup} onOpenChange={setShowQuickSetup}>
+          <DialogContent className="bg-black border-white/10 text-white max-w-xl max-h-[90vh] overflow-y-auto">
+            {isBuilding ? (
+              <div className="py-12 text-center space-y-4">
+                <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto" />
+                <p className="text-lg font-medium">Building your Orbit…</p>
+                <p className="text-sm text-white/50">This usually takes about 30 seconds</p>
+              </div>
+            ) : (
+              <>
+                <DialogHeader>
+                  <div className="flex items-center justify-between">
+                    <DialogTitle className="text-lg font-semibold">
+                      {quickSetupStep === 1 ? 'Add your key pages' : 'Add extra signals'}
+                    </DialogTitle>
+                    <span className="text-sm text-white/40">Step {quickSetupStep} of 2</span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="h-1 bg-white/10 rounded-full mt-3 overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-300"
+                      style={{ width: quickSetupStep === 1 ? '50%' : '100%' }}
+                    />
+                  </div>
+                </DialogHeader>
+
+                {quickSetupStep === 1 && (
+                  <div className="space-y-4 mt-4">
+                    <p className="text-sm text-white/50">
+                      Use what you have. One page is enough to start.
+                    </p>
+
+                    {/* About page */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-white/80">About page</label>
+                        <div className="flex bg-white/5 rounded-md p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setQuickSetupData(prev => ({ ...prev, aboutMode: 'url' }))}
+                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${quickSetupData.aboutMode === 'url' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                            aria-pressed={quickSetupData.aboutMode === 'url'}
+                            data-testid="toggle-about-url"
+                          >
+                            URL
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setQuickSetupData(prev => ({ ...prev, aboutMode: 'text' }))}
+                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${quickSetupData.aboutMode === 'text' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                            aria-pressed={quickSetupData.aboutMode === 'text'}
+                            data-testid="toggle-about-text"
+                          >
+                            Paste text
+                          </button>
+                        </div>
+                      </div>
+                      {quickSetupData.aboutMode === 'url' ? (
+                        <Input
+                          placeholder="https://yoursite.com/about"
+                          value={quickSetupData.aboutUrl}
+                          onChange={(e) => setQuickSetupData(prev => ({ ...prev, aboutUrl: e.target.value }))}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+                          data-testid="input-about-url"
+                        />
+                      ) : (
+                        <textarea
+                          placeholder="Paste your about page content..."
+                          value={quickSetupData.aboutText}
+                          onChange={(e) => setQuickSetupData(prev => ({ ...prev, aboutText: e.target.value }))}
+                          className="w-full h-20 px-3 py-2 rounded-md bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          data-testid="textarea-about-text"
+                          aria-label="About page content"
+                        />
+                      )}
+                    </div>
+
+                    {/* Services page */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-white/80">Services / Pricing</label>
+                        <div className="flex bg-white/5 rounded-md p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setQuickSetupData(prev => ({ ...prev, servicesMode: 'url' }))}
+                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${quickSetupData.servicesMode === 'url' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                            aria-pressed={quickSetupData.servicesMode === 'url'}
+                            data-testid="toggle-services-url"
+                          >
+                            URL
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setQuickSetupData(prev => ({ ...prev, servicesMode: 'text' }))}
+                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${quickSetupData.servicesMode === 'text' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                            aria-pressed={quickSetupData.servicesMode === 'text'}
+                            data-testid="toggle-services-text"
+                          >
+                            Paste text
+                          </button>
+                        </div>
+                      </div>
+                      {quickSetupData.servicesMode === 'url' ? (
+                        <Input
+                          placeholder="https://yoursite.com/services"
+                          value={quickSetupData.servicesUrl}
+                          onChange={(e) => setQuickSetupData(prev => ({ ...prev, servicesUrl: e.target.value }))}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+                          data-testid="input-services-url"
+                        />
+                      ) : (
+                        <textarea
+                          placeholder="Paste your services or pricing info..."
+                          value={quickSetupData.servicesText}
+                          onChange={(e) => setQuickSetupData(prev => ({ ...prev, servicesText: e.target.value }))}
+                          className="w-full h-20 px-3 py-2 rounded-md bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          data-testid="textarea-services-text"
+                          aria-label="Services or pricing content"
+                        />
+                      )}
+                    </div>
+
+                    {/* FAQ page */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-white/80">FAQ / Contact</label>
+                        <div className="flex bg-white/5 rounded-md p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setQuickSetupData(prev => ({ ...prev, faqMode: 'url' }))}
+                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${quickSetupData.faqMode === 'url' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                            aria-pressed={quickSetupData.faqMode === 'url'}
+                            data-testid="toggle-faq-url"
+                          >
+                            URL
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setQuickSetupData(prev => ({ ...prev, faqMode: 'text' }))}
+                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${quickSetupData.faqMode === 'text' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                            aria-pressed={quickSetupData.faqMode === 'text'}
+                            data-testid="toggle-faq-text"
+                          >
+                            Paste text
+                          </button>
+                        </div>
+                      </div>
+                      {quickSetupData.faqMode === 'url' ? (
+                        <Input
+                          placeholder="https://yoursite.com/faq"
+                          value={quickSetupData.faqUrl}
+                          onChange={(e) => setQuickSetupData(prev => ({ ...prev, faqUrl: e.target.value }))}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+                          data-testid="input-faq-url"
+                        />
+                      ) : (
+                        <textarea
+                          placeholder="Paste your FAQ or contact info..."
+                          value={quickSetupData.faqText}
+                          onChange={(e) => setQuickSetupData(prev => ({ ...prev, faqText: e.target.value }))}
+                          className="w-full h-20 px-3 py-2 rounded-md bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          data-testid="textarea-faq-text"
+                          aria-label="FAQ or contact content"
+                        />
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+                      <Button
+                        onClick={() => setShowQuickSetup(false)}
+                        variant="ghost"
+                        className="text-white/60 hover:text-white hover:bg-white/5"
+                        data-testid="button-wizard-cancel"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => setQuickSetupStep(2)}
+                        disabled={!quickSetupHasContent()}
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50"
+                        data-testid="button-wizard-continue"
+                      >
+                        Continue
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {quickSetupStep === 2 && (
+                  <div className="space-y-4 mt-4">
+                    <p className="text-sm text-white/50">
+                      Optional: Add more signals to enhance your Orbit.
+                    </p>
+
+                    {/* Homepage */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-white/80">Website homepage</label>
+                      <Input
+                        placeholder="https://yoursite.com"
+                        value={quickSetupData.homepage}
+                        onChange={(e) => setQuickSetupData(prev => ({ ...prev, homepage: e.target.value }))}
+                        className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+                        data-testid="input-homepage"
+                      />
+                    </div>
+
+                    {/* Social links */}
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-white/80">Social links</label>
+                      <div className="grid gap-2">
+                        <Input
+                          placeholder="LinkedIn URL"
+                          value={quickSetupData.socialLinkedIn}
+                          onChange={(e) => setQuickSetupData(prev => ({ ...prev, socialLinkedIn: e.target.value }))}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/30 text-sm"
+                          data-testid="input-social-linkedin"
+                        />
+                        <Input
+                          placeholder="Instagram URL"
+                          value={quickSetupData.socialInstagram}
+                          onChange={(e) => setQuickSetupData(prev => ({ ...prev, socialInstagram: e.target.value }))}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/30 text-sm"
+                          data-testid="input-social-instagram"
+                        />
+                        <Input
+                          placeholder="Facebook URL"
+                          value={quickSetupData.socialFacebook}
+                          onChange={(e) => setQuickSetupData(prev => ({ ...prev, socialFacebook: e.target.value }))}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/30 text-sm"
+                          data-testid="input-social-facebook"
+                        />
+                        <Input
+                          placeholder="TikTok URL"
+                          value={quickSetupData.socialTikTok}
+                          onChange={(e) => setQuickSetupData(prev => ({ ...prev, socialTikTok: e.target.value }))}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/30 text-sm"
+                          data-testid="input-social-tiktok"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Priority checkbox - using shadcn Checkbox for proper keyboard handling */}
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="prioritize-socials"
+                        checked={quickSetupData.prioritizeSocials}
+                        onCheckedChange={(checked) => setQuickSetupData(prev => ({ ...prev, prioritizeSocials: checked === true }))}
+                        data-testid="checkbox-prioritize-socials"
+                        className="border-white/20 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-purple-500 data-[state=checked]:border-0"
+                      />
+                      <label htmlFor="prioritize-socials" className="text-sm text-white/70 cursor-pointer">
+                        Prioritise these pages first
+                      </label>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex justify-between gap-3 pt-4 border-t border-white/10">
+                      <Button
+                        onClick={() => setQuickSetupStep(1)}
+                        variant="ghost"
+                        className="text-white/60 hover:text-white hover:bg-white/5"
+                        data-testid="button-wizard-back"
+                      >
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Back
+                      </Button>
+                      <Button
+                        onClick={handleQuickSetupSubmit}
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        data-testid="button-build-orbit"
+                      >
+                        Build Orbit
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </OrbitLayout>
     );
   }

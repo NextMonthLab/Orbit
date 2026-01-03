@@ -1,0 +1,99 @@
+TASK: Redesign the “Website Protected” screen so it does NOT feel like a dead end.
+This is a normal, expected case (Cloudflare/bot protection) and should feel like a guided detour with momentum.
+
+STYLE GUIDE (match Launchpad)
+- Background: pure black.
+- Surfaces: subtle dark cards (bg-white/5, border-white/10).
+- Accents: ONLY use NextMonth gradient for primary CTA + selected states.
+- No big solid colour banners. No rainbow elements. No heavy purple panels.
+- Typography: confident, minimal, product-led.
+
+NEW SCREEN NAME + PURPOSE
+Rename from “Website Protected” to:
+Title: “This site blocks automated scanning”
+Subtitle: “No problem. Orbit can still be built from your content in a few minutes.”
+
+PRIMARY GOAL
+Do NOT present 3 equal choices immediately.
+Present a single recommended “Quick Setup” path with a clear CTA.
+Keep the other options as secondary.
+
+LAYOUT (Desktop)
+Centered container, max-w ~ 720px:
+1) Icon + Title + Subtitle
+2) Small status panel (subtle) explaining: “Protected site detected (e.g. Cloudflare).”
+3) Recommended Path Card (prominent)
+4) Secondary Options (smaller cards)
+5) Bottom link: “Try scanning a different page” (NOT “different website”)
+
+RECOMMENDED PATH (Prominent Card)
+Card header: “Recommended: Quick Setup (2–3 minutes)”
+Microcopy: “Paste your key pages and Orbit will build your knowledge map from them.”
+Primary CTA button (NextMonth gradient): “Start Quick Setup”
+Secondary CTA (ghost): “Try another page”
+
+QUICK SETUP WIZARD (2 steps)
+Implement as an in-page modal or full-screen sheet (preferred: modal sheet).
+
+Step 1 of 2: “Add your key pages”
+- Provide 3 input rows with labels:
+  - About page URL (or paste text)
+  - Services / Pricing URL (or paste text)
+  - FAQ / Contact URL (or paste text)
+- Each row has a segmented toggle: [URL] [Paste text]
+- Add small helper line: “Use what you have. One page is enough to start.”
+- Validation: allow user to continue with at least ONE filled item.
+
+Step 2 of 2: “Add extra signals (optional)”
+- Inputs:
+  - Website homepage (pre-filled if we have it)
+  - Social links (LinkedIn / Instagram / Facebook / TikTok)
+- Checkbox: “Prioritise these pages first” (default ON)
+- CTA row:
+  - Back (ghost)
+  - “Build Orbit” (gradient primary)
+
+On submit:
+- Call backend endpoint to ingest provided sources and create/upgrade orbit data.
+- Show progress state: “Building your Orbit…”
+- On success: navigate to the Orbit preview / Launchpad with a success toast:
+  “Orbit powered up from your sources.”
+
+SECONDARY OPTIONS (Below Recommended)
+Show as 3 smaller cards with time badges:
+1) “Paste your menu or catalogue” (2–5 min)
+   - Opens the wizard but focuses on product/menu paste area (textarea + JSON accepted).
+2) “Upload CSV or Excel” (5–10 min)
+   - File upload UI
+3) “Connect a platform” (2 min)
+   - Shopify / Squarespace / Wix placeholder list
+   - Mark as “Coming soon” if not implemented, but do not dead-end; offer Quick Setup instead.
+
+TRY ANOTHER PAGE (Important)
+Add a small inline control under the recommended card:
+Label: “Try scanning a public page instead (About / Services often works)”
+Input: URL
+Button: “Try scan”
+If scan succeeds, continue normal flow.
+If blocked again, keep user on this page with a calm message.
+
+COPY TONE RULES
+- Avoid “We couldn’t…” framing.
+- Prefer “This site blocks automated scanning” and “Orbit can still be built”.
+
+ACCESSIBILITY
+- Keyboard navigable cards and modal.
+- Clear focus rings.
+- Buttons disabled only when truly necessary.
+
+ROUTING + FLOW
+- If protected site detected, route to this screen.
+- Completing Quick Setup should lead user back into the main experience:
+  - If user has Launchpad: redirect to /launchpad with selected orbit set.
+  - If not: redirect to orbit preview/admin page.
+
+DELIVERABLES
+- Update the UI screen with the new hierarchy (recommended + secondary).
+- Implement the 2-step Quick Setup wizard UI.
+- Hook up to existing backend ingest flow, or stub cleanly with TODOs and mock responses if not yet wired.
+- Ensure styling matches Launchpad gradient accent language.
