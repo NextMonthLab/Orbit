@@ -180,12 +180,12 @@ export default function Home() {
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
                 <Link href="/about/ai-discovery">
-                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" data-testid="cta-learn-ai-discovery">
                     Learn about AI discovery
                   </Button>
                 </Link>
                 <Link href="/orbit/claim">
-                  <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Button className="bg-blue-600 hover:bg-blue-700" data-testid="cta-claim-orbit-discovery">
                     <Target className="w-4 h-4 mr-2" />
                     Claim your Orbit
                   </Button>
@@ -329,7 +329,7 @@ export default function Home() {
             
             <div className="text-center mt-10">
               <Link href="/try">
-                <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700" data-testid="cta-start-building">
                   <Sparkles className="w-4 h-4 mr-2" />
                   Start building your experience
                 </Button>
@@ -377,7 +377,7 @@ export default function Home() {
               
               <div className="mt-6 pt-6 border-t border-white/10 text-center">
                 <Link href="/examples">
-                  <Button variant="outline" className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10">
+                  <Button variant="outline" className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10" data-testid="cta-see-examples">
                     See NextMonth in action
                     <ExternalLink className="w-4 h-4 ml-2" />
                   </Button>
@@ -436,6 +436,7 @@ export default function Home() {
               <Button 
                 size="lg"
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-10 py-6 text-lg font-semibold shadow-lg shadow-purple-500/25"
+                data-testid="cta-website-to-ice"
               >
                 <Rocket className="w-5 h-5 mr-2" />
                 Launch Experience Builder
