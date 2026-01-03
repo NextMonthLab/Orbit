@@ -59,7 +59,7 @@ const inputModes: InputModeOption[] = [
   {
     id: 'upload',
     title: 'Upload file',
-    description: 'PDF, Word, or text document',
+    description: 'Plain text document (.txt)',
     icon: Upload,
   },
 ];
@@ -153,9 +153,22 @@ export function NewIceModal({
         setError("Please upload a file");
         return;
       }
+      
+      // Only allow plain text files - binary formats (PDF, DOC, DOCX) require server-side processing
+      const isPlainText = uploadedFile.type === 'text/plain' || uploadedFile.name.endsWith('.txt');
+      
+      if (!isPlainText) {
+        setError("Only plain text files (.txt) are supported. For PDF or Word documents, please copy and paste the content instead.");
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onload = async (e) => {
         const content = e.target?.result as string;
+        if (!content || content.trim().length < 50) {
+          setError("File appears empty or too short (minimum 50 characters)");
+          return;
+        }
         generateMutation.mutate({ 
           content, 
           fileName: uploadedFile.name 
@@ -171,9 +184,9 @@ export function NewIceModal({
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const allowedTypes = ['text/plain', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      if (!allowedTypes.includes(file.type) && !file.name.endsWith('.txt')) {
-        setError("Please upload a PDF, Word, or text file");
+      const isPlainText = file.type === 'text/plain' || file.name.endsWith('.txt');
+      if (!isPlainText) {
+        setError("Only plain text files (.txt) are supported. For PDF or Word documents, please copy and paste the content instead.");
         return;
       }
       if (file.size > 10 * 1024 * 1024) {
@@ -328,7 +341,7 @@ export function NewIceModal({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".txt,.pdf,.doc,.docx"
+                  accept=".txt"
                   onChange={handleFileChange}
                   className="hidden"
                 />
@@ -357,7 +370,7 @@ export function NewIceModal({
                   >
                     <Upload className="w-8 h-8 text-white/30 mx-auto mb-2" />
                     <p className="text-sm text-white/60">Click to upload</p>
-                    <p className="text-xs text-white/30 mt-1">PDF, Word, or text file (max 10MB)</p>
+                    <p className="text-xs text-white/30 mt-1">Plain text file (.txt, max 10MB)</p>
                   </button>
                 )}
               </div>
