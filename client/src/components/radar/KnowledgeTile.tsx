@@ -167,9 +167,22 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
   const glowIntensity = Math.min(relevanceScore / 30, 1);
   
   const rawImageUrl = 'imageUrl' in item ? (item as any).imageUrl : undefined;
+  
+  // Try to get higher resolution version of website images by removing size suffixes
+  const enhanceImageUrl = (url: string): string => {
+    if (!url) return url;
+    // WordPress thumbnail pattern: -300x225.jpg, -960x940_c.png, etc.
+    const wpEnhanced = url.replace(/-\d+x\d+(_c)?(\.[a-z]+)$/i, '$2');
+    if (wpEnhanced !== url) return wpEnhanced;
+    // Squarespace/other pattern with size in path
+    const sqEnhanced = url.replace(/\/s\/\d+x\d+\//, '/s/');
+    if (sqEnhanced !== url) return sqEnhanced;
+    return url;
+  };
+  
   const imageUrl = rawImageUrl && typeof rawImageUrl === 'string' && rawImageUrl.length > 0 
-    ? rawImageUrl 
-    : generateUniqueImageUrl(item);
+    ? enhanceImageUrl(rawImageUrl)
+    : generateUniqueImageUrl(item, true);
   
   const getLabel = () => {
     switch (item.type) {

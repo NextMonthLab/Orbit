@@ -492,6 +492,7 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6', o
       {/* Zoom Slider Control */}
       <div 
         className="absolute bottom-4 right-4 flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-full px-2 py-1.5 border border-white/10"
+        style={{ zIndex: 20 }}
         data-testid="zoom-controls"
         role="group"
         aria-label="Zoom controls"
@@ -531,7 +532,7 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6', o
       </div>
 
       {/* Drag hint */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-xs pointer-events-none">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-xs pointer-events-none" style={{ zIndex: 20 }}>
         Drag to explore
       </div>
     </div>
