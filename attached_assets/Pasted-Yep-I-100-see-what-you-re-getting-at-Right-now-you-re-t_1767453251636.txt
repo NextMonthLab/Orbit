@@ -1,0 +1,123 @@
+Yep, I 100% see what you’re getting at. Right now you’re turning signals into cinema, and most signals are boring. “People viewed your blog” is useful internally, but externally it’s the marketing equivalent of filming your bank statement.
+
+What you need is a conversion layer between Orbit insights and ICE output.
+
+The missing layer: Insight → Message → Story
+
+Think of it like this:
+	•	Orbit produces raw truths (events, questions, objections, intent)
+	•	The conversion layer turns truth into a marketable message
+	•	ICE turns the message into a cinematic experience
+
+So instead of “Viewed blog post”, you get:
+	•	“Warehouse project clients keep asking about delivery certainty and cost clarity”
+	•	“Your strongest hook is: on time + on budget, proven on big jobs”
+	•	“Here’s a story-led ICE that sells that promise”
+
+Split insights into two types
+
+You’re describing a clean separation:
+
+1) Internal insights (for operators)
+
+These are for you:
+	•	Traffic patterns
+	•	Content engagement
+	•	Drop-offs
+	•	Operational metrics (API connector stuff)
+	•	“People looked at blog X” / “Most clicks on Y”
+
+These belong in a tab like Signals or Ops.
+
+2) Content-ready insights (for publishing)
+
+These are for the market:
+	•	Repeated questions from real conversations
+	•	Objections (“How do I know you’ll deliver on time?”)
+	•	Buying intent (“Do you do steelwork for warehouses?”)
+	•	Priority factors (time, cost, compliance, guarantees)
+	•	Myths to correct
+	•	Proof points to highlight
+
+These belong in Content-ready (and power the ICE button).
+
+How the conversion layer works (MVP version)
+
+Add a step called “Turn into a Story” (or “Create message”) before generating an ICE.
+
+When a content-ready insight is selected, the system generates a Content Brief with fields like:
+	•	Audience: who this is for (e.g. project managers, procurement, owners)
+	•	Problem/pressure: what they’re worried about
+	•	Promise: your positioning line (on time, on budget, certainty)
+	•	Proof: what backs it up (process, track record, guarantees, case study)
+	•	CTA: what to do next (view steelwork page, book a call, get a quote)
+	•	Format suggestion: hook/myth/checklist/problem-solution-proof
+
+Then ICE uses that brief, not the raw metric.
+
+Your steelwork example, converted properly
+
+Raw conversation:
+
+“Do you do steelwork for big warehouse projects?”
+“What matters most?”
+“Clear cost and delivering on time.”
+
+Content-ready insight:
+	•	“Warehouse steelwork buyers want certainty: delivery timelines and cost clarity.”
+
+Story/message options (what ICE should output):
+	1.	Promise-led
+
+	•	“Large steelwork projects delivered on time and on budget, with clear milestones from day one.”
+
+	2.	Myth-bust
+
+	•	“Myth: steelwork always overruns. Reality: overruns happen when milestones and fabrication slots aren’t locked early.”
+
+	3.	Checklist
+
+	•	“3 things to demand from a steelwork partner before you sign: timeline milestones, fixed scope pricing, and a delivery commitment.”
+
+Now you’ve got something worth publishing.
+
+Practical product change: “Content Potential” scoring
+
+To avoid flooding users with mundane stuff, every insight gets two scores:
+	•	Business Value (internal usefulness)
+	•	Content Potential (external publishability)
+
+Only show “Make ICE” prominently when Content Potential is high.
+
+Signals like “blog page engagement” can still contribute, but only as supporting evidence:
+	•	“People are reading your delivery process blog” → feeds into proof, not the headline.
+
+UI change that makes this feel obvious
+
+In Launchpad, add a toggle or tabs:
+	•	Content-ready
+	•	Signals
+	•	Ops
+
+And in each insight card, show a small label:
+	•	“Content-ready” (sparkle icon)
+	•	“Signal” (chart icon)
+	•	“Ops” (database icon)
+
+This makes it psychologically clear what’s for marketing vs diagnostics.
+
+The fastest MVP to fix this
+	1.	Update insight generator to produce two categories:
+	•	Signal insights
+	•	Content-ready insights (from chat logs + question patterns + high-intent events)
+	2.	Add a “Content Brief” step in the builder (auto-generated, editable)
+	3.	Gate the big “Make ICE” CTA to content-ready insights
+	4.	Let users manually “Promote to content” when they spot something worth turning into a story
+
+That’s enough to stop the “mundane cinema” problem.
+
+If you want, I’ll write the exact Replit prompt to implement this as:
+	•	Insight.kind = signal | content_ready | ops
+	•	contentPotentialScore
+	•	the “Content Brief” object and UI step
+	•	and the updated Launchpad layout so the ICE pipeline is story-first.
