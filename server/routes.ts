@@ -840,6 +840,60 @@ export async function registerRoutes(
     }
   });
   
+  // Update first-run tour state (partial update - doesn't require full profile)
+  app.patch("/api/me/onboarding/tour", requireAuth, async (req, res) => {
+    try {
+      const { onboardingCompleted, onboardingDismissed, onboardingPath } = req.body;
+      
+      // Validate path if provided
+      const validPaths = ['orbit-first', 'ice-first'];
+      if (onboardingPath && !validPaths.includes(onboardingPath)) {
+        return res.status(400).json({ message: "Invalid onboarding path" });
+      }
+      
+      // Get existing profile or create minimal one
+      let profile = await storage.getUserOnboardingProfile(req.user!.id);
+      
+      if (!profile) {
+        // Create a minimal profile if none exists
+        profile = await storage.upsertUserOnboardingProfile({
+          userId: req.user!.id,
+          persona: 'other', // default placeholder
+          onboardingCompleted: false,
+          onboardingDismissed: false,
+        });
+      }
+      
+      // Build update object with only provided fields
+      const updates: any = {};
+      if (typeof onboardingCompleted === 'boolean') {
+        updates.onboardingCompleted = onboardingCompleted;
+        if (onboardingCompleted) {
+          updates.onboardingCompletedAt = new Date();
+        }
+      }
+      if (typeof onboardingDismissed === 'boolean') {
+        updates.onboardingDismissed = onboardingDismissed;
+      }
+      if (onboardingPath) {
+        updates.onboardingPath = onboardingPath;
+      }
+      
+      // Only update if there are changes
+      if (Object.keys(updates).length > 0) {
+        profile = await storage.upsertUserOnboardingProfile({
+          ...profile,
+          ...updates,
+        });
+      }
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating tour state:", error);
+      res.status(500).json({ message: "Error updating tour state" });
+    }
+  });
+  
   // Get engagement metrics for universes (creators/admins only)
   app.get("/api/engagement", requireAuth, async (req, res) => {
     try {

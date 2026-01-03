@@ -1169,6 +1169,9 @@ export const ALLOWED_MEDIA_TYPES = {
 export type UserPersona = 'news_outlet' | 'business' | 'influencer' | 'educator' | 'creator' | 'other' | 'brand' | 'knowledge';
 export type UserIndustry = 'media' | 'technology' | 'healthcare' | 'finance' | 'entertainment' | 'education' | 'retail' | 'travel' | 'food' | 'sports' | 'real_estate' | 'nonprofit' | 'government' | 'other';
 
+// First-run onboarding path types
+export type OnboardingPath = 'orbit-first' | 'ice-first' | null;
+
 export const userOnboardingProfiles = pgTable("user_onboarding_profiles", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull().unique(),
@@ -1180,6 +1183,9 @@ export const userOnboardingProfiles = pgTable("user_onboarding_profiles", {
   targetAudience: text("target_audience"),
   contentFrequency: text("content_frequency"), // 'daily', 'weekly', 'monthly', 'occasional'
   onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
+  onboardingDismissed: boolean("onboarding_dismissed").default(false).notNull(),
+  onboardingPath: text("onboarding_path").$type<OnboardingPath>(),
+  onboardingCompletedAt: timestamp("onboarding_completed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
