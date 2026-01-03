@@ -101,7 +101,7 @@ function hashString(str: string): number {
   return Math.abs(hash);
 }
 
-function generateUniqueImageUrl(item: AnyKnowledgeItem): string {
+function generateUniqueImageUrl(item: AnyKnowledgeItem, highRes: boolean = false): string {
   const queries = typeImageQueries[item.type];
   const itemHash = hashString(item.id);
   const keywordHash = item.keywords.length > 0 ? hashString(item.keywords[0]) : 0;
@@ -115,7 +115,10 @@ function generateUniqueImageUrl(item: AnyKnowledgeItem): string {
   
   const uniqueSeed = combinedHash % 10000;
   
-  return `https://source.unsplash.com/200x120/?${uniqueQuery}&sig=${item.id}-${uniqueSeed}`;
+  // Use higher resolution for better zoom quality (400x240 instead of 200x120)
+  const size = highRes ? '400x240' : '400x240';
+  
+  return `https://source.unsplash.com/${size}/?${uniqueQuery}&sig=${item.id}-${uniqueSeed}`;
 }
 
 function getCategoryIcon(item: AnyKnowledgeItem): LucideIcon {

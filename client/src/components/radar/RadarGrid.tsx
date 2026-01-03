@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Minus, Plus } from "lucide-react";
 import { ChatHub } from "./ChatHub";
 import { KnowledgeTile } from "./KnowledgeTile";
 import type { SiteKnowledge, AnyKnowledgeItem } from "@/lib/siteKnowledge";
@@ -488,14 +489,50 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6', o
         />
       </AnimatePresence>
 
-      {/* Zoom indicator */}
-      <div className="absolute bottom-4 right-4 text-white/30 text-xs pointer-events-none">
-        {Math.round(zoomLevel * 100)}%
+      {/* Zoom Slider Control */}
+      <div 
+        className="absolute bottom-4 right-4 flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-full px-2 py-1.5 border border-white/10"
+        data-testid="zoom-controls"
+        role="group"
+        aria-label="Zoom controls"
+      >
+        <button
+          onClick={() => setZoomLevel(z => Math.max(0.4, z - 0.1))}
+          className="w-6 h-6 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          data-testid="zoom-out-button"
+          aria-label="Zoom out"
+          title="Zoom out"
+        >
+          <Minus className="w-3.5 h-3.5" />
+        </button>
+        <input
+          type="range"
+          min="40"
+          max="250"
+          value={Math.round(Math.min(2.5, zoomLevel) * 100)}
+          onChange={(e) => setZoomLevel(parseInt(e.target.value) / 100)}
+          className="w-20 h-1 appearance-none bg-white/20 rounded-full cursor-pointer accent-blue-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          data-testid="zoom-slider"
+          aria-label="Zoom level"
+          title={`Zoom: ${Math.round(zoomLevel * 100)}%`}
+        />
+        <button
+          onClick={() => setZoomLevel(z => Math.min(2.5, z + 0.1))}
+          className="w-6 h-6 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          data-testid="zoom-in-button"
+          aria-label="Zoom in"
+          title="Zoom in"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+        <span className="text-white/40 text-xs w-8 text-right tabular-nums" aria-live="polite">
+          {Math.round(zoomLevel * 100)}%
+        </span>
       </div>
 
       {/* Drag hint */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-xs pointer-events-none">
-        Drag to explore • Scroll to zoom
+        Drag to explore
       </div>
     </div>
   );
