@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, type ComponentType } from "react";
 import { motion } from "framer-motion";
-import { Sun, Moon, Check, ArrowRight, Palette, ImageIcon, Sparkles, LayoutGrid, Radar, RefreshCw, Loader2 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sun, Moon, Check, ArrowRight, ArrowLeft, Palette, ImageIcon, Sparkles, Upload, X, RefreshCw, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 
 export type ExperienceType = 'radar' | 'spatial' | 'classic';
 
@@ -15,8 +15,12 @@ interface BrandCustomizationScreenProps {
   previewId?: string;
   canDeepScan?: boolean;
   isFirstRun?: boolean;
+  currentStep?: number;
+  totalSteps?: number;
   onConfirm: (preferences: BrandPreferences, experienceType?: ExperienceType) => void;
   onRefreshComplete?: (newData: RefreshResult) => void;
+  onBack?: () => void;
+  onSkip?: () => void;
 }
 
 interface RefreshResult {
@@ -36,58 +40,34 @@ export interface BrandPreferences {
   selectedImages: string[];
 }
 
-const presetColors = [
-  '#ffffff',
-  '#f5f5f5',
-  '#94a3b8',
-  '#64748b',
-  '#ef4444',
-  '#dc2626',
-  '#f97316',
-  '#ea580c',
-  '#eab308',
-  '#ca8a04',
-  '#22c55e',
-  '#16a34a',
-  '#14b8a6',
-  '#0d9488',
-  '#06b6d4',
-  '#0891b2',
-  '#3b82f6',
-  '#2563eb',
-  '#6366f1',
-  '#4f46e5',
-  '#8b5cf6',
-  '#7c3aed',
-  '#a855f7',
-  '#9333ea',
-  '#ec4899',
-  '#db2777',
-  '#f43f5e',
-  '#e11d48',
+interface AccentPreset {
+  id: string;
+  name: string;
+  color: string;
+  gradient?: string;
+  recommended?: boolean;
+}
+
+const accentPresets: AccentPreset[] = [
+  { 
+    id: 'nextmonth', 
+    name: 'NextMonth', 
+    color: '#3b82f6', 
+    gradient: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+    recommended: true 
+  },
+  { id: 'ocean', name: 'Ocean', color: '#06b6d4' },
+  { id: 'emerald', name: 'Emerald', color: '#10b981' },
+  { id: 'amber', name: 'Amber', color: '#f59e0b' },
+  { id: 'rose', name: 'Rose', color: '#f43f5e' },
+  { id: 'violet', name: 'Violet', color: '#8b5cf6' },
+  { id: 'indigo', name: 'Indigo', color: '#6366f1' },
+  { id: 'slate', name: 'Slate', color: '#64748b' },
+  { id: 'zinc', name: 'Zinc', color: '#a1a1aa' },
+  { id: 'white', name: 'White', color: '#ffffff' },
 ];
 
-function hexToHue(hex: string): number {
-  if (hex.startsWith('hsl')) {
-    const match = hex.match(/hsl\((\d+)/);
-    return match ? parseInt(match[1]) / 360 : 0.5;
-  }
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0;
-  if (max !== min) {
-    const d = max - min;
-    switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-      case g: h = ((b - r) / d + 2) / 6; break;
-      case b: h = ((r - g) / d + 4) / 6; break;
-    }
-  }
-  return h;
-}
+const MAX_IMAGES = 12;
 
 export function BrandCustomizationScreen({
   logoUrl,
@@ -98,19 +78,23 @@ export function BrandCustomizationScreen({
   previewId,
   canDeepScan = false,
   isFirstRun = false,
+  currentStep = 3,
+  totalSteps = 4,
   onConfirm,
   onRefreshComplete,
+  onBack,
+  onSkip,
 }: BrandCustomizationScreenProps) {
   const queryClient = useQueryClient();
-  const [accentColor, setAccentColor] = useState(defaultAccentColor || '#ffffff');
+  const [selectedPreset, setSelectedPreset] = useState<string>('nextmonth');
+  const [accentColor, setAccentColor] = useState(defaultAccentColor || '#3b82f6');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [selectedLogo, setSelectedLogo] = useState<string | null>(logoUrl || faviconUrl);
-  const [selectedImages, setSelectedImages] = useState<string[]>(imagePool);
-  const [experienceType, setExperienceType] = useState<ExperienceType>('radar');
-  const [huePosition, setHuePosition] = useState(() => hexToHue(defaultAccentColor || '#3b82f6'));
+  const [selectedImages, setSelectedImages] = useState<string[]>(() => imagePool.slice(0, MAX_IMAGES));
+  const [experienceType] = useState<ExperienceType>('radar');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
-  const spectrumRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleRefreshSiteData = async () => {
     if (!previewId || isRefreshing) return;
@@ -130,11 +114,8 @@ export function BrandCustomizationScreen({
       }
       
       const result = await response.json();
-      
-      // Invalidate preview query to reload fresh data
       queryClient.invalidateQueries({ queryKey: [`/api/previews/${previewId}`] });
       
-      // Call the callback if provided with new data
       if (onRefreshComplete && result.preview?.siteIdentity) {
         onRefreshComplete({
           logoUrl: result.preview.siteIdentity.logoUrl,
@@ -149,11 +130,9 @@ export function BrandCustomizationScreen({
     }
   };
   
-  const handleColorChange = useCallback((color: string, updateHue = true) => {
-    setAccentColor(color);
-    if (updateHue) {
-      setHuePosition(hexToHue(color));
-    }
+  const handlePresetSelect = useCallback((preset: AccentPreset) => {
+    setSelectedPreset(preset.id);
+    setAccentColor(preset.color);
   }, []);
 
   const allLogoCandidates = [
@@ -162,368 +141,408 @@ export function BrandCustomizationScreen({
     ...imagePool.filter(img => !img.includes('scaled') && !img.includes('Photography')),
   ].slice(0, 6);
 
+  const displayImages = imagePool.slice(0, MAX_IMAGES);
+
   const toggleImageSelection = useCallback((img: string) => {
     setSelectedImages(prev => 
       prev.includes(img) 
         ? prev.filter(i => i !== img)
-        : [...prev, img]
+        : prev.length < MAX_IMAGES ? [...prev, img] : prev
     );
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedImages(displayImages);
+  }, [displayImages]);
+
+  const handleClearAll = useCallback(() => {
+    setSelectedImages([]);
   }, []);
 
   const handleConfirm = useCallback(() => {
     onConfirm({ accentColor, theme, selectedLogo, selectedImages }, experienceType);
   }, [accentColor, theme, selectedLogo, selectedImages, onConfirm, experienceType]);
 
-  const bgColor = theme === 'dark' ? '#0a0a0a' : '#f5f5f5';
-  const textColor = theme === 'dark' ? 'white' : 'black';
-  const mutedColor = theme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
-  const borderColor = theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+  const progressPercent = (currentStep / totalSteps) * 100;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col overflow-y-auto"
-      style={{ backgroundColor: bgColor }}
-      data-testid="brand-customization-screen"
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.1 }}
-        className="w-full max-w-md mx-auto space-y-6 px-5 py-8 pb-safe"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="text-center"
-        >
-          <h1 
-            className="text-2xl font-semibold mb-2"
-            style={{ color: textColor }}
-          >
-            {brandName}
-          </h1>
-          <p className="text-sm" style={{ color: mutedColor }}>
-            Customize your Orbit appearance
-          </p>
-        </motion.div>
+    <div className="min-h-screen bg-black flex flex-col" data-testid="brand-customization-screen">
+      {/* Progress Header */}
+      <div className="border-b border-white/10 bg-black/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-white font-medium">Orbit setup</span>
+            </div>
+            <span className="text-white/50 text-sm">Step {currentStep} of {totalSteps}</span>
+          </div>
+          <div className="mt-3 h-1 bg-white/10 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+      </div>
 
-        {/* Admin First-Run Welcome Message */}
-        {isFirstRun && (
+      {/* Main Content */}
+      <div className="flex-1 px-4 py-8 pb-32 overflow-y-auto">
+        <div className="max-w-2xl mx-auto space-y-8">
+          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="p-4 rounded-xl"
-            style={{
-              backgroundColor: theme === 'dark' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-              border: `1px solid ${theme === 'dark' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.3)'}`,
-            }}
+            className="text-center space-y-2"
           >
-            <p className="text-sm font-medium" style={{ color: theme === 'dark' ? '#4ade80' : '#16a34a' }}>
-              Your Orbit is ready
-            </p>
-            <p className="text-xs mt-1" style={{ color: mutedColor }}>
-              You're in setup mode. Review what we found, customise the look, then activate when you're happy.
+            <h1 className="text-2xl md:text-3xl font-bold text-white" data-testid="text-appearance-title">
+              {brandName}
+            </h1>
+            <p className="text-white/60">
+              Customise how your Orbit appears to visitors.
             </p>
           </motion.div>
-        )}
 
-        {/* Refresh Site Data Button - only show if admin has permission */}
-        {previewId && canDeepScan && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-2"
-          >
-            <button
-              onClick={handleRefreshSiteData}
-              disabled={isRefreshing}
-              data-testid="button-refresh-site-data"
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-              style={{
-                backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                color: mutedColor,
-                border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-              }}
+          {/* Setup Mode Status */}
+          {isFirstRun && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20"
             >
-              {isRefreshing ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Deep scanning website...</span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Refresh Site Data (Deep Scan)</span>
-                </>
-              )}
-            </button>
-            {refreshError && (
-              <p className="text-xs text-red-400 text-center">{refreshError}</p>
-            )}
-            {isRefreshing && (
-              <p className="text-xs text-center" style={{ color: mutedColor }}>
-                This may take 30-60 seconds for JavaScript-heavy sites...
+              <p className="text-sm text-blue-300 text-center">
+                Setup mode: confirm branding, then activate.
               </p>
-            )}
-          </motion.div>
-        )}
+            </motion.div>
+          )}
 
-        {allLogoCandidates.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="space-y-3"
-          >
-            <div className="flex items-center gap-2">
-              <ImageIcon className="w-4 h-4" style={{ color: mutedColor }} />
-              <span className="text-sm font-medium" style={{ color: mutedColor }}>
-                Select Logo
-              </span>
-            </div>
-            
-            <div className="flex gap-3 justify-center flex-wrap">
-              {allLogoCandidates.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedLogo(img)}
-                  className="w-20 h-20 rounded-xl flex items-center justify-center p-2.5 transition-all relative overflow-hidden"
-                  style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
-                    border: selectedLogo === img 
-                      ? `2px solid ${accentColor}` 
-                      : `1px solid ${borderColor}`,
-                    boxShadow: selectedLogo === img ? `0 0 12px ${accentColor}40` : 'none',
-                  }}
-                  data-testid={`logo-option-${i}`}
-                >
-                  <img
-                    src={img}
-                    alt=""
-                    className="max-w-full max-h-full object-contain"
-                    style={{ filter: theme === 'dark' ? 'brightness(1.1)' : 'none' }}
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
-                  {selectedLogo === img && (
-                    <div 
-                      className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: accentColor }}
+          {/* Refresh Button for Deep Scan */}
+          {previewId && canDeepScan && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <button
+                onClick={handleRefreshSiteData}
+                disabled={isRefreshing}
+                data-testid="button-refresh-site-data"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/[0.07] text-white/60"
+              >
+                {isRefreshing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Deep scanning website...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Refresh Site Data (Deep Scan)</span>
+                  </>
+                )}
+              </button>
+              {refreshError && (
+                <p className="text-xs text-red-400 text-center mt-2">{refreshError}</p>
+              )}
+            </motion.div>
+          )}
+
+          {/* Logo Selection */}
+          {allLogoCandidates.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-white/50" />
+                <span className="text-sm font-medium text-white/70">Logo</span>
+              </div>
+              
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                {allLogoCandidates.map((img, i) => {
+                  const isRecommended = i === 0 && logoUrl === img;
+                  const isSelected = selectedLogo === img;
+                  
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedLogo(img)}
+                      className={`
+                        relative aspect-square rounded-xl flex items-center justify-center p-3 transition-all
+                        focus:outline-none focus:ring-2 focus:ring-blue-500/50
+                        ${isSelected
+                          ? 'bg-white/[0.07] ring-2 ring-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.15)]'
+                          : 'bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/[0.07]'
+                        }
+                      `}
+                      data-testid={`logo-option-${i}`}
                     >
-                      <Check className="w-3 h-3" style={{ color: accentColor === '#ffffff' ? '#000' : '#fff' }} />
-                    </div>
-                  )}
+                      {isRecommended && (
+                        <span className="absolute -top-2 right-2 px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium">
+                          Recommended
+                        </span>
+                      )}
+                      <img
+                        src={img}
+                        alt=""
+                        className="max-w-full max-h-full object-contain"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                      {isSelected && (
+                        <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+                
+                {/* Upload Button */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-square rounded-xl flex flex-col items-center justify-center gap-2 bg-white/5 border border-dashed border-white/20 hover:border-white/40 hover:bg-white/[0.07] transition-all text-white/50 hover:text-white/70"
+                  data-testid="button-upload-logo"
+                >
+                  <Upload className="w-5 h-5" />
+                  <span className="text-xs">Upload</span>
                 </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const url = URL.createObjectURL(file);
+                      setSelectedLogo(url);
+                    }
+                  }}
+                />
+              </div>
+            </motion.div>
+          )}
 
-        {imagePool.length > 0 && (
+          {/* Image Selection Grid */}
+          {displayImages.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-white/50" />
+                  <span className="text-sm font-medium text-white/70">
+                    Images ({selectedImages.length}/{displayImages.length})
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSelectAll}
+                    className="text-xs text-white/50 hover:text-white/70 transition-colors"
+                    data-testid="button-select-all-images"
+                  >
+                    Select all
+                  </button>
+                  <span className="text-white/20">|</span>
+                  <button
+                    onClick={handleClearAll}
+                    className="text-xs text-white/50 hover:text-white/70 transition-colors"
+                    data-testid="button-clear-images"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {displayImages.map((img, i) => {
+                  const isSelected = selectedImages.includes(img);
+                  
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => toggleImageSelection(img)}
+                      className={`
+                        relative aspect-video rounded-lg overflow-hidden transition-all
+                        focus:outline-none focus:ring-2 focus:ring-blue-500/50
+                        ${isSelected
+                          ? 'ring-2 ring-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.15)]'
+                          : 'border border-white/10 opacity-60 hover:opacity-100 hover:border-white/20'
+                        }
+                      `}
+                      data-testid={`image-option-${i}`}
+                    >
+                      <img
+                        src={img}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {imagePool.length > MAX_IMAGES && (
+                <p className="text-xs text-white/40 text-center">
+                  Showing first {MAX_IMAGES} of {imagePool.length} images
+                </p>
+              )}
+            </motion.div>
+          )}
+
+          {/* Accent Color Presets */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="space-y-3"
+            className="space-y-4"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="w-4 h-4" style={{ color: mutedColor }} />
-                <span className="text-sm font-medium" style={{ color: mutedColor }}>
-                  Include Images ({selectedImages.length})
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <Palette className="w-4 h-4 text-white/50" />
+              <span className="text-sm font-medium text-white/70">Accent Colour</span>
             </div>
             
-            <div 
-              className="w-full overflow-x-auto pb-2"
-              style={{ 
-                WebkitOverflowScrolling: 'touch',
-                scrollbarWidth: 'none',
-                msOverflowStyle: 'none',
-              }}
-            >
-              <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
-                {imagePool.map((img, i) => (
+            <div className="grid grid-cols-5 gap-2">
+              {accentPresets.map((preset) => {
+                const isSelected = selectedPreset === preset.id;
+                
+                return (
                   <button
-                    key={i}
-                    onClick={() => toggleImageSelection(img)}
-                    className="shrink-0 w-20 h-14 rounded-lg overflow-hidden relative transition-all"
-                    style={{
-                      border: selectedImages.includes(img) 
-                        ? `2px solid ${accentColor}` 
-                        : `1px solid ${borderColor}`,
-                      opacity: selectedImages.includes(img) ? 1 : 0.6,
-                    }}
-                    data-testid={`image-option-${i}`}
+                    key={preset.id}
+                    onClick={() => handlePresetSelect(preset)}
+                    className={`
+                      relative flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500/50
+                      ${isSelected
+                        ? 'bg-white/[0.07] ring-2 ring-blue-500'
+                        : 'bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/[0.07]'
+                      }
+                    `}
+                    data-testid={`preset-${preset.id}`}
                   >
-                    <img
-                      src={img}
-                      alt=""
-                      className="w-full h-full object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    {preset.recommended && (
+                      <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[10px] font-medium whitespace-nowrap">
+                        Recommended
+                      </span>
+                    )}
+                    <div 
+                      className={`
+                        w-8 h-8 rounded-full transition-all
+                        ${isSelected ? 'ring-2 ring-white/50' : ''}
+                        ${preset.id === 'white' ? 'border border-white/20' : ''}
+                      `}
+                      style={{ 
+                        background: preset.gradient || preset.color 
+                      }}
                     />
-                    {selectedImages.includes(img) && (
-                      <div 
-                        className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: accentColor }}
-                      >
-                        <Check className="w-3 h-3" style={{ color: accentColor === '#ffffff' ? '#000' : '#fff' }} />
+                    <span className={`text-xs ${isSelected ? 'text-white' : 'text-white/50'}`}>
+                      {preset.name}
+                    </span>
+                    {isSelected && (
+                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-white" />
                       </div>
                     )}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </motion.div>
-        )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="space-y-4"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <Palette className="w-4 h-4" style={{ color: mutedColor }} />
-            <span className="text-sm font-medium" style={{ color: mutedColor }}>
-              Accent Color
-            </span>
-          </div>
-          
-          {/* Color Spectrum Slider */}
-          <div className="space-y-3">
-            <div 
-              ref={spectrumRef}
-              className="relative h-12 rounded-full cursor-pointer mx-auto"
-              style={{ 
-                maxWidth: '280px',
-                background: 'linear-gradient(to right, #ff0000, #ff8000, #ffff00, #80ff00, #00ff00, #00ff80, #00ffff, #0080ff, #0000ff, #8000ff, #ff00ff, #ff0080, #ff0000)',
-              }}
-              onPointerDown={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const updateHue = (clientX: number) => {
-                  const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
-                  const percentage = x / rect.width;
-                  setHuePosition(percentage);
-                  const hue = Math.round(percentage * 360);
-                  setAccentColor(`hsl(${hue}, 70%, 50%)`);
-                };
-                
-                updateHue(e.clientX);
-                e.currentTarget.setPointerCapture(e.pointerId);
-                
-                const handleMove = (moveEvent: PointerEvent) => {
-                  updateHue(moveEvent.clientX);
-                };
-                
-                const handleUp = () => {
-                  document.removeEventListener('pointermove', handleMove);
-                  document.removeEventListener('pointerup', handleUp);
-                };
-                
-                document.addEventListener('pointermove', handleMove);
-                document.addEventListener('pointerup', handleUp);
-              }}
-              data-testid="color-spectrum"
-            >
-              {/* Current color indicator */}
-              <div
-                className="absolute top-1/2 -translate-y-1/2 w-7 h-7 rounded-full border-3 border-white shadow-lg pointer-events-none"
-                style={{ 
-                  left: `calc(${huePosition * 100}% - 14px)`,
-                  backgroundColor: accentColor,
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,255,255,0.8)',
-                }}
-              />
-            </div>
-            
-            {/* Quick preset colors */}
-            <div className="flex justify-center gap-1.5">
-              {['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff'].map((color) => (
-                <button
-                  key={color}
-                  onClick={() => handleColorChange(color)}
-                  className="w-5 h-5 rounded-full transition-all"
-                  style={{
-                    backgroundColor: color,
-                    boxShadow: accentColor === color ? `0 0 0 2px ${bgColor}, 0 0 0 3px ${color}` : 'none',
-                    border: color === '#ffffff' ? `1px solid ${borderColor}` : 'none',
-                    transform: accentColor === color ? 'scale(1.2)' : 'scale(1)',
-                  }}
-                  data-testid={`quick-color-${color.replace('#', '')}`}
-                />
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="space-y-3"
-        >
-          <span className="text-sm font-medium block text-center" style={{ color: mutedColor }}>
-            Theme
-          </span>
-          
-          <div 
-            className="flex rounded-full p-1 mx-auto w-fit"
-            style={{ backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+          {/* Theme Toggle (Smaller, Secondary) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="flex items-center justify-center gap-4"
           >
-            <button
-              onClick={() => setTheme('dark')}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full transition-all text-sm font-medium"
-              style={{
-                backgroundColor: theme === 'dark' ? accentColor : 'transparent',
-                color: theme === 'dark' ? (accentColor === '#ffffff' ? '#000' : '#fff') : mutedColor,
-              }}
-              data-testid="theme-dark"
-            >
-              <Moon className="w-4 h-4" />
-              Dark
-            </button>
-            <button
-              onClick={() => setTheme('light')}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full transition-all text-sm font-medium"
-              style={{
-                backgroundColor: theme === 'light' ? accentColor : 'transparent',
-                color: theme === 'light' ? (accentColor === '#ffffff' ? '#000' : '#fff') : mutedColor,
-              }}
-              data-testid="theme-light"
-            >
-              <Sun className="w-4 h-4" />
-              Light
-            </button>
-          </div>
-        </motion.div>
+            <span className="text-sm text-white/50">Theme</span>
+            <div className="flex rounded-full p-0.5 bg-white/5 border border-white/10">
+              <button
+                onClick={() => setTheme('dark')}
+                className={`
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-xs font-medium
+                  ${theme === 'dark' 
+                    ? 'bg-white/10 text-white' 
+                    : 'text-white/50 hover:text-white/70'
+                  }
+                `}
+                data-testid="theme-dark"
+              >
+                <Moon className="w-3 h-3" />
+                Dark
+              </button>
+              <button
+                onClick={() => setTheme('light')}
+                className={`
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all text-xs font-medium
+                  ${theme === 'light' 
+                    ? 'bg-white/10 text-white' 
+                    : 'text-white/50 hover:text-white/70'
+                  }
+                `}
+                data-testid="theme-light"
+              >
+                <Sun className="w-3 h-3" />
+                Light
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="pt-4 pb-6 space-y-3"
-        >
-          <button
-            onClick={handleConfirm}
-            className="w-full py-4 rounded-xl font-medium text-base transition-all flex items-center justify-center gap-2"
-            style={{
-              backgroundColor: accentColor,
-              color: accentColor === '#ffffff' || accentColor === '#f5f5f5' ? '#000' : '#fff',
-            }}
-            data-testid="button-continue-preview"
-          >
-            Continue to Preview
-            <ArrowRight className="w-5 h-5" />
-          </button>
-        </motion.div>
-      </motion.div>
-    </motion.div>
+      {/* Sticky Bottom Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-sm border-t border-white/10">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+          {onBack ? (
+            <Button
+              onClick={onBack}
+              variant="ghost"
+              className="text-white/60 hover:text-white hover:bg-white/5"
+              data-testid="button-back"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          ) : (
+            <div />
+          )}
+
+          <div className="flex items-center gap-3">
+            {onSkip && (
+              <button
+                onClick={onSkip}
+                className="text-sm text-white/40 hover:text-white/60 transition-colors"
+                data-testid="button-skip"
+              >
+                Skip for now
+              </button>
+            )}
+            <Button
+              onClick={handleConfirm}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              data-testid="button-continue-preview"
+            >
+              Continue
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
