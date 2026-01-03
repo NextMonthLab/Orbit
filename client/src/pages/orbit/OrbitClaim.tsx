@@ -1,3 +1,4 @@
+import { type ComponentType } from "react";
 import { Building2, Globe, Loader2, AlertCircle, ClipboardPaste, FileSpreadsheet, Link2, Shield, UtensilsCrossed, ShoppingCart, Briefcase, BookOpen, FileText, MapPin, Sparkles, ArrowLeft, Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ interface PriorityOption {
   id: ExtractionIntent;
   title: string;
   description: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
   recommended?: 'hospitality' | 'ecommerce' | 'service' | 'all';
 }
 
@@ -112,11 +113,19 @@ export default function OrbitClaim() {
   }, [validatedUrl]);
 
   const analyzeWebsiteMutation = useMutation({
-    mutationFn: async ({ url, extractionIntent }: { url: string; extractionIntent: ExtractionIntentOrNull }): Promise<OrbitGenerateResponse> => {
+    mutationFn: async ({ url, extractionIntent, extractionPriorities }: { 
+      url: string; 
+      extractionIntent: ExtractionIntentOrNull;
+      extractionPriorities?: ExtractionIntent[];
+    }): Promise<OrbitGenerateResponse> => {
       const response = await fetch('/api/orbit/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, extractionIntent }),
+        body: JSON.stringify({ 
+          url, 
+          extractionIntent,
+          extractionPriorities: extractionPriorities || (extractionIntent ? [extractionIntent] : [])
+        }),
       });
       
       if (!response.ok) {
@@ -171,22 +180,27 @@ export default function OrbitClaim() {
     }
   };
 
-  const handleStartExtraction = (extractionIntent: ExtractionIntentOrNull) => {
+  const handleStartExtraction = (extractionPriorities: ExtractionIntent[]) => {
     if (!validatedUrl) {
       setError("Please enter a valid URL first");
       return;
     }
     setShowClassification(false);
-    analyzeWebsiteMutation.mutate({ url: validatedUrl, extractionIntent });
+    const primaryIntent = extractionPriorities.length > 0 ? extractionPriorities[0] : null;
+    analyzeWebsiteMutation.mutate({ 
+      url: validatedUrl, 
+      extractionIntent: primaryIntent,
+      extractionPriorities: extractionPriorities
+    });
   };
 
   const handleContinueWithSelection = () => {
     if (selectedPriorities.length === 0) return;
-    handleStartExtraction(selectedPriorities[0]);
+    handleStartExtraction(selectedPriorities);
   };
 
   const handleLetOrbitDecide = () => {
-    handleStartExtraction(null);
+    handleStartExtraction([]);
   };
 
   const isLoading = analyzeWebsiteMutation.isPending;
