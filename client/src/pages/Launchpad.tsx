@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Loader2, Lightbulb, Sparkles, Clock } from "lucide-react";
@@ -20,8 +20,19 @@ import {
   type IceOutputType,
 } from "@/components/launchpad";
 import { NewIceModal } from "@/components/launchpad/NewIceModal";
+import { FirstRunOnboarding, Spotlight, type SpotlightStep } from "@/components/onboarding";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+
+interface OnboardingProfile {
+  id: number;
+  userId: number;
+  onboardingCompleted: boolean;
+  onboardingDismissed: boolean;
+  onboardingPath: "orbit-first" | "ice-first" | null;
+  onboardingCompletedAt: string | null;
+}
 
 type MobileTab = "insights" | "builder" | "recent";
 
@@ -79,6 +90,10 @@ export default function Launchpad() {
   const [mobileBuilderOpen, setMobileBuilderOpen] = useState(false);
   const [highlightedInsightId, setHighlightedInsightId] = useState<string | null>(null);
   const [newIceModalOpen, setNewIceModalOpen] = useState(false);
+  
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [activeTour, setActiveTour] = useState<"orbit-first" | "ice-first" | null>(null);
+  const [tourStep, setTourStep] = useState(0);
 
   const { data: orbitsData, isLoading: orbitsLoading, isError: orbitsError } = useQuery<OrbitsResponse>({
     queryKey: ["my-orbits"],
@@ -180,6 +195,101 @@ export default function Launchpad() {
 
   const recentDrafts = draftsData?.drafts || [];
 
+  const { data: onboardingProfile } = useQuery<OnboardingProfile | null>({
+    queryKey: ["me", "onboarding"],
+    queryFn: async () => {
+      const response = await fetch("/api/me/onboarding", { credentials: "include" });
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
+  const completeOnboardingMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("PATCH", "/api/me/onboarding/tour", { 
+        onboardingCompleted: true,
+        onboardingDismissed: false 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["me", "onboarding"] });
+    },
+  });
+
+  useEffect(() => {
+    if (!user || orbitsLoading) return;
+    if (onboardingProfile === undefined) return;
+    
+    const shouldShowOnboarding = 
+      onboardingProfile === null || 
+      (!onboardingProfile.onboardingCompleted && !onboardingProfile.onboardingDismissed);
+    
+    if (shouldShowOnboarding && hasOrbits) {
+      setShowOnboarding(true);
+    }
+  }, [user, onboardingProfile, orbitsLoading, hasOrbits]);
+
+  const iceTourSteps: SpotlightStep[] = [
+    {
+      id: "header",
+      targetSelector: '[data-testid="launchpad-header"]',
+      title: "Your Orbit at a Glance",
+      description: "This shows which Orbit is selected and its current status. You can switch between different Orbits here.",
+      position: "bottom",
+    },
+    {
+      id: "insights",
+      targetSelector: '[data-testid="top-insight-card"]',
+      title: "AI-Powered Insights",
+      description: "Your Orbit generates insights from conversations and data. Each insight can become an ICE with one click.",
+      position: "right",
+    },
+    {
+      id: "builder",
+      targetSelector: '[data-testid="ice-builder-panel"]',
+      title: "ICE Builder",
+      description: "Create Interactive Cinematic Experiences here. Choose a format, tone, and output type to generate content.",
+      position: "left",
+    },
+  ];
+
+  const handleStartTour = (path: "orbit-first" | "ice-first") => {
+    setShowOnboarding(false);
+    if (path === "ice-first") {
+      setActiveTour(path);
+      setTourStep(0);
+    } else {
+      setLocation("/orbit/claim");
+    }
+  };
+
+  const handleTourNext = () => {
+    if (tourStep < iceTourSteps.length - 1) {
+      setTourStep((prev) => prev + 1);
+    }
+  };
+
+  const handleTourSkip = () => {
+    setActiveTour(null);
+    setTourStep(0);
+    completeOnboardingMutation.mutate();
+  };
+
+  const handleTourComplete = () => {
+    setActiveTour(null);
+    setTourStep(0);
+    completeOnboardingMutation.mutate();
+    toast({
+      title: "Tour Complete!",
+      description: "You're all set to start creating. Need help? Click 'Take the Tour' in the menu anytime.",
+    });
+  };
+
+  const handleOpenTourFromMenu = () => {
+    setShowOnboarding(true);
+  };
+
   const insights = insightsData?.insights || [];
   const insightsLocked = insightsData?.locked || false;
   const insightsUpgradeMessage = insightsData?.upgradeMessage;
@@ -253,7 +363,7 @@ export default function Launchpad() {
   if (orbitsLoading) {
     return (
       <div className="min-h-screen bg-black">
-        <GlobalNav context="app" />
+        <GlobalNav context="app" onStartTour={handleOpenTourFromMenu} />
         <div className="flex items-center justify-center min-h-[80vh]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -264,7 +374,7 @@ export default function Launchpad() {
   if (!hasOrbits) {
     return (
       <div className="min-h-screen bg-black">
-        <GlobalNav context="app" />
+        <GlobalNav context="app" onStartTour={handleOpenTourFromMenu} />
         <div className="flex items-center justify-center min-h-[80vh]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -274,7 +384,23 @@ export default function Launchpad() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <GlobalNav context="app" />
+      <GlobalNav context="app" onStartTour={handleOpenTourFromMenu} />
+      
+      <FirstRunOnboarding
+        open={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        onStartTour={handleStartTour}
+      />
+      
+      {activeTour === "ice-first" && (
+        <Spotlight
+          steps={iceTourSteps}
+          currentStep={tourStep}
+          onNext={handleTourNext}
+          onSkip={handleTourSkip}
+          onComplete={handleTourComplete}
+        />
+      )}
 
       <LaunchpadHeader
         orbits={orbitSummaries}

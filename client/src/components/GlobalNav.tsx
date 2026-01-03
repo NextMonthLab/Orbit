@@ -12,7 +12,8 @@ import {
   X,
   Building2,
   Film,
-  GraduationCap
+  GraduationCap,
+  Compass,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -37,6 +38,7 @@ interface GlobalNavProps {
   breadcrumbLabel?: string;
   breadcrumbHref?: string;
   minimal?: boolean;
+  onStartTour?: () => void;
 }
 
 const contextLabels: Record<NavContext, { label: string; icon: React.ComponentType<any>; href: string }> = {
@@ -52,7 +54,8 @@ export default function GlobalNav({
   showBreadcrumb = false,
   breadcrumbLabel,
   breadcrumbHref,
-  minimal = false
+  minimal = false,
+  onStartTour
 }: GlobalNavProps) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
@@ -222,6 +225,16 @@ export default function GlobalNav({
                         My Orbits
                       </Link>
                     </DropdownMenuItem>
+                    {onStartTour && (
+                      <DropdownMenuItem 
+                        onClick={onStartTour} 
+                        className="cursor-pointer text-white/80 hover:text-white" 
+                        data-testid="global-menu-tour"
+                      >
+                        <Compass className="w-4 h-4 mr-2" />
+                        Take the Tour
+                      </DropdownMenuItem>
+                    )}
                     {user.isAdmin && (
                       <DropdownMenuItem asChild>
                         <Link href="/admin" className="cursor-pointer text-white/80 hover:text-white" data-testid="global-menu-admin">

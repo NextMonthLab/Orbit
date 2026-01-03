@@ -70,7 +70,7 @@ export function IceBuilderPanel({
 
   if (!selectedInsight && !draft) {
     return (
-      <div className="p-6 space-y-6" data-testid="builder-empty-state">
+      <div className="p-6 space-y-6" data-testid="ice-builder-panel">
         <div>
           <h3 className="text-lg font-medium text-white mb-1">
             Turn insight into content
@@ -135,7 +135,7 @@ export function IceBuilderPanel({
 
   if (draft) {
     return (
-      <div className="p-6 space-y-4" data-testid="builder-draft-state">
+      <div className="p-6 space-y-4" data-testid="ice-builder-panel">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium text-white">Draft Ready</h3>
           <Badge variant="outline" className="border-green-500/50 text-green-400">
@@ -180,7 +180,7 @@ export function IceBuilderPanel({
   const insight = selectedInsight!;
 
   return (
-    <div className="p-6 space-y-6" data-testid="builder-selected-state">
+    <div className="p-6 space-y-6" data-testid="ice-builder-panel">
       <div>
         <h3 className="text-lg font-medium text-white mb-1">
           Turn this insight to content
