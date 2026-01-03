@@ -260,140 +260,188 @@ export default function ForBusiness() {
         </section>
 
         {/* ICE Examples / Scenarios Section */}
-        <section id="ice-examples" className="py-20 px-4 bg-white/[0.02] border-y border-white/5">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4" data-testid="scenarios-title">
-                See how businesses use ICE
+        <section id="ice-examples" className="py-24 px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="scenarios-title">
+                See ICE in action
               </h2>
-              <p className="text-white/60 max-w-xl mx-auto">
-                Real scenarios showing how ICE transforms content into experiences
+              <p className="text-white/50 max-w-xl mx-auto text-lg">
+                How different businesses transform their content into guided experiences
               </p>
             </div>
             
-            {/* Innovative Manufacturer Scenario */}
-            <div className="p-8 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/5 border border-blue-500/20 mb-6" data-testid="scenario-manufacturer">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                  <Building2 className="w-6 h-6 text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-1">Innovative Manufacturer</h3>
-                  <p className="text-sm text-white/50">Technical products, complex sales cycles</p>
-                </div>
-              </div>
-              
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-red-400 text-xs font-bold uppercase tracking-wider">
-                    <Zap className="w-3.5 h-3.5" />
-                    Problem
-                  </div>
-                  <p className="text-white/70 text-sm">
-                    Dense technical documentation, CAD specs, and engineering white papers overwhelm prospects and slow sales cycles.
-                  </p>
-                </div>
+            <div className="space-y-6">
+              {/* Innovative Manufacturer Scenario */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-transparent hover:border-blue-500/30 transition-all duration-300"
+                data-testid="scenario-manufacturer"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-purple-400 text-xs font-bold uppercase tracking-wider">
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    ICE Experience
+                <div className="relative p-8">
+                  <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20 flex items-center justify-center">
+                        <Building2 className="w-7 h-7 text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">B2B Manufacturing</h3>
+                        <p className="text-sm text-white/40">Technical products • Complex sales cycles</p>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-white/70 text-sm">
-                    ICE turns product specs into an interactive experience where an AI engineer guide walks prospects through features, answers technical questions in real time, and demonstrates use cases visually.
-                  </p>
+                  
+                  <div className="grid md:grid-cols-3 gap-1">
+                    <div className="relative p-5 rounded-xl bg-red-500/5 border border-red-500/10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center">
+                          <Zap className="w-3 h-3 text-red-400" />
+                        </div>
+                        <span className="text-xs font-semibold text-red-400 uppercase tracking-wider">Challenge</span>
+                      </div>
+                      <p className="text-white/70 text-sm leading-relaxed">
+                        Technical documentation overwhelms prospects. Engineering specs slow sales cycles and create friction.
+                      </p>
+                      <ArrowRight className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20 z-10" />
+                    </div>
+                    
+                    <div className="relative p-5 rounded-xl bg-purple-500/5 border border-purple-500/10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center">
+                          <Sparkles className="w-3 h-3 text-purple-400" />
+                        </div>
+                        <span className="text-xs font-semibold text-purple-400 uppercase tracking-wider">ICE Experience</span>
+                      </div>
+                      <p className="text-white/70 text-sm leading-relaxed">
+                        An AI engineer guide walks prospects through features, answers technical questions, and demonstrates use cases visually.
+                      </p>
+                      <ArrowRight className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20 z-10" />
+                    </div>
+                    
+                    <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                          <BarChart3 className="w-3 h-3 text-emerald-400" />
+                        </div>
+                        <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Result</span>
+                      </div>
+                      <p className="text-white/70 text-sm leading-relaxed">
+                        Prospects self-educate faster. Technical complexity becomes an advantage, not a barrier to sale.
+                      </p>
+                    </div>
+                  </div>
                 </div>
+              </motion.div>
+
+              {/* Restaurant/Hospitality Scenario */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-transparent hover:border-orange-500/30 transition-all duration-300"
+                data-testid="scenario-restaurant"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-green-400 text-xs font-bold uppercase tracking-wider">
-                    <BarChart3 className="w-3.5 h-3.5" />
-                    Outcome
+                <div className="relative p-8">
+                  <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500/20 to-amber-600/10 border border-orange-500/20 flex items-center justify-center">
+                        <MessageSquare className="w-7 h-7 text-orange-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">Restaurant Group</h3>
+                        <p className="text-sm text-white/40">Multiple locations • Seasonal menus</p>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-white/70 text-sm">
-                    Shorter sales cycles as prospects self-educate. Technical complexity becomes an advantage, not a barrier.
-                  </p>
+                  
+                  <div className="grid md:grid-cols-3 gap-1">
+                    <div className="relative p-5 rounded-xl bg-red-500/5 border border-red-500/10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center">
+                          <Zap className="w-3 h-3 text-red-400" />
+                        </div>
+                        <span className="text-xs font-semibold text-red-400 uppercase tracking-wider">Challenge</span>
+                      </div>
+                      <p className="text-white/70 text-sm leading-relaxed">
+                        Static menus don't capture the dining experience. Customers have questions but no easy way to get answers before booking.
+                      </p>
+                      <ArrowRight className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20 z-10" />
+                    </div>
+                    
+                    <div className="relative p-5 rounded-xl bg-purple-500/5 border border-purple-500/10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center">
+                          <Sparkles className="w-3 h-3 text-purple-400" />
+                        </div>
+                        <span className="text-xs font-semibold text-purple-400 uppercase tracking-wider">ICE Experience</span>
+                      </div>
+                      <p className="text-white/70 text-sm leading-relaxed">
+                        An AI host guides visitors through the menu, explains dishes, suggests pairings, and answers dietary questions.
+                      </p>
+                      <ArrowRight className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20 z-10" />
+                    </div>
+                    
+                    <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                          <BarChart3 className="w-3 h-3 text-emerald-400" />
+                        </div>
+                        <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Result</span>
+                      </div>
+                      <p className="text-white/70 text-sm leading-relaxed">
+                        Higher quality reservations from informed diners. Fewer no-shows and less staff time on repetitive questions.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
 
-            {/* Restaurant/Hospitality Scenario */}
-            <div className="p-8 rounded-2xl bg-gradient-to-br from-orange-500/10 to-red-500/5 border border-orange-500/20 mb-6" data-testid="scenario-restaurant">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-6 h-6 text-orange-400" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-1">Restaurant Group</h3>
-                  <p className="text-sm text-white/50">Multiple locations, seasonal menus</p>
-                </div>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mt-16 text-center"
+            >
+              <p className="text-white/40 mb-6">
+                Ready to see what ICE can do for your business?
+              </p>
+              <div className="max-w-lg mx-auto flex flex-col sm:flex-row gap-3 justify-center">
+                <Input
+                  type="url"
+                  placeholder="https://yourdomain.co.uk"
+                  value={siteUrl}
+                  onChange={(e) => {
+                    setSiteUrl(e.target.value);
+                    setError("");
+                  }}
+                  className="h-12 px-5 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500/50"
+                  data-testid="input-preview-url-bottom"
+                />
+                <Button
+                  onClick={handleCreatePreview}
+                  disabled={createPreviewMutation.isPending || !siteUrl.trim()}
+                  className="gap-2 h-12 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 font-medium"
+                  data-testid="button-create-preview-bottom"
+                >
+                  {createPreviewMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  Create free preview
+                </Button>
               </div>
-              
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-red-400 text-xs font-bold uppercase tracking-wider">
-                    <Zap className="w-3.5 h-3.5" />
-                    Problem
-                  </div>
-                  <p className="text-white/70 text-sm">
-                    Static menus and basic websites fail to capture the dining experience. Customers have questions but no easy way to get answers before booking.
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-purple-400 text-xs font-bold uppercase tracking-wider">
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    ICE Experience
-                  </div>
-                  <p className="text-white/70 text-sm">
-                    An AI host guides visitors through the menu, explains dishes, suggests pairings, and answers questions about dietary requirements and availability.
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-green-400 text-xs font-bold uppercase tracking-wider">
-                    <BarChart3 className="w-3.5 h-3.5" />
-                    Outcome
-                  </div>
-                  <p className="text-white/70 text-sm">
-                    Higher quality reservations from informed diners. Reduced no-shows and fewer staff hours answering repetitive questions.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-center mt-10">
-              <div className="max-w-md mx-auto">
-                <p className="text-sm text-white/50 mb-4">
-                  Ready to see what ICE can do for your business?
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Input
-                    type="url"
-                    placeholder="https://yourdomain.co.uk"
-                    value={siteUrl}
-                    onChange={(e) => {
-                      setSiteUrl(e.target.value);
-                      setError("");
-                    }}
-                    className="h-11 px-4 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/40"
-                    data-testid="input-preview-url-bottom"
-                  />
-                  <Button
-                    onClick={handleCreatePreview}
-                    disabled={createPreviewMutation.isPending || !siteUrl.trim()}
-                    className="gap-2 h-11 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                    data-testid="button-create-preview-bottom"
-                  >
-                    {createPreviewMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
-                    )}
-                    Create free preview
-                  </Button>
-                </div>
-              </div>
-            </div>
+            </motion.div>
           </div>
         </section>
 
