@@ -4,6 +4,7 @@ import { ArrowRight, Film, Clapperboard, Sparkles, MessageCircle, Calendar, Zap,
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import SiteNav from "@/components/SiteNav";
+import SectionSkin, { SectionDivider } from "@/components/SectionSkin";
 
 const features = [
   {
@@ -60,13 +61,16 @@ export default function ForCreators() {
     <div className="min-h-screen bg-black text-white" data-nm-page="for-creators">
       <SiteNav variant="marketing" />
 
-      <main>
+      <main className="pt-14">
         {/* Hero */}
-        <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden pt-20 scroll-mt-24" data-nm-section="hero">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-black" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent" />
-          
-          <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
+        <SectionSkin 
+          skins={["orbitGrid", "spotlight"]} 
+          spotlightColor="rgba(147, 51, 234, 0.12)"
+          gridOpacity={0.06}
+          className="min-h-[80vh] flex items-center justify-center pt-20 scroll-mt-24"
+          as="section"
+        >
+          <div className="max-w-5xl mx-auto px-6 text-center">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -120,10 +124,18 @@ export default function ForCreators() {
               </div>
             </motion.div>
           </div>
-        </section>
+        </SectionSkin>
+
+        <SectionDivider />
 
         {/* How It Works */}
-        <section className="py-20 px-6 relative bg-white/[0.02] border-y border-white/5 scroll-mt-24" data-nm-section="how-it-works">
+        <SectionSkin 
+          skins={["orbitGrid", "spotlight"]} 
+          spotlightColor="rgba(147, 51, 234, 0.08)"
+          gridOpacity={0.04}
+          className="py-20 px-6 scroll-mt-24"
+          separator="gradient"
+        >
           <div className="max-w-5xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">
               From script to experience
@@ -187,11 +199,16 @@ export default function ForCreators() {
               </motion.div>
             </div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Features */}
-        <section id="features" className="py-24 px-6 relative scroll-mt-24" data-nm-section="script-to-screen">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
+        <SectionSkin 
+          id="features"
+          skins={["noise", "spotlight"]} 
+          spotlightColor="rgba(147, 51, 234, 0.06)"
+          className="py-24 px-6 scroll-mt-24"
+          separator="gradient"
+        >
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-6">
               <h2 className="text-3xl md:text-5xl font-bold mb-4">
@@ -229,11 +246,15 @@ export default function ForCreators() {
               Output: cinematic cards, optional character chat, shareable link
             </p>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Visual Bible System */}
-        <section className="py-24 px-6 relative overflow-hidden scroll-mt-24" data-nm-section="visual-bible-system">
-          <div className="absolute inset-0 bg-gradient-to-br from-black via-black to-black" />
+        <SectionSkin 
+          skins={["noise", "spotlight"]} 
+          spotlightColor="rgba(99, 102, 241, 0.08)"
+          className="py-24 px-6 scroll-mt-24"
+          separator="gradient"
+        >
           <div className="max-w-4xl mx-auto relative z-10 text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -266,11 +287,15 @@ export default function ForCreators() {
               </p>
             </motion.div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Perfect For */}
-        <section className="py-24 px-6 relative scroll-mt-24" data-nm-section="perfect-for-creators">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
+        <SectionSkin 
+          skins={["noise", "spotlight"]} 
+          spotlightColor="rgba(147, 51, 234, 0.06)"
+          className="py-24 px-6 scroll-mt-24"
+          separator="gradient"
+        >
           <div className="max-w-4xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold mb-4">
@@ -294,11 +319,16 @@ export default function ForCreators() {
               ))}
             </div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Creator Examples / Scenarios */}
-        <section id="creator-examples" className="py-24 px-6 relative scroll-mt-24" data-nm-section="creator-scenarios">
-          <div className="absolute inset-0 bg-gradient-to-b from-neutral-950 via-black to-neutral-950" />
+        <SectionSkin 
+          id="creator-examples"
+          skins={["noise", "spotlight"]} 
+          spotlightColor="rgba(99, 102, 241, 0.06)"
+          className="py-24 px-6 scroll-mt-24"
+          separator="gradient"
+        >
           <div className="max-w-5xl mx-auto relative z-10">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-bold mb-4">
@@ -361,11 +391,15 @@ export default function ForCreators() {
               </div>
             </motion.div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* CTA */}
-        <section className="py-32 px-6 relative overflow-hidden scroll-mt-24" data-nm-section="footer-cta">
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black to-transparent" />
+        <SectionSkin 
+          skins={["spotlight", "vignette"]} 
+          spotlightColor="rgba(147, 51, 234, 0.12)"
+          spotlightPosition="center"
+          className="py-32 px-6 scroll-mt-24"
+        >
           
           <div className="max-w-4xl mx-auto text-center relative z-10">
             <motion.div
@@ -401,7 +435,7 @@ export default function ForCreators() {
               </div>
             </motion.div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Footer */}
         <footer className="py-12 px-6 border-t border-white/10 bg-black">

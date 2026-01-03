@@ -4,6 +4,7 @@ import { ArrowRight, GraduationCap, CheckCircle2, Upload, BookOpen, MessageCircl
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import SiteNav from "@/components/SiteNav";
+import SectionSkin, { SectionDivider } from "@/components/SectionSkin";
 
 const useCases = [
   {
@@ -54,13 +55,15 @@ export default function ForEducator() {
     <div className="min-h-screen bg-black text-white" data-nm-page="for-educators">
       <SiteNav variant="marketing" />
 
-      <main>
+      <main className="pt-14">
         {/* Hero */}
-        <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden pt-20 scroll-mt-24" data-nm-section="hero">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-black" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-green-900/20 via-transparent to-transparent" />
-          
-          <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
+        <SectionSkin 
+          skins={["orbitGrid", "spotlight"]} 
+          spotlightColor="rgba(16, 185, 129, 0.12)"
+          gridOpacity={0.06}
+          className="min-h-[70vh] flex items-center justify-center pt-20 scroll-mt-24"
+        >
+          <div className="max-w-5xl mx-auto px-6 text-center">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -134,10 +137,18 @@ export default function ForEducator() {
               </div>
             </motion.div>
           </div>
-        </section>
+        </SectionSkin>
+
+        <SectionDivider />
 
         {/* How It Works */}
-        <section className="py-20 px-6 relative bg-white/[0.02] border-y border-white/5 scroll-mt-24" data-nm-section="how-it-works">
+        <SectionSkin 
+          skins={["orbitGrid", "spotlight"]} 
+          spotlightColor="rgba(16, 185, 129, 0.08)"
+          gridOpacity={0.04}
+          className="py-20 px-6 scroll-mt-24"
+          separator="gradient"
+        >
           <div className="max-w-5xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">
               How it works
@@ -201,11 +212,15 @@ export default function ForEducator() {
               </motion.div>
             </div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Use Cases */}
-        <section className="py-24 px-6 relative scroll-mt-24" data-nm-section="use-cases">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
+        <SectionSkin 
+          skins={["noise", "spotlight"]} 
+          spotlightColor="rgba(16, 185, 129, 0.06)"
+          className="py-24 px-6 scroll-mt-24"
+          separator="gradient"
+        >
           <div className="max-w-6xl mx-auto relative z-10">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-usecases-title">
@@ -233,10 +248,16 @@ export default function ForEducator() {
               ))}
             </div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Educator Examples / Scenarios */}
-        <section id="educator-examples" className="py-24 px-6 relative bg-white/[0.02] border-y border-white/5 scroll-mt-24" data-nm-section="educator-scenarios">
+        <SectionSkin 
+          id="educator-examples"
+          skins={["noise", "spotlight"]} 
+          spotlightColor="rgba(16, 185, 129, 0.08)"
+          className="py-24 px-6 scroll-mt-24"
+          separator="gradient"
+        >
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -299,11 +320,15 @@ export default function ForEducator() {
               </div>
             </motion.div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Benefits */}
-        <section className="py-24 px-6 relative scroll-mt-24" data-nm-section="benefits">
-          <div className="absolute inset-0 bg-gradient-to-b from-neutral-950 via-black to-neutral-950" />
+        <SectionSkin 
+          skins={["noise", "spotlight"]} 
+          spotlightColor="rgba(16, 185, 129, 0.05)"
+          className="py-24 px-6 scroll-mt-24"
+          separator="gradient"
+        >
           <div className="max-w-4xl mx-auto relative z-10">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4" data-testid="text-benefits-title">
@@ -328,10 +353,16 @@ export default function ForEducator() {
               ))}
             </div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Safety & Privacy */}
-        <section id="safety-privacy" className="py-24 px-6 relative bg-white/[0.02] border-y border-white/5 scroll-mt-24" data-nm-section="safety-privacy">
+        <SectionSkin 
+          id="safety-privacy"
+          skins={["noise", "spotlight"]} 
+          spotlightColor="rgba(16, 185, 129, 0.08)"
+          className="py-24 px-6 scroll-mt-24"
+          separator="gradient"
+        >
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <div className="inline-flex items-center gap-2 px-4 py-2 mb-4 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
@@ -404,10 +435,14 @@ export default function ForEducator() {
               </motion.div>
             </div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Testimonial */}
-        <section className="py-20 px-6 relative scroll-mt-24" data-nm-section="testimonial">
+        <SectionSkin 
+          skins={["noise"]} 
+          className="py-20 px-6 scroll-mt-24"
+          separator="gradient"
+        >
           <div className="max-w-3xl mx-auto text-center">
             <blockquote className="text-2xl italic mb-6 text-white/80" data-testid="text-testimonial-quote">
               "My students went from dreading history homework to asking when the next chapter drops. Engagement jumped noticeably within weeks."
@@ -417,11 +452,15 @@ export default function ForEducator() {
               <p className="text-sm text-white/60" data-testid="text-testimonial-role">History Professor</p>
             </div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* CTA */}
-        <section className="py-32 px-6 relative overflow-hidden scroll-mt-24" data-nm-section="footer-cta">
-          <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600" />
+        <SectionSkin 
+          skins={["spotlight", "vignette"]} 
+          spotlightColor="rgba(16, 185, 129, 0.15)"
+          spotlightPosition="center"
+          className="py-32 px-6 bg-gradient-to-r from-green-600 to-emerald-600"
+        >
           
           <div className="max-w-4xl mx-auto text-center relative z-10">
             <motion.div
@@ -457,7 +496,7 @@ export default function ForEducator() {
               </div>
             </motion.div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Footer */}
         <footer className="py-12 px-6 border-t border-white/10 bg-black">

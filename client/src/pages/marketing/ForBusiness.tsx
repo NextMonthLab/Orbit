@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import SiteNav from "@/components/SiteNav";
+import SectionSkin, { SectionDivider } from "@/components/SectionSkin";
 
 const useCases = [
   {
@@ -94,8 +95,13 @@ export default function ForBusiness() {
 
       <main className="pt-14">
         {/* Unified Hero Section */}
-        <section className="relative overflow-hidden py-20 px-4 bg-gradient-to-br from-blue-900/20 via-transparent to-purple-900/10">
-          <div className="max-w-3xl mx-auto text-center relative z-10">
+        <SectionSkin 
+          skins={["orbitGrid", "spotlight"]} 
+          spotlightColor="rgba(99, 102, 241, 0.12)"
+          gridOpacity={0.06}
+          className="py-20 px-4"
+        >
+          <div className="max-w-3xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -174,10 +180,18 @@ export default function ForBusiness() {
               </div>
             </motion.div>
           </div>
-        </section>
+        </SectionSkin>
+
+        <SectionDivider />
 
         {/* How It Works Section */}
-        <section className="py-16 px-4 bg-white/[0.02] border-y border-white/5">
+        <SectionSkin 
+          skins={["orbitGrid", "spotlight"]} 
+          spotlightColor="rgba(139, 92, 246, 0.08)"
+          gridOpacity={0.04}
+          className="py-16 px-4"
+          separator="gradient"
+        >
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-10" data-testid="how-it-works-title">
               How the free preview works
@@ -227,10 +241,15 @@ export default function ForBusiness() {
               </motion.div>
             </div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Use Cases Section */}
-        <section className="py-20 px-4">
+        <SectionSkin 
+          skins={["noise", "spotlight"]} 
+          spotlightColor="rgba(99, 102, 241, 0.06)"
+          className="py-20 px-4"
+          separator="gradient"
+        >
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4" data-testid="text-usecases-title">
@@ -257,10 +276,16 @@ export default function ForBusiness() {
               ))}
             </div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* ICE Examples / Scenarios Section */}
-        <section id="ice-examples" className="py-24 px-4">
+        <SectionSkin 
+          id="ice-examples"
+          skins={["noise", "spotlight"]} 
+          spotlightColor="rgba(139, 92, 246, 0.08)"
+          className="py-24 px-4"
+          separator="gradient"
+        >
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="scenarios-title">
@@ -443,10 +468,15 @@ export default function ForBusiness() {
               </div>
             </motion.div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Benefits Section */}
-        <section className="py-20 px-4">
+        <SectionSkin 
+          skins={["noise", "spotlight"]} 
+          spotlightColor="rgba(99, 102, 241, 0.05)"
+          className="py-20 px-4"
+          separator="gradient"
+        >
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4" data-testid="text-benefits-title">
@@ -470,10 +500,15 @@ export default function ForBusiness() {
               ))}
             </div>
           </div>
-        </section>
+        </SectionSkin>
 
         {/* Final CTA Section */}
-        <section className="py-20 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+        <SectionSkin 
+          skins={["spotlight", "vignette"]} 
+          spotlightColor="rgba(99, 102, 241, 0.15)"
+          spotlightPosition="center"
+          className="py-20 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+        >
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-cta-title">
               Ready to transform your business content?
@@ -523,7 +558,7 @@ export default function ForBusiness() {
               </Button>
             </div>
           </div>
-        </section>
+        </SectionSkin>
       </main>
 
       <footer className="py-8 px-4 border-t border-white/10">
