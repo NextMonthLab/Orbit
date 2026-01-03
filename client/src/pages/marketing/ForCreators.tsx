@@ -1,25 +1,24 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Film, Clapperboard, Sparkles, MessageCircle, Calendar, Zap, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Film, Clapperboard, Sparkles, MessageCircle, Calendar, Zap, CheckCircle2, Upload, Palette, Share2, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import MarketingHeader from "@/components/MarketingHeader";
-import ScenarioCarousel from "@/components/ScenarioCarousel";
 
 const features = [
   {
     title: "Scripts become story cards",
-    description: "Upload your screenplay, treatment, or outline. Each scene or beat becomes a visual story card.",
+    description: "Upload your screenplay, treatment, or outline. Each scene becomes a visual card.",
     icon: Clapperboard,
   },
   {
     title: "Cinematic visuals per card",
-    description: "AI generates consistent imagery in your chosen visual style across the entire experience.",
+    description: "AI generates consistent imagery in your chosen visual style across the experience.",
     icon: Sparkles,
   },
   {
     title: "Optional character interaction",
-    description: "Let audiences speak to characters between scenes, safely constrained to your story world.",
+    description: "Let audiences speak to characters between scenes, constrained to your story world.",
     icon: MessageCircle,
   },
   {
@@ -32,7 +31,7 @@ const features = [
 const perfectFor = [
   "Short films and micro-cinema",
   "Trailers and teasers",
-  "Pilot episodes and proof-of-concepts",
+  "Pilot episodes and proof of concepts",
   "Experimental storytelling",
   "Interactive fiction",
   "Music video narratives",
@@ -49,6 +48,13 @@ export default function ForCreators() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const scrollToExamples = () => {
+    const element = document.getElementById('creator-examples');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black text-white" data-nm-page="for-creators">
@@ -78,32 +84,108 @@ export default function ForCreators() {
                 </span>
               </h1>
               
-              <p className="text-xl md:text-2xl text-white/70 max-w-2xl mx-auto mb-4 leading-relaxed" data-testid="text-hero-description">
+              <p className="text-xl md:text-2xl text-white/70 max-w-2xl mx-auto mb-6 leading-relaxed" data-testid="text-hero-description">
                 Transform scripts and ideas into cinematic, interactive story experiences.
                 Built for filmmakers who think in scenes, not pages.
               </p>
               
               <div className="flex flex-wrap justify-center gap-3 mb-10">
-                <span className="text-sm text-white/50">Built for:</span>
-                <span className="text-sm text-white/70">Short films</span>
-                <span className="text-white/30">-</span>
-                <span className="text-sm text-white/70">Trailers and proof-of-concepts</span>
-                <span className="text-white/30">-</span>
-                <span className="text-sm text-white/70">Interactive fiction</span>
+                <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white/70 text-sm">
+                  Short films
+                </span>
+                <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white/70 text-sm">
+                  Trailers and proof of concepts
+                </span>
+                <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white/70 text-sm">
+                  Interactive fiction
+                </span>
               </div>
               
-              <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link href="/try">
-                  <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-hero-cta" data-nm-cta="build-story-experience-hero">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-hero-cta">
                     Build a Story Experience
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 </Link>
-                <Link href="/orbit/progress-accountants-accountin-1766789673893" className="text-white/50 hover:text-white/70 text-sm transition-colors" data-nm-cta="see-example-experience">
-                  See an example experience
-                </Link>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={scrollToExamples}
+                  className="h-14 px-8 text-lg border-white/20 text-white hover:bg-white/10"
+                  data-testid="button-hero-secondary"
+                >
+                  Browse examples
+                </Button>
               </div>
             </motion.div>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section className="py-20 px-6 relative bg-white/[0.02] border-y border-white/5 scroll-mt-24" data-nm-section="how-it-works">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-12">
+              From script to experience
+            </h2>
+            
+            <div className="grid md:grid-cols-4 gap-8">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0 }}
+                className="text-center"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Upload className="w-7 h-7 text-blue-400" />
+                </div>
+                <div className="text-sm font-bold text-blue-400 mb-2">1</div>
+                <h3 className="font-bold mb-2">Upload your script or outline</h3>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="text-center"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Clapperboard className="w-7 h-7 text-purple-400" />
+                </div>
+                <div className="text-sm font-bold text-purple-400 mb-2">2</div>
+                <h3 className="font-bold mb-2">We turn scenes into cinematic cards</h3>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="text-center"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-pink-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Palette className="w-7 h-7 text-pink-400" />
+                </div>
+                <div className="text-sm font-bold text-pink-400 mb-2">3</div>
+                <h3 className="font-bold mb-2">Lock your visual bible for consistency</h3>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+                className="text-center"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-green-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Share2 className="w-7 h-7 text-green-400" />
+                </div>
+                <div className="text-sm font-bold text-green-400 mb-2">4</div>
+                <h3 className="font-bold mb-2">Share as a link or release in chapters</h3>
+              </motion.div>
+            </div>
           </div>
         </section>
 
@@ -149,7 +231,7 @@ export default function ForCreators() {
           </div>
         </section>
 
-        {/* Visual Consistency */}
+        {/* Visual Bible System */}
         <section className="py-24 px-6 relative overflow-hidden scroll-mt-24" data-nm-section="visual-bible-system">
           <div className="absolute inset-0 bg-gradient-to-br from-black via-black to-black" />
           <div className="max-w-4xl mx-auto relative z-10 text-center">
@@ -164,14 +246,11 @@ export default function ForCreators() {
               <h2 className="text-3xl md:text-5xl font-bold mb-6">
                 Visual Bible System
               </h2>
-              <p className="text-xl text-white/70 max-w-2xl mx-auto mb-4">
+              <p className="text-xl text-white/70 max-w-2xl mx-auto mb-8">
                 Define your look once. Lens feel, lighting mood, colour palette, and visual tone are locked and applied across every card.
               </p>
-              <p className="text-white/50 max-w-2xl mx-auto mb-8">
-                Characters stay recognisable. Locations feel connected. Your visual identity stays intact from first scene to last.
-              </p>
               
-              <div className="flex flex-wrap justify-center gap-3">
+              <div className="flex flex-wrap justify-center gap-3 mb-8">
                 {visualStyles.map((style) => (
                   <span 
                     key={style}
@@ -181,6 +260,10 @@ export default function ForCreators() {
                   </span>
                 ))}
               </div>
+              
+              <p className="text-white/50 max-w-2xl mx-auto">
+                Characters stay recognisable. Locations feel connected. The look stays coherent from first scene to last.
+              </p>
             </motion.div>
           </div>
         </section>
@@ -213,8 +296,8 @@ export default function ForCreators() {
           </div>
         </section>
 
-        {/* Creator Scenarios */}
-        <section className="py-24 px-6 relative scroll-mt-24" data-nm-section="creator-scenarios">
+        {/* Creator Examples / Scenarios */}
+        <section id="creator-examples" className="py-24 px-6 relative scroll-mt-24" data-nm-section="creator-scenarios">
           <div className="absolute inset-0 bg-gradient-to-b from-neutral-950 via-black to-neutral-950" />
           <div className="max-w-5xl mx-auto relative z-10">
             <div className="text-center mb-12">
@@ -222,17 +305,60 @@ export default function ForCreators() {
                 Creator <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">Stories</span>
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
-                See how filmmakers and writers bring their visions to life
+                See how filmmakers use ICE (Interactive Content Experiences) to bring their visions to life
               </p>
             </div>
             
+            {/* Independent Filmmaker Scenario */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
+              className="p-8 rounded-2xl bg-gradient-to-br from-purple-500/10 to-blue-500/5 border border-purple-500/20"
+              data-testid="scenario-filmmaker"
             >
-              <ScenarioCarousel filter="creator" />
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                  <Film className="w-6 h-6 text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-1">Independent Filmmaker</h3>
+                  <p className="text-sm text-white/50">Vision-driven, resource-conscious</p>
+                </div>
+              </div>
+              
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-red-400 text-xs font-bold uppercase tracking-wider">
+                    <Zap className="w-3.5 h-3.5" />
+                    Problem
+                  </div>
+                  <p className="text-white/70 text-sm">
+                    A polished screenplay and a clear creative vision, but limited budget for full previs to pitch investors or align a team.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-purple-400 text-xs font-bold uppercase tracking-wider">
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    How they use ICE
+                  </div>
+                  <p className="text-white/70 text-sm">
+                    They build a living storyboard: AI-generated scenes that communicate shots, lighting, composition, and mood so cast and crew understand the vision before day one.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-green-400 text-xs font-bold uppercase tracking-wider">
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    Outcome
+                  </div>
+                  <p className="text-white/70 text-sm">
+                    Investors grasp the vision faster. Crew arrives aligned. Production runs smoother and the budget holds.
+                  </p>
+                </div>
+              </div>
             </motion.div>
           </div>
         </section>
@@ -256,16 +382,22 @@ export default function ForCreators() {
               <p className="text-white/60 text-lg mb-8 max-w-xl mx-auto">
                 Build an interactive story experience your audience can explore, not just watch.
               </p>
-              <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link href="/try">
-                  <Button size="lg" className="h-16 px-12 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-footer-cta" data-nm-cta="build-story-experience-footer">
+                  <Button size="lg" className="h-16 px-12 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-footer-cta">
                     Build a Story Experience
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 </Link>
-                <Link href="/orbit/progress-accountants-accountin-1766789673893" className="text-white/50 hover:text-white/70 text-sm transition-colors" data-nm-cta="browse-examples">
+                <Button 
+                  variant="outline"
+                  size="lg"
+                  onClick={scrollToExamples}
+                  className="h-16 px-8 text-lg border-white/20 text-white hover:bg-white/10"
+                  data-testid="button-footer-secondary"
+                >
                   Browse examples
-                </Link>
+                </Button>
               </div>
             </motion.div>
           </div>
