@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, GraduationCap, CheckCircle2, Upload, BookOpen, MessageCircle, Share2, Zap, BarChart3 } from "lucide-react";
+import { ArrowRight, GraduationCap, CheckCircle2, Upload, BookOpen, MessageCircle, Share2, Zap, BarChart3, Shield, Lock, UserCheck, BookMarked } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import MarketingHeader from "@/components/MarketingHeader";
@@ -38,6 +38,13 @@ export default function ForEducator() {
 
   const scrollToExamples = () => {
     const element = document.getElementById('educator-examples');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const scrollToSafety = () => {
+    const element = document.getElementById('safety-privacy');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
@@ -91,6 +98,39 @@ export default function ForEducator() {
                 >
                   Browse examples
                 </Button>
+              </div>
+              
+              {/* Classroom-safe trust strip */}
+              <div className="mt-12 pt-8 border-t border-white/10">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <Shield className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-semibold text-emerald-300">Classroom-safe by design</span>
+                </div>
+                <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-white/60">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-emerald-400/70" />
+                    <span>Teacher-controlled content</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-emerald-400/70" />
+                    <span>Constrained character chat</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-emerald-400/70" />
+                    <span>Designed to discourage sharing personal data</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <BookMarked className="w-4 h-4 text-emerald-400/70" />
+                    <span>Curriculum-aligned learning support</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={scrollToSafety}
+                  className="mt-4 text-xs text-emerald-400 hover:text-emerald-300 underline underline-offset-2 transition-colors"
+                  data-testid="link-safety-privacy"
+                >
+                  Safety & privacy
+                </button>
               </div>
             </motion.div>
           </div>
@@ -286,6 +326,82 @@ export default function ForEducator() {
                   <span className="text-white/80">{benefit}</span>
                 </motion.div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Safety & Privacy */}
+        <section id="safety-privacy" className="py-24 px-6 relative bg-white/[0.02] border-y border-white/5 scroll-mt-24" data-nm-section="safety-privacy">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 mb-4 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                <Shield className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm font-semibold text-emerald-300">Safety & privacy</span>
+              </div>
+              <h2 className="text-3xl font-bold mb-4">
+                Built for the classroom
+              </h2>
+              <p className="text-white/60 max-w-xl mx-auto">
+                Every feature is designed with student safety and educational integrity in mind.
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0 }}
+                className="p-6 rounded-xl bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20"
+              >
+                <UserCheck className="w-8 h-8 text-emerald-400 mb-4" />
+                <h3 className="font-bold mb-2">Teacher-controlled content</h3>
+                <p className="text-sm text-white/60">
+                  You decide what material goes into each experience. Students only see content you have reviewed and approved.
+                </p>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="p-6 rounded-xl bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20"
+              >
+                <Lock className="w-8 h-8 text-emerald-400 mb-4" />
+                <h3 className="font-bold mb-2">Constrained character chat</h3>
+                <p className="text-sm text-white/60">
+                  AI characters respond only within the boundaries you set. Conversations stay on topic and aligned to your learning objectives.
+                </p>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="p-6 rounded-xl bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20"
+              >
+                <Shield className="w-8 h-8 text-emerald-400 mb-4" />
+                <h3 className="font-bold mb-2">Designed to discourage sharing personal data</h3>
+                <p className="text-sm text-white/60">
+                  The experience is structured to keep focus on curriculum content. Students are not prompted to share personal information.
+                </p>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+                className="p-6 rounded-xl bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20"
+              >
+                <BookMarked className="w-8 h-8 text-emerald-400 mb-4" />
+                <h3 className="font-bold mb-2">Curriculum-aligned learning support</h3>
+                <p className="text-sm text-white/60">
+                  Responses draw from your source materials. The AI supports your teaching goals rather than introducing unvetted information.
+                </p>
+              </motion.div>
             </div>
           </div>
         </section>
