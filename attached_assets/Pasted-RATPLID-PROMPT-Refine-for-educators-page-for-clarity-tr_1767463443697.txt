@@ -1,0 +1,108 @@
+RATPLID PROMPT: Refine /for-educators page for clarity, trust, and conversion (no new backend logic)
+
+Context
+- This is the /for-educators page.
+- The value is strong, but copy needs tightening, claims need de-risking, and CTAs must be consistent.
+- Educators will care about safety, accuracy, and classroom practicality. This page must signal trust.
+
+Primary objective
+- Increase clicks on the primary CTA by making the proposition clearer and more credible.
+
+Hard requirements (must do)
+
+1) HERO REBUILD + CTA CONSISTENCY
+- Update the hero to be tighter and more premium.
+- Hero content:
+  - Eyebrow: "Educators"
+  - H1: "Make learning unforgettable with story-driven lessons"
+  - Subhead: "Transform educational content into immersive narratives that students want to continue."
+- Standardise CTAs across the entire page:
+  - Primary button: "Start creating free"
+  - Secondary button: "Browse examples"
+- Replace any "Get Started Free" / "Start Creating Free" variations so the casing and wording match exactly.
+- Remove any other CTA variants.
+
+2) ADD A "How it works" SECTION (directly after hero)
+Insert a 4-step section designed for scanning:
+- Title: "How it works"
+- Steps:
+  1. "Upload lesson content or a topic"
+  2. "NextMonth turns it into a chapter-based story"
+  3. "Add interactive characters with safe constraints"
+  4. "Share a link or embed into your course platform"
+Keep it brief.
+
+3) "How Educators Use NextMonth" SECTION: tighten the intro + make use cases outcome-led
+- Keep the section but rewrite the intro to avoid repetition with hero.
+Suggested intro:
+  "Create story-based lessons, interactive learning companions, and chapter drops that improve engagement and retention."
+- Update the three use cases to be sharper:
+  - Curriculum storytelling: "Turn lessons into narrative journeys where concepts unfold over time."
+  - Historical characters: "Let students explore perspectives through guided conversations with historical figures."
+  - Course companions: "Create an always-on tutor that helps students practise and revise."
+
+4) ICE NAMING CLARITY (first mention only)
+- The first time ICE appears on this page, write:
+  "ICE (Interactive Content Experiences)"
+- After that, ICE is fine.
+
+5) SCENARIOS SECTION: fix tense + improve credibility language
+- Standardise scenario cards to:
+  - "Problem"
+  - "How they use ICE"
+  - "Outcome"
+- For "History Teacher" scenario, use this tightened copy:
+  - Problem: "Dry curriculum materials and fact sheets get skimmed and forgotten. Engagement drops and results stall."
+  - How they use ICE: "They build immersive lessons where historical figures guide the learning through story chapters, with responses constrained to curriculum-aligned sources and teacher-provided material."
+  - Outcome: "Students engage longer, retention improves, and lessons spark discussion beyond the classroom."
+- IMPORTANT: Avoid name-dropping specific famous figures (Einstein, Curie, Lincoln) unless you can guarantee the content is controlled and not presented as authoritative quotes. Keep it general and classroom-safe.
+
+6) "Why Educators Choose NextMonth" SECTION: keep, but prioritise trust + accessibility
+- Re-order bullets so trust and safety come first. Suggested order:
+  1. "Source guardrails to support educational accuracy"
+  2. "Accessibility features for inclusive learning"
+  3. "Interactive characters as learning companions"
+  4. "AI-generated visuals that bring concepts to life"
+  5. "Daily drops that encourage consistent study habits"
+  6. "Track engagement and progress"
+  7. "Works with any LMS or course platform"
+  8. "Transform lessons into story experiences"
+- Do not add new product claims that require engineering work.
+
+7) REMOVE / SOFTEN UNVERIFIABLE METRICS AND BIG CLAIMS
+- Replace or soften claims like:
+  - "Engagement increased 400%" (too specific unless verified)
+  - "Join thousands of educators..." (only keep if true and provable)
+- Safer testimonial version:
+  "My students went from dreading history homework to asking when the next chapter drops. Engagement jumped noticeably within weeks."
+- Replace the closing line with:
+  "Join educators already creating story-driven lessons with NextMonth."
+Avoid numbers unless backed by real data.
+
+8) FINAL CTA SECTION: rewrite and align CTAs
+- Fix typo: "Ready to Transform Your Educator Content?" -> "Ready to transform your educational content?"
+- Use:
+  - Title: "Ready to transform your educational content?"
+  - Subhead: "Create lessons students can explore, not just read."
+  - Buttons:
+    - Primary: "Start creating free"
+    - Secondary: "Browse examples"
+- Secondary CTA scrolls to the examples/scenarios section (anchor link with smooth scroll).
+
+Design and UX requirements
+- Keep responsive layout.
+- Improve scannability: shorter paragraphs, consistent section spacing, clear headings.
+- Maintain a trustworthy, educator-friendly tone (less hype, more clarity).
+- Avoid long dashes (—). Use normal hyphens or rewrite.
+
+Acceptance criteria checklist
+- Only two CTAs appear across the page: "Start creating free" and "Browse examples".
+- ICE is expanded once to "ICE (Interactive Content Experiences)".
+- Scenario grammar is consistent and more classroom-safe.
+- Unverified numbers and "thousands" claims removed or softened.
+- Secondary CTA scrolls to examples section.
+- No backend changes.
+
+Deliverable
+- Commit the updated /for-educators page with clean component structure.
+- Light refactor into sections is okay if it improves readability (no over-engineering).
