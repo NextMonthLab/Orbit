@@ -9174,7 +9174,43 @@ Guidelines:
         return 0;
       });
       
-      res.json({ insights });
+      // Gate insights by tier and strength
+      const planTier = orbitMeta.planTier || 'free';
+      const strengthScore = orbitMeta.strengthScore ?? 0;
+      const isPowered = strengthScore > 0 || (planTier !== 'free');
+      const isUnderstand = ['understand', 'intelligence'].includes(planTier);
+      
+      let gatedInsights = insights;
+      let locked = false;
+      let upgradeMessage: string | undefined;
+      
+      if (!isPowered) {
+        // Free/basic tier: max 3 insights, downgrade confidence
+        gatedInsights = insights.slice(0, 3).map(i => ({
+          ...i,
+          confidence: 'low' as const,
+        }));
+        if (insights.length > 3) {
+          locked = true;
+          upgradeMessage = `Power up your Orbit to unlock ${insights.length - 3} more insights`;
+        }
+      } else if (!isUnderstand) {
+        // Grow tier: max 8 insights
+        gatedInsights = insights.slice(0, 8);
+        if (insights.length > 8) {
+          locked = true;
+          upgradeMessage = `Upgrade to Understand for ${insights.length - 8} more insights`;
+        }
+      }
+      // Understand+ tier: all insights, no gating
+      
+      res.json({ 
+        insights: gatedInsights,
+        total: insights.length,
+        remaining: insights.length - gatedInsights.length,
+        locked,
+        upgradeMessage,
+      });
     } catch (error) {
       console.error("Error generating orbit insights:", error);
       res.status(500).json({ message: "Error generating insights" });

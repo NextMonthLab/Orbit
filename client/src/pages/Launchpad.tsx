@@ -144,7 +144,13 @@ export default function Launchpad() {
     }
   }, [searchString, orbitSummaries]);
 
-  const { data: insightsData, isLoading: insightsLoading } = useQuery<{ insights: Insight[] }>({
+  const { data: insightsData, isLoading: insightsLoading } = useQuery<{ 
+    insights: Insight[];
+    total?: number;
+    remaining?: number;
+    locked?: boolean;
+    upgradeMessage?: string;
+  }>({
     queryKey: ["orbit-insights", selectedOrbit?.slug],
     queryFn: async () => {
       if (!selectedOrbit?.slug) return { insights: [] };
@@ -173,6 +179,9 @@ export default function Launchpad() {
   const recentDrafts = draftsData?.drafts || [];
 
   const insights = insightsData?.insights || [];
+  const insightsLocked = insightsData?.locked || false;
+  const insightsUpgradeMessage = insightsData?.upgradeMessage;
+  const insightsRemaining = insightsData?.remaining ?? 0;
   const topInsight = insights.find((i) => i.kind === "top") || insights[0] || null;
   const feedInsights = insights.filter((i) => i.kind !== "top" || i.id !== topInsight?.id);
 
@@ -303,6 +312,10 @@ export default function Launchpad() {
               highlightedInsightId={highlightedInsightId}
               onMakeIce={handleMakeIce}
               isLoading={insightsLoading}
+              locked={insightsLocked}
+              upgradeMessage={insightsUpgradeMessage}
+              remainingInsights={insightsRemaining}
+              orbitSlug={selectedOrbit?.slug}
             />
           </div>
 
@@ -339,6 +352,10 @@ export default function Launchpad() {
               highlightedInsightId={highlightedInsightId}
               onMakeIce={handleMakeIce}
               isLoading={insightsLoading}
+              locked={insightsLocked}
+              upgradeMessage={insightsUpgradeMessage}
+              remainingInsights={insightsRemaining}
+              orbitSlug={selectedOrbit?.slug}
             />
           </div>
         )}

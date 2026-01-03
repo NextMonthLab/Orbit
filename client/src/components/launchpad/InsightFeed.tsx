@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { RefreshCw, Search, SlidersHorizontal } from "lucide-react";
+import { RefreshCw, Search, SlidersHorizontal, Lock, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { InsightCard, type Insight } from "./InsightCard";
+import { Link } from "wouter";
 
 interface InsightFeedProps {
   insights: Insight[];
@@ -10,6 +12,10 @@ interface InsightFeedProps {
   highlightedInsightId?: string | null;
   onMakeIce: (insight: Insight) => void;
   isLoading?: boolean;
+  locked?: boolean;
+  upgradeMessage?: string;
+  remainingInsights?: number;
+  orbitSlug?: string;
 }
 
 const filterOptions = ["All", "New", "High confidence", "Analytics", "Chat"];
@@ -21,6 +27,10 @@ export function InsightFeed({
   highlightedInsightId,
   onMakeIce,
   isLoading,
+  locked,
+  upgradeMessage,
+  remainingInsights,
+  orbitSlug,
 }: InsightFeedProps) {
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -132,6 +142,32 @@ export function InsightFeed({
             No insights match your filter
           </p>
         )}
+        
+        {/* Locked upgrade banner */}
+        {locked && upgradeMessage && (
+          <div className="p-4 rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mt-2">
+            <div className="flex items-center gap-2 mb-2">
+              <Lock className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-medium text-white">
+                {remainingInsights && remainingInsights > 0 ? `${remainingInsights} more insights available` : 'More insights available'}
+              </span>
+            </div>
+            <p className="text-xs text-white/60 mb-3">{upgradeMessage}</p>
+            {orbitSlug && (
+              <Link href={`/orbit/${orbitSlug}/settings`}>
+                <Button
+                  size="sm"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-xs"
+                  data-testid="button-unlock-insights"
+                >
+                  <Zap className="w-3 h-3 mr-1" />
+                  Power Up
+                </Button>
+              </Link>
+            )}
+          </div>
+        )}
+        
         <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-slate-950/80 to-transparent pointer-events-none" />
       </div>
     </div>
