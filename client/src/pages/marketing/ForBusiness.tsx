@@ -550,9 +550,9 @@ export default function ForBusiness() {
             </span>
           </Link>
           <div className="flex items-center gap-6 text-sm text-white/60">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
-            <a href="#" className="hover:text-foreground transition-colors">Contact</a>
+            <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+            <Link href="/security" className="hover:text-foreground transition-colors">Security</Link>
           </div>
         </div>
       </footer>

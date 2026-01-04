@@ -755,6 +755,7 @@ export default function MarketingHome() {
                 <Link href="/privacy" className="text-white/40 hover:text-white/70 text-xs transition-colors">Privacy Policy</Link>
                 <Link href="/terms" className="text-white/40 hover:text-white/70 text-xs transition-colors">Terms of Service</Link>
                 <Link href="/cookies" className="text-white/40 hover:text-white/70 text-xs transition-colors">Cookie Policy</Link>
+                <Link href="/security" className="text-white/40 hover:text-white/70 text-xs transition-colors">Security</Link>
               </div>
               <p className="text-white/30 text-xs">
                 © {new Date().getFullYear()} NextMonth Ltd. All rights reserved.
