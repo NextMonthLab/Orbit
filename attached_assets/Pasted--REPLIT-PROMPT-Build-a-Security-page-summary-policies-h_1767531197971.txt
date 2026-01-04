@@ -1,0 +1,99 @@
+# REPLIT PROMPT — Build a Security page (summary) + policies hub links
+
+You are working in the NextMonth codebase. Create a new public-facing **Security** page that summarises our security posture and links to full policies.
+
+## Goals
+1. Add a new route/page: `/security`
+2. Add a "Security" item in:
+   - The main header / top navigation (desktop)
+   - The mobile menu
+   - The footer (in a "Company" or "Legal" section)
+3. Keep existing layout, styling system, components, analytics, and routing intact. Do NOT refactor unrelated code.
+
+## Design requirements
+- Page should feel premium, calm, and trustworthy.
+- Use the existing design system (typography, spacing, components).
+- Structure with clear headings, short paragraphs, and bullet lists.
+- Add a small “Last updated” line near the top (static placeholder date is fine).
+- Include a “Contact for security enquiries” section at bottom:
+  - Email: hello@nextmonth.io
+
+## Content requirements (Security summary)
+Create a concise summary page with the sections below. Keep wording plain English, ISO 27001 supplier-friendly, and aligned to a standard Render deployment + GitHub + managed cloud providers.
+
+### Hero / Intro
+Title: "Security"
+Subtitle: "How NextMonth protects your data and supports ISO 27001-aligned workflows."
+
+### Section 1 — Our approach
+Include bullets:
+- Least privilege access
+- Named accounts (no shared logins)
+- MFA where supported
+- Secrets stored in environment variables (never in code)
+- Auditability via version control and deployment logs
+- Continuous improvement mindset
+
+### Section 2 — Hosting & infrastructure
+Short paragraph:
+- Services hosted on managed cloud infrastructure (e.g. Render) using industry-standard encryption in transit and environment-level secret management.
+Bullets:
+- HTTPS / TLS for data in transit
+- Environment-based configuration
+- Logical separation between environments where applicable
+- Controlled deployment pipeline
+
+### Section 3 — Change management
+Short paragraph:
+- All production changes are tracked through version control and deployed through a controlled pipeline.
+Bullets:
+- Git-based history and traceability
+- Automated deploys from main branch (or current production branch)
+- Rollback/remediation supported
+- Emergency changes reviewed retrospectively
+
+### Section 4 — Incident response
+Bullets describing the process:
+1. Identify
+2. Contain
+3. Assess impact
+4. Notify where appropriate
+5. Remediate
+6. Record and improve
+
+### Section 5 — Data protection & retention
+Short paragraph:
+- Data processed to deliver the service, retained only as long as necessary, deletion requests supported subject to contractual/legal constraints.
+Bullets:
+- Access restricted to authorised personnel
+- Encryption in transit
+- Retention minimisation
+- Contact for data requests: hello@nextmonth.io
+
+### Section 6 — Sub-processors
+Short paragraph:
+- We rely on trusted providers (hosting, source control, AI inference, email/monitoring). We assess providers for security posture and can share a current list on request.
+
+### Section 7 — Links to full policies
+Add a “Policies” section with cards or a list linking to:
+- /policies/information-security
+- /policies/access-control
+- /policies/change-management
+- /policies/incident-response
+- /policies/data-protection-retention
+- /policies/sub-processors
+
+If these routes do not exist yet, still create the links and add a note:
+“Full policies are being published. If you need them immediately, email hello@nextmonth.io.”
+
+## Engineering requirements
+- Use existing routing approach (Next.js pages/app router, React Router, etc.) without changing architecture.
+- Reuse existing layout components (PageShell, Container, Header, Footer, etc.).
+- Add nav item safely without breaking current menus.
+- Ensure page is responsive and passes the existing lint/build.
+
+## Deliverables
+- New `/security` page implemented
+- Navigation updated (header + mobile + footer)
+- No breaking changes
+- Short PR-style summary in your completion message listing files changed
