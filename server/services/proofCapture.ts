@@ -7,6 +7,7 @@ const openai = new OpenAI();
 const PRAISE_KEYWORDS = [
   "amazing", "fantastic", "excellent", "wonderful", "brilliant", "outstanding",
   "incredible", "superb", "perfect", "love", "loved", "loving", "great",
+  "like", "liked", "really like", "enjoy", "enjoyed", "enjoying",
   "best", "awesome", "impressed", "impressed", "exceptional", "remarkable",
   "thank you so much", "thanks so much", "really appreciate", "highly recommend",
   "would recommend", "definitely recommend", "can't recommend enough",
@@ -268,7 +269,7 @@ export async function classifyTestimonialMoment(
   const wordCount = customerMessage.trim().split(/\s+/).length;
   
   // Strong praise keywords that indicate genuine testimonial intent even in short messages
-  const STRONG_PRAISE_KEYWORDS = ['love', 'great', 'amazing', 'fantastic', 'incredible', 'best', 'excellent', 'perfect', 'wonderful', 'brilliant', 'outstanding', 'awesome'];
+  const STRONG_PRAISE_KEYWORDS = ['love', 'like', 'enjoy', 'great', 'amazing', 'fantastic', 'incredible', 'best', 'excellent', 'perfect', 'wonderful', 'brilliant', 'outstanding', 'awesome'];
   const hasStrongPraise = preFilter.praiseKeywords.some(pk => 
     STRONG_PRAISE_KEYWORDS.some(sp => pk.toLowerCase().includes(sp))
   );
