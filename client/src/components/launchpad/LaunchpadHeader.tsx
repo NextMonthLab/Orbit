@@ -1,4 +1,5 @@
-import { ChevronDown, Zap, Library, Plus, ExternalLink } from "lucide-react";
+import { ChevronDown, Zap, Library, Plus, ExternalLink, Share2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
+import { OrbitShareModal } from "@/components/orbit/OrbitShareModal";
 
 export interface OrbitSummary {
   id: string;
@@ -31,6 +33,7 @@ export function LaunchpadHeader({
   onCreateIce,
 }: LaunchpadHeaderProps) {
   const isPowered = selectedOrbit?.status === "powered";
+  const [showShareModal, setShowShareModal] = useState(false);
 
   return (
     <div className="flex items-center justify-between py-3 md:py-4 px-4 md:px-6 border-b border-white/10" data-testid="launchpad-header">
@@ -106,16 +109,27 @@ export function LaunchpadHeader({
 
       <div className="flex items-center gap-2 md:gap-3">
         {selectedOrbit && (
-          <Link href={`/orbit/${selectedOrbit.slug}?preview=true`}>
+          <>
             <Button
               variant="ghost"
               className="text-white/60 hover:text-white hover:bg-white/10"
-              data-testid="link-view-public"
+              onClick={() => setShowShareModal(true)}
+              data-testid="button-share-orbit-header"
             >
-              <ExternalLink className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">View public</span>
+              <Share2 className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Share</span>
             </Button>
-          </Link>
+            <Link href={`/orbit/${selectedOrbit.slug}?preview=true`}>
+              <Button
+                variant="ghost"
+                className="text-white/60 hover:text-white hover:bg-white/10"
+                data-testid="link-view-public"
+              >
+                <ExternalLink className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">View public</span>
+              </Button>
+            </Link>
+          </>
         )}
         <Link href="/icemaker/projects" className="hidden md:block">
           <Button
@@ -137,6 +151,15 @@ export function LaunchpadHeader({
           <span className="hidden md:inline">New Ice</span>
         </Button>
       </div>
+
+      {selectedOrbit && (
+        <OrbitShareModal
+          open={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          businessSlug={selectedOrbit.slug}
+          brandName={selectedOrbit.name}
+        />
+      )}
     </div>
   );
 }
