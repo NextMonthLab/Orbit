@@ -6552,12 +6552,22 @@ Stay engaging, reference story details, and help the audience understand the nar
           title: String(card.title || "").slice(0, 100),
           content: String(card.content || "").slice(0, 2000),
           order: idx,
-          // Preserve generated media fields from incoming data OR existing data
+          // Preserve scene linkage
+          sceneId: card.sceneId || existingCard.sceneId || undefined,
+          dialoguePreserved: card.dialoguePreserved || existingCard.dialoguePreserved || undefined,
+          // New media asset system - preserve arrays and selection
+          mediaAssets: card.mediaAssets || existingCard.mediaAssets || undefined,
+          selectedMediaAssetId: card.selectedMediaAssetId || existingCard.selectedMediaAssetId || undefined,
+          // Legacy generated media fields (backward compatibility)
           generatedImageUrl: card.generatedImageUrl || existingCard.generatedImageUrl || undefined,
           generatedVideoUrl: card.generatedVideoUrl || existingCard.generatedVideoUrl || undefined,
           videoGenerationStatus: card.videoGenerationStatus || existingCard.videoGenerationStatus || undefined,
           videoPredictionId: card.videoPredictionId || existingCard.videoPredictionId || undefined,
           narrationAudioUrl: card.narrationAudioUrl || existingCard.narrationAudioUrl || undefined,
+          // Prompt enhancement settings
+          enhancePromptEnabled: card.enhancePromptEnabled ?? existingCard.enhancePromptEnabled ?? undefined,
+          basePrompt: card.basePrompt || existingCard.basePrompt || undefined,
+          enhancedPrompt: card.enhancedPrompt || existingCard.enhancedPrompt || undefined,
         };
       });
       
@@ -6692,8 +6702,28 @@ Stay engaging, reference story details, and help the audience understand the nar
         throw new Error("No image data returned");
       }
       
-      // Update the card with the generated image URL
-      cards[cardIndex] = { ...card, generatedImageUrl: finalImageUrl };
+      // Create new media asset
+      const newAssetId = `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const newAsset = {
+        id: newAssetId,
+        kind: 'image' as const,
+        source: 'ai' as const,
+        url: finalImageUrl,
+        thumbnailUrl: finalImageUrl,
+        createdAt: new Date().toISOString(),
+        prompt: imagePrompt.substring(0, 500),
+        status: 'ready' as const,
+        model: 'gpt-image-1',
+      };
+      
+      // Add to mediaAssets array and update legacy field for backward compatibility
+      const existingAssets = card.mediaAssets || [];
+      cards[cardIndex] = { 
+        ...card, 
+        mediaAssets: [...existingAssets, newAsset],
+        selectedMediaAssetId: newAssetId, // Auto-select newly generated asset
+        generatedImageUrl: finalImageUrl, // Keep legacy field updated
+      };
       await storage.updateIcePreview(previewId, { cards });
       
       // Log successful generation
@@ -6702,13 +6732,14 @@ Stay engaging, reference story details, and help the audience understand the nar
         userId: user.id,
         userIp: successIp,
         userAgent: successAgent,
-        details: { cardId, type: 'image' },
+        details: { cardId, type: 'image', assetId: newAssetId },
       });
       
       res.json({
         success: true,
         imageUrl: finalImageUrl,
         cardId,
+        asset: newAsset,
       });
     } catch (error) {
       console.error("Error generating ICE preview card image:", error);
@@ -6801,13 +6832,15 @@ Stay engaging, reference story details, and help the audience understand the nar
         negativePrompt: "blurry, low quality, distorted, watermark, text, words, letters, titles, captions, typography, writing",
       });
       
-      // Update the card with the prediction ID
+      // Update the card with the prediction ID and track prompt used
       const cardIndex = cards.findIndex(c => c.id === cardId);
       cards[cardIndex] = { 
         ...card, 
         videoPredictionId: result.predictionId,
         videoGenerationStatus: "processing",
         videoGenerationMode: mode || "text-to-video",
+        videoGenerationPrompt: videoPrompt.substring(0, 500), // Store for asset metadata
+        videoGenerationModel: model || "kling-v1.6-standard",
       };
       await storage.updateIcePreview(previewId, { cards });
       
@@ -6857,15 +6890,33 @@ Stay engaging, reference story details, and help the audience understand the nar
       // Update card if status changed
       if (result.status === "completed" && result.videoUrl) {
         const cardIndex = cards.findIndex(c => c.id === cardId);
+        
+        // Create new video media asset
+        const newAssetId = `vid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const newAsset = {
+          id: newAssetId,
+          kind: 'video' as const,
+          source: 'ai' as const,
+          url: result.videoUrl,
+          thumbnailUrl: card.generatedImageUrl || undefined, // Use image as poster if available
+          createdAt: new Date().toISOString(),
+          prompt: card.videoGenerationPrompt || undefined,
+          status: 'ready' as const,
+          model: card.videoGenerationModel || 'kling-v1.6-standard',
+        };
+        
+        const existingAssets = card.mediaAssets || [];
         cards[cardIndex] = {
           ...card,
-          generatedVideoUrl: result.videoUrl,
+          mediaAssets: [...existingAssets, newAsset],
+          selectedMediaAssetId: newAssetId, // Auto-select new video
+          generatedVideoUrl: result.videoUrl, // Keep legacy field
           videoGenerationStatus: "completed",
           videoPredictionId: null, // Clear after completion
         };
         await storage.updateIcePreview(previewId, { cards });
         
-        console.log(`[ICE Video] Completed for card ${cardId}: ${result.videoUrl}`);
+        console.log(`[ICE Video] Completed for card ${cardId}: ${result.videoUrl}, asset ${newAssetId}`);
       } else if (result.status === "failed") {
         const cardIndex = cards.findIndex(c => c.id === cardId);
         cards[cardIndex] = {
@@ -7031,6 +7082,198 @@ Stay engaging, reference story details, and help the audience understand the nar
     } catch (error) {
       console.error("Error generating ICE narration:", error);
       res.status(500).json({ message: "Error generating narration" });
+    }
+  });
+
+  // Select a media asset as active for a card
+  app.post("/api/ice/preview/:previewId/cards/:cardId/media/select", requireAuth, async (req, res) => {
+    try {
+      const { previewId, cardId } = req.params;
+      const { assetId } = req.body;
+      
+      if (!assetId) {
+        return res.status(400).json({ message: "Asset ID is required" });
+      }
+      
+      const preview = await storage.getIcePreview(previewId);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      const user = req.user as schema.User;
+      const policy = canWriteIcePreview(user, preview);
+      
+      if (!policy.allowed) {
+        return res.status(policy.statusCode).json({ message: policy.reason || "Not authorized" });
+      }
+      
+      const cards = preview.cards as any[];
+      const cardIndex = cards.findIndex(c => c.id === cardId);
+      if (cardIndex === -1) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      const card = cards[cardIndex];
+      const assets = card.mediaAssets || [];
+      const selectedAsset = assets.find((a: any) => a.id === assetId);
+      
+      if (!selectedAsset) {
+        return res.status(404).json({ message: "Asset not found" });
+      }
+      
+      // Update selection and sync legacy fields for backward compatibility
+      cards[cardIndex] = {
+        ...card,
+        selectedMediaAssetId: assetId,
+        generatedImageUrl: selectedAsset.kind === 'image' ? selectedAsset.url : card.generatedImageUrl,
+        generatedVideoUrl: selectedAsset.kind === 'video' ? selectedAsset.url : card.generatedVideoUrl,
+      };
+      
+      await storage.updateIcePreview(previewId, { cards });
+      
+      res.json({
+        success: true,
+        selectedAssetId: assetId,
+        asset: selectedAsset,
+      });
+    } catch (error) {
+      console.error("Error selecting media asset:", error);
+      res.status(500).json({ message: "Error selecting asset" });
+    }
+  });
+
+  // Delete a media asset from a card
+  app.delete("/api/ice/preview/:previewId/cards/:cardId/media/:assetId", requireAuth, async (req, res) => {
+    try {
+      const { previewId, cardId, assetId } = req.params;
+      
+      const preview = await storage.getIcePreview(previewId);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      const user = req.user as schema.User;
+      const policy = canWriteIcePreview(user, preview);
+      
+      if (!policy.allowed) {
+        return res.status(policy.statusCode).json({ message: policy.reason || "Not authorized" });
+      }
+      
+      const cards = preview.cards as any[];
+      const cardIndex = cards.findIndex(c => c.id === cardId);
+      if (cardIndex === -1) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      const card = cards[cardIndex];
+      const assets = card.mediaAssets || [];
+      const assetIndex = assets.findIndex((a: any) => a.id === assetId);
+      
+      if (assetIndex === -1) {
+        return res.status(404).json({ message: "Asset not found" });
+      }
+      
+      // Remove the asset
+      const newAssets = assets.filter((a: any) => a.id !== assetId);
+      
+      // If deleted asset was selected, select the most recent remaining asset
+      let newSelectedId = card.selectedMediaAssetId;
+      if (card.selectedMediaAssetId === assetId) {
+        const readyAssets = newAssets.filter((a: any) => a.status === 'ready');
+        newSelectedId = readyAssets.length > 0 ? readyAssets[readyAssets.length - 1].id : undefined;
+      }
+      
+      // Update legacy fields based on new selection
+      const newSelectedAsset = newAssets.find((a: any) => a.id === newSelectedId);
+      cards[cardIndex] = {
+        ...card,
+        mediaAssets: newAssets,
+        selectedMediaAssetId: newSelectedId,
+        generatedImageUrl: newSelectedAsset?.kind === 'image' ? newSelectedAsset.url : (newSelectedId ? card.generatedImageUrl : undefined),
+        generatedVideoUrl: newSelectedAsset?.kind === 'video' ? newSelectedAsset.url : (newSelectedId ? card.generatedVideoUrl : undefined),
+      };
+      
+      await storage.updateIcePreview(previewId, { cards });
+      
+      res.json({
+        success: true,
+        deletedAssetId: assetId,
+        newSelectedAssetId: newSelectedId,
+      });
+    } catch (error) {
+      console.error("Error deleting media asset:", error);
+      res.status(500).json({ message: "Error deleting asset" });
+    }
+  });
+
+  // AI Prompt Enhancement - generate production-grade prompts for better AI outputs
+  app.post("/api/ai/enhance-prompt", requireAuth, async (req, res) => {
+    try {
+      const { cardTitle, cardContent, styleHints, mediaType } = req.body;
+      
+      if (!cardContent && !cardTitle) {
+        return res.status(400).json({ message: "Card title or content is required" });
+      }
+      
+      const basePrompt = `${cardTitle || ''}. ${cardContent || ''}`.trim();
+      
+      // Construct the enhancement prompt
+      const systemPrompt = `You are a professional visual director and cinematographer. Your job is to transform story descriptions into production-grade prompts for AI image/video generation.
+
+The output must be optimized for ${mediaType === 'video' ? 'AI video generation (Kling/Runway)' : 'AI image generation (DALL-E/GPT-Image)'}.
+
+CRITICAL RULES:
+- NEVER include text, words, letters, titles, captions, watermarks, or typography in the output
+- Focus on pure visual imagery only
+- Include specific camera angles, lighting, mood, and cinematic techniques
+- Use 9:16 vertical aspect ratio framing
+- Keep descriptions visual and actionable
+
+Style preferences: ${styleHints || 'cinematic, professional, high production value'}
+
+Return a JSON object with:
+{
+  "finalPrompt": "The optimized prompt ready for the AI generator",
+  "negativePrompt": "Things to avoid in generation",
+  "styleTags": ["array", "of", "style", "keywords"],
+  "shotNotes": "Brief cinematography notes (optional)"
+}`;
+
+      const userPrompt = `Transform this into a production-grade visual prompt:
+
+"${basePrompt}"`;
+
+      // Call OpenAI for enhancement
+      const completion = await getOpenAI().chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 500,
+      });
+      
+      const responseText = completion.choices[0]?.message?.content || '{}';
+      let enhanced;
+      try {
+        enhanced = JSON.parse(responseText);
+      } catch {
+        enhanced = { finalPrompt: responseText, negativePrompt: "", styleTags: [] };
+      }
+      
+      res.json({
+        success: true,
+        basePrompt,
+        enhancedPrompt: enhanced.finalPrompt || basePrompt,
+        negativePrompt: enhanced.negativePrompt || "blurry, low quality, distorted, watermark, text, words, letters, titles, captions, typography, writing",
+        styleTags: enhanced.styleTags || [],
+        shotNotes: enhanced.shotNotes || "",
+      });
+    } catch (error) {
+      console.error("Error enhancing prompt:", error);
+      res.status(500).json({ message: "Error enhancing prompt" });
     }
   });
 
