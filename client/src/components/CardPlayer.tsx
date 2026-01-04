@@ -44,7 +44,13 @@ interface BrandPreferences {
   selectedImages: string[];
 }
 
-import { getTitlePackById, splitTextIntoHeadlineAndSupporting, DEFAULT_TITLE_PACK_ID, type TitlePack, type TitlePackLayer } from "@shared/titlePacks";
+import { 
+  getTitlePackById, 
+  splitTextIntoHeadlineAndSupporting, 
+  getLayerStylesWithText,
+  DEFAULT_TITLE_PACK_ID, 
+  type TitlePack 
+} from "@shared/titlePacks";
 
 interface CardPlayerProps {
   card: Card;
@@ -57,37 +63,6 @@ interface CardPlayerProps {
   titlePackId?: string;
   narrationVolume?: number; // 0-100
   narrationMuted?: boolean;
-}
-
-function getLayerStyles(layer: TitlePackLayer, fullScreen: boolean): React.CSSProperties {
-  const baseFontSize = fullScreen ? layer.sizeMax : layer.sizeMin + (layer.sizeMax - layer.sizeMin) * 0.5;
-  const scaledFontSize = Math.round(baseFontSize * (fullScreen ? 0.5 : 0.4)); // Scale down for viewport
-  
-  let textShadow = '';
-  if (layer.shadow) {
-    textShadow = `${layer.shadow.x}px ${layer.shadow.y}px ${layer.shadow.blur}px ${layer.shadow.color}`;
-  }
-  if (layer.glow) {
-    const glowShadow = `0 0 ${layer.glow.blur}px ${layer.glow.color}`;
-    textShadow = textShadow ? `${textShadow}, ${glowShadow}` : glowShadow;
-  }
-  
-  let webkitTextStroke = '';
-  if (layer.stroke) {
-    webkitTextStroke = `${layer.stroke.width}px ${layer.stroke.color}`;
-  }
-  
-  return {
-    fontFamily: layer.fontFamily,
-    fontWeight: layer.fontWeight,
-    fontSize: `${scaledFontSize}px`,
-    letterSpacing: layer.letterSpacing || 'normal',
-    textTransform: layer.textTransform as any,
-    color: layer.color,
-    textAlign: layer.textAlign,
-    textShadow: textShadow || '0 2px 10px rgba(0,0,0,0.9)',
-    WebkitTextStroke: webkitTextStroke || undefined,
-  };
 }
 
 type Phase = "cinematic" | "context";
@@ -535,9 +510,9 @@ export default function CardPlayer({
                     (() => {
                       const captionText = card.captions[captionIndex];
                       const { headline, supporting } = splitTextIntoHeadlineAndSupporting(captionText);
-                      const headlineStyles = getLayerStyles(titlePack.headline, fullScreen);
-                      const supportingStyles = titlePack.supporting 
-                        ? getLayerStyles(titlePack.supporting, fullScreen) 
+                      const headlineStyles = getLayerStylesWithText(headline, titlePack.headline, titlePack, fullScreen);
+                      const supportingStyles = titlePack.supporting && supporting
+                        ? getLayerStylesWithText(supporting, titlePack.supporting, titlePack, fullScreen) 
                         : null;
                       
                       return (

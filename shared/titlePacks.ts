@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { CSSProperties } from "react";
 
 export const titlePackLayerSchema = z.object({
   fontFamily: z.string(),
@@ -443,3 +444,94 @@ export function getTitlePackById(id: string): TitlePack | undefined {
 
 // Default pack for new stories
 export const DEFAULT_TITLE_PACK_ID = "cinematic-subtitles";
+
+// Get all packs for selection UI
+export function getAllTitlePacks(): TitlePack[] {
+  return TITLE_PACKS;
+}
+
+// Generate CSS styles from a layer definition
+export function getLayerStyles(
+  layer: TitlePackLayer,
+  fullScreen: boolean,
+  containerWidth: number = 1080
+): CSSProperties {
+  // Use dynamic sizing from fitTextToPack when we have actual text
+  // For now, calculate a scaled size based on viewport
+  const baseFontSize = fullScreen ? layer.sizeMax : layer.sizeMin + (layer.sizeMax - layer.sizeMin) * 0.5;
+  const viewportScale = fullScreen ? 0.5 : 0.4; // Scale for viewport display
+  const scaledFontSize = Math.round(baseFontSize * viewportScale);
+  
+  // Build text shadow string
+  let textShadow = '';
+  if (layer.shadow) {
+    textShadow = `${layer.shadow.x}px ${layer.shadow.y}px ${layer.shadow.blur}px ${layer.shadow.color}`;
+  }
+  if (layer.glow) {
+    const glowShadow = `0 0 ${layer.glow.blur}px ${layer.glow.color}`;
+    textShadow = textShadow ? `${textShadow}, ${glowShadow}` : glowShadow;
+  }
+  
+  // Build stroke string for webkit
+  let webkitTextStroke: string | undefined;
+  if (layer.stroke) {
+    webkitTextStroke = `${layer.stroke.width}px ${layer.stroke.color}`;
+  }
+  
+  return {
+    fontFamily: layer.fontFamily,
+    fontWeight: layer.fontWeight,
+    fontSize: `${scaledFontSize}px`,
+    letterSpacing: layer.letterSpacing || 'normal',
+    textTransform: layer.textTransform as CSSProperties['textTransform'],
+    color: layer.color,
+    textAlign: layer.textAlign,
+    textShadow: textShadow || '0 2px 10px rgba(0,0,0,0.9)',
+    WebkitTextStroke: webkitTextStroke,
+  };
+}
+
+// Generate layer styles with dynamic font sizing based on actual text
+export function getLayerStylesWithText(
+  text: string,
+  layer: TitlePackLayer,
+  pack: TitlePack,
+  fullScreen: boolean
+): CSSProperties {
+  // Calculate safe zone width
+  const containerWidth = pack.canvas.width;
+  const safeWidth = containerWidth * (1 - (pack.safeZone.left + pack.safeZone.right) / 100);
+  
+  // Calculate appropriate font size for text length
+  const calculatedSize = calculateFontSize(text, layer, safeWidth);
+  const viewportScale = fullScreen ? 0.5 : 0.4;
+  const scaledFontSize = Math.round(calculatedSize * viewportScale);
+  
+  // Build text shadow string
+  let textShadow = '';
+  if (layer.shadow) {
+    textShadow = `${layer.shadow.x}px ${layer.shadow.y}px ${layer.shadow.blur}px ${layer.shadow.color}`;
+  }
+  if (layer.glow) {
+    const glowShadow = `0 0 ${layer.glow.blur}px ${layer.glow.color}`;
+    textShadow = textShadow ? `${textShadow}, ${glowShadow}` : glowShadow;
+  }
+  
+  // Build stroke string
+  let webkitTextStroke: string | undefined;
+  if (layer.stroke) {
+    webkitTextStroke = `${layer.stroke.width}px ${layer.stroke.color}`;
+  }
+  
+  return {
+    fontFamily: layer.fontFamily,
+    fontWeight: layer.fontWeight,
+    fontSize: `${scaledFontSize}px`,
+    letterSpacing: layer.letterSpacing || 'normal',
+    textTransform: layer.textTransform as CSSProperties['textTransform'],
+    color: layer.color,
+    textAlign: layer.textAlign,
+    textShadow: textShadow || '0 2px 10px rgba(0,0,0,0.9)',
+    WebkitTextStroke: webkitTextStroke,
+  };
+}
