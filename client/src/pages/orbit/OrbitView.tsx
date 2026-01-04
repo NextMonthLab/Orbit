@@ -1,6 +1,6 @@
 import { useRoute, useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Globe, ExternalLink, AlertCircle, CheckCircle, Mail, MessageCircle, LayoutDashboard } from "lucide-react";
+import { Loader2, Globe, ExternalLink, AlertCircle, CheckCircle, Mail, MessageCircle, LayoutDashboard, Share2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { PreviewShareBar } from "@/components/preview/PreviewShareBar";
 import { BusinessHubSidebar } from "@/components/orbit/BusinessHubSidebar";
 import { HubPanelContainer } from "@/components/orbit/HubPanelContainer";
 import { OrbitGrid } from "@/components/orbit/OrbitGrid";
+import { OrbitShareModal } from "@/components/orbit/OrbitShareModal";
 import type { SiteKnowledge } from "@/lib/siteKnowledge";
 import GlobalNav from "@/components/GlobalNav";
 import {
@@ -161,6 +162,7 @@ export default function OrbitView() {
   const [brandPreferences, setBrandPreferences] = useState<BrandPreferences | null>(null);
   const [experienceType, setExperienceType] = useState<'radar' | 'spatial' | 'classic'>('radar');
   const [showClaimModal, setShowClaimModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [claimStep, setClaimStep] = useState<'intro' | 'verify'>('intro');
   const [claimEmail, setClaimEmail] = useState('');
   const [claimStatus, setClaimStatus] = useState<'idle' | 'sending' | 'sent' | 'verifying' | 'success' | 'error'>('idle');
@@ -896,14 +898,26 @@ export default function OrbitView() {
                   <span className="text-sm text-white font-medium">Welcome back!</span>
                   <span className="text-xs text-zinc-300">Manage your Orbit and view analytics</span>
                 </div>
-                <Button 
-                  size="sm"
-                  className="bg-white hover:bg-zinc-100 text-purple-900 font-medium text-xs px-4 py-2 h-8"
-                  onClick={() => setLocation(`/orbit/${slug}/hub`)}
-                  data-testid="button-manage-orbit"
-                >
-                  Manage Your Orbit
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    size="sm"
+                    variant="ghost"
+                    className="text-white/70 hover:text-white hover:bg-white/10 text-xs px-3 py-2 h-8"
+                    onClick={() => setShowShareModal(true)}
+                    data-testid="button-share-orbit-free"
+                  >
+                    <Share2 className="w-3 h-3 mr-1" />
+                    Share
+                  </Button>
+                  <Button 
+                    size="sm"
+                    className="bg-white hover:bg-zinc-100 text-purple-900 font-medium text-xs px-4 py-2 h-8"
+                    onClick={() => setLocation(`/orbit/${slug}/hub`)}
+                    data-testid="button-manage-orbit"
+                  >
+                    Manage Your Orbit
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -928,15 +942,27 @@ export default function OrbitView() {
                   Contact Us
                 </Button>
                 {isOwner && !isPreviewMode && (
-                  <Button 
-                    size="sm"
-                    variant="ghost"
-                    className="text-zinc-400 hover:text-white text-xs px-3 py-1 h-7"
-                    onClick={() => setLocation(`/orbit/${slug}/hub`)}
-                    data-testid="button-view-hub"
-                  >
-                    View Data Hub
-                  </Button>
+                  <>
+                    <Button 
+                      size="sm"
+                      variant="ghost"
+                      className="text-zinc-400 hover:text-white text-xs px-3 py-1 h-7"
+                      onClick={() => setShowShareModal(true)}
+                      data-testid="button-share-orbit"
+                    >
+                      <Share2 className="w-3 h-3 mr-1" />
+                      Share
+                    </Button>
+                    <Button 
+                      size="sm"
+                      variant="ghost"
+                      className="text-zinc-400 hover:text-white text-xs px-3 py-1 h-7"
+                      onClick={() => setLocation(`/orbit/${slug}/hub`)}
+                      data-testid="button-view-hub"
+                    >
+                      View Data Hub
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -1647,6 +1673,14 @@ export default function OrbitView() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Share Modal */}
+      <OrbitShareModal
+        open={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        businessSlug={slug || ''}
+        brandName={preview?.siteIdentity?.validatedContent?.brandName || preview?.siteTitle || undefined}
+      />
       </div>
       </div>
     </div>

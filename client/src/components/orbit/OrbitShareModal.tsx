@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Copy, Check, Code, Link2, ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Copy, Check, Code, Link2, ExternalLink, QrCode, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface OrbitShareModalProps {
   open: boolean;
@@ -23,6 +24,8 @@ export function OrbitShareModal({
 }: OrbitShareModalProps) {
   const [linkCopied, setLinkCopied] = useState(false);
   const [embedCopied, setEmbedCopied] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  const [activeTab, setActiveTab] = useState("link");
 
   const shareUrl = `${window.location.origin}/o/${businessSlug}`;
   
@@ -34,6 +37,23 @@ export function OrbitShareModal({
   allow="clipboard-write; fullscreen"
   title="${brandName || 'Orbit Experience'}"
 ></iframe>`;
+
+  useEffect(() => {
+    if (open && shareUrl) {
+      import('qrcode').then(QRCode => {
+        QRCode.toDataURL(shareUrl, {
+          width: 256,
+          margin: 2,
+          color: {
+            dark: '#ffffff',
+            light: '#00000000'
+          }
+        }).then((url: string) => {
+          setQrCodeUrl(url);
+        }).catch(console.error);
+      }).catch(console.error);
+    }
+  }, [open, shareUrl]);
 
   const handleCopyLink = async () => {
     try {
@@ -69,6 +89,17 @@ export function OrbitShareModal({
     }
   };
 
+  const handleDownloadQR = () => {
+    if (qrCodeUrl) {
+      const link = document.createElement('a');
+      link.href = qrCodeUrl;
+      link.download = `${businessSlug}-qr-code.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-lg bg-black border border-white/10" data-testid="orbit-share-modal">
@@ -78,61 +109,71 @@ export function OrbitShareModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 pt-2">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Link2 className="w-4 h-4 text-zinc-400" />
-              <h3 className="text-sm font-medium text-white">Share Link</h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-zinc-300 font-mono truncate">
-                {shareUrl}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-2">
+          <TabsList className="grid w-full grid-cols-3 bg-zinc-900 border border-zinc-800">
+            <TabsTrigger value="link" data-testid="tab-share-link">
+              <Link2 className="w-4 h-4 mr-1.5" />
+              Link
+            </TabsTrigger>
+            <TabsTrigger value="embed" data-testid="tab-share-embed">
+              <Code className="w-4 h-4 mr-1.5" />
+              Embed
+            </TabsTrigger>
+            <TabsTrigger value="qr" data-testid="tab-share-qr">
+              <QrCode className="w-4 h-4 mr-1.5" />
+              QR Code
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="link" className="space-y-4 pt-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-zinc-300 font-mono truncate">
+                  {shareUrl}
+                </div>
+                <Button
+                  onClick={handleCopyLink}
+                  variant="outline"
+                  size="sm"
+                  className="border-white/10 bg-white/5 hover:bg-white/10 text-white shrink-0"
+                  data-testid="button-copy-orbit-link"
+                >
+                  {linkCopied ? (
+                    <>
+                      <Check className="w-4 h-4 mr-1.5 text-emerald-400" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-1.5" />
+                      Copy
+                    </>
+                  )}
+                </Button>
               </div>
-              <Button
-                onClick={handleCopyLink}
-                variant="outline"
-                size="sm"
-                className="border-white/10 bg-white/5 hover:bg-white/10 text-white shrink-0"
-                data-testid="button-copy-orbit-link"
+              <a
+                href={shareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                data-testid="link-open-orbit"
               >
-                {linkCopied ? (
-                  <>
-                    <Check className="w-4 h-4 mr-1.5 text-emerald-400" />
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 mr-1.5" />
-                    Copy
-                  </>
-                )}
-              </Button>
+                <ExternalLink className="w-3 h-3" />
+                Open in new tab
+              </a>
             </div>
-            <a
-              href={shareUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
-              data-testid="link-open-orbit"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Open in new tab
-            </a>
-          </div>
+            <p className="text-xs text-zinc-500">
+              Share this link to let anyone visit your Orbit.
+            </p>
+          </TabsContent>
 
-          <div className="h-px bg-white/10" />
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Code className="w-4 h-4 text-zinc-400" />
-              <h3 className="text-sm font-medium text-white">Embed Code</h3>
-            </div>
-            <div className="bg-white/5 border border-white/10 rounded-lg p-3 overflow-x-auto">
-              <pre className="text-xs text-zinc-400 font-mono whitespace-pre-wrap break-all">
-                {embedCode}
-              </pre>
-            </div>
-            <div className="flex items-center justify-between">
+          <TabsContent value="embed" className="space-y-4 pt-4">
+            <div className="space-y-3">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-3 overflow-x-auto">
+                <pre className="text-xs text-zinc-400 font-mono whitespace-pre-wrap break-all">
+                  {embedCode}
+                </pre>
+              </div>
               <Button
                 onClick={handleCopyEmbed}
                 variant="outline"
@@ -153,12 +194,44 @@ export function OrbitShareModal({
                 )}
               </Button>
             </div>
-          </div>
+            <p className="text-xs text-zinc-500">
+              Add this code to your website to embed your Orbit experience.
+            </p>
+          </TabsContent>
 
-          <p className="text-xs text-zinc-500">
-            Embedded Orbits are public. Anyone with the link can view and interact.
-          </p>
-        </div>
+          <TabsContent value="qr" className="space-y-4 pt-4">
+            <div className="flex flex-col items-center gap-4">
+              {qrCodeUrl ? (
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                  <img
+                    src={qrCodeUrl}
+                    alt="QR Code for Orbit"
+                    className="w-48 h-48"
+                    data-testid="img-qr-code"
+                  />
+                </div>
+              ) : (
+                <div className="w-48 h-48 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center">
+                  <div className="w-6 h-6 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin" />
+                </div>
+              )}
+              <Button
+                onClick={handleDownloadQR}
+                variant="outline"
+                size="sm"
+                className="border-white/10 bg-white/5 hover:bg-white/10 text-white"
+                disabled={!qrCodeUrl}
+                data-testid="button-download-qr"
+              >
+                <Download className="w-4 h-4 mr-1.5" />
+                Download QR Code
+              </Button>
+            </div>
+            <p className="text-xs text-zinc-500 text-center">
+              Print this QR code for menus, storefronts, or marketing materials. Customers scan to open your Orbit.
+            </p>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
