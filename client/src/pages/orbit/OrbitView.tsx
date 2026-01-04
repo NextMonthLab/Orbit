@@ -154,6 +154,9 @@ export default function OrbitView() {
   // Embed mode: hide nav/chrome when ?embed=true
   const isEmbedMode = searchString.includes('embed=true');
   
+  // Preview mode: owner viewing as a visitor (hide all admin UI)
+  const isPreviewMode = new URLSearchParams(searchString).get('preview') === 'true';
+  
   const [showCustomization, setShowCustomization] = useState(false);
   const [brandPreferences, setBrandPreferences] = useState<BrandPreferences | null>(null);
   const [experienceType, setExperienceType] = useState<'radar' | 'spatial' | 'classic'>('radar');
@@ -1102,8 +1105,8 @@ export default function OrbitView() {
         />
       )}
 
-      {/* Hub toggle button for paid tier owners */}
-      {!isEmbedMode && isOwner && isPaidTier && !showHub && !showCustomization && (
+      {/* Hub toggle button for paid tier owners (hidden in preview mode) */}
+      {!isEmbedMode && !isPreviewMode && isOwner && isPaidTier && !showHub && !showCustomization && (
         <Button
           onClick={() => setShowHub(true)}
           className="fixed left-4 top-4 z-50 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700"
@@ -1115,8 +1118,8 @@ export default function OrbitView() {
         </Button>
       )}
       
-      {/* Free tier owner - show upgrade prompt */}
-      {!isEmbedMode && isOwner && !isPaidTier && !showCustomization && (
+      {/* Free tier owner - show upgrade prompt (hidden in preview mode) */}
+      {!isEmbedMode && !isPreviewMode && isOwner && !isPaidTier && !showCustomization && (
         <div className="fixed left-4 top-4 z-50 bg-zinc-900/90 border border-zinc-700 rounded-lg p-3 max-w-xs">
           <p className="text-sm text-zinc-300 mb-2">Upgrade to unlock your Business Hub</p>
           <Button
@@ -1252,7 +1255,7 @@ export default function OrbitView() {
                 <MessageCircle className="w-3 h-3 mr-1" />
                 Contact Us
               </Button>
-              {isOwner && (
+              {isOwner && !isPreviewMode && (
                 <Button 
                   size="sm"
                   variant="ghost"
