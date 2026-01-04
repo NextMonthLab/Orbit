@@ -119,19 +119,24 @@ export default function CardPlayer({
         return {
           imageUrl: selected.kind === 'image' ? selected.url : card.image,
           videoUrl: selected.kind === 'video' ? selected.url : card.generatedVideoUrl,
+          selectedIsVideo: selected.kind === 'video',
         };
       }
     }
     return {
       imageUrl: card.image,
       videoUrl: card.generatedVideoUrl,
+      selectedIsVideo: false,
     };
   };
   
   const activeMedia = getActiveMedia();
   
   const hasNarration = card.narrationEnabled && card.narrationStatus === "ready" && card.narrationAudioUrl;
-  const hasVideo = card.videoGenerated && activeMedia.videoUrl && card.videoGenerationStatus === "completed";
+  const hasVideo = !!activeMedia.videoUrl && (
+    activeMedia.selectedIsVideo || 
+    (card.videoGenerated && card.videoGenerationStatus === "completed")
+  );
   const hasImage = !!activeMedia.imageUrl;
   const hasBothMediaTypes = hasImage && hasVideo;
 
