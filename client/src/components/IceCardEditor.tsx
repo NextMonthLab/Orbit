@@ -414,18 +414,26 @@ export function IceCardEditor({
       
       // Use XMLHttpRequest for Safari compatibility with presigned URLs
       await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("PUT", uploadURL, true);
-        xhr.setRequestHeader("Content-Type", file.type);
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-          } else {
-            reject(new Error("Failed to upload file"));
-          }
-        };
-        xhr.onerror = () => reject(new Error("Network error during upload"));
-        xhr.send(file);
+        try {
+          const xhr = new XMLHttpRequest();
+          // Safari can be strict about URL validation - ensure URL is properly formatted
+          xhr.open("PUT", uploadURL, true);
+          xhr.setRequestHeader("Content-Type", file.type);
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
+          };
+          xhr.onerror = () => reject(new Error("Network error during upload"));
+          xhr.ontimeout = () => reject(new Error("Upload timed out"));
+          xhr.send(file);
+        } catch (e: any) {
+          // Safari may throw during xhr.open() if URL is malformed
+          console.error("XHR setup error:", e);
+          reject(new Error(e?.message || "Failed to initiate upload"));
+        }
       });
       
       const mediaUrl = objectPath;
