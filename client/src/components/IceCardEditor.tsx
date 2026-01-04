@@ -412,15 +412,21 @@ export function IceCardEditor({
       
       const { uploadURL, objectPath } = await urlRes.json();
       
-      const uploadRes = await fetch(uploadURL, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
+      // Use XMLHttpRequest for Safari compatibility with presigned URLs
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", uploadURL, true);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error("Failed to upload file"));
+          }
+        };
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.send(file);
       });
-      
-      if (!uploadRes.ok) {
-        throw new Error("Failed to upload file");
-      }
       
       const mediaUrl = objectPath;
       

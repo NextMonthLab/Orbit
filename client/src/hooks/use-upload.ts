@@ -86,20 +86,24 @@ export function useUpload(options: UseUploadOptions = {}) {
 
   /**
    * Upload a file directly to the presigned URL.
+   * Uses XMLHttpRequest for Safari compatibility with presigned URLs.
    */
   const uploadToPresignedUrl = useCallback(
     async (file: File, uploadURL: string): Promise<void> => {
-      const response = await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type || "application/octet-stream",
-        },
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", uploadURL, true);
+        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error("Failed to upload file to storage"));
+          }
+        };
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.send(file);
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to upload file to storage");
-      }
     },
     []
   );
