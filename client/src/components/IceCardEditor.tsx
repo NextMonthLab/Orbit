@@ -214,7 +214,11 @@ export function IceCardEditor({
         
         if (data.status === "completed" && data.videoUrl) {
           setVideoStatus("completed");
-          onCardUpdate(card.id, { generatedVideoUrl: data.videoUrl, videoGenerationStatus: "completed" });
+          onCardUpdate(card.id, { 
+            generatedVideoUrl: data.videoUrl, 
+            videoGenerationStatus: "completed",
+            videoGenerated: true 
+          });
           toast({ title: "Video ready!", description: "Your AI video has been generated." });
         } else if (data.status === "failed") {
           setVideoStatus("failed");
@@ -438,7 +442,11 @@ export function IceCardEditor({
       const data = await res.json();
       if (data.status === "completed") {
         setVideoStatus("completed");
-        onCardUpdate(card.id, { generatedVideoUrl: data.videoUrl });
+        onCardUpdate(card.id, { 
+          generatedVideoUrl: data.videoUrl, 
+          videoGenerationStatus: "completed",
+          videoGenerated: true 
+        });
         toast({ title: "Video ready!", description: "AI video has been generated." });
       } else {
         setVideoStatus("processing");
@@ -590,8 +598,16 @@ export function IceCardEditor({
         onCardSave(card.id, { generatedImageUrl: mediaUrl });
         toast({ title: "Image uploaded!", description: "Your image has been added to the card." });
       } else {
-        onCardUpdate(card.id, { generatedVideoUrl: mediaUrl });
-        onCardSave(card.id, { generatedVideoUrl: mediaUrl });
+        onCardUpdate(card.id, { 
+          generatedVideoUrl: mediaUrl, 
+          videoGenerationStatus: "completed",
+          videoGenerated: true 
+        });
+        onCardSave(card.id, { 
+          generatedVideoUrl: mediaUrl, 
+          videoGenerationStatus: "completed",
+          videoGenerated: true 
+        });
         toast({ title: "Video uploaded!", description: "Your video has been added to the card." });
       }
     } catch (error: any) {
@@ -1003,8 +1019,11 @@ export function IceCardEditor({
                       <video 
                         src={card.generatedVideoUrl}
                         controls
-                        className="w-full bg-black"
+                        playsInline
+                        preload="metadata"
+                        className="w-full bg-black max-h-64"
                         data-testid="video-preview"
+                        onError={(e) => console.error("Video load error:", e)}
                       />
                     </div>
                   )}
