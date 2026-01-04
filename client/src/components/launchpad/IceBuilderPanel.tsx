@@ -8,12 +8,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sparkles, FileText, Check, Loader2, Target, Lightbulb, Award, MousePointerClick } from "lucide-react";
+import { 
+  Sparkles, 
+  FileText, 
+  Check, 
+  Loader2, 
+  Target, 
+  Lightbulb, 
+  Award, 
+  MousePointerClick,
+  Brain,
+  Megaphone,
+  Compass,
+  Zap,
+  Link2,
+  Bookmark,
+  ArrowLeft,
+  MessageSquare,
+  PenLine
+} from "lucide-react";
 import type { Insight, ContentBrief } from "./InsightCard";
 
 export type IceFormat = "hook_bullets" | "myth_reality" | "checklist" | "problem_solution_proof";
 export type IceTone = "direct" | "warm" | "playful" | "premium";
 export type IceOutputType = "video_card" | "interactive";
+export type InsightIntent = "internal" | "external" | null;
+export type InternalAction = "explore" | "challenge" | "connect" | "save";
 
 export interface IceDraft {
   id: string | number;
@@ -67,15 +87,30 @@ const formatSuggestionToIceFormat: Record<string, IceFormat> = {
   "story": "hook_bullets",
 };
 
+const internalActions: { value: InternalAction; label: string; description: string; icon: typeof Brain }[] = [
+  { value: "explore", label: "Explore deeper", description: "Ask follow-up questions, uncover hidden patterns", icon: Compass },
+  { value: "challenge", label: "Challenge this", description: "Test assumptions, find counter-evidence", icon: Zap },
+  { value: "connect", label: "Connect to strategy", description: "Link to goals, decisions, or other insights", icon: Link2 },
+  { value: "save", label: "Save to knowledge", description: "Store for future reference and pattern matching", icon: Bookmark },
+];
+
 export function IceBuilderPanel({
   selectedInsight,
   draft,
   onGenerateDraft,
   isGenerating,
 }: IceBuilderPanelProps) {
+  const [intent, setIntent] = useState<InsightIntent>(null);
   const [format, setFormat] = useState<IceFormat>("hook_bullets");
   const [tone, setTone] = useState<IceTone>("direct");
   const [outputType, setOutputType] = useState<IceOutputType>("interactive");
+  const [selectedInternalAction, setSelectedInternalAction] = useState<InternalAction | null>(null);
+  
+  // Reset intent when insight changes
+  useEffect(() => {
+    setIntent(null);
+    setSelectedInternalAction(null);
+  }, [selectedInsight?.id]);
   
   // Auto-select format based on content brief suggestion
   useEffect(() => {
@@ -87,15 +122,16 @@ export function IceBuilderPanel({
     }
   }, [selectedInsight?.id]);
 
+  // Empty state - no insight selected
   if (!selectedInsight && !draft) {
     return (
       <div className="p-6 space-y-6" data-testid="ice-builder-panel">
         <div>
           <h3 className="text-lg font-medium text-white mb-1">
-            Turn insight into content
+            Work with insights
           </h3>
           <p className="text-sm text-white/50">
-            Select an insight to unlock builder controls
+            Select an insight to decide what to do with it
           </p>
         </div>
 
@@ -106,52 +142,24 @@ export function IceBuilderPanel({
         </div>
 
         <div className="space-y-4 opacity-40 pointer-events-none">
-          <div>
-            <label className="text-sm text-white/40 mb-2 block">Format</label>
-            <div className="grid grid-cols-2 gap-2">
-              {formatOptions.slice(0, 2).map((option) => (
-                <div
-                  key={option.value}
-                  className="p-3 rounded-lg border border-white/10 bg-white/[0.02] text-white/40"
-                >
-                  <span className="mr-2 opacity-50">{option.icon}</span>
-                  {option.label}
-                </div>
-              ))}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+              <Brain className="w-5 h-5 text-white/30 mb-2" />
+              <div className="text-white/40 font-medium text-sm">Internal</div>
+              <div className="text-white/20 text-xs">Think & refine</div>
             </div>
-          </div>
-
-          <div>
-            <label className="text-sm text-white/40 mb-2 block">Tone</label>
-            <div className="p-3 rounded-lg border border-white/10 bg-white/[0.02] text-white/40">
-              Select tone...
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm text-white/40 mb-2 block">Output</label>
-            <div className="flex gap-2">
-              <div className="flex-1 p-3 rounded-lg border border-white/10 bg-white/[0.02] text-white/40 text-center">
-                📹 Video
-              </div>
-              <div className="flex-1 p-3 rounded-lg border border-white/10 bg-white/[0.02] text-white/40 text-center">
-                ✨ Interactive
-              </div>
+            <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+              <Megaphone className="w-5 h-5 text-white/30 mb-2" />
+              <div className="text-white/40 font-medium text-sm">External</div>
+              <div className="text-white/20 text-xs">Share & publish</div>
             </div>
           </div>
         </div>
-
-        <Button
-          disabled
-          className="w-full bg-white/10 text-white/40 cursor-not-allowed"
-        >
-          <Sparkles className="w-4 h-4 mr-2 opacity-50" />
-          Generate draft
-        </Button>
       </div>
     );
   }
 
+  // Draft generated state
   if (draft) {
     return (
       <div className="p-6 space-y-4" data-testid="ice-builder-panel">
@@ -200,16 +208,357 @@ export function IceBuilderPanel({
   const isContentReady = insight.insightKind === "content_ready";
   const brief = insight.contentBrief;
 
+  // Internal action selected - show that path
+  if (intent === "internal" && selectedInternalAction) {
+    return (
+      <div className="p-6 space-y-6" data-testid="ice-builder-panel">
+        <button 
+          onClick={() => setSelectedInternalAction(null)}
+          className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm"
+          data-testid="button-back-to-internal"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to options
+        </button>
+
+        <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20">
+          <div className="flex items-center gap-3 mb-3">
+            {selectedInternalAction === "explore" && <Compass className="w-5 h-5 text-emerald-400" />}
+            {selectedInternalAction === "challenge" && <Zap className="w-5 h-5 text-amber-400" />}
+            {selectedInternalAction === "connect" && <Link2 className="w-5 h-5 text-blue-400" />}
+            {selectedInternalAction === "save" && <Bookmark className="w-5 h-5 text-purple-400" />}
+            <span className="text-white font-medium">
+              {internalActions.find(a => a.value === selectedInternalAction)?.label}
+            </span>
+          </div>
+          <p className="text-white/70 text-sm mb-4">
+            Working with: <span className="text-white">{insight.title}</span>
+          </p>
+
+          {selectedInternalAction === "explore" && (
+            <div className="space-y-3">
+              <p className="text-white/60 text-sm">What would you like to explore?</p>
+              <div className="space-y-2">
+                <button className="w-full p-3 rounded-lg border border-white/10 bg-white/5 text-left text-white/80 hover:border-emerald-500/30 transition-colors text-sm">
+                  <MessageSquare className="w-4 h-4 inline mr-2 text-emerald-400" />
+                  Ask follow-up questions
+                </button>
+                <button className="w-full p-3 rounded-lg border border-white/10 bg-white/5 text-left text-white/80 hover:border-emerald-500/30 transition-colors text-sm">
+                  <Compass className="w-4 h-4 inline mr-2 text-emerald-400" />
+                  Find related patterns
+                </button>
+              </div>
+            </div>
+          )}
+
+          {selectedInternalAction === "challenge" && (
+            <div className="space-y-3">
+              <p className="text-white/60 text-sm">How would you like to test this insight?</p>
+              <div className="space-y-2">
+                <button className="w-full p-3 rounded-lg border border-white/10 bg-white/5 text-left text-white/80 hover:border-amber-500/30 transition-colors text-sm">
+                  <Zap className="w-4 h-4 inline mr-2 text-amber-400" />
+                  Find counter-evidence
+                </button>
+                <button className="w-full p-3 rounded-lg border border-white/10 bg-white/5 text-left text-white/80 hover:border-amber-500/30 transition-colors text-sm">
+                  <PenLine className="w-4 h-4 inline mr-2 text-amber-400" />
+                  List assumptions to verify
+                </button>
+              </div>
+            </div>
+          )}
+
+          {selectedInternalAction === "connect" && (
+            <div className="space-y-3">
+              <p className="text-white/60 text-sm">Connect this insight to:</p>
+              <div className="space-y-2">
+                <button className="w-full p-3 rounded-lg border border-white/10 bg-white/5 text-left text-white/80 hover:border-blue-500/30 transition-colors text-sm">
+                  <Target className="w-4 h-4 inline mr-2 text-blue-400" />
+                  Business goals
+                </button>
+                <button className="w-full p-3 rounded-lg border border-white/10 bg-white/5 text-left text-white/80 hover:border-blue-500/30 transition-colors text-sm">
+                  <Link2 className="w-4 h-4 inline mr-2 text-blue-400" />
+                  Related insights
+                </button>
+              </div>
+            </div>
+          )}
+
+          {selectedInternalAction === "save" && (
+            <div className="space-y-3">
+              <p className="text-white/60 text-sm">This insight will be saved to your knowledge base for future reference and pattern matching.</p>
+              <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                <Bookmark className="w-4 h-4 mr-2" />
+                Save to knowledge base
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <p className="text-xs text-white/40 text-center">
+          Internal thinking tools help you refine ideas before sharing
+        </p>
+      </div>
+    );
+  }
+
+  // Internal intent selected - show internal action options
+  if (intent === "internal") {
+    return (
+      <div className="p-6 space-y-6" data-testid="ice-builder-panel">
+        <div>
+          <button 
+            onClick={() => setIntent(null)}
+            className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm mb-4"
+            data-testid="button-back-to-intent"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Change intent
+          </button>
+          <h3 className="text-lg font-medium text-white mb-1 flex items-center gap-2">
+            <Brain className="w-5 h-5 text-emerald-400" />
+            Internal thinking
+          </h3>
+          <p className="text-sm text-white/60">
+            Refine, question, and deepen your understanding
+          </p>
+        </div>
+
+        <div className="p-3 rounded-lg bg-white/[0.03] border border-white/10">
+          <p className="text-white/80 text-sm font-medium">{insight.title}</p>
+        </div>
+
+        <div className="space-y-2">
+          {internalActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.value}
+                onClick={() => setSelectedInternalAction(action.value)}
+                className="w-full p-4 rounded-xl border border-white/10 bg-white/[0.02] text-left hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-colors group"
+                data-testid={`internal-action-${action.value}`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                    <Icon className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div>
+                    <div className="text-white font-medium text-sm">{action.label}</div>
+                    <div className="text-white/50 text-xs mt-0.5">{action.description}</div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // External intent selected - show content creation controls
+  if (intent === "external") {
+    return (
+      <div className="p-6 space-y-6" data-testid="ice-builder-panel">
+        <div>
+          <button 
+            onClick={() => setIntent(null)}
+            className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm mb-4"
+            data-testid="button-back-to-intent"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Change intent
+          </button>
+          <h3 className="text-lg font-medium text-white mb-1 flex items-center gap-2">
+            <Megaphone className="w-5 h-5 text-purple-400" />
+            {isContentReady ? "Create your story" : "Create content"}
+          </h3>
+          <p className="text-sm text-white/60">
+            {isContentReady 
+              ? "AI has prepared a content brief for you" 
+              : "Configure your output format and style"}
+          </p>
+        </div>
+
+        <div className={`p-4 rounded-lg border border-white/10 ${
+          isContentReady 
+            ? "bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-l-2 border-l-purple-500" 
+            : "bg-white/[0.03] border-l-2 border-l-blue-500"
+        }`}>
+          <p className="text-white font-medium">{insight.title}</p>
+          <p className="text-sm text-white/60 mt-1 line-clamp-2">
+            {insight.meaning}
+          </p>
+          <div className="flex gap-2 mt-2">
+            <Badge
+              variant="outline"
+              className={isContentReady ? "border-purple-500/50 text-purple-400" : "border-white/20 text-white/60"}
+            >
+              {isContentReady ? "Content-ready" : `★ ${insight.confidence}`}
+            </Badge>
+            {insight.contentPotentialScore >= 70 && (
+              <Badge className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30 text-purple-300 text-xs">
+                {insight.contentPotentialScore}% potential
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Content Brief section - shown for content-ready insights */}
+        {brief && (
+          <div className="space-y-3 p-4 rounded-lg bg-white/[0.02] border border-white/10">
+            <h4 className="text-sm font-medium text-white flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-yellow-400" />
+              Story Brief
+            </h4>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <div className="flex items-center gap-1 text-white/40 mb-1">
+                  <Target className="w-3 h-3" /> Audience
+                </div>
+                <p className="text-white/80">{brief.audience}</p>
+              </div>
+              <div>
+                <div className="flex items-center gap-1 text-white/40 mb-1">
+                  <MousePointerClick className="w-3 h-3" /> CTA
+                </div>
+                <p className="text-white/80">{brief.cta}</p>
+              </div>
+            </div>
+            <div>
+              <div className="text-white/40 text-xs mb-1">Their problem</div>
+              <p className="text-sm text-white/70">{brief.problem}</p>
+            </div>
+            <div>
+              <div className="flex items-center gap-1 text-white/40 text-xs mb-1">
+                <Award className="w-3 h-3" /> Your promise
+              </div>
+              <p className="text-sm text-white font-medium">{brief.promise}</p>
+            </div>
+            <div>
+              <div className="text-white/40 text-xs mb-1">Proof points</div>
+              <p className="text-sm text-white/70">{brief.proof}</p>
+            </div>
+            <div className="pt-2 border-t border-white/10">
+              <div className="text-white/40 text-xs mb-1">Suggested format</div>
+              <Badge variant="outline" className="border-blue-500/50 text-blue-400">
+                {brief.formatSuggestion.replace(/_/g, ' ')}
+              </Badge>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-white/60 mb-2 block">Format</label>
+            <div className="grid grid-cols-2 gap-2">
+              {formatOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setFormat(option.value)}
+                  className={`p-3 rounded-lg border text-left transition-colors ${
+                    format === option.value
+                      ? "border-blue-500 bg-blue-500/20 text-white"
+                      : "border-white/10 bg-white/5 text-white/70 hover:border-blue-500/30"
+                  }`}
+                  data-testid={`format-${option.value}`}
+                >
+                  <span className="mr-2">{option.icon}</span>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm text-white/60 mb-2 block">Tone</label>
+            <Select value={tone} onValueChange={(v) => setTone(v as IceTone)}>
+              <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-900 border-white/10">
+                {toneOptions.map((option) => (
+                  <SelectItem
+                    key={option.value}
+                    value={option.value}
+                    className="text-white hover:bg-white/10"
+                  >
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm text-white/60 mb-2 block">Output</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setOutputType("video_card")}
+                className={`flex-1 p-3 rounded-lg border text-center transition-colors ${
+                  outputType === "video_card"
+                    ? "border-blue-500 bg-blue-500/20 text-white"
+                    : "border-white/10 bg-white/5 text-white/70 hover:border-blue-500/30"
+                }`}
+                data-testid="output-video"
+              >
+                📹 Video card
+              </button>
+              <button
+                onClick={() => setOutputType("interactive")}
+                className={`flex-1 p-3 rounded-lg border text-center transition-colors ${
+                  outputType === "interactive"
+                    ? "border-blue-500 bg-blue-500/20 text-white"
+                    : "border-white/10 bg-white/5 text-white/70 hover:border-blue-500/30"
+                }`}
+                data-testid="output-interactive"
+              >
+                ✨ Interactive
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <Button
+          onClick={() =>
+            onGenerateDraft({
+              insightId: insight.id,
+              format,
+              tone,
+              outputType,
+            })
+          }
+          disabled={isGenerating}
+          className={`w-full ${
+            isContentReady 
+              ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700" 
+              : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          }`}
+          data-testid="button-generate-draft"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Creating story...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4 h-4 mr-2" />
+              {isContentReady ? "Create story" : "Generate draft"}
+            </>
+          )}
+        </Button>
+      </div>
+    );
+  }
+
+  // Intent Gate - the fork in the road
   return (
     <div className="p-6 space-y-6" data-testid="ice-builder-panel">
       <div>
         <h3 className="text-lg font-medium text-white mb-1">
-          {isContentReady ? "Create your story" : "Turn this insight to content"}
+          What would you like to do with this insight?
         </h3>
-        <p className="text-sm text-white/60">
-          {isContentReady 
-            ? "AI has prepared a content brief for you" 
-            : "Configure your output format and style"}
+        <p className="text-sm text-white/50">
+          Choose your path before deciding on format
         </p>
       </div>
 
@@ -222,165 +571,52 @@ export function IceBuilderPanel({
         <p className="text-sm text-white/60 mt-1 line-clamp-2">
           {insight.meaning}
         </p>
-        <div className="flex gap-2 mt-2">
-          <Badge
-            variant="outline"
-            className={isContentReady ? "border-purple-500/50 text-purple-400" : "border-white/20 text-white/60"}
-          >
-            {isContentReady ? "Content-ready" : `★ ${insight.confidence}`}
-          </Badge>
-          {insight.contentPotentialScore >= 70 && (
-            <Badge className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30 text-purple-300 text-xs">
-              {insight.contentPotentialScore}% potential
-            </Badge>
-          )}
-        </div>
       </div>
 
-      {/* Content Brief section - shown for content-ready insights */}
-      {brief && (
-        <div className="space-y-3 p-4 rounded-lg bg-white/[0.02] border border-white/10">
-          <h4 className="text-sm font-medium text-white flex items-center gap-2">
-            <Lightbulb className="w-4 h-4 text-yellow-400" />
-            Story Brief
-          </h4>
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div>
-              <div className="flex items-center gap-1 text-white/40 mb-1">
-                <Target className="w-3 h-3" /> Audience
-              </div>
-              <p className="text-white/80">{brief.audience}</p>
-            </div>
-            <div>
-              <div className="flex items-center gap-1 text-white/40 mb-1">
-                <MousePointerClick className="w-3 h-3" /> CTA
-              </div>
-              <p className="text-white/80">{brief.cta}</p>
-            </div>
+      {/* Intent Gate - Two Card Selector */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => setIntent("internal")}
+          className="p-5 rounded-xl border border-white/10 bg-white/[0.02] text-left hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-colors group"
+          data-testid="intent-internal"
+        >
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/20 flex items-center justify-center mb-3 group-hover:from-emerald-500/30 group-hover:to-teal-500/20 transition-colors">
+            <Brain className="w-5 h-5 text-emerald-400" />
           </div>
-          <div>
-            <div className="text-white/40 text-xs mb-1">Their problem</div>
-            <p className="text-sm text-white/70">{brief.problem}</p>
+          <div className="text-white font-medium mb-1">Internal</div>
+          <div className="text-white/50 text-xs leading-relaxed">
+            Think, refine, and connect to strategy
           </div>
-          <div>
-            <div className="flex items-center gap-1 text-white/40 text-xs mb-1">
-              <Award className="w-3 h-3" /> Your promise
-            </div>
-            <p className="text-sm text-white font-medium">{brief.promise}</p>
+          <div className="mt-3 flex flex-wrap gap-1">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400/70">Explore</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400/70">Challenge</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400/70">Store</span>
           </div>
-          <div>
-            <div className="text-white/40 text-xs mb-1">Proof points</div>
-            <p className="text-sm text-white/70">{brief.proof}</p>
-          </div>
-          <div className="pt-2 border-t border-white/10">
-            <div className="text-white/40 text-xs mb-1">Suggested format</div>
-            <Badge variant="outline" className="border-blue-500/50 text-blue-400">
-              {brief.formatSuggestion.replace(/_/g, ' ')}
-            </Badge>
-          </div>
-        </div>
-      )}
+        </button>
 
-      <div className="space-y-4">
-        <div>
-          <label className="text-sm text-white/60 mb-2 block">Format</label>
-          <div className="grid grid-cols-2 gap-2">
-            {formatOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setFormat(option.value)}
-                className={`p-3 rounded-lg border text-left transition-colors ${
-                  format === option.value
-                    ? "border-blue-500 bg-blue-500/20 text-white"
-                    : "border-white/10 bg-white/5 text-white/70 hover:border-blue-500/30"
-                }`}
-                data-testid={`format-${option.value}`}
-              >
-                <span className="mr-2">{option.icon}</span>
-                {option.label}
-              </button>
-            ))}
+        <button
+          onClick={() => setIntent("external")}
+          className="p-5 rounded-xl border border-white/10 bg-white/[0.02] text-left hover:border-purple-500/30 hover:bg-purple-500/5 transition-colors group"
+          data-testid="intent-external"
+        >
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/10 border border-purple-500/20 flex items-center justify-center mb-3 group-hover:from-purple-500/30 group-hover:to-pink-500/20 transition-colors">
+            <Megaphone className="w-5 h-5 text-purple-400" />
           </div>
-        </div>
-
-        <div>
-          <label className="text-sm text-white/60 mb-2 block">Tone</label>
-          <Select value={tone} onValueChange={(v) => setTone(v as IceTone)}>
-            <SelectTrigger className="bg-white/5 border-white/10 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-900 border-white/10">
-              {toneOptions.map((option) => (
-                <SelectItem
-                  key={option.value}
-                  value={option.value}
-                  className="text-white hover:bg-white/10"
-                >
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <label className="text-sm text-white/60 mb-2 block">Output</label>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setOutputType("video_card")}
-              className={`flex-1 p-3 rounded-lg border text-center transition-colors ${
-                outputType === "video_card"
-                  ? "border-blue-500 bg-blue-500/20 text-white"
-                  : "border-white/10 bg-white/5 text-white/70 hover:border-blue-500/30"
-              }`}
-              data-testid="output-video"
-            >
-              📹 Video card
-            </button>
-            <button
-              onClick={() => setOutputType("interactive")}
-              className={`flex-1 p-3 rounded-lg border text-center transition-colors ${
-                outputType === "interactive"
-                  ? "border-blue-500 bg-blue-500/20 text-white"
-                  : "border-white/10 bg-white/5 text-white/70 hover:border-blue-500/30"
-              }`}
-              data-testid="output-interactive"
-            >
-              ✨ Interactive
-            </button>
+          <div className="text-white font-medium mb-1">External</div>
+          <div className="text-white/50 text-xs leading-relaxed">
+            Publish, share, and convert audience
           </div>
-        </div>
+          <div className="mt-3 flex flex-wrap gap-1">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400/70">Content</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400/70">Video</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400/70">Share</span>
+          </div>
+        </button>
       </div>
 
-      <Button
-        onClick={() =>
-          onGenerateDraft({
-            insightId: insight.id,
-            format,
-            tone,
-            outputType,
-          })
-        }
-        disabled={isGenerating}
-        className={`w-full ${
-          isContentReady 
-            ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700" 
-            : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-        }`}
-        data-testid="button-generate-draft"
-      >
-        {isGenerating ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Creating story...
-          </>
-        ) : (
-          <>
-            <Sparkles className="w-4 h-4 mr-2" />
-            {isContentReady ? "Create story" : "Generate draft"}
-          </>
-        )}
-      </Button>
+      <p className="text-xs text-white/40 text-center">
+        Internal insights stay private. External content is for your audience.
+      </p>
     </div>
   );
 }
