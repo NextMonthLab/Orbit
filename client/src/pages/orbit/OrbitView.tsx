@@ -289,7 +289,7 @@ export default function OrbitView() {
 
   // Fetch hub analytics for owners
   const { data: hubData } = useQuery<{
-    analytics: { visits: number; interactions: number; conversations: number; iceViews: number };
+    activity: { visits: number; interactions: number; conversations: number; iceViews: number };
     leads: { count: number };
   }>({
     queryKey: ["orbit-hub", slug],
@@ -1178,11 +1178,11 @@ export default function OrbitView() {
           activePanel={hubPanel}
           onPanelChange={setHubPanel}
           onClose={() => setShowHub(false)}
-          analytics={hubData ? {
-            visits: hubData.analytics.visits,
-            interactions: hubData.analytics.interactions,
-            conversations: hubData.analytics.conversations,
-            leads: hubData.leads.count,
+          analytics={hubData?.activity ? {
+            visits: hubData.activity.visits,
+            interactions: hubData.activity.interactions,
+            conversations: hubData.activity.conversations,
+            leads: hubData.leads?.count || 0,
           } : undefined}
         />
       )}
