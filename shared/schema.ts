@@ -891,6 +891,7 @@ export const iceMediaAssetSchema = z.object({
   status: z.enum(['ready', 'generating', 'failed']).default('ready'),
   predictionId: z.string().optional(), // For async generation tracking
   model: z.string().optional(), // Which AI model was used
+  bibleVersionIdUsed: z.string().optional(), // Bible version for continuity tracking
 });
 
 export type IceMediaAsset = z.infer<typeof iceMediaAssetSchema>;
@@ -918,9 +919,98 @@ export const icePreviewCardSchema = z.object({
   enhancePromptEnabled: z.boolean().optional(), // Whether to use enhanced prompts
   basePrompt: z.string().optional(), // The base prompt from card content
   enhancedPrompt: z.string().optional(), // LLM-enhanced prompt (editable)
+  
+  // Continuity tracking
+  charactersPresent: z.array(z.string()).optional(), // Character IDs appearing in this card
+  bibleVersionIdUsed: z.string().optional(), // Which bible version was used for media generation
 });
 
 export type IcePreviewCard = z.infer<typeof icePreviewCardSchema>;
+
+// ============ PROJECT BIBLE (Continuity Guardrails) ============
+
+// Character Bible Entry - defines a character's canonical appearance and traits
+export const characterBibleEntrySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.string().optional(), // e.g., "protagonist", "antagonist", "supporting"
+  physicalTraits: z.object({
+    ageRange: z.string().optional(), // e.g., "late 30s"
+    build: z.string().optional(), // e.g., "athletic", "slender", "stocky"
+    skinTone: z.string().optional(),
+    hairStyle: z.string().optional(),
+    hairColor: z.string().optional(),
+    facialFeatures: z.string().optional(), // e.g., "scar on left cheek", "sharp jawline"
+    distinguishingMarks: z.string().optional(), // e.g., "tattoo on right arm"
+  }).optional(),
+  wardrobeRules: z.object({
+    signatureItems: z.array(z.string()).optional(), // e.g., ["leather jacket", "red scarf"]
+    colorPalette: z.array(z.string()).optional(), // e.g., ["black", "dark gray", "crimson"]
+    style: z.string().optional(), // e.g., "formal", "streetwear", "victorian"
+  }).optional(),
+  mannerisms: z.string().optional(), // e.g., "nervous energy, constantly fidgeting"
+  lockedTraits: z.array(z.string()).default([]), // Traits that must never change
+  referenceImages: z.array(z.string()).optional(), // URLs to reference/model sheet images
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type CharacterBibleEntry = z.infer<typeof characterBibleEntrySchema>;
+
+// World Bible - defines the story's setting and visual language
+export const worldBibleSchema = z.object({
+  setting: z.object({
+    place: z.string().optional(), // e.g., "Neo Tokyo", "Victorian London"
+    era: z.string().optional(), // e.g., "2077", "1888", "medieval"
+    culture: z.string().optional(), // e.g., "cyberpunk", "steampunk"
+  }).optional(),
+  visualLanguage: z.object({
+    cinematicStyle: z.string().optional(), // e.g., "noir", "dreamlike", "gritty realism"
+    lighting: z.string().optional(), // e.g., "neon-lit", "natural", "dramatic shadows"
+    lensVibe: z.string().optional(), // e.g., "35mm film grain", "anamorphic", "telephoto compression"
+    realismLevel: z.enum(['photorealistic', 'stylized', 'illustrated', 'animated']).optional(),
+  }).optional(),
+  environmentAnchors: z.array(z.object({
+    name: z.string(),
+    description: z.string(),
+    visualDetails: z.string().optional(),
+  })).optional(), // Recurring locations/props
+  toneRules: z.object({
+    mood: z.string().optional(), // e.g., "tense", "hopeful", "melancholic"
+    genre: z.string().optional(), // e.g., "thriller", "comedy", "romance"
+  }).optional(),
+  lockedWorldTraits: z.array(z.string()).default([]), // e.g., ["no modern technology", "always night"]
+  updatedAt: z.string().optional(),
+});
+
+export type WorldBible = z.infer<typeof worldBibleSchema>;
+
+// Style Bible - defines technical generation settings
+export const styleBibleSchema = z.object({
+  aspectRatio: z.enum(['9:16', '16:9', '1:1', '4:3', '3:4']).default('9:16'),
+  noOnScreenText: z.boolean().default(true), // Critical: no text in AI images
+  realismLevel: z.enum(['photorealistic', 'stylized', 'illustrated', 'animated']).optional(),
+  colorGrading: z.string().optional(), // e.g., "warm tones", "desaturated", "high contrast"
+  cameraMovement: z.string().optional(), // e.g., "steady", "handheld", "sweeping"
+  additionalNegativePrompts: z.array(z.string()).optional(), // Always exclude these
+  updatedAt: z.string().optional(),
+});
+
+export type StyleBible = z.infer<typeof styleBibleSchema>;
+
+// Complete Project Bible with versioning
+export const projectBibleSchema = z.object({
+  versionId: z.string(), // UUID for this version
+  version: z.number().default(1), // Incrementing version number
+  characters: z.array(characterBibleEntrySchema).default([]),
+  world: worldBibleSchema.optional(),
+  style: styleBibleSchema.optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  updatedBy: z.string().optional(), // user ID or "system"
+});
+
+export type ProjectBible = z.infer<typeof projectBibleSchema>;
 
 export const icePreviewCharacterSchema = z.object({
   id: z.string(),
@@ -967,6 +1057,9 @@ export const icePreviews = pgTable("ice_previews", {
   characters: jsonb("characters").$type<IcePreviewCharacter[]>().default([]),
   interactivityNodes: jsonb("interactivity_nodes").$type<IceInteractivityNode[]>().default([]),
   tier: text("tier").$type<IcePreviewTier>().default("short").notNull(),
+  
+  // Project Bible (Continuity Guardrails)
+  projectBible: jsonb("project_bible").$type<ProjectBible>(),
   
   // Access control
   visibility: text("visibility").$type<ContentVisibility>().default("unlisted").notNull(), // Guest previews default to unlisted
