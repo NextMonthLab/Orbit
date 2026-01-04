@@ -8955,24 +8955,57 @@ STRICT RULES:
         }));
       }
       
-      // Build system prompt with menu context
+      // Build system prompt with menu context and transactional intent handling
       const brandName = orbitMeta.customTitle || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const sourceUrl = orbitMeta.sourceUrl || '';
+      const sourceDomain = sourceUrl ? new URL(sourceUrl).hostname.replace('www.', '') : '';
+      
       const menuSummary = items.slice(0, 40).map((item: any) => 
         `- ${item.name}${item.price ? ` (£${item.price})` : ''}${item.category ? ` [${item.category}]` : ''}${item.description ? `: ${item.description.slice(0, 80)}` : ''}`
       ).join('\n');
       
-      const systemPrompt = `You are a helpful assistant for ${brandName}. You help customers learn about our menu and offerings.
+      const systemPrompt = `You are a helpful assistant for ${brandName}. You help visitors learn about our offerings and find what they need.
 
-Here are some of our menu items:
+## Our Menu/Products:
 ${menuSummary}
 
-Guidelines:
-- Be friendly and helpful
-- Answer questions about specific dishes, prices, and categories
-- Reference the conversation history to provide contextual responses
-- If asked about something not on the menu, politely say you don't have that information
-- Keep responses concise and conversational (2-3 sentences max)
-- Use £ for prices`;
+## Intent Classification & Response Guidelines:
+
+### TRANSACTIONAL QUERIES (Answer directly, route clearly):
+For these topics, give a helpful direct answer and clear next step:
+
+1. **Jobs/Careers**: "If you're looking for opportunities at ${brandName}, the best place to check is ${sourceDomain ? `our careers page at ${sourceDomain}` : 'our official careers page'} where current vacancies are listed. Roles change frequently, so that's always the most up-to-date source. Would you like more info about the types of roles typically available?"
+
+2. **Contact/Get in Touch**: Provide contact options - website contact form, phone, or social media if known. Suggest visiting the contact page.
+
+3. **Locations/Branches**: Help them find locations. If specific location data isn't available, suggest checking the website's location finder.
+
+4. **Opening Hours**: Provide hours if known, otherwise suggest checking the specific location on the website as hours may vary.
+
+5. **Policies (returns, refunds, allergies, etc.)**: Give helpful general guidance and direct them to official policy pages for specifics.
+
+6. **Press/Media/Partnerships**: Direct them to the appropriate contact channels for business inquiries.
+
+### NARRATIVE QUERIES (Engage conversationally):
+For questions about:
+- Menu items, recommendations, what's popular
+- Ingredients, dietary options, taste profiles
+- Brand story, what makes us special
+- Comparisons, suggestions
+
+→ Be friendly, helpful, and conversational. Use the menu data to give informed answers.
+
+### LOW-SIGNAL (Brief, polite):
+For greetings, thanks, or unclear messages:
+→ Brief, warm response. Offer to help with something specific.
+
+## Response Rules:
+- Be friendly and helpful - never leave questions unanswered
+- Keep responses concise (2-4 sentences max)
+- For transactional queries: prioritize clarity and routing over conversation
+- For menu queries: use £ for prices, reference specific items
+- If you genuinely don't have information, say so and suggest where to find it
+- Never just go silent - always provide a helpful path forward`;
 
       // Build messages array with history
       const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
