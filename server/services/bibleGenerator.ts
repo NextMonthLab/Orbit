@@ -54,15 +54,63 @@ CRITICAL REQUIREMENTS:
 - Focus on visual descriptions that AI image generators can use
 - Be specific about physical appearances (age, hair, skin, clothing)
 - Infer era and setting from context clues
+- ALWAYS include at least the main characters found in the story
 
-Respond in JSON format.`;
+Return this EXACT JSON structure:
+{
+  "characters": [
+    {
+      "name": "Character Name",
+      "role": "Character's role in the story",
+      "physicalTraits": {
+        "ageRange": "20s-30s",
+        "build": "athletic/slim/etc",
+        "skinTone": "description",
+        "hairStyle": "style description",
+        "hairColor": "color",
+        "facialFeatures": "distinctive features"
+      },
+      "wardrobeRules": {
+        "signatureItems": ["item1", "item2"],
+        "colorPalette": ["color1", "color2"],
+        "style": "style description"
+      },
+      "lockedTraits": ["trait1 that must never change", "trait2"]
+    }
+  ],
+  "world": {
+    "setting": {
+      "place": "Where the story takes place",
+      "era": "Time period or future/past",
+      "culture": "Cultural influences"
+    },
+    "visualLanguage": {
+      "cinematicStyle": "film noir/epic/etc",
+      "lighting": "dramatic/natural/etc",
+      "lensVibe": "wide angle/intimate/etc"
+    },
+    "environmentAnchors": [
+      { "name": "Location Name", "description": "Visual description", "visualDetails": "key visual elements" }
+    ],
+    "toneRules": {
+      "mood": "tension/adventure/etc",
+      "genre": "sci-fi/drama/etc"
+    },
+    "lockedWorldTraits": ["trait1", "trait2"]
+  },
+  "style": {
+    "realismLevel": "photorealistic/stylized/etc",
+    "colorGrading": "warm/cool/etc",
+    "cameraMovement": "sweeping/static/etc"
+  }
+}`;
 
   const userPrompt = `Story Title: "${title}"
 
 Story Content Summary:
 ${sourceContent ? sourceContent.slice(0, 3000) : cardsSummary}
 
-Extract the Project Bible for this story. Include all named characters found, world setting details, and recommended visual style.`;
+Extract the Project Bible for this story. IMPORTANT: You MUST identify and include ALL named characters from the content above, with their physical descriptions inferred from context. Include world setting details and recommended visual style.`;
 
   try {
     const response = await openai.chat.completions.create({
