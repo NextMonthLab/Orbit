@@ -8428,40 +8428,98 @@ STRICT RULES:
       
       if (orbit && orbit.proofCaptureEnabled !== false) {
         try {
-          const { classifyTestimonialMoment, shouldTriggerProofCapture, getContextQuestion, getConsentRequest } = await import('./services/proofCapture');
+          const { 
+            classifyTestimonialMoment, 
+            shouldTriggerProofCapture, 
+            getContextQuestion, 
+            getConsentRequest,
+            isDetailedPraiseResponse,
+            parseConsentResponse,
+            getConsentFollowup
+          } = await import('./services/proofCapture');
           
           const recentUserMessages = history
             .filter((m: any) => m.role === 'user')
             .slice(-5)
             .map((m: any) => m.content);
           
-          const classification = await classifyTestimonialMoment(message, recentUserMessages);
+          const recentAssistantMessages = history
+            .filter((m: any) => m.role === 'assistant')
+            .slice(-3)
+            .map((m: any) => m.content);
           
-          console.log('[ProofCapture:Preview] Classification for message:', message);
-          console.log('[ProofCapture:Preview] Result:', JSON.stringify(classification));
+          // Check if we're in the middle of a proof capture flow by examining recent assistant messages
+          const lastAssistantMsg = recentAssistantMessages[recentAssistantMessages.length - 1] || '';
+          const isInContextQuestionStage = lastAssistantMsg.includes('What was the main thing') || 
+            lastAssistantMsg.includes('what would you say') ||
+            lastAssistantMsg.includes('stood out most') ||
+            lastAssistantMsg.includes('like most about');
+          const isInConsentStage = lastAssistantMsg.includes('Would you be happy for us to use your comment');
           
-          const proofCaptureTrigger = shouldTriggerProofCapture(true, null, classification);
+          console.log('[ProofCapture:Preview] Flow state - Context stage:', isInContextQuestionStage, 'Consent stage:', isInConsentStage);
           
-          console.log('[ProofCapture:Preview] Trigger decision:', JSON.stringify(proofCaptureTrigger));
-          
-          if (proofCaptureTrigger.shouldTrigger) {
-            const topicQuestion = getContextQuestion(classification.topic);
-            const consentInfo = getConsentRequest();
+          if (isInConsentStage) {
+            // Handle consent response
+            const consentResponse = parseConsentResponse(message);
+            console.log('[ProofCapture:Preview] Consent response:', consentResponse);
             
-            proofCaptureFlow = {
-              triggered: true,
-              topic: classification.topic,
-              originalMessage: message,
-              confidence: classification.confidence,
-              sentimentScore: classification.sentimentScore,
-              consentOptions: consentInfo.options,
-              followUpQuestion: topicQuestion,
-            };
-          } else if (proofCaptureTrigger.showSuggestionChip) {
-            suggestionChip = {
-              text: "Leave a testimonial",
-              action: "testimonial",
-            };
+            if (consentResponse) {
+              const followup = getConsentFollowup(consentResponse);
+              proofCaptureFlow = {
+                stage: 'consent_received',
+                consentType: consentResponse,
+                followUpMessage: followup,
+              };
+            }
+          } else if (isInContextQuestionStage) {
+            // Handle detailed response after context question
+            const detailCheck = await isDetailedPraiseResponse(message, recentUserMessages);
+            console.log('[ProofCapture:Preview] Detail check:', JSON.stringify(detailCheck));
+            
+            if (detailCheck.hasDetail) {
+              // Got a meaningful response, now ask for consent
+              const consentInfo = getConsentRequest();
+              proofCaptureFlow = {
+                stage: 'consent_request',
+                expandedQuote: detailCheck.combinedQuote,
+                consentOptions: consentInfo.options,
+              };
+            } else {
+              // Response wasn't detailed enough, ask clarifier
+              proofCaptureFlow = {
+                stage: 'clarifier',
+                clarifierQuestion: "Was there a specific moment or thing that made you feel that way?",
+              };
+            }
+          } else {
+            // Check for new praise
+            const classification = await classifyTestimonialMoment(message, recentUserMessages);
+            
+            console.log('[ProofCapture:Preview] Classification for message:', message);
+            console.log('[ProofCapture:Preview] Result:', JSON.stringify(classification));
+            
+            const proofCaptureTrigger = shouldTriggerProofCapture(true, null, classification);
+            
+            console.log('[ProofCapture:Preview] Trigger decision:', JSON.stringify(proofCaptureTrigger));
+            
+            if (proofCaptureTrigger.shouldTrigger) {
+              // Step 1: Ask contextual question to draw out more detail
+              const topicQuestion = getContextQuestion(classification.topic);
+              
+              proofCaptureFlow = {
+                stage: 'context_question',
+                topic: classification.topic,
+                originalMessage: message,
+                confidence: classification.confidence,
+                specificityScore: classification.specificityScore,
+                followUpQuestion: topicQuestion,
+              };
+            } else if (proofCaptureTrigger.showSuggestionChip) {
+              suggestionChip = {
+                text: "Leave a testimonial",
+                action: "testimonial",
+              };
+            }
           }
         } catch (err) {
           console.error('[ProofCapture:Preview] Error during classification:', err);
@@ -8478,8 +8536,20 @@ STRICT RULES:
       // Add proof capture flow if triggered
       if (proofCaptureFlow) {
         response.proofCaptureFlow = proofCaptureFlow;
-        // Append testimonial prompt to reply
-        response.reply = `${reply}\n\n${proofCaptureFlow.followUpQuestion}\n\nWould you be happy for us to use your comment as a testimonial?\n\n• ${proofCaptureFlow.consentOptions.join('\n• ')}`;
+        
+        if (proofCaptureFlow.stage === 'context_question') {
+          // Step 1: Just ask the context question (no consent yet)
+          response.reply = `${reply}\n\n${proofCaptureFlow.followUpQuestion}`;
+        } else if (proofCaptureFlow.stage === 'clarifier') {
+          // Clarifying question if response wasn't detailed enough
+          response.reply = `${reply}\n\n${proofCaptureFlow.clarifierQuestion}`;
+        } else if (proofCaptureFlow.stage === 'consent_request') {
+          // Step 2: Now ask for consent after getting detailed feedback
+          response.reply = `${reply}\n\nWould you be happy for us to use your comment as a testimonial?\n\n• ${proofCaptureFlow.consentOptions.join('\n• ')}`;
+        } else if (proofCaptureFlow.stage === 'consent_received') {
+          // Step 3: Confirm consent
+          response.reply = proofCaptureFlow.followUpMessage;
+        }
       } else if (suggestionChip) {
         response.suggestionChip = suggestionChip;
         response.reply = `${reply}\n\n💬 By the way, if you'd like to leave a testimonial, just let me know!`;
@@ -9800,7 +9870,15 @@ STRICT RULES:
       }
       
       // Import proof capture module for testimonial detection
-      const { classifyTestimonialMoment, shouldTriggerProofCapture, getContextQuestion, getConsentRequest } = await import('./services/proofCapture');
+      const { 
+        classifyTestimonialMoment, 
+        shouldTriggerProofCapture, 
+        getContextQuestion, 
+        getConsentRequest,
+        isDetailedPraiseResponse,
+        parseConsentResponse,
+        getConsentFollowup
+      } = await import('./services/proofCapture');
       
       // Check if this message is testimonial-worthy
       const recentUserMessages = (history || [])
@@ -9808,61 +9886,179 @@ STRICT RULES:
         .slice(-5)
         .map((h: any) => h.content);
       
-      const classification = await classifyTestimonialMoment(message, recentUserMessages);
-      const proofCaptureEnabled = orbitMeta.proofCaptureEnabled !== false; // Default to enabled
+      const recentAssistantMessages = (history || [])
+        .filter((h: any) => h.role === 'assistant')
+        .slice(-3)
+        .map((h: any) => h.content);
+      
+      const proofCaptureEnabled = orbitMeta.proofCaptureEnabled !== false;
       const triggeredAt = proofCaptureTriggeredAt ? new Date(proofCaptureTriggeredAt) : null;
       
-      console.log('[ProofCapture] Classification for message:', message);
-      console.log('[ProofCapture] Result:', JSON.stringify(classification));
+      // Check if we're in the middle of a proof capture flow
+      const lastAssistantMsg = recentAssistantMessages[recentAssistantMessages.length - 1] || '';
+      const isInContextQuestionStage = lastAssistantMsg.includes("I'd love to know more") || 
+        lastAssistantMsg.includes('what would you say') ||
+        lastAssistantMsg.includes('what was the highlight') ||
+        lastAssistantMsg.includes('Tell me more about') ||
+        lastAssistantMsg.includes('What is it about');
+      const isInConsentStage = lastAssistantMsg.includes('Would you be happy for us to use your comment');
       
-      const proofCaptureTrigger = shouldTriggerProofCapture(
-        proofCaptureEnabled,
-        triggeredAt,
-        classification
-      );
+      console.log('[ProofCapture] Flow state - Context stage:', isInContextQuestionStage, 'Consent stage:', isInConsentStage);
       
-      console.log('[ProofCapture] Trigger decision:', JSON.stringify(proofCaptureTrigger));
-      
-      // If testimonial-worthy, respond with proof capture flow
-      if (proofCaptureTrigger.shouldTrigger) {
-        const topicQuestion = getContextQuestion(classification.topic);
-        const consentInfo = getConsentRequest();
-        
-        return res.json({
-          response: topicQuestion,
-          proofCaptureFlow: {
-            triggered: true,
-            topic: classification.topic,
-            originalMessage: message,
-            confidence: classification.confidence,
-            sentimentScore: classification.sentimentScore,
-            consentOptions: consentInfo.options,
-          },
-        });
-      }
-      
-      // If we detected some praise but not high confidence, show a suggestion chip
+      let proofCaptureFlow = null;
       let suggestionChip = null;
-      if (proofCaptureTrigger.showSuggestionChip) {
-        suggestionChip = {
-          text: "Leave a testimonial",
-          action: "testimonial",
-        };
+      let classificationResult: { praiseKeywordsFound: string[] } | null = null;
+      
+      if (isInConsentStage) {
+        // Handle consent response
+        const consentResponse = parseConsentResponse(message);
+        console.log('[ProofCapture] Consent response:', consentResponse);
+        
+        if (consentResponse) {
+          const followup = getConsentFollowup(consentResponse);
+          return res.json({
+            response: followup,
+            proofCaptureFlow: {
+              stage: 'consent_received',
+              consentType: consentResponse,
+            },
+          });
+        }
+      } else if (isInContextQuestionStage) {
+        // Handle detailed response after context question
+        const detailCheck = await isDetailedPraiseResponse(message, recentUserMessages);
+        console.log('[ProofCapture] Detail check:', JSON.stringify(detailCheck));
+        
+        if (detailCheck.hasDetail) {
+          // Got a meaningful response, now ask for consent
+          const consentInfo = getConsentRequest();
+          return res.json({
+            response: `That's wonderful feedback, thank you for sharing!\n\nWould you be happy for us to use your comment as a testimonial?\n\n• ${consentInfo.options.join('\n• ')}`,
+            proofCaptureFlow: {
+              stage: 'consent_request',
+              expandedQuote: detailCheck.combinedQuote,
+              consentOptions: consentInfo.options,
+            },
+          });
+        } else {
+          // Response wasn't detailed enough, ask clarifier
+          proofCaptureFlow = {
+            stage: 'clarifier',
+          };
+          // Continue to normal chat but append clarifier
+        }
+      } else if (!triggeredAt) {
+        // Check for new praise (only if not already triggered in this session)
+        const classification = await classifyTestimonialMoment(message, recentUserMessages);
+        classificationResult = classification;
+        
+        console.log('[ProofCapture] Classification for message:', message);
+        console.log('[ProofCapture] Result:', JSON.stringify(classification));
+        
+        const proofCaptureTrigger = shouldTriggerProofCapture(
+          proofCaptureEnabled,
+          triggeredAt,
+          classification
+        );
+        
+        console.log('[ProofCapture] Trigger decision:', JSON.stringify(proofCaptureTrigger));
+        
+        // If testimonial-worthy, ask contextual question (Step 1)
+        if (proofCaptureTrigger.shouldTrigger) {
+          const topicQuestion = getContextQuestion(classification.topic);
+          
+          return res.json({
+            response: topicQuestion,
+            proofCaptureFlow: {
+              stage: 'context_question',
+              topic: classification.topic,
+              originalMessage: message,
+              confidence: classification.confidence,
+              specificityScore: classification.specificityScore,
+            },
+          });
+        }
+        
+        // If we detected some praise but not high confidence, show a suggestion chip
+        if (proofCaptureTrigger.showSuggestionChip) {
+          suggestionChip = {
+            text: "Leave a testimonial",
+            action: "testimonial",
+          };
+        }
       }
       
-      // Get boxes if no menuContext provided
+      // Get boxes and detect business type
+      const boxes = await storage.getOrbitBoxes(slug);
       let items = menuContext;
       if (!items || items.length === 0) {
-        const boxes = await storage.getOrbitBoxes(slug);
         items = boxes.slice(0, 60).map(b => ({
           name: b.title,
           description: b.description,
           price: b.price,
           category: b.category,
+          boxType: b.boxType,
         }));
       }
       
-      // Build system prompt with menu context and transactional intent handling
+      // Detect business type from box types and content
+      const boxTypeCounts: Record<string, number> = {};
+      for (const box of boxes) {
+        boxTypeCounts[box.boxType] = (boxTypeCounts[box.boxType] || 0) + 1;
+      }
+      
+      const hasMenuItems = (boxTypeCounts['menu_item'] || 0) > 0;
+      const hasProducts = (boxTypeCounts['product'] || 0) > 0;
+      const hasTeamMembers = (boxTypeCounts['team_member'] || 0) > 0;
+      const hasFAQs = (boxTypeCounts['faq'] || 0) > 0;
+      
+      // Infer business type from content
+      const slugLower = slug.toLowerCase();
+      const allTitles = boxes.map(b => b.title?.toLowerCase() || '').join(' ');
+      const allDescriptions = boxes.map(b => b.description?.toLowerCase() || '').join(' ');
+      const allContent = `${slugLower} ${allTitles} ${allDescriptions}`;
+      
+      type BusinessType = 'recruitment' | 'restaurant' | 'professional_services' | 'retail' | 'general';
+      let businessType: BusinessType = 'general';
+      let businessTypeLabel = 'business';
+      let offeringsLabel = 'services';
+      let itemsLabel = 'offerings';
+      
+      // Check for recruitment/employment keywords
+      const recruitmentKeywords = ['employment', 'recruitment', 'jobs', 'careers', 'staffing', 'hiring', 'vacancies', 'candidates', 'cv', 'resume', 'job seekers', 'employers'];
+      const isRecruitment = recruitmentKeywords.some(k => allContent.includes(k));
+      
+      // Check for restaurant/food keywords
+      const foodKeywords = ['menu', 'restaurant', 'cafe', 'bistro', 'pub', 'bar', 'food', 'dining', 'kitchen', 'chef', 'dish', 'cuisine'];
+      const isFood = hasMenuItems || foodKeywords.some(k => allContent.includes(k));
+      
+      // Check for professional services
+      const servicesKeywords = ['agency', 'consulting', 'marketing', 'digital', 'design', 'web', 'software', 'solutions', 'services'];
+      const isServices = servicesKeywords.some(k => allContent.includes(k));
+      
+      if (isRecruitment) {
+        businessType = 'recruitment';
+        businessTypeLabel = 'recruitment agency';
+        offeringsLabel = 'job opportunities and services';
+        itemsLabel = 'roles and services';
+      } else if (isFood && hasMenuItems) {
+        businessType = 'restaurant';
+        businessTypeLabel = 'restaurant';
+        offeringsLabel = 'menu';
+        itemsLabel = 'dishes and drinks';
+      } else if (hasProducts) {
+        businessType = 'retail';
+        businessTypeLabel = 'business';
+        offeringsLabel = 'products';
+        itemsLabel = 'products';
+      } else if (isServices) {
+        businessType = 'professional_services';
+        businessTypeLabel = 'agency';
+        offeringsLabel = 'services';
+        itemsLabel = 'services';
+      }
+      
+      // Build system prompt with business-type-aware context
       const brandName = orbitMeta.customTitle || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       const sourceUrl = orbitMeta.sourceUrl || '';
       let sourceDomain = '';
@@ -9871,54 +10067,90 @@ STRICT RULES:
           sourceDomain = new URL(sourceUrl).hostname.replace('www.', '');
         }
       } catch {
-        // Invalid URL format - extract domain as fallback
         sourceDomain = sourceUrl.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0] || '';
       }
       
-      const menuSummary = items.slice(0, 40).map((item: any) => 
-        `- ${item.name}${item.price ? ` (£${item.price})` : ''}${item.category ? ` [${item.category}]` : ''}${item.description ? `: ${item.description.slice(0, 80)}` : ''}`
-      ).join('\n');
+      // Build context summary based on business type
+      let contextSummary = '';
+      if (businessType === 'recruitment') {
+        const jobItems = items.filter((i: any) => i.category || i.description);
+        contextSummary = `## Our Roles & Services:\n${jobItems.slice(0, 30).map((item: any) => 
+          `- ${item.name}${item.category ? ` [${item.category}]` : ''}${item.description ? `: ${item.description.slice(0, 80)}` : ''}`
+        ).join('\n')}`;
+      } else if (businessType === 'restaurant') {
+        contextSummary = `## Our Menu:\n${items.slice(0, 40).map((item: any) => 
+          `- ${item.name}${item.price ? ` (£${item.price})` : ''}${item.category ? ` [${item.category}]` : ''}${item.description ? `: ${item.description.slice(0, 80)}` : ''}`
+        ).join('\n')}`;
+      } else {
+        contextSummary = `## Our ${offeringsLabel.charAt(0).toUpperCase() + offeringsLabel.slice(1)}:\n${items.slice(0, 40).map((item: any) => 
+          `- ${item.name}${item.price ? ` (£${item.price})` : ''}${item.category ? ` [${item.category}]` : ''}${item.description ? `: ${item.description.slice(0, 80)}` : ''}`
+        ).join('\n')}`;
+      }
       
-      const systemPrompt = `You are a helpful assistant for ${brandName}. You help visitors learn about our offerings and find what they need.
+      // Build business-type-specific prompt
+      let narrativeSection = '';
+      if (businessType === 'recruitment') {
+        narrativeSection = `### NARRATIVE QUERIES (Engage conversationally):
+For questions about:
+- Job roles, requirements, salary expectations
+- Industries and sectors we cover
+- Application process, interview tips
+- Candidate services, CV advice
+- Employer services, hiring solutions
 
-## Our Menu/Products:
-${menuSummary}
-
-## Intent Classification & Response Guidelines:
-
-### TRANSACTIONAL QUERIES (Answer directly, route clearly):
-For these topics, give a helpful direct answer and clear next step:
-
-1. **Jobs/Careers**: "If you're looking for opportunities at ${brandName}, the best place to check is ${sourceDomain ? `our careers page at ${sourceDomain}` : 'our official careers page'} where current vacancies are listed. Roles change frequently, so that's always the most up-to-date source. Would you like more info about the types of roles typically available?"
-
-2. **Contact/Get in Touch**: Provide contact options - website contact form, phone, or social media if known. Suggest visiting the contact page.
-
-3. **Locations/Branches**: Help them find locations. If specific location data isn't available, suggest checking the website's location finder.
-
-4. **Opening Hours**: Provide hours if known, otherwise suggest checking the specific location on the website as hours may vary.
-
-5. **Policies (returns, refunds, allergies, etc.)**: Give helpful general guidance and direct them to official policy pages for specifics.
-
-6. **Press/Media/Partnerships**: Direct them to the appropriate contact channels for business inquiries.
-
-### NARRATIVE QUERIES (Engage conversationally):
+→ Be helpful and informative. Use the job/service data to give informed answers.`;
+      } else if (businessType === 'restaurant') {
+        narrativeSection = `### NARRATIVE QUERIES (Engage conversationally):
 For questions about:
 - Menu items, recommendations, what's popular
 - Ingredients, dietary options, taste profiles
 - Brand story, what makes us special
 - Comparisons, suggestions
 
-→ Be friendly, helpful, and conversational. Use the menu data to give informed answers.
+→ Be friendly, helpful, and conversational. Use the menu data to give informed answers.`;
+      } else {
+        narrativeSection = `### NARRATIVE QUERIES (Engage conversationally):
+For questions about:
+- Our ${offeringsLabel}, what we offer
+- How we can help, our approach
+- Brand story, what makes us different
+- Recommendations, suggestions
+
+→ Be friendly, helpful, and conversational.`;
+      }
+      
+      const systemPrompt = `You are a helpful assistant for ${brandName}, a ${businessTypeLabel}. You help visitors learn about our ${offeringsLabel} and find what they need.
+
+${contextSummary}
+
+## Intent Classification & Response Guidelines:
+
+### TRANSACTIONAL QUERIES (Answer directly, route clearly):
+For these topics, give a helpful direct answer and clear next step:
+
+1. **Contact/Get in Touch**: Provide contact options - website contact form, phone, or social media if known. Suggest visiting ${sourceDomain || 'our website'}.
+
+2. **Locations/Branches**: Help them find locations. If specific location data isn't available, suggest checking the website.
+
+3. **Opening Hours**: Provide hours if known, otherwise suggest checking the website as hours may vary.
+
+${businessType === 'recruitment' ? `4. **Job Applications**: Guide them on how to apply - whether through the website, by sending a CV, or registering with us.
+
+5. **Employer Services**: Explain our recruitment services and how businesses can work with us.` : businessType === 'restaurant' ? `4. **Reservations/Bookings**: Direct them to book via the website or phone.
+
+5. **Dietary/Allergies**: Give helpful guidance and direct them to check with staff for specific requirements.` : `4. **Enquiries**: Direct them to the appropriate contact channel for their query.`}
+
+${narrativeSection}
 
 ### LOW-SIGNAL (Brief, polite):
 For greetings, thanks, or unclear messages:
-→ Brief, warm response. Offer to help with something specific.
+→ Brief, warm response. Offer to help with something specific about our ${offeringsLabel}.
 
 ## Response Rules:
 - Be friendly and helpful - never leave questions unanswered
 - Keep responses concise (2-4 sentences max)
 - For transactional queries: prioritize clarity and routing over conversation
-- For menu queries: use £ for prices, reference specific items
+${businessType === 'restaurant' ? '- For menu queries: use £ for prices, reference specific items' : ''}
 - If you genuinely don't have information, say so and suggest where to find it
 - Never just go silent - always provide a helpful path forward`;
 
@@ -9948,7 +10180,7 @@ For greetings, thanks, or unclear messages:
         temperature: 0.7,
       });
       
-      const response = completion.choices[0]?.message?.content || "I'm here to help you explore our menu.";
+      const response = completion.choices[0]?.message?.content || `I'm here to help you learn more about ${brandName}. What would you like to know?`;
       
       // Track conversation metric (only on first message in conversation)
       if (!history || history.length === 0) {
@@ -9958,7 +10190,7 @@ For greetings, thanks, or unclear messages:
       res.json({ 
         response,
         suggestionChip,
-        praiseDetected: classification.praiseKeywordsFound.length > 0 ? classification.praiseKeywordsFound : undefined,
+        praiseDetected: classificationResult?.praiseKeywordsFound?.length ? classificationResult.praiseKeywordsFound : undefined,
       });
     } catch (error) {
       console.error("Error in orbit chat:", error);

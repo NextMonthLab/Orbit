@@ -29,28 +29,35 @@ const PROFANITY_KEYWORDS = [
   "fuck", "shit", "damn", "ass", "bastard", "bitch"
 ];
 
-// Topic question templates based on spec
+// Topic question templates - conversational, drawing out detail
 const TOPIC_QUESTIONS: Record<SocialProofTopic, string[]> = {
   service: [
-    "That means a lot, thank you. What was the main thing we did that made the service feel so good?"
+    "That's really kind of you to say! I'd love to know more about your experience - what was the main thing that stood out for you?",
+    "Thank you! Tell me more about what made the service feel so good?",
   ],
   delivery: [
-    "Love to hear that. Was it the speed, the updates, or the packaging that stood out most?"
+    "That's great to hear! What was it about the delivery that impressed you most?",
+    "Thank you! I'd love to know more - was it the speed, the updates, or something else?",
   ],
   quality: [
-    "Amazing. What do you like most about the product - the feel, fit, durability, or design?"
+    "That's wonderful feedback! What is it about the quality that you love most?",
+    "Thank you! Tell me more about what stands out to you?",
   ],
   product: [
-    "Amazing. What do you like most about it - the quality, features, or how easy it is to use?"
+    "That's lovely to hear! What is it about us that you love? I'd love to know more.",
+    "Thank you! Tell me what makes it special for you?",
   ],
   value: [
-    "Brilliant. What made it feel like good value to you?"
+    "That's great feedback! What made it feel like such good value to you?",
+    "Thank you! I'd love to hear what impressed you most about the value.",
   ],
   staff: [
-    "Thank you. Was there anyone in particular who helped, or was it the overall experience?"
+    "That's wonderful! Was there someone in particular who made your experience great, or was it the overall team?",
+    "Thank you! Tell me more about what made the experience so good.",
   ],
   other: [
-    "If you had to describe us in one sentence to a friend, what would you say?"
+    "That's really kind! I'd love to know more about your experience - what was the highlight for you?",
+    "Thank you! If you were telling a friend about us, what would you say?",
   ]
 };
 
@@ -87,12 +94,101 @@ export interface TestimonialClassification {
 export interface ProofCaptureFlowState {
   stage: 'idle' | 'context_question' | 'clarifier' | 'consent_request' | 'attribution' | 'complete';
   topic: SocialProofTopic;
-  rawQuote: string;
+  initialPraise: string;       // The first praise message that triggered the flow
+  expandedQuote: string | null; // The detailed response after context question
+  rawQuote: string;            // Combined quote for final testimonial
   clarifierAsked: boolean;
   consentGranted: boolean | null;
   consentType: 'name_town' | 'anonymous' | null;
   attributionName?: string;
   attributionTown?: string;
+}
+
+/**
+ * Determine if a message is a detailed expansion of praise (for the second step)
+ */
+export async function isDetailedPraiseResponse(
+  message: string,
+  previousContext: string[]
+): Promise<{ isExpansion: boolean; hasDetail: boolean; combinedQuote: string }> {
+  const wordCount = message.trim().split(/\s+/).length;
+  
+  // Too short to be meaningful expansion
+  if (wordCount < 4) {
+    return { isExpansion: false, hasDetail: false, combinedQuote: '' };
+  }
+  
+  // Check for detail indicators
+  const detailIndicators = [
+    /\bbecause\b/i,
+    /\bthe way\b/i,
+    /\bwhat I (loved|liked|appreciated)/i,
+    /\bthe (staff|service|food|quality|price|value)/i,
+    /\bthey (were|are|made|did)/i,
+    /\bit('s| is| was)\b/i,
+    /\bspecifically\b/i,
+    /\bespecially\b/i,
+    /\bthe best (part|thing)\b/i,
+  ];
+  
+  const hasDetailIndicator = detailIndicators.some(p => p.test(message));
+  
+  // If message has detail indicators and is reasonably long, it's a good expansion
+  if (hasDetailIndicator && wordCount >= 6) {
+    const lastPraise = previousContext.length > 0 ? previousContext[previousContext.length - 1] : '';
+    return {
+      isExpansion: true,
+      hasDetail: true,
+      combinedQuote: lastPraise ? `${lastPraise} - ${message}` : message
+    };
+  }
+  
+  // For longer messages, use AI to check
+  if (wordCount >= 10) {
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `Analyze if this message is providing specific, detailed feedback about a business/service.
+Return JSON with:
+- isDetailedFeedback: boolean (true if specific reasons/details given)
+- summaryQuote: string (a clean, quotable version of their feedback)
+
+Examples of detailed feedback:
+- "The staff were so friendly and really took the time to explain everything"
+- "I loved how fast delivery was, arrived next day in perfect packaging"
+- "The quality is amazing, especially the stitching and material"
+
+Examples of NOT detailed (too vague):
+- "It's just great"
+- "Everything"
+- "Yes definitely"`
+          },
+          {
+            role: "user",
+            content: `Previous context: ${previousContext.slice(-2).join(' | ')}\n\nCurrent message: "${message}"`
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3,
+        max_tokens: 150
+      });
+      
+      const result = JSON.parse(response.choices[0].message.content || '{}');
+      
+      return {
+        isExpansion: result.isDetailedFeedback === true,
+        hasDetail: result.isDetailedFeedback === true,
+        combinedQuote: result.summaryQuote || message
+      };
+    } catch (error) {
+      console.error('[ProofCapture] Detail check error:', error);
+    }
+  }
+  
+  return { isExpansion: false, hasDetail: false, combinedQuote: message };
 }
 
 /**
