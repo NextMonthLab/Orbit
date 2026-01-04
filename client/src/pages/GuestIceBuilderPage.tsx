@@ -893,6 +893,42 @@ export default function GuestIceBuilderPage() {
               </p>
             </div>
 
+            {/* Professional Tools Bar - always visible for professional users */}
+            {isProfessionalMode && (
+              <div className="flex items-center justify-end gap-2">
+                <Sheet open={showBiblePanel} onOpenChange={setShowBiblePanel}>
+                  <SheetTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 border-amber-500/50 text-amber-300 hover:bg-amber-500/20"
+                      data-testid="button-open-bible"
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                      Project Bible
+                      {projectBible && (
+                        <span className="ml-1 bg-amber-500/30 px-1.5 rounded text-xs">v{projectBible.version}</span>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent className="w-[400px] sm:w-[450px] bg-zinc-950 border-zinc-800 overflow-hidden flex flex-col">
+                    <SheetHeader>
+                      <SheetTitle className="text-white">Project Bible</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex-1 overflow-hidden">
+                      <ContinuityPanel
+                        previewId={preview?.id || ""}
+                        bible={projectBible}
+                        onBibleChange={handleBibleChange}
+                        onGenerate={handleGenerateBible}
+                        isGenerating={bibleGenerating}
+                      />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+            )}
+
             {/* Bulk AI Generation Panel - only for professional users */}
             {isProfessionalMode && entitlements && (cardsNeedingImages.length > 0 || cardsNeedingVideos.length > 0) && (
               <div className="bg-gradient-to-r from-purple-900/40 to-blue-900/40 border border-purple-500/30 rounded-lg p-4">
@@ -951,36 +987,6 @@ export default function GuestIceBuilderPage() {
                         )}
                       </Button>
                     )}
-                    <Sheet open={showBiblePanel} onOpenChange={setShowBiblePanel}>
-                      <SheetTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5 border-amber-500/50 text-amber-300 hover:bg-amber-500/20"
-                          data-testid="button-open-bible"
-                        >
-                          <BookOpen className="w-3.5 h-3.5" />
-                          Bible
-                          {projectBible && (
-                            <span className="ml-1 bg-amber-500/30 px-1.5 rounded text-xs">v{projectBible.version}</span>
-                          )}
-                        </Button>
-                      </SheetTrigger>
-                      <SheetContent className="w-[400px] sm:w-[450px] bg-zinc-950 border-zinc-800 overflow-hidden flex flex-col">
-                        <SheetHeader>
-                          <SheetTitle className="text-white">Project Bible</SheetTitle>
-                        </SheetHeader>
-                        <div className="flex-1 overflow-hidden">
-                          <ContinuityPanel
-                            previewId={preview?.id || ""}
-                            bible={projectBible}
-                            onBibleChange={handleBibleChange}
-                            onGenerate={handleGenerateBible}
-                            isGenerating={bibleGenerating}
-                          />
-                        </div>
-                      </SheetContent>
-                    </Sheet>
                   </div>
                 </div>
               </div>
