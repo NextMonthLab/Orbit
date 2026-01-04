@@ -106,7 +106,7 @@ export function LaunchpadHeader({
 
       <div className="flex items-center gap-2 md:gap-3">
         {selectedOrbit && (
-          <Link href={`/orbit/${selectedOrbit.slug}?view=public`}>
+          <Link href={`/orbit/${selectedOrbit.slug}`}>
             <Button
               variant="ghost"
               className="text-white/60 hover:text-white hover:bg-white/10"
