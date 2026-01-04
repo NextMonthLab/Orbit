@@ -11251,6 +11251,321 @@ For greetings, thanks, or unclear messages:
     }
   });
 
+  // ============ SOCIAL PROOF (Testimonial Capture) ============
+
+  // Social Proof - List all items for an Orbit
+  app.get("/api/orbit/:slug/social-proof", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { status, consentStatus, topic } = req.query;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      // Owner only
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can view social proof" });
+      }
+      
+      const filters: any = {};
+      if (status) filters.status = status;
+      if (consentStatus) filters.consentStatus = consentStatus;
+      if (topic) filters.topic = topic;
+      
+      const items = await storage.getSocialProofItems(slug, Object.keys(filters).length > 0 ? filters : undefined);
+      
+      res.json({ items, total: items.length });
+    } catch (error) {
+      console.error("Error getting social proof:", error);
+      res.status(500).json({ message: "Error getting social proof" });
+    }
+  });
+
+  // Social Proof - Get single item
+  app.get("/api/orbit/:slug/social-proof/:id", async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can view social proof" });
+      }
+      
+      const item = await storage.getSocialProofItem(parseInt(id));
+      if (!item || item.businessSlug !== slug) {
+        return res.status(404).json({ message: "Social proof item not found" });
+      }
+      
+      res.json({ item });
+    } catch (error) {
+      console.error("Error getting social proof item:", error);
+      res.status(500).json({ message: "Error getting social proof item" });
+    }
+  });
+
+  // Social Proof - Manual create (capture a quote from selected message)
+  app.post("/api/orbit/:slug/social-proof", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { conversationId, sourceMessageId, rawQuoteText, topic } = req.body;
+      
+      if (!rawQuoteText || typeof rawQuoteText !== 'string') {
+        return res.status(400).json({ message: "rawQuoteText is required" });
+      }
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can create social proof" });
+      }
+      
+      // Import proof capture service for classification and cleaning
+      const { classifyTestimonialMoment, cleanAndGenerateVariants } = await import('./services/proofCapture');
+      
+      // Classify the quote
+      const classification = await classifyTestimonialMoment(rawQuoteText);
+      
+      // Clean and generate variants
+      const { cleanQuote, variants, recommendedPlacements } = await cleanAndGenerateVariants(rawQuoteText);
+      
+      const item = await storage.createSocialProofItem({
+        businessSlug: slug,
+        conversationId: conversationId ? parseInt(conversationId) : null,
+        sourceMessageId: sourceMessageId ? parseInt(sourceMessageId) : null,
+        rawQuoteText,
+        cleanQuoteText: cleanQuote,
+        topic: topic || classification.topic,
+        specificityScore: classification.specificityScore,
+        sentimentScore: classification.sentimentScore,
+        consentStatus: 'pending',
+        generatedVariants: variants,
+        recommendedPlacements,
+        status: 'draft',
+      });
+      
+      res.json({ item });
+    } catch (error) {
+      console.error("Error creating social proof:", error);
+      res.status(500).json({ message: "Error creating social proof" });
+    }
+  });
+
+  // Social Proof - Update (edit, approve, archive, consent status)
+  app.patch("/api/orbit/:slug/social-proof/:id", async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const { 
+        cleanQuoteText, 
+        status, 
+        consentStatus, 
+        consentType, 
+        attributionName, 
+        attributionTown,
+        topic 
+      } = req.body;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can update social proof" });
+      }
+      
+      const existing = await storage.getSocialProofItem(parseInt(id));
+      if (!existing || existing.businessSlug !== slug) {
+        return res.status(404).json({ message: "Social proof item not found" });
+      }
+      
+      const updateData: any = {};
+      if (cleanQuoteText !== undefined) updateData.cleanQuoteText = cleanQuoteText;
+      if (status !== undefined) updateData.status = status;
+      if (consentStatus !== undefined) {
+        updateData.consentStatus = consentStatus;
+        if (consentStatus === 'granted') {
+          updateData.consentTimestamp = new Date();
+        }
+      }
+      if (consentType !== undefined) updateData.consentType = consentType;
+      if (attributionName !== undefined) updateData.attributionName = attributionName;
+      if (attributionTown !== undefined) updateData.attributionTown = attributionTown;
+      if (topic !== undefined) updateData.topic = topic;
+      
+      // Regenerate variants if cleanQuoteText changed
+      if (cleanQuoteText && cleanQuoteText !== existing.cleanQuoteText) {
+        const { cleanAndGenerateVariants } = await import('./services/proofCapture');
+        const { variants, recommendedPlacements } = await cleanAndGenerateVariants(cleanQuoteText);
+        updateData.generatedVariants = variants;
+        updateData.recommendedPlacements = recommendedPlacements;
+      }
+      
+      const updated = await storage.updateSocialProofItem(parseInt(id), updateData);
+      
+      res.json({ item: updated });
+    } catch (error) {
+      console.error("Error updating social proof:", error);
+      res.status(500).json({ message: "Error updating social proof" });
+    }
+  });
+
+  // Social Proof - Delete
+  app.delete("/api/orbit/:slug/social-proof/:id", async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can delete social proof" });
+      }
+      
+      const existing = await storage.getSocialProofItem(parseInt(id));
+      if (!existing || existing.businessSlug !== slug) {
+        return res.status(404).json({ message: "Social proof item not found" });
+      }
+      
+      await storage.deleteSocialProofItem(parseInt(id));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting social proof:", error);
+      res.status(500).json({ message: "Error deleting social proof" });
+    }
+  });
+
+  // Social Proof - Export formatted
+  app.post("/api/orbit/:slug/social-proof/:id/export", async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const { format } = req.body; // 'website', 'tiktok_overlay', 'case_study'
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can export social proof" });
+      }
+      
+      const item = await storage.getSocialProofItem(parseInt(id));
+      if (!item || item.businessSlug !== slug) {
+        return res.status(404).json({ message: "Social proof item not found" });
+      }
+      
+      if (item.consentStatus !== 'granted') {
+        return res.status(400).json({ message: "Cannot export without consent" });
+      }
+      
+      const variants = item.generatedVariants as any;
+      const attribution = item.consentType === 'name_town' 
+        ? `${item.attributionName || 'Customer'}${item.attributionTown ? `, ${item.attributionTown}` : ''}`
+        : 'Verified Customer';
+      
+      let exportPayload: any;
+      
+      switch (format) {
+        case 'tiktok_overlay':
+          exportPayload = {
+            text: variants?.short || item.cleanQuoteText?.substring(0, 90) || item.rawQuoteText.substring(0, 90),
+            attribution,
+            format: 'overlay'
+          };
+          break;
+        case 'case_study':
+          exportPayload = {
+            quote: variants?.long || item.cleanQuoteText || item.rawQuoteText,
+            attribution,
+            topic: item.topic,
+            format: 'case_study'
+          };
+          break;
+        case 'website':
+        default:
+          exportPayload = {
+            quote: variants?.medium || item.cleanQuoteText || item.rawQuoteText,
+            attribution,
+            topic: item.topic,
+            format: 'website_block'
+          };
+      }
+      
+      res.json({ export: exportPayload });
+    } catch (error) {
+      console.error("Error exporting social proof:", error);
+      res.status(500).json({ message: "Error exporting social proof" });
+    }
+  });
+
+  // Social Proof Settings - Get/Update proof capture settings for an Orbit
+  app.get("/api/orbit/:slug/social-proof/settings", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can view settings" });
+      }
+      
+      res.json({ 
+        proofCaptureEnabled: orbitMeta.proofCaptureEnabled ?? true 
+      });
+    } catch (error) {
+      console.error("Error getting social proof settings:", error);
+      res.status(500).json({ message: "Error getting settings" });
+    }
+  });
+
+  app.patch("/api/orbit/:slug/social-proof/settings", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { proofCaptureEnabled } = req.body;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = req.isAuthenticated() && orbitMeta.ownerId === (req.user as any)?.id;
+      if (!isOwner) {
+        return res.status(403).json({ message: "Only the orbit owner can update settings" });
+      }
+      
+      if (proofCaptureEnabled !== undefined) {
+        await storage.updateOrbitMeta(slug, { proofCaptureEnabled });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating social proof settings:", error);
+      res.status(500).json({ message: "Error updating settings" });
+    }
+  });
+
   // Insights Summary (owner only, Insight+ tier required)
   app.get("/api/orbit/:slug/insights/summary", async (req, res) => {
     try {
