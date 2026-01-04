@@ -200,6 +200,9 @@ export default function GuestIceBuilderPage() {
     };
   }, []);
   
+  // Track previous music URL to detect changes
+  const prevMusicTrackUrlRef = useRef<string | null>(null);
+  
   // Toggle music preview playback
   const toggleMusicPreview = () => {
     const selectedUrl = musicTrackUrl;
@@ -209,33 +212,45 @@ export default function GuestIceBuilderPage() {
       musicPreviewRef.current.pause();
       setIsPreviewingMusic(false);
     } else {
-      if (!musicPreviewRef.current) {
-        musicPreviewRef.current = new Audio(selectedUrl);
-        musicPreviewRef.current.volume = musicVolume / 100;
-        musicPreviewRef.current.onended = () => setIsPreviewingMusic(false);
-      } else if (musicPreviewRef.current.src !== selectedUrl) {
-        musicPreviewRef.current.src = selectedUrl;
+      // Stop any existing playback first
+      if (musicPreviewRef.current) {
+        musicPreviewRef.current.pause();
       }
+      // Create new audio element for the selected track
+      musicPreviewRef.current = new Audio(selectedUrl);
       musicPreviewRef.current.volume = musicVolume / 100;
-      musicPreviewRef.current.play().catch(() => {});
-      setIsPreviewingMusic(true);
+      musicPreviewRef.current.onended = () => setIsPreviewingMusic(false);
+      musicPreviewRef.current.onerror = () => {
+        console.error("Error loading music preview");
+        setIsPreviewingMusic(false);
+      };
+      musicPreviewRef.current.play()
+        .then(() => setIsPreviewingMusic(true))
+        .catch((err) => {
+          console.error("Failed to play music preview:", err);
+          setIsPreviewingMusic(false);
+        });
     }
   };
   
-  // Stop preview when track changes
+  // Stop preview when track changes (only if actually changed)
   useEffect(() => {
-    if (isPreviewingMusic && musicPreviewRef.current) {
+    if (prevMusicTrackUrlRef.current !== null && 
+        prevMusicTrackUrlRef.current !== musicTrackUrl && 
+        isPreviewingMusic && 
+        musicPreviewRef.current) {
       musicPreviewRef.current.pause();
       setIsPreviewingMusic(false);
     }
-  }, [musicTrackUrl]);
+    prevMusicTrackUrlRef.current = musicTrackUrl;
+  }, [musicTrackUrl, isPreviewingMusic]);
   
   // Update preview volume when volume changes
   useEffect(() => {
-    if (musicPreviewRef.current) {
+    if (musicPreviewRef.current && isPreviewingMusic) {
       musicPreviewRef.current.volume = musicVolume / 100;
     }
-  }, [musicVolume]);
+  }, [musicVolume, isPreviewingMusic]);
   
   const hasSeenWalkthrough = () => {
     if (typeof window === "undefined") return true;
