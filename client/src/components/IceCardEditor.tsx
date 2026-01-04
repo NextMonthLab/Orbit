@@ -151,6 +151,8 @@ export function IceCardEditor({
   const [enhancePromptEnabled, setEnhancePromptEnabled] = useState(card.enhancePromptEnabled ?? false);
   const [enhancedPrompt, setEnhancedPrompt] = useState(card.enhancedPrompt || "");
   const [enhanceLoading, setEnhanceLoading] = useState(false);
+  const [enhancedVideoPrompt, setEnhancedVideoPrompt] = useState("");
+  const [videoEnhanceLoading, setVideoEnhanceLoading] = useState(false);
   const [selectingAsset, setSelectingAsset] = useState(false);
   const [deletingAsset, setDeletingAsset] = useState<string | null>(null);
   
@@ -271,6 +273,34 @@ export function IceCardEditor({
       toast({ title: 'Enhancement failed', description: error.message, variant: 'destructive' });
     } finally {
       setEnhanceLoading(false);
+    }
+  };
+
+  const handleEnhanceVideoPrompt = async () => {
+    setVideoEnhanceLoading(true);
+    try {
+      const res = await fetch('/api/ai/enhance-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          cardTitle: card.title,
+          cardContent: card.content,
+          styleHints: 'cinematic motion, camera movement, professional video production, smooth transitions',
+          mediaType: 'video',
+        }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to enhance video prompt');
+      
+      const data = await res.json();
+      setEnhancedVideoPrompt(data.enhancedPrompt);
+      setVideoPrompt(data.enhancedPrompt);
+      toast({ title: 'Video prompt enhanced!', description: 'Motion and camera directions optimized.' });
+    } catch (error: any) {
+      toast({ title: 'Enhancement failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setVideoEnhanceLoading(false);
     }
   };
 
@@ -1047,7 +1077,24 @@ export function IceCardEditor({
                       )}
                       
                       <div className="space-y-2">
-                        <Label className="text-slate-300">Video Prompt</Label>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-slate-300">Video Prompt</Label>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleEnhanceVideoPrompt}
+                            disabled={videoEnhanceLoading}
+                            className="h-7 border-blue-500/50 text-blue-400 hover:bg-blue-500/10 gap-1"
+                            data-testid="button-enhance-video-prompt"
+                          >
+                            {videoEnhanceLoading ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-3 h-3" />
+                            )}
+                            {videoEnhanceLoading ? "Enhancing..." : "Enhance Prompt"}
+                          </Button>
+                        </div>
                         <Textarea
                           placeholder="Describe the video motion and scene (e.g., 'Slow zoom into the scene, gentle camera movement...')"
                           value={videoPrompt}
@@ -1057,7 +1104,7 @@ export function IceCardEditor({
                           data-testid="input-video-prompt"
                         />
                         <p className="text-xs text-slate-500">
-                          Leave empty to auto-generate from card content
+                          {enhancedVideoPrompt ? "Prompt enhanced with motion & camera directions" : "Leave empty to auto-generate from card content"}
                         </p>
                       </div>
                       
