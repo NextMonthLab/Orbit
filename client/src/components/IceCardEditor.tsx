@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Image, Video, Mic, Upload, Loader2, Play, Pause, RefreshCw, 
   Save, Trash2, Lock, Sparkles, Crown, Wand2, Volume2, X,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Check, AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,14 +17,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
+interface MediaAsset {
+  id: string;
+  kind: 'image' | 'video';
+  source: 'upload' | 'ai';
+  url: string;
+  thumbnailUrl?: string;
+  createdAt: string;
+  prompt?: string;
+  enhancedPrompt?: string;
+  negativePrompt?: string;
+  status: 'ready' | 'generating' | 'failed';
+  predictionId?: string;
+  model?: string;
+}
+
 interface PreviewCard {
   id: string;
   title: string;
   content: string;
   order: number;
+  mediaAssets?: MediaAsset[];
+  selectedMediaAssetId?: string;
   generatedImageUrl?: string;
   generatedVideoUrl?: string;
   narrationAudioUrl?: string;
+  enhancePromptEnabled?: boolean;
+  basePrompt?: string;
+  enhancedPrompt?: string;
 }
 
 interface Entitlements {
@@ -127,6 +147,12 @@ export function IceCardEditor({
   const [previewPlaying, setPreviewPlaying] = useState(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   
+  const [enhancePromptEnabled, setEnhancePromptEnabled] = useState(card.enhancePromptEnabled ?? false);
+  const [enhancedPrompt, setEnhancedPrompt] = useState(card.enhancedPrompt || "");
+  const [enhanceLoading, setEnhanceLoading] = useState(false);
+  const [selectingAsset, setSelectingAsset] = useState(false);
+  const [deletingAsset, setDeletingAsset] = useState<string | null>(null);
+  
   const { data: videoConfig } = useQuery({
     queryKey: ["video-config"],
     queryFn: async () => {
@@ -215,6 +241,89 @@ export function IceCardEditor({
     }
   }, [card.videoGenerationStatus, card.generatedVideoUrl, videoStatus]);
   
+  const handleEnhancePrompt = async (mediaType: 'image' | 'video' = 'image') => {
+    setEnhanceLoading(true);
+    try {
+      const res = await fetch('/api/ai/enhance-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          cardTitle: card.title,
+          cardContent: card.content,
+          styleHints: 'cinematic, professional, high production value',
+          mediaType,
+        }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to enhance prompt');
+      
+      const data = await res.json();
+      setEnhancedPrompt(data.enhancedPrompt);
+      onCardUpdate(card.id, { 
+        enhancePromptEnabled: true, 
+        enhancedPrompt: data.enhancedPrompt,
+        basePrompt: data.basePrompt,
+      });
+      toast({ title: 'Prompt enhanced!', description: 'Your prompt has been optimized for better results.' });
+    } catch (error: any) {
+      toast({ title: 'Enhancement failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setEnhanceLoading(false);
+    }
+  };
+
+  const handleSelectAsset = async (assetId: string) => {
+    setSelectingAsset(true);
+    try {
+      const res = await fetch(`/api/ice/preview/${previewId}/cards/${card.id}/media/select`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ assetId }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to select asset');
+      
+      const data = await res.json();
+      const asset = data.asset;
+      onCardUpdate(card.id, { 
+        selectedMediaAssetId: assetId,
+        generatedImageUrl: asset.kind === 'image' ? asset.url : card.generatedImageUrl,
+        generatedVideoUrl: asset.kind === 'video' ? asset.url : card.generatedVideoUrl,
+      });
+      toast({ title: 'Asset selected', description: `${asset.kind === 'image' ? 'Image' : 'Video'} is now active for this card.` });
+    } catch (error: any) {
+      toast({ title: 'Selection failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setSelectingAsset(false);
+    }
+  };
+
+  const handleDeleteAsset = async (assetId: string) => {
+    setDeletingAsset(assetId);
+    try {
+      const res = await fetch(`/api/ice/preview/${previewId}/cards/${card.id}/media/${assetId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      
+      if (!res.ok) throw new Error('Failed to delete asset');
+      
+      const data = await res.json();
+      const updatedAssets = (card.mediaAssets || []).filter(a => a.id !== assetId);
+      onCardUpdate(card.id, { 
+        mediaAssets: updatedAssets,
+        selectedMediaAssetId: data.newSelectedAssetId,
+      });
+      toast({ title: 'Asset deleted' });
+    } catch (error: any) {
+      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setDeletingAsset(null);
+    }
+  };
+
   const handleGenerateImage = async () => {
     if (!canGenerateImages) {
       onUpgradeClick();
@@ -223,7 +332,9 @@ export function IceCardEditor({
     
     setImageLoading(true);
     try {
-      const prompt = imagePrompt || `${card.title}. ${card.content}`;
+      const prompt = enhancePromptEnabled && enhancedPrompt 
+        ? enhancedPrompt 
+        : (imagePrompt || `${card.title}. ${card.content}`);
       const res = await fetch(`/api/ice/preview/${previewId}/cards/${card.id}/generate-image`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -241,7 +352,12 @@ export function IceCardEditor({
       }
       
       const data = await res.json();
-      onCardUpdate(card.id, { generatedImageUrl: data.imageUrl });
+      const newAssets = [...(card.mediaAssets || []), data.asset];
+      onCardUpdate(card.id, { 
+        generatedImageUrl: data.imageUrl,
+        mediaAssets: newAssets,
+        selectedMediaAssetId: data.asset.id,
+      });
       toast({ title: "Image generated!", description: "AI image has been created for this card." });
     } catch (error: any) {
       toast({ title: "Generation failed", description: error.message, variant: "destructive" });
@@ -634,42 +750,160 @@ export function IceCardEditor({
                     />
                   )}
                   
+                  {/* Media Library - shows all assets */}
+                  {(card.mediaAssets?.length || 0) > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">Media Library</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {card.mediaAssets?.filter(a => a.kind === 'image').map((asset) => (
+                          <div 
+                            key={asset.id}
+                            className={`relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer group ${
+                              card.selectedMediaAssetId === asset.id 
+                                ? 'border-green-500 ring-2 ring-green-500/30' 
+                                : 'border-slate-700 hover:border-slate-500'
+                            }`}
+                            onClick={() => handleSelectAsset(asset.id)}
+                            data-testid={`asset-image-${asset.id}`}
+                          >
+                            <img 
+                              src={asset.url} 
+                              alt="Media asset"
+                              className="w-full h-20 object-cover"
+                            />
+                            <div className="absolute top-1 left-1 flex gap-1">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                asset.source === 'ai' 
+                                  ? 'bg-purple-500/80 text-white' 
+                                  : 'bg-blue-500/80 text-white'
+                              }`}>
+                                {asset.source === 'ai' ? 'AI' : 'Upload'}
+                              </span>
+                            </div>
+                            {card.selectedMediaAssetId === asset.id && (
+                              <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
+                                <Check className="w-3 h-3 text-white" />
+                              </div>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="absolute bottom-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 bg-red-500/80 hover:bg-red-600 text-white"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteAsset(asset.id);
+                              }}
+                              disabled={deletingAsset === asset.id}
+                              data-testid={`delete-asset-${asset.id}`}
+                            >
+                              {deletingAsset === asset.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3 h-3" />
+                              )}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Click an image to select it as active. {card.mediaAssets?.filter(a => a.kind === 'image').length} image(s) available.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Currently Selected Preview */}
                   {card.generatedImageUrl && (
                     <div className="rounded-lg overflow-hidden border border-green-500/30 bg-green-500/5">
                       <div className="p-2 bg-green-500/10 flex items-center justify-between">
-                        <span className="text-sm font-medium text-green-400">Generated Image</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                          onClick={() => onCardUpdate(card.id, { generatedImageUrl: undefined })}
-                        >
-                          <Trash2 className="w-3 h-3 mr-1" />
-                          Remove
-                        </Button>
+                        <span className="text-sm font-medium text-green-400">Active Image</span>
                       </div>
                       <img 
                         src={card.generatedImageUrl} 
                         alt={card.title}
-                        className="w-full max-h-64 object-contain bg-black"
+                        className="w-full max-h-48 object-contain bg-black"
                       />
                     </div>
                   )}
                   
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Image Prompt</Label>
-                    <Textarea
-                      placeholder={`Auto-generated from card content: "${card.title}. ${card.content?.slice(0, 100)}..."`}
-                      value={imagePrompt}
-                      onChange={(e) => setImagePrompt(e.target.value)}
-                      rows={3}
-                      className="bg-slate-800 border-slate-700 text-white"
-                      data-testid="input-image-prompt"
-                    />
-                    <p className="text-xs text-slate-500">
-                      Leave empty to auto-generate from card content
-                    </p>
+                  {/* Enhance Prompt Toggle */}
+                  <div className="p-3 bg-slate-800/50 rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-purple-400" />
+                        <Label className="text-slate-300 cursor-pointer">Enhance Prompt</Label>
+                      </div>
+                      <Switch
+                        checked={enhancePromptEnabled}
+                        onCheckedChange={(checked) => {
+                          setEnhancePromptEnabled(checked);
+                          onCardUpdate(card.id, { enhancePromptEnabled: checked });
+                        }}
+                        data-testid="toggle-enhance-prompt"
+                      />
+                    </div>
+                    
+                    {enhancePromptEnabled && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Textarea
+                            value={enhancedPrompt}
+                            onChange={(e) => {
+                              setEnhancedPrompt(e.target.value);
+                              onCardUpdate(card.id, { enhancedPrompt: e.target.value });
+                            }}
+                            placeholder="Enhanced prompt will appear here..."
+                            rows={3}
+                            className="bg-slate-900 border-slate-700 text-white text-sm flex-1"
+                            data-testid="input-enhanced-prompt"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEnhancePrompt('image')}
+                            disabled={enhanceLoading}
+                            className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                            data-testid="button-regenerate-enhanced"
+                          >
+                            {enhanceLoading ? (
+                              <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                            ) : (
+                              <RefreshCw className="w-3 h-3 mr-1" />
+                            )}
+                            {enhancedPrompt ? 'Regenerate' : 'Generate'} Enhanced Prompt
+                          </Button>
+                          <span className="text-xs text-slate-500">
+                            Creates a production-grade prompt for better results
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!enhancePromptEnabled && (
+                      <p className="text-xs text-slate-500">
+                        Enable to get AI-optimized prompts with cinematic direction and style.
+                      </p>
+                    )}
                   </div>
+                  
+                  {/* Manual Prompt Override (when enhance is off) */}
+                  {!enhancePromptEnabled && (
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">Image Prompt</Label>
+                      <Textarea
+                        placeholder={`Auto-generated from card content: "${card.title}. ${card.content?.slice(0, 100)}..."`}
+                        value={imagePrompt}
+                        onChange={(e) => setImagePrompt(e.target.value)}
+                        rows={3}
+                        className="bg-slate-800 border-slate-700 text-white"
+                        data-testid="input-image-prompt"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Leave empty to auto-generate from card content
+                      </p>
+                    </div>
+                  )}
                   
                   <div className="flex gap-2">
                     <Button
