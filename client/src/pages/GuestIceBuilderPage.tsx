@@ -143,6 +143,8 @@ export default function GuestIceBuilderPage() {
   const [musicTrackUrl, setMusicTrackUrl] = useState<string | null>(null);
   const [musicVolume, setMusicVolume] = useState(50);
   const [narrationVolume, setNarrationVolume] = useState(100);
+  const [isPreviewingMusic, setIsPreviewingMusic] = useState(false);
+  const musicPreviewRef = useRef<HTMLAudioElement | null>(null);
   const [showBiblePanel, setShowBiblePanel] = useState(false);
   const [projectBible, setProjectBible] = useState<ProjectBible | null>(null);
   const [bibleGenerating, setBibleGenerating] = useState(false);
@@ -191,8 +193,49 @@ export default function GuestIceBuilderPage() {
         musicAudioRef.current.pause();
         musicAudioRef.current = null;
       }
+      if (musicPreviewRef.current) {
+        musicPreviewRef.current.pause();
+        musicPreviewRef.current = null;
+      }
     };
   }, []);
+  
+  // Toggle music preview playback
+  const toggleMusicPreview = () => {
+    const selectedUrl = musicTrackUrl;
+    if (!selectedUrl) return;
+    
+    if (isPreviewingMusic && musicPreviewRef.current) {
+      musicPreviewRef.current.pause();
+      setIsPreviewingMusic(false);
+    } else {
+      if (!musicPreviewRef.current) {
+        musicPreviewRef.current = new Audio(selectedUrl);
+        musicPreviewRef.current.volume = musicVolume / 100;
+        musicPreviewRef.current.onended = () => setIsPreviewingMusic(false);
+      } else if (musicPreviewRef.current.src !== selectedUrl) {
+        musicPreviewRef.current.src = selectedUrl;
+      }
+      musicPreviewRef.current.volume = musicVolume / 100;
+      musicPreviewRef.current.play().catch(() => {});
+      setIsPreviewingMusic(true);
+    }
+  };
+  
+  // Stop preview when track changes
+  useEffect(() => {
+    if (isPreviewingMusic && musicPreviewRef.current) {
+      musicPreviewRef.current.pause();
+      setIsPreviewingMusic(false);
+    }
+  }, [musicTrackUrl]);
+  
+  // Update preview volume when volume changes
+  useEffect(() => {
+    if (musicPreviewRef.current) {
+      musicPreviewRef.current.volume = musicVolume / 100;
+    }
+  }, [musicVolume]);
   
   const hasSeenWalkthrough = () => {
     if (typeof window === "undefined") return true;
@@ -1078,9 +1121,31 @@ export default function GuestIceBuilderPage() {
                         </option>
                       ))}
                     </select>
+                    {musicTrackUrl && (
+                      <button
+                        onClick={toggleMusicPreview}
+                        className={`p-1.5 rounded-full transition-all ${
+                          isPreviewingMusic 
+                            ? "bg-blue-500/30 text-blue-300" 
+                            : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+                        }`}
+                        title={isPreviewingMusic ? "Stop preview" : "Preview music"}
+                        data-testid="button-preview-music"
+                      >
+                        {isPreviewingMusic ? (
+                          <X className="w-3.5 h-3.5" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    )}
                   </div>
                   <p className="text-[10px] text-white/40 mt-1">
-                    {musicEnabled ? "Music will play continuously during preview" : "No background music"}
+                    {isPreviewingMusic 
+                      ? "Playing preview..." 
+                      : musicEnabled 
+                        ? "Click play to preview before applying" 
+                        : "No background music"}
                   </p>
                 </div>
 
