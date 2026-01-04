@@ -49,6 +49,7 @@ interface OwnedOrbit {
     interactions: number;
     conversations: number;
     iceViews: number;
+    leads: number;
   };
 }
 
@@ -423,7 +424,7 @@ export default function Launchpad() {
               visits={currentOrbitStats?.visits || 0}
               conversations={currentOrbitStats?.conversations || 0}
               iceViews={currentOrbitStats?.iceViews || 0}
-              leads={0}
+              leads={currentOrbitStats?.leads || 0}
             />
 
             <TopInsightCard insight={topInsight} onMakeIce={handleMakeIce} />
@@ -465,7 +466,7 @@ export default function Launchpad() {
               visits={currentOrbitStats?.visits || 0}
               conversations={currentOrbitStats?.conversations || 0}
               iceViews={currentOrbitStats?.iceViews || 0}
-              leads={0}
+              leads={currentOrbitStats?.leads || 0}
             />
             <TopInsightCard insight={topInsight} onMakeIce={handleMakeIce} />
             <InsightFeed

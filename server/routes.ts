@@ -776,6 +776,7 @@ export async function registerRoutes(
       const orbitsWithStats = await Promise.all(
         orbits.map(async (orbit) => {
           const stats = await storage.getOrbitAnalyticsSummary(orbit.businessSlug, 30);
+          const leads = await storage.getOrbitLeads(orbit.businessSlug, 100);
           return {
             businessSlug: orbit.businessSlug,
             sourceUrl: orbit.sourceUrl,
@@ -792,6 +793,7 @@ export async function registerRoutes(
               interactions: stats.interactions,
               conversations: stats.conversations,
               iceViews: stats.iceViews,
+              leads: leads.length,
             },
           };
         })
@@ -9097,6 +9099,7 @@ Guidelines:
       const conversations = await storage.getOrbitConversations(slug, 20);
       const boxes = await storage.getOrbitBoxes(slug);
       const curatedItems = await storage.getApiCuratedItemsByOrbit(slug, 50);
+      const leads = await storage.getOrbitLeads(slug, 50);
       
       type InsightKind = "signal" | "content_ready" | "ops";
       type ContentBrief = {
@@ -9315,6 +9318,105 @@ Guidelines:
           contentPotentialScore: 15,
           createdAt: now,
         });
+      }
+      
+      // LEAD INSIGHTS - From contact form submissions
+      if (leads.length > 0) {
+        // Aggregate leads count insight (SIGNAL)
+        insights.push({
+          id: generateInsightId([slug, 'leads', String(leads.length)]),
+          orbitId: slug,
+          title: `${leads.length} lead${leads.length > 1 ? 's' : ''} collected`,
+          meaning: leads.length > 5 
+            ? "Strong conversion. Review messages to understand what visitors are looking for."
+            : "People are reaching out. Review their messages to spot opportunities.",
+          confidence: leads.length > 3 ? "high" : "medium",
+          topicTags: ["leads", "conversion"],
+          source: "Contact Forms",
+          kind: leads.length > 3 ? "top" : "feed",
+          insightKind: "signal",
+          contentPotentialScore: 25,
+          createdAt: now,
+        });
+        
+        // Analyze lead messages for content opportunities
+        const leadMessages = leads
+          .map(l => (l.message || '').toLowerCase())
+          .filter(m => m.length > 0)
+          .join(' ');
+        
+        // Detect job/career inquiries - CONTENT-READY
+        if (leadMessages.includes('job') || leadMessages.includes('career') || leadMessages.includes('hiring') || leadMessages.includes('work') || leadMessages.includes('position') || leadMessages.includes('employ')) {
+          const jobLeads = leads.filter(l => {
+            const msg = (l.message || '').toLowerCase();
+            return msg.includes('job') || msg.includes('career') || msg.includes('hiring') || msg.includes('work') || msg.includes('position') || msg.includes('employ');
+          });
+          insights.push({
+            id: generateInsightId([slug, 'lead-jobs', now.substring(0, 10)]),
+            orbitId: slug,
+            title: `${jobLeads.length} visitor${jobLeads.length > 1 ? 's' : ''} asking about jobs`,
+            meaning: "Career opportunities are on people's minds. A recruiting story could attract talent.",
+            confidence: "high",
+            topicTags: ["careers", "recruitment", "employer-brand"],
+            source: "Lead Messages",
+            kind: "top",
+            insightKind: "content_ready",
+            contentPotentialScore: 90,
+            contentBrief: {
+              audience: "Potential candidates and job seekers",
+              problem: "Looking for career opportunities and company culture insights",
+              promise: "Join a team that values and develops its people",
+              proof: "Team culture, growth stories, employee testimonials",
+              cta: "View open positions or apply now",
+              formatSuggestion: "story",
+            },
+            createdAt: now,
+          });
+        }
+        
+        // Detect partnership/collaboration inquiries - CONTENT-READY
+        if (leadMessages.includes('partner') || leadMessages.includes('collaborat') || leadMessages.includes('wholesale') || leadMessages.includes('supplier')) {
+          insights.push({
+            id: generateInsightId([slug, 'lead-partnership', now.substring(0, 10)]),
+            orbitId: slug,
+            title: "Visitors interested in partnerships",
+            meaning: "There's interest in working together. A partnership-focused story could attract the right collaborators.",
+            confidence: "high",
+            topicTags: ["partnerships", "b2b"],
+            source: "Lead Messages",
+            kind: "top",
+            insightKind: "content_ready",
+            contentPotentialScore: 85,
+            contentBrief: {
+              audience: "Potential business partners",
+              problem: "Looking for reliable partners to grow with",
+              promise: "A partnership built on mutual success",
+              proof: "Existing partnerships, success stories",
+              cta: "Start a partnership conversation",
+              formatSuggestion: "testimonial",
+            },
+            createdAt: now,
+          });
+        }
+        
+        // Show most recent lead as an individual insight if it has a message
+        const recentLead = leads.find(l => l.message && l.message.length > 10);
+        if (recentLead) {
+          const messagePreview = recentLead.message!.slice(0, 50) + (recentLead.message!.length > 50 ? '...' : '');
+          insights.push({
+            id: generateInsightId([slug, 'recent-lead', String(recentLead.id)]),
+            orbitId: slug,
+            title: `New lead: "${messagePreview}"`,
+            meaning: `${recentLead.name} reached out. Their message may reveal what visitors are looking for.`,
+            confidence: "high",
+            topicTags: ["lead", "opportunity"],
+            source: "Recent Contact",
+            kind: "feed",
+            insightKind: "signal",
+            contentPotentialScore: 30,
+            createdAt: now,
+          });
+        }
       }
       
       // Insights from curated items (API data sources) - OPS
