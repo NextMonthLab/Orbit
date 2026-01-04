@@ -7533,6 +7533,33 @@ Stay engaging, reference story details, and help the audience understand the nar
     }
   });
 
+  // Update music and style settings for a preview
+  app.put("/api/ice/preview/:previewId/settings", async (req, res) => {
+    try {
+      const { previewId } = req.params;
+      const { musicTrackUrl, musicVolume, musicEnabled, titlePackId } = req.body;
+      
+      const preview = await storage.getIcePreview(previewId);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      // Build update object with only provided fields
+      const updateData: any = {};
+      if (musicTrackUrl !== undefined) updateData.musicTrackUrl = musicTrackUrl;
+      if (musicVolume !== undefined) updateData.musicVolume = musicVolume;
+      if (musicEnabled !== undefined) updateData.musicEnabled = musicEnabled;
+      if (titlePackId !== undefined) updateData.titlePackId = titlePackId;
+      
+      await storage.updateIcePreview(previewId, updateData);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating preview settings:", error);
+      res.status(500).json({ message: "Error updating settings" });
+    }
+  });
+
   // AI Prompt Enhancement - generate production-grade prompts for better AI outputs
   app.post("/api/ai/enhance-prompt", requireAuth, async (req, res) => {
     try {

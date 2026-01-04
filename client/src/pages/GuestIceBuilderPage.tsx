@@ -254,6 +254,50 @@ export default function GuestIceBuilderPage() {
     }
   }, [musicVolume, isPreviewingMusic]);
   
+  // Save music and style settings when they change (debounced)
+  const settingsSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initialLoadRef = useRef(true);
+  
+  useEffect(() => {
+    // Skip saving on initial load
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      return;
+    }
+    
+    // Only save if we have a preview
+    if (!preview?.id) return;
+    
+    // Debounce the save
+    if (settingsSaveTimeoutRef.current) {
+      clearTimeout(settingsSaveTimeoutRef.current);
+    }
+    
+    settingsSaveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await fetch(`/api/ice/preview/${preview.id}/settings`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            musicTrackUrl,
+            musicVolume,
+            musicEnabled,
+            titlePackId,
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to save settings:", error);
+      }
+    }, 500);
+    
+    return () => {
+      if (settingsSaveTimeoutRef.current) {
+        clearTimeout(settingsSaveTimeoutRef.current);
+      }
+    };
+  }, [preview?.id, musicTrackUrl, musicVolume, musicEnabled, titlePackId]);
+  
   const hasSeenWalkthrough = () => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("ice_walkthrough_seen") === "true";
@@ -320,6 +364,20 @@ export default function GuestIceBuilderPage() {
       }
       if (existingPreview.projectBible) {
         setProjectBible(existingPreview.projectBible);
+      }
+      // Load music settings
+      if (existingPreview.musicTrackUrl) {
+        setMusicTrackUrl(existingPreview.musicTrackUrl);
+      }
+      if (existingPreview.musicVolume !== undefined) {
+        setMusicVolume(existingPreview.musicVolume);
+      }
+      if (existingPreview.musicEnabled !== undefined) {
+        setMusicEnabled(existingPreview.musicEnabled);
+      }
+      // Load title pack
+      if (existingPreview.titlePackId) {
+        setTitlePackId(existingPreview.titlePackId);
       }
       if (!hasSeenWalkthrough()) {
         setShowWalkthrough(true);
