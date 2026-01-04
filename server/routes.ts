@@ -7206,6 +7206,333 @@ Stay engaging, reference story details, and help the audience understand the nar
     }
   });
 
+  // ============ PROJECT BIBLE (Continuity Guardrails) ============
+  
+  // Get project bible for a preview
+  app.get("/api/ice/preview/:previewId/bible", requireAuth, async (req, res) => {
+    try {
+      const { previewId } = req.params;
+      const preview = await storage.getIcePreview(previewId);
+      
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      // Check ownership
+      if (preview.ownerUserId !== req.user?.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      res.json({
+        bible: preview.projectBible || null,
+        hasProjectBible: !!preview.projectBible,
+      });
+    } catch (error) {
+      console.error("Error fetching project bible:", error);
+      res.status(500).json({ message: "Error fetching bible" });
+    }
+  });
+
+  // Generate project bible from content
+  app.post("/api/ice/preview/:previewId/bible/generate", requireAuth, async (req, res) => {
+    try {
+      const { previewId } = req.params;
+      const { regenerate } = req.body;
+      
+      const preview = await storage.getIcePreview(previewId);
+      
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      // Check ownership
+      if (preview.ownerUserId !== req.user?.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      // Don't regenerate if already exists unless explicitly requested
+      if (preview.projectBible && !regenerate) {
+        return res.json({
+          bible: preview.projectBible,
+          generated: false,
+          message: "Bible already exists. Set regenerate=true to recreate.",
+        });
+      }
+      
+      // Import and call the bible generator
+      const { generateProjectBible } = await import("./services/bibleGenerator");
+      
+      const bible = await generateProjectBible({
+        title: preview.title,
+        cards: preview.cards || [],
+        sourceContent: preview.sourceValue,
+      });
+      
+      // Save the bible
+      await storage.updateIcePreview(previewId, { projectBible: bible });
+      
+      res.json({
+        bible,
+        generated: true,
+        message: "Project Bible generated successfully",
+      });
+    } catch (error) {
+      console.error("Error generating project bible:", error);
+      res.status(500).json({ message: "Error generating bible" });
+    }
+  });
+
+  // Update entire project bible
+  app.put("/api/ice/preview/:previewId/bible", requireAuth, async (req, res) => {
+    try {
+      const { previewId } = req.params;
+      const { bible } = req.body;
+      
+      const preview = await storage.getIcePreview(previewId);
+      
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      if (preview.ownerUserId !== req.user?.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      if (!bible) {
+        return res.status(400).json({ message: "Bible data is required" });
+      }
+      
+      // Increment version
+      const crypto = await import("crypto");
+      const updatedBible = {
+        ...bible,
+        versionId: crypto.randomUUID(),
+        version: (preview.projectBible?.version || 0) + 1,
+        updatedAt: new Date().toISOString(),
+        updatedBy: String(req.user?.id),
+      };
+      
+      await storage.updateIcePreview(previewId, { projectBible: updatedBible });
+      
+      res.json({
+        bible: updatedBible,
+        message: "Bible updated. Future generations will use this version.",
+      });
+    } catch (error) {
+      console.error("Error updating project bible:", error);
+      res.status(500).json({ message: "Error updating bible" });
+    }
+  });
+
+  // Add/update a character in the bible
+  app.put("/api/ice/preview/:previewId/bible/characters/:characterId?", requireAuth, async (req, res) => {
+    try {
+      const { previewId, characterId } = req.params;
+      const characterData = req.body;
+      
+      const preview = await storage.getIcePreview(previewId);
+      
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      if (preview.ownerUserId !== req.user?.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      if (!preview.projectBible) {
+        return res.status(400).json({ message: "Project bible not found. Generate it first." });
+      }
+      
+      const crypto = await import("crypto");
+      const now = new Date().toISOString();
+      let characters = [...(preview.projectBible.characters || [])];
+      
+      if (characterId) {
+        // Update existing character
+        const idx = characters.findIndex(c => c.id === characterId);
+        if (idx === -1) {
+          return res.status(404).json({ message: "Character not found" });
+        }
+        characters[idx] = {
+          ...characters[idx],
+          ...characterData,
+          id: characterId,
+          updatedAt: now,
+        };
+      } else {
+        // Add new character
+        characters.push({
+          ...characterData,
+          id: crypto.randomUUID(),
+          createdAt: now,
+          updatedAt: now,
+          lockedTraits: characterData.lockedTraits || [],
+        });
+      }
+      
+      const updatedBible = {
+        ...preview.projectBible,
+        characters,
+        versionId: crypto.randomUUID(),
+        version: preview.projectBible.version + 1,
+        updatedAt: now,
+        updatedBy: String(req.user?.id),
+      };
+      
+      await storage.updateIcePreview(previewId, { projectBible: updatedBible });
+      
+      res.json({
+        bible: updatedBible,
+        character: characterId ? characters.find(c => c.id === characterId) : characters[characters.length - 1],
+      });
+    } catch (error) {
+      console.error("Error updating character:", error);
+      res.status(500).json({ message: "Error updating character" });
+    }
+  });
+
+  // Delete a character from the bible
+  app.delete("/api/ice/preview/:previewId/bible/characters/:characterId", requireAuth, async (req, res) => {
+    try {
+      const { previewId, characterId } = req.params;
+      
+      const preview = await storage.getIcePreview(previewId);
+      
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      if (preview.ownerUserId !== req.user?.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      if (!preview.projectBible) {
+        return res.status(400).json({ message: "Project bible not found" });
+      }
+      
+      const crypto = await import("crypto");
+      const now = new Date().toISOString();
+      const characters = preview.projectBible.characters.filter(c => c.id !== characterId);
+      
+      const updatedBible = {
+        ...preview.projectBible,
+        characters,
+        versionId: crypto.randomUUID(),
+        version: preview.projectBible.version + 1,
+        updatedAt: now,
+        updatedBy: String(req.user?.id),
+      };
+      
+      await storage.updateIcePreview(previewId, { projectBible: updatedBible });
+      
+      res.json({
+        bible: updatedBible,
+        deletedCharacterId: characterId,
+      });
+    } catch (error) {
+      console.error("Error deleting character:", error);
+      res.status(500).json({ message: "Error deleting character" });
+    }
+  });
+
+  // Update world bible
+  app.put("/api/ice/preview/:previewId/bible/world", requireAuth, async (req, res) => {
+    try {
+      const { previewId } = req.params;
+      const worldData = req.body;
+      
+      const preview = await storage.getIcePreview(previewId);
+      
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      if (preview.ownerUserId !== req.user?.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      if (!preview.projectBible) {
+        return res.status(400).json({ message: "Project bible not found. Generate it first." });
+      }
+      
+      const crypto = await import("crypto");
+      const now = new Date().toISOString();
+      
+      const updatedBible = {
+        ...preview.projectBible,
+        world: {
+          ...preview.projectBible.world,
+          ...worldData,
+          updatedAt: now,
+        },
+        versionId: crypto.randomUUID(),
+        version: preview.projectBible.version + 1,
+        updatedAt: now,
+        updatedBy: String(req.user?.id),
+      };
+      
+      await storage.updateIcePreview(previewId, { projectBible: updatedBible });
+      
+      res.json({
+        bible: updatedBible,
+        world: updatedBible.world,
+      });
+    } catch (error) {
+      console.error("Error updating world bible:", error);
+      res.status(500).json({ message: "Error updating world" });
+    }
+  });
+
+  // Update style bible
+  app.put("/api/ice/preview/:previewId/bible/style", requireAuth, async (req, res) => {
+    try {
+      const { previewId } = req.params;
+      const styleData = req.body;
+      
+      const preview = await storage.getIcePreview(previewId);
+      
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      if (preview.ownerUserId !== req.user?.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      if (!preview.projectBible) {
+        return res.status(400).json({ message: "Project bible not found. Generate it first." });
+      }
+      
+      const crypto = await import("crypto");
+      const now = new Date().toISOString();
+      
+      const updatedBible = {
+        ...preview.projectBible,
+        style: {
+          ...preview.projectBible.style,
+          ...styleData,
+          noOnScreenText: true, // Always enforce no text
+          updatedAt: now,
+        },
+        versionId: crypto.randomUUID(),
+        version: preview.projectBible.version + 1,
+        updatedAt: now,
+        updatedBy: String(req.user?.id),
+      };
+      
+      await storage.updateIcePreview(previewId, { projectBible: updatedBible });
+      
+      res.json({
+        bible: updatedBible,
+        style: updatedBible.style,
+      });
+    } catch (error) {
+      console.error("Error updating style bible:", error);
+      res.status(500).json({ message: "Error updating style" });
+    }
+  });
+
   // AI Prompt Enhancement - generate production-grade prompts for better AI outputs
   app.post("/api/ai/enhance-prompt", requireAuth, async (req, res) => {
     try {
