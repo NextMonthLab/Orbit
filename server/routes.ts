@@ -6289,6 +6289,47 @@ Stay engaging, reference story details, and help the audience understand the nar
     }
   });
   
+  // Delete an ICE preview (owner only)
+  app.delete("/api/ice/preview/:id", requireAuth, async (req, res) => {
+    try {
+      const preview = await storage.getIcePreview(req.params.id);
+      if (!preview) {
+        return res.status(404).json({ message: "Preview not found" });
+      }
+      
+      const user = req.user as schema.User;
+      const policy = canWriteIcePreview(user, preview);
+      
+      if (!policy.allowed) {
+        const { userIp, userAgent } = extractRequestInfo(req);
+        await logAuditEvent('permission.denied', 'ice_preview', preview.id, {
+          userId: user.id,
+          userIp,
+          userAgent,
+          details: { action: 'delete', reason: policy.reason },
+          success: false,
+          errorCode: String(policy.statusCode),
+        });
+        return res.status(policy.statusCode).json({ message: policy.reason || "Not authorized to delete this preview" });
+      }
+      
+      await storage.deleteIcePreview(req.params.id);
+      
+      const { userIp, userAgent } = extractRequestInfo(req);
+      await logAuditEvent('content.deleted', 'ice_preview', preview.id, {
+        userId: user.id,
+        userIp,
+        userAgent,
+        details: { title: preview.title },
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting ICE preview:", error);
+      res.status(500).json({ message: "Error deleting preview" });
+    }
+  });
+  
   // Get a specific ICE preview by ID (visibility-controlled)
   app.get("/api/ice/preview/:id", async (req, res) => {
     try {

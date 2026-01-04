@@ -1,9 +1,21 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { FolderOpen, Plus, Sparkles, FileText, Video, Globe, Eye, Edit, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FolderOpen, Plus, Sparkles, FileText, Video, Globe, Eye, Edit, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 import GlobalNav from "@/components/GlobalNav";
 import { format } from "date-fns";
 
@@ -20,6 +32,8 @@ interface IcePreview {
 
 export default function Library() {
   const [activeTab, setActiveTab] = useState<LibraryTab>("drafts");
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: previewsData, isLoading } = useQuery({
     queryKey: ["/api/ice/my-previews"],
@@ -29,6 +43,31 @@ export default function Library() {
       return res.json() as Promise<{ previews: IcePreview[] }>;
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/ice/preview/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to delete");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ice/my-previews"] });
+      toast({ title: "Deleted", description: "The experience has been deleted." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
+  };
 
   const previews = previewsData?.previews || [];
   const drafts = previews.filter(p => p.visibility !== "public");
@@ -132,7 +171,7 @@ export default function Library() {
         {!isLoading && activeTab === "drafts" && drafts.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {drafts.map((preview) => (
-              <PreviewCard key={preview.id} preview={preview} />
+              <PreviewCard key={preview.id} preview={preview} onDelete={handleDelete} />
             ))}
           </div>
         )}
@@ -154,7 +193,7 @@ export default function Library() {
         {!isLoading && activeTab === "published" && published.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {published.map((preview) => (
-              <PreviewCard key={preview.id} preview={preview} isPublished />
+              <PreviewCard key={preview.id} preview={preview} isPublished onDelete={handleDelete} />
             ))}
           </div>
         )}
@@ -177,9 +216,10 @@ export default function Library() {
   );
 }
 
-function PreviewCard({ preview, isPublished }: { preview: IcePreview; isPublished?: boolean }) {
+function PreviewCard({ preview, isPublished, onDelete }: { preview: IcePreview; isPublished?: boolean; onDelete: (id: string) => void }) {
   const cardCount = preview.cards?.length || 0;
   const createdDate = preview.createdAt ? format(new Date(preview.createdAt), "MMM d, yyyy") : "";
+  const [deleteOpen, setDeleteOpen] = useState(false);
   
   return (
     <div 
@@ -195,11 +235,42 @@ function PreviewCard({ preview, isPublished }: { preview: IcePreview; isPublishe
             {cardCount} cards · {createdDate}
           </p>
         </div>
-        {isPublished && (
-          <Badge className="bg-green-500/20 text-green-400 border-0 text-xs">
-            Live
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {isPublished && (
+            <Badge className="bg-green-500/20 text-green-400 border-0 text-xs">
+              Live
+            </Badge>
+          )}
+          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-white/40 hover:text-red-400 hover:bg-red-500/10"
+                data-testid={`button-delete-${preview.id}`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="bg-black border-white/10">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-white">Delete this experience?</AlertDialogTitle>
+                <AlertDialogDescription className="text-white/60">
+                  "{preview.title || "Untitled"}" will be permanently deleted. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="border-white/20 text-white/70 hover:bg-white/5">Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={() => onDelete(preview.id)}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
       
       <div className="flex gap-2 mt-4">

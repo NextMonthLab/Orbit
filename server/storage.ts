@@ -120,6 +120,7 @@ export interface IStorage {
   getIcePreviewsByUser(userId: number): Promise<schema.IcePreview[]>;
   createIcePreview(preview: schema.InsertIcePreview): Promise<schema.IcePreview>;
   updateIcePreview(id: string, data: Partial<schema.InsertIcePreview>): Promise<schema.IcePreview | undefined>;
+  deleteIcePreview(id: string): Promise<void>;
   countIpIcePreviewsToday(ip: string): Promise<number>;
   promoteIcePreview(id: string, userId: number, jobId: number): Promise<schema.IcePreview | undefined>;
   
@@ -1075,6 +1076,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.icePreviews.id, id))
       .returning();
     return result;
+  }
+  
+  async deleteIcePreview(id: string): Promise<void> {
+    await db.delete(schema.icePreviews).where(eq(schema.icePreviews.id, id));
   }
   
   async countIpIcePreviewsToday(ip: string): Promise<number> {
