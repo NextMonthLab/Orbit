@@ -2380,3 +2380,212 @@ export const socialProofItems = pgTable("social_proof_items", {
 export const insertSocialProofItemSchema = createInsertSchema(socialProofItems).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertSocialProofItem = z.infer<typeof insertSocialProofItemSchema>;
 export type SocialProofItem = typeof socialProofItems.$inferSelect;
+
+// ============ TITLE PACKS (Layout Prefabs for ICE Cards) ============
+
+// Title Pack tier access levels
+export type TitlePackTier = 'free' | 'grow' | 'insight' | 'intelligence';
+
+// Layer types within a title pack
+export type TitlePackLayerType = 'text' | 'shape' | 'gradient' | 'image';
+
+// Text fitting strategies
+export type TextFitStrategy = 'shrink' | 'truncate' | 'wrap' | 'smart';
+
+// Animation timing functions
+export type AnimationEasing = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'spring';
+
+// Layer definition for title pack
+export const titlePackLayerSchema = z.object({
+  id: z.string(),
+  type: z.enum(['text', 'shape', 'gradient', 'image']),
+  name: z.string(),
+  
+  // Geometry (percentages for responsive positioning)
+  geometry: z.object({
+    x: z.number().min(0).max(100), // % from left
+    y: z.number().min(0).max(100), // % from top
+    width: z.number().min(0).max(100).optional(),
+    height: z.number().min(0).max(100).optional(),
+    anchorX: z.enum(['left', 'center', 'right']).default('center'),
+    anchorY: z.enum(['top', 'center', 'bottom']).default('center'),
+    rotation: z.number().default(0),
+  }),
+  
+  // Typography (for text layers)
+  typography: z.object({
+    fontFamily: z.string().default('Inter'),
+    fontWeight: z.number().default(600),
+    fontSize: z.number().default(32), // Base size in px
+    lineHeight: z.number().default(1.2),
+    letterSpacing: z.number().default(0),
+    textAlign: z.enum(['left', 'center', 'right']).default('center'),
+    textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).default('none'),
+    color: z.string().default('#ffffff'),
+    stroke: z.object({
+      color: z.string(),
+      width: z.number(),
+    }).optional(),
+    shadow: z.object({
+      color: z.string(),
+      blur: z.number(),
+      offsetX: z.number(),
+      offsetY: z.number(),
+    }).optional(),
+  }).optional(),
+  
+  // Text fitting rules
+  textFit: z.object({
+    strategy: z.enum(['shrink', 'truncate', 'wrap', 'smart']).default('smart'),
+    minFontSize: z.number().default(12),
+    maxLines: z.number().default(3),
+  }).optional(),
+  
+  // Shape/gradient properties
+  fill: z.object({
+    type: z.enum(['solid', 'gradient']),
+    color: z.string().optional(),
+    gradient: z.object({
+      type: z.enum(['linear', 'radial']),
+      angle: z.number().default(0),
+      stops: z.array(z.object({
+        offset: z.number(),
+        color: z.string(),
+      })),
+    }).optional(),
+  }).optional(),
+  
+  // Animation
+  animation: z.object({
+    entrance: z.object({
+      type: z.enum(['fade', 'slide-up', 'slide-down', 'slide-left', 'slide-right', 'zoom', 'pop', 'typewriter']),
+      duration: z.number().default(0.5),
+      delay: z.number().default(0),
+      easing: z.enum(['linear', 'ease-in', 'ease-out', 'ease-in-out', 'spring']).default('ease-out'),
+    }).optional(),
+    exit: z.object({
+      type: z.enum(['fade', 'slide-up', 'slide-down', 'slide-left', 'slide-right', 'zoom']),
+      duration: z.number().default(0.3),
+      easing: z.enum(['linear', 'ease-in', 'ease-out', 'ease-in-out', 'spring']).default('ease-in'),
+    }).optional(),
+    loop: z.object({
+      type: z.enum(['pulse', 'glow', 'shake', 'bounce']),
+      duration: z.number().default(1),
+      iterationCount: z.union([z.number(), z.literal('infinite')]).default('infinite'),
+    }).optional(),
+  }).optional(),
+  
+  // Layer z-order
+  zIndex: z.number().default(0),
+});
+
+export type TitlePackLayer = z.infer<typeof titlePackLayerSchema>;
+
+// Full title pack definition
+export const titlePackDefinitionSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  category: z.enum(['impact', 'cinematic', 'editorial', 'fun', 'minimal']),
+  
+  // Preview thumbnail URL
+  thumbnailUrl: z.string().optional(),
+  
+  // Layer stack
+  layers: z.array(titlePackLayerSchema),
+  
+  // Global pack settings
+  defaultDuration: z.number().default(4), // seconds per card
+  backgroundColor: z.string().optional(),
+  overlayOpacity: z.number().min(0).max(1).default(0.4),
+});
+
+export type TitlePackDefinition = z.infer<typeof titlePackDefinitionSchema>;
+
+// Title Packs table (for custom/saved packs)
+export const titlePacks = pgTable("title_packs", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  
+  // Pack metadata
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").default("custom"),
+  tier: text("tier").$type<TitlePackTier>().default("free").notNull(),
+  
+  // Is this a system preset or user-created?
+  isSystem: boolean("is_system").default(false).notNull(),
+  
+  // Owner (null for system presets)
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  
+  // The full pack definition JSON
+  definition: jsonb("definition").$type<TitlePackDefinition>().notNull(),
+  
+  // Preview/thumbnail
+  thumbnailUrl: text("thumbnail_url"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertTitlePackSchema = createInsertSchema(titlePacks).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertTitlePack = z.infer<typeof insertTitlePackSchema>;
+export type TitlePack = typeof titlePacks.$inferSelect;
+
+// ============ VIDEO EXPORT JOBS ============
+
+// Video export job status
+export type VideoExportStatus = 'queued' | 'processing' | 'rendering' | 'completed' | 'failed';
+
+// Video export quality options
+export type VideoExportQuality = 'draft' | 'standard' | 'hd';
+
+// Video export format options
+export type VideoExportFormat = 'mp4' | 'webm';
+
+// Video Export Jobs - background jobs for rendering ICE cards to video
+export const videoExportJobs = pgTable("video_export_jobs", {
+  id: serial("id").primaryKey(),
+  
+  // Job identification
+  jobId: text("job_id").notNull().unique(), // UUID for external reference
+  
+  // Owner and source
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug, { onDelete: "cascade" }),
+  iceDraftId: integer("ice_draft_id").references(() => iceDrafts.id, { onDelete: "set null" }),
+  
+  // Export configuration
+  quality: text("quality").$type<VideoExportQuality>().default("standard").notNull(),
+  format: text("format").$type<VideoExportFormat>().default("mp4").notNull(),
+  includeNarration: boolean("include_narration").default(true).notNull(),
+  includeMusic: boolean("include_music").default(true).notNull(),
+  
+  // Title pack used (null for no captions)
+  titlePackId: integer("title_pack_id").references(() => titlePacks.id, { onDelete: "set null" }),
+  
+  // Job status
+  status: text("status").$type<VideoExportStatus>().default("queued").notNull(),
+  progress: real("progress").default(0).notNull(), // 0-100
+  currentStep: text("current_step"), // Human-readable current step
+  
+  // Error tracking
+  errorMessage: text("error_message"),
+  retryCount: integer("retry_count").default(0).notNull(),
+  
+  // Output artifact
+  outputUrl: text("output_url"),
+  outputSizeBytes: integer("output_size_bytes"),
+  outputDurationSeconds: real("output_duration_seconds"),
+  
+  // Timing
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  expiresAt: timestamp("expires_at"), // When the download link expires
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertVideoExportJobSchema = createInsertSchema(videoExportJobs).omit({ id: true, createdAt: true });
+export type InsertVideoExportJob = z.infer<typeof insertVideoExportJobSchema>;
+export type VideoExportJob = typeof videoExportJobs.$inferSelect;
