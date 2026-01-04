@@ -454,8 +454,10 @@ export default function DataHub() {
           <Button 
             className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
             data-testid="button-upgrade"
+            onClick={handleUpgrade}
+            disabled={upgradeMutation.isPending}
           >
-            Upgrade to Business Hub
+            {upgradeMutation.isPending ? "Processing..." : "Upgrade to Business Hub"}
           </Button>
         </div>
       </div>
