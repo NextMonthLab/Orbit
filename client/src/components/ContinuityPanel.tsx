@@ -575,14 +575,15 @@ function StyleEditor({ style, onUpdate }: StyleEditorProps) {
             <label className="text-xs text-zinc-500">Aspect Ratio</label>
             <select 
               value={style?.aspectRatio || '9:16'}
-              onChange={(e) => onUpdate({ aspectRatio: e.target.value })}
+              onChange={(e) => onUpdate({ aspectRatio: e.target.value as "9:16" | "16:9" | "1:1" | "4:3" | "3:4" })}
               className="w-full h-8 text-sm bg-zinc-800 border border-zinc-700 rounded-md px-2 text-white"
               data-testid="select-aspect-ratio"
             >
               <option value="9:16">9:16 (Vertical/Mobile)</option>
               <option value="16:9">16:9 (Horizontal)</option>
               <option value="1:1">1:1 (Square)</option>
-              <option value="4:5">4:5 (Portrait)</option>
+              <option value="4:3">4:3 (Landscape)</option>
+              <option value="3:4">3:4 (Portrait)</option>
             </select>
           </div>
           
@@ -590,15 +591,14 @@ function StyleEditor({ style, onUpdate }: StyleEditorProps) {
             <label className="text-xs text-zinc-500">Realism Level</label>
             <select 
               value={style?.realismLevel || 'photorealistic'}
-              onChange={(e) => onUpdate({ realismLevel: e.target.value })}
+              onChange={(e) => onUpdate({ realismLevel: e.target.value as "photorealistic" | "stylized" | "illustrated" | "animated" })}
               className="w-full h-8 text-sm bg-zinc-800 border border-zinc-700 rounded-md px-2 text-white"
               data-testid="select-realism"
             >
               <option value="photorealistic">Photorealistic</option>
-              <option value="cinematic">Cinematic</option>
               <option value="stylized">Stylized</option>
+              <option value="illustrated">Illustrated</option>
               <option value="animated">Animated</option>
-              <option value="painterly">Painterly</option>
             </select>
           </div>
           

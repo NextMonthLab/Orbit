@@ -23,6 +23,10 @@ import { GuidedWalkthrough } from "@/components/GuidedWalkthrough";
 import { MediaGenerationPanel } from "@/components/MediaGenerationPanel";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { IceCardEditor } from "@/components/IceCardEditor";
+import { ContinuityPanel } from "@/components/ContinuityPanel";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { BookOpen } from "lucide-react";
+import type { ProjectBible } from "@shared/schema";
 
 const CREATION_STAGES = [
   { id: "fetch", label: "Fetching your content", duration: 1500 },
@@ -127,6 +131,9 @@ export default function GuestIceBuilderPage() {
   const [bulkGeneratingVideos, setBulkGeneratingVideos] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [narrationMuted, setNarrationMuted] = useState(false);
+  const [showBiblePanel, setShowBiblePanel] = useState(false);
+  const [projectBible, setProjectBible] = useState<ProjectBible | null>(null);
+  const [bibleGenerating, setBibleGenerating] = useState(false);
   
   const paceDelays = { slow: 12000, normal: 5000, fast: 3000 };
   
@@ -212,11 +219,53 @@ export default function GuestIceBuilderPage() {
       if (existingPreview.previewAccessToken) {
         setPreviewAccessToken(existingPreview.previewAccessToken);
       }
+      if (existingPreview.projectBible) {
+        setProjectBible(existingPreview.projectBible);
+      }
       if (!hasSeenWalkthrough()) {
         setShowWalkthrough(true);
       }
     }
   }, [existingPreview]);
+
+  const handleGenerateBible = async () => {
+    if (!preview?.id || !user) return;
+    setBibleGenerating(true);
+    try {
+      const res = await fetch(`/api/ice/preview/${preview.id}/bible/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ regenerate: !!projectBible }),
+      });
+      if (!res.ok) throw new Error("Failed to generate bible");
+      const data = await res.json();
+      setProjectBible(data.bible);
+      toast({ 
+        title: "Project Bible Generated", 
+        description: `Found ${data.bible.characters?.length || 0} characters and world details.` 
+      });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to generate bible", variant: "destructive" });
+    } finally {
+      setBibleGenerating(false);
+    }
+  };
+
+  const handleBibleChange = async (updatedBible: ProjectBible) => {
+    setProjectBible(updatedBible);
+    if (!preview?.id || !user) return;
+    try {
+      await fetch(`/api/ice/preview/${preview.id}/bible`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ bible: updatedBible }),
+      });
+    } catch (error) {
+      console.error("Failed to save bible:", error);
+    }
+  };
 
   const createPreviewMutation = useMutation({
     mutationFn: async (data: { type: string; value: string }) => {
@@ -902,6 +951,36 @@ export default function GuestIceBuilderPage() {
                         )}
                       </Button>
                     )}
+                    <Sheet open={showBiblePanel} onOpenChange={setShowBiblePanel}>
+                      <SheetTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 border-amber-500/50 text-amber-300 hover:bg-amber-500/20"
+                          data-testid="button-open-bible"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" />
+                          Bible
+                          {projectBible && (
+                            <span className="ml-1 bg-amber-500/30 px-1.5 rounded text-xs">v{projectBible.version}</span>
+                          )}
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent className="w-[400px] sm:w-[450px] bg-zinc-950 border-zinc-800 overflow-hidden flex flex-col">
+                        <SheetHeader>
+                          <SheetTitle className="text-white">Project Bible</SheetTitle>
+                        </SheetHeader>
+                        <div className="flex-1 overflow-hidden">
+                          <ContinuityPanel
+                            previewId={preview?.id || ""}
+                            bible={projectBible}
+                            onBibleChange={handleBibleChange}
+                            onGenerate={handleGenerateBible}
+                            isGenerating={bibleGenerating}
+                          />
+                        </div>
+                      </SheetContent>
+                    </Sheet>
                   </div>
                 </div>
               </div>
@@ -1140,7 +1219,7 @@ export default function GuestIceBuilderPage() {
                     dayIndex: previewCardIndex + 1,
                     title: cards[previewCardIndex].title,
                     image: cards[previewCardIndex].generatedImageUrl || previewCardBackground,
-                    video: cards[previewCardIndex].generatedVideoUrl,
+                    generatedVideoUrl: cards[previewCardIndex].generatedVideoUrl,
                     captions: cards[previewCardIndex].content.split('. ').filter(s => s.trim()).slice(0, 3),
                     sceneText: cards[previewCardIndex].content,
                     recapText: cards[previewCardIndex].title,
