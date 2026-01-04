@@ -1061,6 +1061,12 @@ export const icePreviews = pgTable("ice_previews", {
   // Project Bible (Continuity Guardrails)
   projectBible: jsonb("project_bible").$type<ProjectBible>(),
   
+  // Audio settings (music + narration)
+  musicTrackUrl: text("music_track_url"), // URL to background music file
+  musicVolume: integer("music_volume").default(50), // 0-100 volume level
+  narrationVolume: integer("narration_volume").default(100), // 0-100 volume level
+  musicEnabled: boolean("music_enabled").default(false),
+  
   // Access control
   visibility: text("visibility").$type<ContentVisibility>().default("unlisted").notNull(), // Guest previews default to unlisted
   
