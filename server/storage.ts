@@ -379,6 +379,17 @@ export interface IStorage {
   
   // Billing Audit Logging
   createBillingAuditLog(log: schema.InsertBillingAuditLog): Promise<schema.BillingAuditLog>;
+
+  // Social Proof (Testimonial Capture)
+  createSocialProofItem(data: schema.InsertSocialProofItem): Promise<schema.SocialProofItem>;
+  getSocialProofItem(id: number): Promise<schema.SocialProofItem | undefined>;
+  getSocialProofItems(businessSlug: string, filters?: { 
+    status?: schema.SocialProofStatus; 
+    consentStatus?: schema.SocialProofConsentStatus;
+    topic?: schema.SocialProofTopic;
+  }): Promise<schema.SocialProofItem[]>;
+  updateSocialProofItem(id: number, data: Partial<schema.InsertSocialProofItem>): Promise<schema.SocialProofItem | undefined>;
+  deleteSocialProofItem(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2864,6 +2875,53 @@ export class DatabaseStorage implements IStorage {
   async createBillingAuditLog(log: schema.InsertBillingAuditLog): Promise<schema.BillingAuditLog> {
     const [result] = await db.insert(schema.billingAuditLogs).values(log).returning();
     return result;
+  }
+
+  // Social Proof (Testimonial Capture)
+  async createSocialProofItem(data: schema.InsertSocialProofItem): Promise<schema.SocialProofItem> {
+    const [result] = await db.insert(schema.socialProofItems).values(data).returning();
+    return result;
+  }
+
+  async getSocialProofItem(id: number): Promise<schema.SocialProofItem | undefined> {
+    return await db.query.socialProofItems.findFirst({
+      where: eq(schema.socialProofItems.id, id),
+    });
+  }
+
+  async getSocialProofItems(businessSlug: string, filters?: { 
+    status?: schema.SocialProofStatus; 
+    consentStatus?: schema.SocialProofConsentStatus;
+    topic?: schema.SocialProofTopic;
+  }): Promise<schema.SocialProofItem[]> {
+    const conditions = [eq(schema.socialProofItems.businessSlug, businessSlug)];
+    
+    if (filters?.status) {
+      conditions.push(eq(schema.socialProofItems.status, filters.status));
+    }
+    if (filters?.consentStatus) {
+      conditions.push(eq(schema.socialProofItems.consentStatus, filters.consentStatus));
+    }
+    if (filters?.topic) {
+      conditions.push(eq(schema.socialProofItems.topic, filters.topic));
+    }
+    
+    return await db.query.socialProofItems.findMany({
+      where: and(...conditions),
+      orderBy: [desc(schema.socialProofItems.createdAt)],
+    });
+  }
+
+  async updateSocialProofItem(id: number, data: Partial<schema.InsertSocialProofItem>): Promise<schema.SocialProofItem | undefined> {
+    const [result] = await db.update(schema.socialProofItems)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.socialProofItems.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteSocialProofItem(id: number): Promise<void> {
+    await db.delete(schema.socialProofItems).where(eq(schema.socialProofItems.id, id));
   }
 }
 
