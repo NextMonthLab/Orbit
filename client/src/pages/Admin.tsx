@@ -63,6 +63,8 @@ export default function Admin() {
   const [editTimezone, setEditTimezone] = useState("UTC");
   const [generatingAllImages, setGeneratingAllImages] = useState(false);
   const [generatingAllVideos, setGeneratingAllVideos] = useState(false);
+  const [showBulkImageConfirmDialog, setShowBulkImageConfirmDialog] = useState(false);
+  const [showBulkVideoConfirmDialog, setShowBulkVideoConfirmDialog] = useState(false);
   const [editAudioMode, setEditAudioMode] = useState<string>("off");
   const [editDefaultTrackId, setEditDefaultTrackId] = useState<number | null>(null);
   const [editFadeInMs, setEditFadeInMs] = useState(500);
@@ -214,15 +216,22 @@ export default function Admin() {
     },
   });
 
-  const handleGenerateAllImages = async () => {
+  // Get pending cards for image generation
+  const pendingImageCards = cards?.filter(c => {
+    const hasPrompt = !!(c.sceneDescription || c.imageGeneration?.prompt);
+    return hasPrompt && !c.imageGenerated;
+  }) || [];
+
+  // Get pending cards for video generation
+  const pendingVideoCards = cards?.filter(c => {
+    const hasImage = !!(c.generatedImageUrl || c.imagePath);
+    return hasImage && !c.videoGenerated;
+  }) || [];
+
+  const handleGenerateAllImages = () => {
     if (!cards || !selectedUniverse) return;
     
-    const pendingCards = cards.filter(c => {
-      const hasPrompt = !!(c.sceneDescription || c.imageGeneration?.prompt);
-      return hasPrompt && !c.imageGenerated;
-    });
-    
-    if (pendingCards.length === 0) {
+    if (pendingImageCards.length === 0) {
       toast({
         title: "No images to generate",
         description: "All cards with prompts already have images.",
@@ -230,11 +239,19 @@ export default function Admin() {
       return;
     }
     
+    // Show confirmation dialog with prompts
+    setShowBulkImageConfirmDialog(true);
+  };
+
+  const handleConfirmGenerateAllImages = async () => {
+    if (!selectedUniverse) return;
+    
+    setShowBulkImageConfirmDialog(false);
     setGeneratingAllImages(true);
     let successCount = 0;
     let errorCount = 0;
     
-    for (const card of pendingCards) {
+    for (const card of pendingImageCards) {
       try {
         await api.generateCardImage(card.id);
         successCount++;
@@ -252,15 +269,10 @@ export default function Admin() {
     });
   };
 
-  const handleGenerateAllVideos = async () => {
+  const handleGenerateAllVideos = () => {
     if (!cards || !selectedUniverse) return;
     
-    const pendingCards = cards.filter(c => {
-      const hasImage = !!(c.generatedImageUrl || c.imagePath);
-      return hasImage && !c.videoGenerated;
-    });
-    
-    if (pendingCards.length === 0) {
+    if (pendingVideoCards.length === 0) {
       toast({
         title: "No videos to generate",
         description: "All cards with images already have videos, or no images are available.",
@@ -268,11 +280,19 @@ export default function Admin() {
       return;
     }
     
+    // Show confirmation dialog
+    setShowBulkVideoConfirmDialog(true);
+  };
+
+  const handleConfirmGenerateAllVideos = async () => {
+    if (!selectedUniverse) return;
+    
+    setShowBulkVideoConfirmDialog(false);
     setGeneratingAllVideos(true);
     let successCount = 0;
     let errorCount = 0;
     
-    for (const card of pendingCards) {
+    for (const card of pendingVideoCards) {
       try {
         await api.generateCardVideo(card.id);
         successCount++;
@@ -1157,6 +1177,101 @@ export default function Admin() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setPreviewCard(null)}>
                 Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Image Generation Confirmation Dialog */}
+        <Dialog open={showBulkImageConfirmDialog} onOpenChange={setShowBulkImageConfirmDialog}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <PhotoIcon className="w-5 h-5 text-purple-500" />
+                Confirm Bulk Image Generation
+              </DialogTitle>
+              <DialogDescription>
+                Review the prompts for {pendingImageCards.length} cards before generating images.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto space-y-3 py-4">
+              {pendingImageCards.map((card, index) => (
+                <div key={card.id} className="border border-border rounded-lg p-3 bg-muted/20">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
+                      #{index + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{card.title}</p>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                        {card.sceneDescription || card.imageGeneration?.prompt || 'No prompt set'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <DialogFooter className="border-t pt-4">
+              <Button variant="outline" onClick={() => setShowBulkImageConfirmDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConfirmGenerateAllImages}
+                className="bg-purple-600 hover:bg-purple-700"
+                data-testid="button-confirm-generate-images"
+              >
+                <PhotoIcon className="w-4 h-4 mr-2" />
+                Generate {pendingImageCards.length} Images
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Video Generation Confirmation Dialog */}
+        <Dialog open={showBulkVideoConfirmDialog} onOpenChange={setShowBulkVideoConfirmDialog}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Video className="w-5 h-5 text-blue-500" />
+                Confirm Bulk Video Generation
+              </DialogTitle>
+              <DialogDescription>
+                Review the {pendingVideoCards.length} cards that will have videos generated from their images.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto space-y-3 py-4">
+              {pendingVideoCards.map((card, index) => (
+                <div key={card.id} className="border border-border rounded-lg p-3 bg-muted/20">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
+                      #{index + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{card.title}</p>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                        {card.sceneDescription || 'Cinematic motion from image'}
+                      </p>
+                      {(card.generatedImageUrl || card.imagePath) && (
+                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Has source image
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <DialogFooter className="border-t pt-4">
+              <Button variant="outline" onClick={() => setShowBulkVideoConfirmDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConfirmGenerateAllVideos}
+                className="bg-blue-600 hover:bg-blue-700"
+                data-testid="button-confirm-generate-videos"
+              >
+                <Video className="w-4 h-4 mr-2" />
+                Generate {pendingVideoCards.length} Videos
               </Button>
             </DialogFooter>
           </DialogContent>

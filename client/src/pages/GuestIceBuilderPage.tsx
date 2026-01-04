@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth";
 import GlobalNav from "@/components/GlobalNav";
 import { VisibilityBadge } from "@/components/VisibilityBadge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import CardPlayer, { CARD_FONTS, CARD_COLORS, type CardFont } from "@/components/CardPlayer";
 import type { Card } from "@/lib/mockData";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -121,6 +121,11 @@ export default function GuestIceBuilderPage() {
   const [cardFontColor, setCardFontColor] = useState("#ffffff");
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showBulkImageConfirm, setShowBulkImageConfirm] = useState(false);
+  const [showBulkVideoConfirm, setShowBulkVideoConfirm] = useState(false);
+  const [bulkGeneratingImages, setBulkGeneratingImages] = useState(false);
+  const [bulkGeneratingVideos, setBulkGeneratingVideos] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   
   const paceDelays = { slow: 12000, normal: 5000, fast: 3000 };
   
@@ -469,6 +474,93 @@ export default function GuestIceBuilderPage() {
     // Legacy handler - no longer used directly
   };
 
+  // Get cards that need images (have content but no image)
+  const cardsNeedingImages = cards.filter(card => !card.generatedImageUrl);
+  
+  // Get cards that need videos (have image but no video)
+  const cardsNeedingVideos = cards.filter(card => card.generatedImageUrl && !card.generatedVideoUrl);
+  
+  // Bulk generate all images
+  const handleBulkGenerateImages = async () => {
+    if (!preview || !entitlements?.canGenerateImages) return;
+    
+    setShowBulkImageConfirm(false);
+    setBulkGeneratingImages(true);
+    setBulkProgress({ current: 0, total: cardsNeedingImages.length });
+    
+    let successCount = 0;
+    for (let i = 0; i < cardsNeedingImages.length; i++) {
+      const card = cardsNeedingImages[i];
+      setBulkProgress({ current: i + 1, total: cardsNeedingImages.length });
+      
+      try {
+        const res = await fetch(`/api/ice/preview/${preview.id}/cards/${card.id}/generate-image`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ prompt: card.content }),
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (data.imageUrl) {
+            handleCardUpdate(card.id, { generatedImageUrl: data.imageUrl });
+            saveCardsWithUpdates(card.id, { generatedImageUrl: data.imageUrl });
+            successCount++;
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to generate image for card ${card.id}:`, error);
+      }
+    }
+    
+    setBulkGeneratingImages(false);
+    toast({
+      title: "Bulk image generation complete",
+      description: `Generated ${successCount} of ${cardsNeedingImages.length} images.`,
+    });
+  };
+  
+  // Bulk generate all videos
+  const handleBulkGenerateVideos = async () => {
+    if (!preview || !entitlements?.canGenerateVideos) return;
+    
+    setShowBulkVideoConfirm(false);
+    setBulkGeneratingVideos(true);
+    setBulkProgress({ current: 0, total: cardsNeedingVideos.length });
+    
+    let successCount = 0;
+    for (let i = 0; i < cardsNeedingVideos.length; i++) {
+      const card = cardsNeedingVideos[i];
+      setBulkProgress({ current: i + 1, total: cardsNeedingVideos.length });
+      
+      try {
+        const res = await fetch(`/api/ice/preview/${preview.id}/cards/${card.id}/generate-video`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ 
+            mode: "image-to-video",
+            sourceImageUrl: card.generatedImageUrl,
+          }),
+        });
+        
+        if (res.ok) {
+          successCount++;
+          // Video generation is async, just count as started
+        }
+      } catch (error) {
+        console.error(`Failed to start video for card ${card.id}:`, error);
+      }
+    }
+    
+    setBulkGeneratingVideos(false);
+    toast({
+      title: "Video generation started",
+      description: `Started generating ${successCount} videos. Check back in a few minutes.`,
+    });
+  };
+
   const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
 
   if (loadingExisting) {
@@ -750,6 +842,69 @@ export default function GuestIceBuilderPage() {
                 <span className="font-medium">Tap any card</span> to edit content and generate AI media. <span className="hidden sm:inline">Click ➕ between cards to add AI interactions.</span>
               </p>
             </div>
+
+            {/* Bulk AI Generation Panel - only for professional users */}
+            {isProfessionalMode && entitlements && (cardsNeedingImages.length > 0 || cardsNeedingVideos.length > 0) && (
+              <div className="bg-gradient-to-r from-purple-900/40 to-blue-900/40 border border-purple-500/30 rounded-lg p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-white flex items-center gap-2">
+                      <Wand2 className="w-4 h-4 text-purple-400" />
+                      Generate All AI Media
+                    </h3>
+                    <p className="text-xs text-white/50 mt-1">
+                      Review prompts before generating images or videos for all cards at once.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {cardsNeedingImages.length > 0 && entitlements.canGenerateImages && (
+                      <Button
+                        onClick={() => setShowBulkImageConfirm(true)}
+                        disabled={bulkGeneratingImages || bulkGeneratingVideos}
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 border-purple-500/50 text-purple-300 hover:bg-purple-500/20"
+                        data-testid="button-bulk-generate-images"
+                      >
+                        {bulkGeneratingImages ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            {bulkProgress.current}/{bulkProgress.total}
+                          </>
+                        ) : (
+                          <>
+                            <Image className="w-3.5 h-3.5" />
+                            Images ({cardsNeedingImages.length})
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    {cardsNeedingVideos.length > 0 && entitlements.canGenerateVideos && (
+                      <Button
+                        onClick={() => setShowBulkVideoConfirm(true)}
+                        disabled={bulkGeneratingVideos || bulkGeneratingImages}
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 border-blue-500/50 text-blue-300 hover:bg-blue-500/20"
+                        data-testid="button-bulk-generate-videos"
+                      >
+                        {bulkGeneratingVideos ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            {bulkProgress.current}/{bulkProgress.total}
+                          </>
+                        ) : (
+                          <>
+                            <Video className="w-3.5 h-3.5" />
+                            Videos ({cardsNeedingVideos.length})
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Professional ICE Editor cards */}
             <div className="space-y-3">
@@ -1086,6 +1241,99 @@ export default function GuestIceBuilderPage() {
         feature="AI Media Generation"
         reason="Unlock AI-powered image and video generation, character interactions, voiceover narration, and more."
       />
+      
+      {/* Bulk Image Generation Confirmation Dialog */}
+      <Dialog open={showBulkImageConfirm} onOpenChange={setShowBulkImageConfirm}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col bg-slate-900 border-purple-500/30">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <Image className="w-5 h-5 text-purple-400" />
+              Review Prompts Before Generation
+            </DialogTitle>
+            <DialogDescription className="text-white/60">
+              {cardsNeedingImages.length} cards will have AI images generated. Review the prompts below:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-3 py-4">
+            {cardsNeedingImages.map((card, index) => (
+              <div key={card.id} className="border border-slate-700 rounded-lg p-3 bg-slate-800/50">
+                <div className="flex items-start gap-3">
+                  <span className="text-xs font-mono text-slate-400 bg-slate-700 px-2 py-1 rounded shrink-0">
+                    {index + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-white truncate">{card.title}</p>
+                    <p className="text-sm text-slate-400 mt-1 line-clamp-3">
+                      {card.content || 'No content - will use default visual'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="border-t border-slate-700 pt-4">
+            <Button variant="ghost" onClick={() => setShowBulkImageConfirm(false)} className="text-white/70">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleBulkGenerateImages}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              data-testid="button-confirm-bulk-images"
+            >
+              <Image className="w-4 h-4 mr-2" />
+              Generate {cardsNeedingImages.length} Images
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Bulk Video Generation Confirmation Dialog */}
+      <Dialog open={showBulkVideoConfirm} onOpenChange={setShowBulkVideoConfirm}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col bg-slate-900 border-blue-500/30">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <Video className="w-5 h-5 text-blue-400" />
+              Review Cards Before Video Generation
+            </DialogTitle>
+            <DialogDescription className="text-white/60">
+              {cardsNeedingVideos.length} cards will have AI videos generated from their images:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-3 py-4">
+            {cardsNeedingVideos.map((card, index) => (
+              <div key={card.id} className="border border-slate-700 rounded-lg p-3 bg-slate-800/50">
+                <div className="flex items-start gap-3">
+                  <span className="text-xs font-mono text-slate-400 bg-slate-700 px-2 py-1 rounded shrink-0">
+                    {index + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-white truncate">{card.title}</p>
+                    <p className="text-sm text-slate-400 mt-1 line-clamp-2">
+                      {card.content || 'Cinematic motion from image'}
+                    </p>
+                    <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Has source image
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="border-t border-slate-700 pt-4">
+            <Button variant="ghost" onClick={() => setShowBulkVideoConfirm(false)} className="text-white/70">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleBulkGenerateVideos}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              data-testid="button-confirm-bulk-videos"
+            >
+              <Video className="w-4 h-4 mr-2" />
+              Generate {cardsNeedingVideos.length} Videos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
