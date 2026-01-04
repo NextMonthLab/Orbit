@@ -44,25 +44,7 @@ interface BrandPreferences {
   selectedImages: string[];
 }
 
-export type CardFont = 'cinzel' | 'playfair' | 'inter' | 'oswald' | 'dancing' | 'bebas';
-
-export const CARD_FONTS: { id: CardFont; name: string; fontFamily: string }[] = [
-  { id: 'cinzel', name: 'Cinzel', fontFamily: '"Cinzel", serif' },
-  { id: 'playfair', name: 'Playfair', fontFamily: '"Playfair Display", serif' },
-  { id: 'inter', name: 'Inter', fontFamily: '"Inter", sans-serif' },
-  { id: 'oswald', name: 'Oswald', fontFamily: '"Oswald", sans-serif' },
-  { id: 'dancing', name: 'Dancing Script', fontFamily: '"Dancing Script", cursive' },
-  { id: 'bebas', name: 'Bebas Neue', fontFamily: '"Bebas Neue", sans-serif' },
-];
-
-export const CARD_COLORS = [
-  { id: 'white', name: 'White', value: '#ffffff' },
-  { id: 'gold', name: 'Gold', value: '#ffd700' },
-  { id: 'pink', name: 'Pink', value: '#ec4899' },
-  { id: 'purple', name: 'Purple', value: '#a855f7' },
-  { id: 'cyan', name: 'Cyan', value: '#06b6d4' },
-  { id: 'green', name: 'Green', value: '#22c55e' },
-];
+import { getTitlePackById, splitTextIntoHeadlineAndSupporting, DEFAULT_TITLE_PACK_ID, type TitlePack, type TitlePackLayer } from "@shared/titlePacks";
 
 interface CardPlayerProps {
   card: Card;
@@ -72,10 +54,40 @@ interface CardPlayerProps {
   onPhaseChange?: (phase: "cinematic" | "context") => void;
   fullScreen?: boolean;
   brandPreferences?: BrandPreferences | null;
-  font?: CardFont;
-  fontColor?: string;
+  titlePackId?: string;
   narrationVolume?: number; // 0-100
   narrationMuted?: boolean;
+}
+
+function getLayerStyles(layer: TitlePackLayer, fullScreen: boolean): React.CSSProperties {
+  const baseFontSize = fullScreen ? layer.sizeMax : layer.sizeMin + (layer.sizeMax - layer.sizeMin) * 0.5;
+  const scaledFontSize = Math.round(baseFontSize * (fullScreen ? 0.5 : 0.4)); // Scale down for viewport
+  
+  let textShadow = '';
+  if (layer.shadow) {
+    textShadow = `${layer.shadow.x}px ${layer.shadow.y}px ${layer.shadow.blur}px ${layer.shadow.color}`;
+  }
+  if (layer.glow) {
+    const glowShadow = `0 0 ${layer.glow.blur}px ${layer.glow.color}`;
+    textShadow = textShadow ? `${textShadow}, ${glowShadow}` : glowShadow;
+  }
+  
+  let webkitTextStroke = '';
+  if (layer.stroke) {
+    webkitTextStroke = `${layer.stroke.width}px ${layer.stroke.color}`;
+  }
+  
+  return {
+    fontFamily: layer.fontFamily,
+    fontWeight: layer.fontWeight,
+    fontSize: `${scaledFontSize}px`,
+    letterSpacing: layer.letterSpacing || 'normal',
+    textTransform: layer.textTransform as any,
+    color: layer.color,
+    textAlign: layer.textAlign,
+    textShadow: textShadow || '0 2px 10px rgba(0,0,0,0.9)',
+    WebkitTextStroke: webkitTextStroke || undefined,
+  };
 }
 
 type Phase = "cinematic" | "context";
@@ -88,8 +100,7 @@ export default function CardPlayer({
   onPhaseChange,
   fullScreen = false,
   brandPreferences,
-  font = 'cinzel',
-  fontColor = '#ffffff',
+  titlePackId = DEFAULT_TITLE_PACK_ID,
   narrationVolume = 100,
   narrationMuted = false
 }: CardPlayerProps) {
@@ -113,7 +124,7 @@ export default function CardPlayer({
   const textColor = theme === 'dark' ? 'white' : '#1a1a1a';
   const mutedTextColor = theme === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)';
   
-  const selectedFontFamily = CARD_FONTS.find(f => f.id === font)?.fontFamily || CARD_FONTS[0].fontFamily;
+  const titlePack = getTitlePackById(titlePackId) || getTitlePackById(DEFAULT_TITLE_PACK_ID)!;
   
   const getActiveMedia = () => {
     if (card.mediaAssets?.length && card.selectedMediaAssetId) {
@@ -518,25 +529,67 @@ export default function CardPlayer({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
-                  className="flex items-center justify-center max-h-[60%] overflow-hidden"
+                  className="flex flex-col items-center justify-center max-h-[60%] overflow-hidden gap-2"
                 >
                   {captionIndex < card.captions.length ? (
-                    <p 
-                      className={`font-bold text-center leading-snug px-4 tracking-wide ${
-                        card.captions[captionIndex].length > 100 
-                          ? (fullScreen ? 'text-xl md:text-2xl' : 'text-lg md:text-xl')
-                          : card.captions[captionIndex].length > 50 
-                            ? (fullScreen ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl')
-                            : (fullScreen ? 'text-3xl md:text-4xl' : 'text-2xl md:text-3xl')
-                      }`}
-                      style={{ 
-                        textShadow: '0 2px 10px rgba(0,0,0,0.9)',
-                        fontFamily: selectedFontFamily,
-                        color: fontColor
-                      }}
-                    >
-                      {card.captions[captionIndex]}
-                    </p>
+                    (() => {
+                      const captionText = card.captions[captionIndex];
+                      const { headline, supporting } = splitTextIntoHeadlineAndSupporting(captionText);
+                      const headlineStyles = getLayerStyles(titlePack.headline, fullScreen);
+                      const supportingStyles = titlePack.supporting 
+                        ? getLayerStyles(titlePack.supporting, fullScreen) 
+                        : null;
+                      
+                      return (
+                        <div className="flex flex-col items-center gap-3 px-4">
+                          {/* Accent shape background for grunge-tape pack */}
+                          {titlePack.accentShape?.type === 'tape' && (
+                            <div 
+                              className="absolute inset-x-8 rounded-sm -skew-y-1"
+                              style={{
+                                backgroundColor: titlePack.accentShape.color,
+                                opacity: titlePack.accentShape.opacity,
+                                top: '50%',
+                                transform: 'translateY(-50%) skewY(-1deg)',
+                                padding: '1rem 2rem',
+                                zIndex: -1,
+                              }}
+                            />
+                          )}
+                          
+                          {/* Headline */}
+                          <p 
+                            className="font-bold leading-snug max-w-full"
+                            style={headlineStyles}
+                            data-testid="text-headline"
+                          >
+                            {headline}
+                          </p>
+                          
+                          {/* Supporting text */}
+                          {supporting && supportingStyles && (
+                            <p 
+                              className="leading-relaxed max-w-full"
+                              style={supportingStyles}
+                              data-testid="text-supporting"
+                            >
+                              {supporting}
+                            </p>
+                          )}
+                          
+                          {/* Underline accent for editorial-minimal pack */}
+                          {titlePack.accentShape?.type === 'underline' && (
+                            <div 
+                              className="w-16 h-0.5 mt-1"
+                              style={{
+                                backgroundColor: titlePack.accentShape.color,
+                                opacity: titlePack.accentShape.opacity,
+                              }}
+                            />
+                          )}
+                        </div>
+                      );
+                    })()
                   ) : null}
                 </motion.div>
               </AnimatePresence>

@@ -18,7 +18,7 @@ export interface MediaAsset {
 
 export interface Card {
   id: string | number;
-  dayIndex: number;
+  dayIndex?: number; // Optional - removed from display per "bin Day 1/2/3" directive
   title: string;
   image: string;
   captions: string[];
