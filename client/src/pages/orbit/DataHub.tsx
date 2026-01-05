@@ -183,8 +183,8 @@ export default function DataHub() {
     },
     onSuccess: (data) => {
       if (data.url) {
-        // Open in new tab to avoid iframe embedding issues with Stripe
-        window.open(data.url, '_blank');
+        // Redirect to Stripe checkout (same window works better on mobile)
+        window.location.href = data.url;
       }
     },
   });
