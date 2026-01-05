@@ -1,12 +1,17 @@
-import { Settings, Building2, Globe, Bell, Shield, FileText, Zap, Check, ExternalLink, Plus } from "lucide-react";
+import { useState } from "react";
+import { Settings, Building2, Globe, Bell, Shield, FileText, Zap, Check, ExternalLink, Plus, X, Link2, Instagram, Linkedin, Facebook, Twitter, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import OrbitLayout from "@/components/OrbitLayout";
 import { useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 interface OrbitSource {
   id: number;
@@ -20,10 +25,31 @@ interface OrbitMeta {
   planTier: string;
 }
 
+type SourceLabel = 'about' | 'services' | 'faq' | 'contact' | 'homepage' | 'linkedin' | 'instagram' | 'facebook' | 'twitter' | 'tiktok' | 'youtube';
+
+const SOURCE_OPTIONS = [
+  { value: 'homepage', label: 'Homepage', type: 'page_url', icon: Link2, description: 'Your main website URL' },
+  { value: 'about', label: 'About Page', type: 'page_url', icon: FileText, description: 'Your about us page' },
+  { value: 'services', label: 'Services/Pricing', type: 'page_url', icon: FileText, description: 'Services or pricing page' },
+  { value: 'faq', label: 'FAQ/Help', type: 'page_url', icon: FileText, description: 'FAQ or help center' },
+  { value: 'contact', label: 'Contact Page', type: 'page_url', icon: FileText, description: 'Contact information' },
+  { value: 'linkedin', label: 'LinkedIn', type: 'social_link', icon: Linkedin, description: 'Company LinkedIn page' },
+  { value: 'instagram', label: 'Instagram', type: 'social_link', icon: Instagram, description: 'Instagram profile' },
+  { value: 'facebook', label: 'Facebook', type: 'social_link', icon: Facebook, description: 'Facebook page' },
+  { value: 'twitter', label: 'Twitter/X', type: 'social_link', icon: Twitter, description: 'Twitter/X profile' },
+  { value: 'youtube', label: 'YouTube', type: 'social_link', icon: Youtube, description: 'YouTube channel' },
+];
+
 export default function OrbitSettings() {
   const { slug } = useParams<{ slug: string }>();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
-  const { data: sourcesData } = useQuery<{ sources: OrbitSource[] }>({
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedSourceType, setSelectedSourceType] = useState<SourceLabel | ''>('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  
+  const { data: sourcesData, refetch: refetchSources } = useQuery<{ sources: OrbitSource[] }>({
     queryKey: ["orbit-sources", slug],
     queryFn: async () => {
       if (!slug) return { sources: [] };
@@ -45,6 +71,43 @@ export default function OrbitSettings() {
     enabled: !!slug,
   });
 
+  const addSourceMutation = useMutation({
+    mutationFn: async (newSource: { label: SourceLabel; sourceType: string; value: string }) => {
+      const existingSources = sources.map(s => ({
+        label: s.label as SourceLabel,
+        sourceType: s.sourceType as 'page_url' | 'social_link',
+        value: s.value,
+      }));
+      
+      const allSources = [...existingSources, newSource];
+      
+      const response = await fetch(`/api/orbit/${slug}/ingest-sources`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ sources: allSources }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to add source');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Source added", description: "Your Orbit is now stronger!" });
+      setShowAddModal(false);
+      setSelectedSourceType('');
+      setSourceUrl('');
+      refetchSources();
+      queryClient.invalidateQueries({ queryKey: ["orbit-meta", slug] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const sources = sourcesData?.sources || [];
   const strengthScore = orbitData?.strengthScore ?? 0;
   const isPowered = strengthScore > 0;
@@ -53,14 +116,38 @@ export default function OrbitSettings() {
     const labels: Record<string, string> = {
       about: 'About Page',
       services: 'Services/Pricing',
-      faq: 'FAQ/Contact',
+      faq: 'FAQ/Help',
+      contact: 'Contact Page',
       homepage: 'Homepage',
       linkedin: 'LinkedIn',
       instagram: 'Instagram',
       facebook: 'Facebook',
+      twitter: 'Twitter/X',
       tiktok: 'TikTok',
+      youtube: 'YouTube',
     };
     return labels[label] || label;
+  };
+
+  const getSourceIcon = (label: string) => {
+    const option = SOURCE_OPTIONS.find(o => o.value === label);
+    return option?.icon || Link2;
+  };
+
+  const existingLabels = sources.map(s => s.label);
+  const availableOptions = SOURCE_OPTIONS.filter(o => !existingLabels.includes(o.value));
+
+  const handleAddSource = () => {
+    if (!selectedSourceType || !sourceUrl) return;
+    
+    const option = SOURCE_OPTIONS.find(o => o.value === selectedSourceType);
+    if (!option) return;
+    
+    addSourceMutation.mutate({
+      label: selectedSourceType,
+      sourceType: option.type as 'page_url' | 'social_link',
+      value: sourceUrl,
+    });
   };
 
   return (
@@ -68,10 +155,10 @@ export default function OrbitSettings() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-white" data-testid="text-settings-title">
-            Settings
+            Strengthen Your Orbit
           </h1>
           <p className="text-white/60 text-sm">
-            Manage your Orbit preferences and knowledge sources
+            Add sources to make your Orbit smarter and more helpful
           </p>
         </div>
 
@@ -81,7 +168,7 @@ export default function OrbitSettings() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-                  <FileText className="w-4 h-4 text-blue-400" />
+                  <Zap className="w-4 h-4 text-blue-400" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-white">Knowledge Sources</h2>
@@ -95,12 +182,12 @@ export default function OrbitSettings() {
                 {isPowered ? (
                   <>
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mr-1.5 animate-pulse" />
-                    Powered insights
+                    Powered
                   </>
                 ) : (
                   <>
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mr-1.5" />
-                    Starter (3)
+                    Starter
                   </>
                 )}
               </Badge>
@@ -113,52 +200,94 @@ export default function OrbitSettings() {
                 <span className="text-sm font-semibold text-white">{strengthScore}/100</span>
               </div>
               <Progress value={strengthScore} className="h-1.5" />
+              <p className="text-xs text-white/40 mt-2">
+                {strengthScore === 0 
+                  ? "Add sources below to power up your Orbit"
+                  : strengthScore < 50 
+                    ? "Good start! Add more sources to increase strength"
+                    : strengthScore < 80 
+                      ? "Strong! A few more sources will maximize your Orbit"
+                      : "Excellent! Your Orbit is fully powered"
+                }
+              </p>
             </div>
             
             {/* Source List */}
             {sources.length > 0 ? (
               <div className="space-y-2 mb-4">
-                {sources.map((source) => (
-                  <div
-                    key={source.id}
-                    className="flex items-center justify-between p-2 rounded-lg bg-white/[0.03] border border-white/5"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5 text-green-400" />
-                      <span className="text-sm text-white/80">{getSourceLabel(source.label)}</span>
+                {sources.map((source) => {
+                  const Icon = getSourceIcon(source.label);
+                  return (
+                    <div
+                      key={source.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-white/5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                          <Icon className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <div>
+                          <span className="text-sm text-white/80 block">{getSourceLabel(source.label)}</span>
+                          <span className="text-xs text-white/40 truncate max-w-[200px] block">{source.value}</span>
+                        </div>
+                      </div>
+                      {(source.sourceType === 'page_url' || source.sourceType === 'social_link') && (
+                        <a
+                          href={source.value}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
                     </div>
-                    {source.sourceType === 'page_url' || source.sourceType === 'social_link' ? (
-                      <a
-                        href={source.value}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                      >
-                        View <ExternalLink className="w-3 h-3" />
-                      </a>
-                    ) : (
-                      <span className="text-xs text-white/40">Text</span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div className="p-4 rounded-lg bg-white/[0.02] border border-dashed border-white/10 text-center mb-4">
-                <p className="text-sm text-white/50">No sources added yet</p>
-                <p className="text-xs text-white/30 mt-1">Add sources to power up your Orbit</p>
+              <div className="p-6 rounded-lg bg-gradient-to-br from-blue-500/5 to-purple-500/5 border border-dashed border-white/10 text-center mb-4">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-blue-400" />
+                </div>
+                <p className="text-sm text-white/70 mb-1">No sources added yet</p>
+                <p className="text-xs text-white/40">Add your website, social channels, and pages to power up your Orbit</p>
               </div>
             )}
             
-            {/* Add/Edit Sources Button */}
-            <Button
-              variant="outline"
-              className="w-full border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-              data-testid="button-edit-sources"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {sources.length > 0 ? 'Add More Sources' : 'Add Sources'}
-            </Button>
+            {/* Add Sources Button */}
+            {availableOptions.length > 0 && (
+              <Button
+                variant="outline"
+                className="w-full border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                data-testid="button-add-sources"
+                onClick={() => setShowAddModal(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {sources.length > 0 ? 'Add More Sources' : 'Add Your First Source'}
+              </Button>
+            )}
           </div>
+
+          {/* Value Proposition for Free Users */}
+          {orbitData?.planTier === 'free' && (
+            <div className="p-4 rounded-xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-4 h-4 text-pink-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-1">Why add sources?</h3>
+                  <ul className="text-xs text-white/60 space-y-1">
+                    <li>• Smarter AI responses about your business</li>
+                    <li>• Visitors get accurate, helpful information</li>
+                    <li>• Build trust with comprehensive knowledge</li>
+                  </ul>
+                  <p className="text-xs text-pink-400 mt-2">Upgrade to unlock automatic source updates and document uploads</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="p-4 rounded-xl bg-white/5 border border-white/10" data-testid="section-business">
             <div className="flex items-center gap-3 mb-4">
@@ -238,6 +367,80 @@ export default function OrbitSettings() {
           </Button>
         </div>
       </div>
+
+      {/* Add Source Modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add a Source</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Add a URL or social channel to strengthen your Orbit
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div>
+              <Label className="text-zinc-300 mb-2 block">Source Type</Label>
+              <Select value={selectedSourceType} onValueChange={(v) => setSelectedSourceType(v as SourceLabel)}>
+                <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
+                  <SelectValue placeholder="Select a source type" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  {availableOptions.map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <SelectItem 
+                        key={option.value} 
+                        value={option.value}
+                        className="text-white focus:bg-zinc-700 focus:text-white"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4" />
+                          <span>{option.label}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              {selectedSourceType && (
+                <p className="text-xs text-zinc-500 mt-1">
+                  {SOURCE_OPTIONS.find(o => o.value === selectedSourceType)?.description}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-zinc-300 mb-2 block">URL</Label>
+              <Input
+                value={sourceUrl}
+                onChange={(e) => setSourceUrl(e.target.value)}
+                placeholder="https://..."
+                className="bg-zinc-800 border-zinc-700 text-white"
+                data-testid="input-source-url"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1 border-zinc-700 text-zinc-300"
+                onClick={() => setShowAddModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                onClick={handleAddSource}
+                disabled={!selectedSourceType || !sourceUrl || addSourceMutation.isPending}
+                data-testid="button-confirm-add-source"
+              >
+                {addSourceMutation.isPending ? "Adding..." : "Add Source"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </OrbitLayout>
   );
 }
