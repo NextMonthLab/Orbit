@@ -168,6 +168,7 @@ function Router() {
       <Route path="/orbit/:slug" component={OrbitRouter} />
       <Route path="/orbit/:slug/claim" component={OrbitView} />
       <Route path="/orbit/:slug/hub" component={DataHub} />
+      <Route path="/orbit/:slug/sources" component={OrbitSettings} />
       <Route path="/orbit/:slug/import" component={CatalogueImport} />
       <Route path="/orbit/:slug/proof" component={SocialProofLibrary} />
       <Route path="/ice/new" component={TransformationsPage} />

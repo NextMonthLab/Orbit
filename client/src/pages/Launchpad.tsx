@@ -412,7 +412,7 @@ export default function Launchpad() {
       {selectedOrbit?.status === "basic" && (
         <PowerUpBanner
           orbitSlug={selectedOrbit.slug}
-          onUpgrade={() => setLocation(`/orbit/${selectedOrbit.slug}/hub`)}
+          onUpgrade={() => setLocation(`/orbit/${selectedOrbit.slug}/sources`)}
         />
       )}
 
