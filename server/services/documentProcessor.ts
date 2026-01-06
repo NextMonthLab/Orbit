@@ -1,6 +1,16 @@
-import * as pdfParseModule from "pdf-parse";
-const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 import type { OrbitDocumentType } from "@shared/schema";
+
+// pdf-parse is a CommonJS module - use dynamic require
+async function getPdfParser() {
+  try {
+    // Try dynamic import first
+    const module = await import('pdf-parse');
+    return module.default || module;
+  } catch {
+    // Fallback to require if import fails
+    return require('pdf-parse');
+  }
+}
 
 export function detectDocumentType(fileName: string): OrbitDocumentType {
   const ext = fileName.toLowerCase().split('.').pop() || '';
@@ -25,6 +35,7 @@ export const MAX_DOCUMENT_SIZE_BYTES = 25 * 1024 * 1024; // 25MB
 
 export async function extractTextFromPdf(buffer: Buffer): Promise<{ text: string; pageCount: number }> {
   try {
+    const pdfParse = await getPdfParser();
     const data = await pdfParse(buffer);
     return {
       text: data.text?.slice(0, 500000) || '', // Limit to 500k chars
