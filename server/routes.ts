@@ -37,82 +37,6 @@ function getAppBaseUrl(req: any): string {
   return `${protocol}://${host}`;
 }
 
-// Echo response post-processing utilities
-function dedupeText(text: string): string {
-  const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
-  const seen: string[] = [];
-  const deduped: string[] = [];
-  
-  for (const line of lines) {
-    const normalized = line.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
-    if (normalized.length < 3) {
-      deduped.push(line);
-      continue;
-    }
-    
-    let isDupe = false;
-    for (const existing of seen) {
-      if (jaccardSimilarity(normalized, existing) > 0.85) {
-        isDupe = true;
-        break;
-      }
-    }
-    
-    if (!isDupe) {
-      seen.push(normalized);
-      deduped.push(line);
-    }
-  }
-  
-  return deduped.join('\n');
-}
-
-function jaccardSimilarity(a: string, b: string): number {
-  if (a === b) return 1;
-  const wordsA = new Set(a.split(' '));
-  const wordsB = new Set(b.split(' '));
-  const intersection = [...wordsA].filter(x => wordsB.has(x));
-  const union = new Set([...wordsA, ...wordsB]);
-  return intersection.length / union.size;
-}
-
-function echoStyleGuard(text: string): string {
-  let result = text;
-  
-  // Convert ALL CAPS (except acronyms) to Title Case
-  result = result.replace(/\b([A-Z]{5,}(?:\s+[A-Z]{5,})*)\b/g, (match) => {
-    return match.split(' ')
-      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-      .join(' ');
-  });
-  
-  // Remove robotic phrases
-  const roboticPhrases = [
-    /What would you like to explore about\s*["']?[^"'?]*["']?\??/gi,
-    /What would you like to know about\s*["']?[^"'?]*["']?\??/gi,
-    /Would you like to learn more about\s*["']?[^"'?]*["']?\??/gi,
-    /Is there anything else you'd like to know\??/gi,
-    /Let me know if you have any questions\.?/gi,
-    /Feel free to ask.*questions\.?/gi,
-    /I'd be happy to help\.?/gi,
-    /Great question!/gi,
-    /That's a great question!/gi,
-  ];
-  
-  for (const pattern of roboticPhrases) {
-    result = result.replace(pattern, '').trim();
-  }
-  
-  // Clean up extra whitespace
-  result = result.replace(/\n{3,}/g, '\n\n').trim();
-  
-  return result;
-}
-
-function processEchoResponse(text: string): string {
-  return echoStyleGuard(dedupeText(text));
-}
-
 // OpenAI client for image generation - uses Replit AI Integrations (no API key needed)
 // Charges are billed to your Replit credits
 let _openai: OpenAI | null = null;
@@ -8248,144 +8172,61 @@ Return a JSON object with:
         content: message,
       });
 
-      // Call LLM with site context
-      const openai = new OpenAI({
-        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-      });
-
-      // Build product context if the orbit has catalogue items
+      // Use shared chat service for context building
+      const { buildOrbitContext, buildSystemPrompt, generateChatResponse, processEchoResponse: processResponse } = await import('./services/orbitChatService');
+      
       let productContext = '';
       let documentContext = '';
+      let systemPrompt: string;
+      
       if (orbit) {
-        const boxes = await storage.getOrbitBoxes(orbit.businessSlug);
-        const productBoxes = boxes.filter(b => b.boxType === 'product' || b.boxType === 'menu_item');
+        const orbitContext = await buildOrbitContext(storage, orbit.businessSlug);
+        productContext = orbitContext.productContext;
+        documentContext = orbitContext.documentContext;
         
-        // Get uploaded documents for additional context
-        const documents = await storage.getOrbitDocuments(orbit.businessSlug);
-        const readyDocs = documents.filter(d => d.status === 'ready' && d.extractedText);
-        
-        if (readyDocs.length > 0) {
-          const docSections: string[] = [];
-          
-          // Group documents by category
-          const docsByCategory: Record<string, typeof readyDocs> = {};
-          for (const doc of readyDocs) {
-            const cat = doc.category || 'other';
-            if (!docsByCategory[cat]) docsByCategory[cat] = [];
-            docsByCategory[cat].push(doc);
+        let sourceDomain = '';
+        try {
+          if (orbit.sourceUrl) {
+            sourceDomain = new URL(orbit.sourceUrl).hostname.replace('www.', '');
           }
-          
-          const categoryLabels: Record<string, string> = {
-            products: 'Products & Services Info',
-            pricing: 'Pricing Information',
-            policies: 'Policies & Terms',
-            guides: 'How-to Guides',
-            faqs: 'FAQs',
-            company: 'Company Information',
-            other: 'Additional Information',
-          };
-          
-          for (const [category, docs] of Object.entries(docsByCategory)) {
-            const label = categoryLabels[category] || 'Additional Information';
-            const docsContent = docs.map(d => {
-              const text = d.extractedText?.slice(0, 3000) || '';
-              return `[${d.title || d.fileName}]\n${text}`;
-            }).join('\n\n');
-            
-            docSections.push(`### ${label}:\n${docsContent}`);
-          }
-          
-          documentContext = `\n\nUPLOADED DOCUMENTS:\n${docSections.join('\n\n')}\n`;
+        } catch {
+          sourceDomain = '';
         }
         
-        if (productBoxes.length > 0) {
-          // Group by category and get top items per category
-          const categoryMap = new Map<string, typeof productBoxes>();
-          for (const box of productBoxes) {
-            const cat = box.category || 'Other';
-            if (!categoryMap.has(cat)) {
-              categoryMap.set(cat, []);
-            }
-            categoryMap.get(cat)!.push(box);
-          }
-          
-          const catalogueSummary: string[] = [];
-          catalogueSummary.push(`\nCATALOGUE (${productBoxes.length} items):`);
-          
-          for (const [category, items] of categoryMap.entries()) {
-            // Show top 5 items per category (sorted by popularity if available, else by title)
-            const sortedItems = items.sort((a, b) => 
-              (b.popularityScore || 0) - (a.popularityScore || 0)
-            ).slice(0, 5);
-            
-            catalogueSummary.push(`\n${category} (${items.length} total):`);
-            for (const item of sortedItems) {
-              const priceNum = item.price != null ? Number(item.price) : null;
-              const priceStr = priceNum != null && !isNaN(priceNum) ? ` - ${item.currency || '$'}${priceNum.toFixed(2)}` : '';
-              const tagsStr = item.tags && item.tags.length > 0 ? ` [${item.tags.slice(0, 3).join(', ')}]` : '';
-              catalogueSummary.push(`  • ${item.title}${priceStr}${tagsStr}`);
-              if (item.description) {
-                catalogueSummary.push(`    ${item.description.slice(0, 100)}...`);
-              }
-            }
-            if (items.length > 5) {
-              catalogueSummary.push(`  • ...and ${items.length - 5} more items`);
-            }
-          }
-          
-          productContext = catalogueSummary.join('\n');
-        }
-      }
-
-      const systemPrompt = `You are Echo, a calm and knowledgeable guide for ${preview.siteTitle}.
+        systemPrompt = buildSystemPrompt(
+          {
+            slug: orbit.businessSlug,
+            brandName: preview.siteTitle || orbit.customTitle || orbit.businessSlug,
+            sourceDomain,
+            siteSummary: preview.siteSummary,
+            keyServices: preview.keyServices,
+          },
+          productContext,
+          documentContext,
+          orbitContext.businessType,
+          orbitContext.businessTypeLabel,
+          orbitContext.offeringsLabel,
+          orbitContext.items
+        );
+      } else {
+        systemPrompt = `You are Echo, a calm and knowledgeable guide for ${preview.siteTitle}.
 
 CONTEXT:
 ${preview.siteSummary}
 
 ${preview.keyServices && preview.keyServices.length > 0 ? `SERVICES:
-${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}${productContext}${documentContext}
+${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
 
-RESPONSE STRUCTURE:
-1. Lead with the key insight or answer (1 sentence)
-2. Add context if genuinely helpful (1-2 sentences max)
-3. End with one clear next step or offer to clarify
-
-VOICE:
-• Professional and composed — never salesy or over-eager
-• Benefit-led: "Here's what this means for you..." not "Let me explain..."
-• Direct: state facts, don't hedge with "I think" or "I believe"
-• Concise: 2-4 sentences typical. Only expand when detail adds value
-${productContext ? `
-PRODUCT QUERIES:
-• When asked about products/menu items, cite specific items with prices
-• Suggest complementary items when relevant (e.g., "That pairs well with...")
-• For dietary questions, check item tags before recommending
-• If asked about something not in the catalogue, acknowledge and suggest alternatives` : ''}
-STRICT RULES:
-• Never repeat the same information twice in one response
-• Never use ALL CAPS except for acronyms (UK, VAT, API)
-• Never ask "What would you like to explore/know about X?"
-• Never say "Great question!", "I'd be happy to...", or similar filler
-• Never start sentences with "I" — rephrase to lead with value
-• One question at end maximum; prefer offering options as bullets
-• If unsure, acknowledge briefly and offer one clear next step`;
-
-      const messages = [
-        { role: "system" as const, content: systemPrompt },
-        ...history.map((m: any) => ({ role: m.role as any, content: m.content })),
-        { role: "user" as const, content: message },
-      ];
-
-      const aiResponse = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages,
-        max_tokens: 200,
-        temperature: 0.7,
-      });
-
-      const rawReply = aiResponse.choices[0]?.message?.content || "Sorry, couldn't generate a response.";
-      const reply = processEchoResponse(rawReply);
+## Response Rules:
+- Be friendly and helpful - never leave questions unanswered
+- Keep responses concise (2-4 sentences max)
+- Lead with value, not filler like "Great question!"
+- If you genuinely don't have information, say so and suggest where to find it`;
+      }
+      
+      const historyForAI = history.map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+      const rawReply = await generateChatResponse(systemPrompt, historyForAI, message, { maxTokens: 200 });
+      const reply = processResponse(rawReply);
 
       // Save assistant message
       await storage.addPreviewChatMessage({
@@ -10040,82 +9881,11 @@ STRICT RULES:
         }
       }
       
-      // Get boxes and detect business type
-      const boxes = await storage.getOrbitBoxes(slug);
+      // Use shared chat service for context building
+      const { buildOrbitContext, buildSystemPrompt, generateChatResponse } = await import('./services/orbitChatService');
       
-      // Get uploaded documents for additional context
-      const documents = await storage.getOrbitDocuments(slug);
-      const readyDocs = documents.filter(d => d.status === 'ready' && d.extractedText);
+      const orbitContext = await buildOrbitContext(storage, slug);
       
-      let items = menuContext;
-      if (!items || items.length === 0) {
-        items = boxes.slice(0, 60).map(b => ({
-          name: b.title,
-          description: b.description,
-          price: b.price,
-          category: b.category,
-          boxType: b.boxType,
-        }));
-      }
-      
-      // Detect business type from box types and content
-      const boxTypeCounts: Record<string, number> = {};
-      for (const box of boxes) {
-        boxTypeCounts[box.boxType] = (boxTypeCounts[box.boxType] || 0) + 1;
-      }
-      
-      const hasMenuItems = (boxTypeCounts['menu_item'] || 0) > 0;
-      const hasProducts = (boxTypeCounts['product'] || 0) > 0;
-      const hasTeamMembers = (boxTypeCounts['team_member'] || 0) > 0;
-      const hasFAQs = (boxTypeCounts['faq'] || 0) > 0;
-      
-      // Infer business type from content
-      const slugLower = slug.toLowerCase();
-      const allTitles = boxes.map(b => b.title?.toLowerCase() || '').join(' ');
-      const allDescriptions = boxes.map(b => b.description?.toLowerCase() || '').join(' ');
-      const allContent = `${slugLower} ${allTitles} ${allDescriptions}`;
-      
-      type BusinessType = 'recruitment' | 'restaurant' | 'professional_services' | 'retail' | 'general';
-      let businessType: BusinessType = 'general';
-      let businessTypeLabel = 'business';
-      let offeringsLabel = 'services';
-      let itemsLabel = 'offerings';
-      
-      // Check for recruitment/employment keywords
-      const recruitmentKeywords = ['employment', 'recruitment', 'jobs', 'careers', 'staffing', 'hiring', 'vacancies', 'candidates', 'cv', 'resume', 'job seekers', 'employers'];
-      const isRecruitment = recruitmentKeywords.some(k => allContent.includes(k));
-      
-      // Check for restaurant/food keywords
-      const foodKeywords = ['menu', 'restaurant', 'cafe', 'bistro', 'pub', 'bar', 'food', 'dining', 'kitchen', 'chef', 'dish', 'cuisine'];
-      const isFood = hasMenuItems || foodKeywords.some(k => allContent.includes(k));
-      
-      // Check for professional services
-      const servicesKeywords = ['agency', 'consulting', 'marketing', 'digital', 'design', 'web', 'software', 'solutions', 'services'];
-      const isServices = servicesKeywords.some(k => allContent.includes(k));
-      
-      if (isRecruitment) {
-        businessType = 'recruitment';
-        businessTypeLabel = 'recruitment agency';
-        offeringsLabel = 'job opportunities and services';
-        itemsLabel = 'roles and services';
-      } else if (isFood && hasMenuItems) {
-        businessType = 'restaurant';
-        businessTypeLabel = 'restaurant';
-        offeringsLabel = 'menu';
-        itemsLabel = 'dishes and drinks';
-      } else if (hasProducts) {
-        businessType = 'retail';
-        businessTypeLabel = 'business';
-        offeringsLabel = 'products';
-        itemsLabel = 'products';
-      } else if (isServices) {
-        businessType = 'professional_services';
-        businessTypeLabel = 'agency';
-        offeringsLabel = 'services';
-        itemsLabel = 'services';
-      }
-      
-      // Build system prompt with business-type-aware context
       const brandName = orbitMeta.customTitle || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       const sourceUrl = orbitMeta.sourceUrl || '';
       let sourceDomain = '';
@@ -10127,155 +9897,26 @@ STRICT RULES:
         sourceDomain = sourceUrl.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0] || '';
       }
       
-      // Build context summary based on business type
-      let contextSummary = '';
-      if (businessType === 'recruitment') {
-        const jobItems = items.filter((i: any) => i.category || i.description);
-        contextSummary = `## Our Roles & Services:\n${jobItems.slice(0, 30).map((item: any) => 
-          `- ${item.name}${item.category ? ` [${item.category}]` : ''}${item.description ? `: ${item.description.slice(0, 80)}` : ''}`
-        ).join('\n')}`;
-      } else if (businessType === 'restaurant') {
-        contextSummary = `## Our Menu:\n${items.slice(0, 40).map((item: any) => 
-          `- ${item.name}${item.price ? ` (£${item.price})` : ''}${item.category ? ` [${item.category}]` : ''}${item.description ? `: ${item.description.slice(0, 80)}` : ''}`
-        ).join('\n')}`;
-      } else {
-        contextSummary = `## Our ${offeringsLabel.charAt(0).toUpperCase() + offeringsLabel.slice(1)}:\n${items.slice(0, 40).map((item: any) => 
-          `- ${item.name}${item.price ? ` (£${item.price})` : ''}${item.category ? ` [${item.category}]` : ''}${item.description ? `: ${item.description.slice(0, 80)}` : ''}`
-        ).join('\n')}`;
-      }
+      const systemPrompt = buildSystemPrompt(
+        {
+          slug,
+          brandName,
+          sourceDomain,
+        },
+        orbitContext.productContext,
+        orbitContext.documentContext,
+        orbitContext.businessType,
+        orbitContext.businessTypeLabel,
+        orbitContext.offeringsLabel,
+        orbitContext.items
+      );
       
-      // Add document context if available
-      let documentContext = '';
-      if (readyDocs.length > 0) {
-        const docSections: string[] = [];
-        
-        // Group documents by category for organized context
-        const docsByCategory: Record<string, typeof readyDocs> = {};
-        for (const doc of readyDocs) {
-          const cat = doc.category || 'other';
-          if (!docsByCategory[cat]) docsByCategory[cat] = [];
-          docsByCategory[cat].push(doc);
-        }
-        
-        // Category labels for display
-        const categoryLabels: Record<string, string> = {
-          products: 'Products & Services Info',
-          pricing: 'Pricing Information',
-          policies: 'Policies & Terms',
-          guides: 'How-to Guides',
-          faqs: 'FAQs',
-          company: 'Company Information',
-          other: 'Additional Information',
-        };
-        
-        for (const [category, docs] of Object.entries(docsByCategory)) {
-          const label = categoryLabels[category] || 'Additional Information';
-          const docsContent = docs.map(d => {
-            // Truncate each doc to reasonable size
-            const text = d.extractedText?.slice(0, 3000) || '';
-            return `[${d.title || d.fileName}]\n${text}`;
-          }).join('\n\n');
-          
-          docSections.push(`### ${label}:\n${docsContent}`);
-        }
-        
-        documentContext = `\n## Uploaded Documents:\n${docSections.join('\n\n')}\n`;
-      }
-
-      // Build business-type-specific prompt
-      let narrativeSection = '';
-      if (businessType === 'recruitment') {
-        narrativeSection = `### NARRATIVE QUERIES (Engage conversationally):
-For questions about:
-- Job roles, requirements, salary expectations
-- Industries and sectors we cover
-- Application process, interview tips
-- Candidate services, CV advice
-- Employer services, hiring solutions
-
-→ Be helpful and informative. Use the job/service data to give informed answers.`;
-      } else if (businessType === 'restaurant') {
-        narrativeSection = `### NARRATIVE QUERIES (Engage conversationally):
-For questions about:
-- Menu items, recommendations, what's popular
-- Ingredients, dietary options, taste profiles
-- Brand story, what makes us special
-- Comparisons, suggestions
-
-→ Be friendly, helpful, and conversational. Use the menu data to give informed answers.`;
-      } else {
-        narrativeSection = `### NARRATIVE QUERIES (Engage conversationally):
-For questions about:
-- Our ${offeringsLabel}, what we offer
-- How we can help, our approach
-- Brand story, what makes us different
-- Recommendations, suggestions
-
-→ Be friendly, helpful, and conversational.`;
-      }
+      const historyForAI = (history || [])
+        .filter((msg: any) => msg.role === 'user' || msg.role === 'assistant')
+        .slice(-6)
+        .map((msg: any) => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
       
-      const systemPrompt = `You are a helpful assistant for ${brandName}, a ${businessTypeLabel}. You help visitors learn about our ${offeringsLabel} and find what they need.
-
-${contextSummary}
-${documentContext}
-## Intent Classification & Response Guidelines:
-
-### TRANSACTIONAL QUERIES (Answer directly, route clearly):
-For these topics, give a helpful direct answer and clear next step:
-
-1. **Contact/Get in Touch**: Provide contact options - website contact form, phone, or social media if known. Suggest visiting ${sourceDomain || 'our website'}.
-
-2. **Locations/Branches**: Help them find locations. If specific location data isn't available, suggest checking the website.
-
-3. **Opening Hours**: Provide hours if known, otherwise suggest checking the website as hours may vary.
-
-${businessType === 'recruitment' ? `4. **Job Applications**: Guide them on how to apply - whether through the website, by sending a CV, or registering with us.
-
-5. **Employer Services**: Explain our recruitment services and how businesses can work with us.` : businessType === 'restaurant' ? `4. **Reservations/Bookings**: Direct them to book via the website or phone.
-
-5. **Dietary/Allergies**: Give helpful guidance and direct them to check with staff for specific requirements.` : `4. **Enquiries**: Direct them to the appropriate contact channel for their query.`}
-
-${narrativeSection}
-
-### LOW-SIGNAL (Brief, polite):
-For greetings, thanks, or unclear messages:
-→ Brief, warm response. Offer to help with something specific about our ${offeringsLabel}.
-
-## Response Rules:
-- Be friendly and helpful - never leave questions unanswered
-- Keep responses concise (2-4 sentences max)
-- For transactional queries: prioritize clarity and routing over conversation
-${businessType === 'restaurant' ? '- For menu queries: use £ for prices, reference specific items' : ''}
-- If you genuinely don't have information, say so and suggest where to find it
-- Never just go silent - always provide a helpful path forward`;
-
-      // Build messages array with history
-      const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-        { role: "system", content: systemPrompt },
-      ];
-      
-      // Add conversation history (last 6 messages max)
-      if (history && Array.isArray(history)) {
-        const recentHistory = history.slice(-6);
-        for (const msg of recentHistory) {
-          if (msg.role === 'user' || msg.role === 'assistant') {
-            messages.push({ role: msg.role, content: msg.content });
-          }
-        }
-      }
-      
-      // Add current message
-      messages.push({ role: "user", content: message });
-
-      // Use OpenAI for chat (using the configured getOpenAI helper)
-      const completion = await getOpenAI().chat.completions.create({
-        model: "gpt-4o-mini",
-        messages,
-        max_tokens: 300,
-        temperature: 0.7,
-      });
-      
-      const response = completion.choices[0]?.message?.content || `I'm here to help you learn more about ${brandName}. What would you like to know?`;
+      const response = await generateChatResponse(systemPrompt, historyForAI, message, { maxTokens: 300 });
       
       // Track conversation metric (only on first message in conversation)
       if (!history || history.length === 0) {
