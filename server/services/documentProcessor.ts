@@ -1,4 +1,5 @@
-import pdfParse from "pdf-parse";
+import * as pdfParseModule from "pdf-parse";
+const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 import type { OrbitDocumentType } from "@shared/schema";
 
 export function detectDocumentType(fileName: string): OrbitDocumentType {
