@@ -11003,6 +11003,68 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
     }
   });
 
+  // Reprocess document (re-extract text)
+  app.post("/api/orbit/:slug/documents/:id/reprocess", requireAuth, async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const user = req.user as schema.User;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can reprocess documents" });
+      }
+      
+      const doc = await storage.getOrbitDocument(parseInt(id));
+      if (!doc) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+      
+      // Download file from object storage
+      const { ObjectStorageService } = await import("./replit_integrations/object_storage");
+      const objectStorage = new ObjectStorageService();
+      
+      if (!objectStorage.isConfigured()) {
+        return res.status(503).json({ message: "Object storage not configured" });
+      }
+      
+      // Get the file path - extract just the filename from the full path
+      const fileName = doc.storagePath.split('/').pop() || '';
+      const directory = doc.storagePath.replace(`/${fileName}`, '').replace(fileName, '') || `orbit/${slug}/documents`;
+      
+      const buffer = await objectStorage.downloadBuffer(fileName, directory);
+      if (!buffer) {
+        return res.status(404).json({ message: "File not found in storage" });
+      }
+      
+      // Extract text
+      const { extractDocumentText } = await import("./services/documentProcessor");
+      const { text, pageCount } = await extractDocumentText(buffer, doc.fileType as any);
+      
+      // Update document
+      const updated = await storage.updateOrbitDocument(doc.id, {
+        extractedText: text || null,
+        pageCount: pageCount || null,
+        status: 'ready',
+      });
+      
+      console.log(`[OrbitDocuments] Reprocessed doc ${doc.id}: extracted ${text?.length || 0} chars`);
+      
+      res.json({ 
+        success: true, 
+        extractedLength: text?.length || 0,
+        pageCount: pageCount || 0,
+        document: updated,
+      });
+    } catch (error) {
+      console.error("Error reprocessing document:", error);
+      res.status(500).json({ message: "Error reprocessing document" });
+    }
+  });
+
   // ==================== END ORBIT DOCUMENTS ====================
 
   // Orbit Meta - Get basic orbit info (owner only)

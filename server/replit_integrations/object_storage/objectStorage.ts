@@ -165,6 +165,32 @@ export class ObjectStorageService {
     }
   }
 
+  // Downloads an object to a Buffer (for processing)
+  async downloadBuffer(
+    fileName: string,
+    subDirectory: string = "uploads"
+  ): Promise<Buffer | null> {
+    try {
+      const privateObjectDir = this.getPrivateObjectDir();
+      const fullPath = `${privateObjectDir}/${subDirectory}/${fileName}`;
+      
+      const { bucketName, objectName } = parseObjectPath(fullPath);
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+      
+      const [exists] = await file.exists();
+      if (!exists) {
+        return null;
+      }
+      
+      const [buffer] = await file.download();
+      return buffer;
+    } catch (error) {
+      console.error("Error downloading buffer:", error);
+      return null;
+    }
+  }
+
   // Gets the upload URL for an object entity.
   async getObjectEntityUploadURL(): Promise<string> {
     const privateObjectDir = this.getPrivateObjectDir();
