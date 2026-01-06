@@ -412,122 +412,69 @@ export default function OrbitSettings() {
             )}
           </div>
 
-          {/* Documents Section */}
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10" data-testid="section-documents">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 flex items-center justify-center">
-                  <File className="w-4 h-4 text-purple-400" />
+          {/* Hidden file input for document uploads */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,.md"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileUpload(file, docCategory);
+              e.target.value = '';
+            }}
+            data-testid="input-document-file"
+          />
+
+          {/* Document List - Only show if documents exist */}
+          {documents.length > 0 && (
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10" data-testid="section-documents">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-purple-400" />
+                  <span className="text-sm font-medium text-white/80">Uploaded Documents</span>
                 </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">Documents</h2>
-                  <p className="text-xs text-white/50">Product manuals, presentations, and guides</p>
-                </div>
+                <Badge variant="outline" className="text-xs border-purple-500/50 text-purple-400">
+                  {documents.length}
+                </Badge>
               </div>
-              <Badge variant="outline" className="border-purple-500/50 text-purple-400">
-                {documents.length} files
-              </Badge>
-            </div>
-
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,.md"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileUpload(file, docCategory);
-                e.target.value = '';
-              }}
-              data-testid="input-document-file"
-            />
-
-            {/* Document List */}
-            {documents.length > 0 ? (
-              <div className="space-y-2 mb-4">
+              <div className="space-y-2">
                 {documents.map((doc) => (
                   <div
                     key={doc.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-white/5"
+                    className="flex items-center justify-between p-2 rounded-lg bg-white/[0.03] border border-white/5"
                     data-testid={`document-${doc.id}`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                        <FileText className="w-4 h-4 text-purple-400" />
-                      </div>
-                      <div>
-                        <span className="text-sm text-white/80 block truncate max-w-[180px]">{doc.title || doc.fileName}</span>
-                        <span className="text-xs text-white/40">
-                          {doc.fileType.toUpperCase()} • {formatFileSize(doc.fileSizeBytes)}
-                          {doc.pageCount ? ` • ${doc.pageCount} pages` : ''}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-sm text-white/70 truncate">{doc.title || doc.fileName}</span>
                       {doc.status === 'processing' && (
-                        <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                        <Loader2 className="w-3 h-3 text-purple-400 animate-spin flex-shrink-0" />
                       )}
                       {doc.status === 'ready' && (
-                        <Badge variant="outline" className="text-xs border-green-500/50 text-green-400">Ready</Badge>
+                        <span className="text-xs text-green-400 flex-shrink-0">✓</span>
                       )}
                       {doc.status === 'error' && (
-                        <Badge variant="outline" className="text-xs border-red-500/50 text-red-400">Error</Badge>
+                        <span className="text-xs text-red-400 flex-shrink-0">!</span>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-white/40 hover:text-red-400"
-                        onClick={() => {
-                          if (confirm('Delete this document?')) {
-                            deleteDocumentMutation.mutate(doc.id);
-                          }
-                        }}
-                        data-testid={`button-delete-doc-${doc.id}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-white/30 hover:text-red-400 flex-shrink-0"
+                      onClick={() => {
+                        if (confirm('Delete this document?')) {
+                          deleteDocumentMutation.mutate(doc.id);
+                        }
+                      }}
+                      data-testid={`button-delete-doc-${doc.id}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="p-6 rounded-lg bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-dashed border-white/10 text-center mb-4">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-purple-500/10 flex items-center justify-center">
-                  <Upload className="w-6 h-6 text-purple-400" />
-                </div>
-                <p className="text-sm text-white/70 mb-1">No documents yet</p>
-                <p className="text-xs text-white/40">Upload PDFs, presentations, or product manuals</p>
-              </div>
-            )}
-
-            {/* Upload Button - Opens modal on Documents tab so user can select category */}
-            <Button
-              variant="outline"
-              className="w-full border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-              onClick={() => {
-                setModalTab('docs');
-                setShowAddModal(true);
-              }}
-              disabled={isUploading}
-              data-testid="button-upload-document"
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Document
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-white/40 mt-2 text-center">
-              Supported: PDF, PPT, PPTX, DOC, DOCX, TXT, MD (max 25MB)
-            </p>
-          </div>
+            </div>
+          )}
 
           {/* Value Proposition for Free Users */}
           {orbitData?.planTier === 'free' && (
