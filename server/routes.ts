@@ -10487,9 +10487,13 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
       // Upsert sources
       await storage.upsertOrbitSources(slug, validSources);
       
-      // Calculate strength score
+      // Get documents with extracted text to include in strength calculation
+      const allDocs = await storage.getOrbitDocuments(slug);
+      const docsWithText = allDocs.filter(d => d.extractedText && d.extractedText.length > 0);
+      
+      // Calculate strength score (includes documents)
       const { calculateStrengthScore } = await import("./services/orbitStrength");
-      const { strengthScore } = calculateStrengthScore(validSources);
+      const { strengthScore } = calculateStrengthScore(validSources, docsWithText.length);
       
       // Determine new tier (flip from free to grow if powered up)
       const newTier = orbitMeta.planTier === 'free' && strengthScore > 0 ? 'grow' : orbitMeta.planTier;
@@ -10910,6 +10914,23 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         errorMessage: extractionError || null,
       });
       
+      // Recalculate strength score after document upload
+      if (extractedText && extractedText.length > 0) {
+        try {
+          const sources = await storage.getOrbitSources(slug);
+          const allDocs = await storage.getOrbitDocuments(slug);
+          const docsWithText = allDocs.filter(d => d.extractedText && d.extractedText.length > 0);
+          
+          const { calculateStrengthScore } = await import("./services/orbitStrength");
+          const { strengthScore } = calculateStrengthScore(sources, docsWithText.length);
+          
+          await storage.updateOrbitTierAndStrength(slug, orbitMeta.planTier || 'free', strengthScore);
+          console.log(`[OrbitDocuments] Updated strength score to ${strengthScore} (${docsWithText.length} docs with text)`);
+        } catch (err) {
+          console.error('[OrbitDocuments] Failed to update strength score:', err);
+        }
+      }
+      
       res.json(doc);
     } catch (error) {
       console.error("Error uploading document:", error);
@@ -10995,6 +11016,22 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
       }
       
       await storage.deleteOrbitDocument(parseInt(id));
+      
+      // Recalculate strength score after document deletion
+      try {
+        const sources = await storage.getOrbitSources(slug);
+        const allDocs = await storage.getOrbitDocuments(slug);
+        const docsWithText = allDocs.filter(d => d.extractedText && d.extractedText.length > 0);
+        
+        const { calculateStrengthScore } = await import("./services/orbitStrength");
+        const { strengthScore } = calculateStrengthScore(sources, docsWithText.length);
+        
+        await storage.updateOrbitTierAndStrength(slug, orbitMeta.planTier || 'free', strengthScore);
+        console.log(`[OrbitDocuments] Updated strength score to ${strengthScore} after deletion`);
+      } catch (err) {
+        console.error('[OrbitDocuments] Failed to update strength score after deletion:', err);
+      }
+      
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting document:", error);
