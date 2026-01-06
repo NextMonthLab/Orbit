@@ -8256,9 +8256,48 @@ Return a JSON object with:
 
       // Build product context if the orbit has catalogue items
       let productContext = '';
+      let documentContext = '';
       if (orbit) {
         const boxes = await storage.getOrbitBoxes(orbit.businessSlug);
         const productBoxes = boxes.filter(b => b.boxType === 'product' || b.boxType === 'menu_item');
+        
+        // Get uploaded documents for additional context
+        const documents = await storage.getOrbitDocuments(orbit.businessSlug);
+        const readyDocs = documents.filter(d => d.status === 'ready' && d.extractedText);
+        
+        if (readyDocs.length > 0) {
+          const docSections: string[] = [];
+          
+          // Group documents by category
+          const docsByCategory: Record<string, typeof readyDocs> = {};
+          for (const doc of readyDocs) {
+            const cat = doc.category || 'other';
+            if (!docsByCategory[cat]) docsByCategory[cat] = [];
+            docsByCategory[cat].push(doc);
+          }
+          
+          const categoryLabels: Record<string, string> = {
+            products: 'Products & Services Info',
+            pricing: 'Pricing Information',
+            policies: 'Policies & Terms',
+            guides: 'How-to Guides',
+            faqs: 'FAQs',
+            company: 'Company Information',
+            other: 'Additional Information',
+          };
+          
+          for (const [category, docs] of Object.entries(docsByCategory)) {
+            const label = categoryLabels[category] || 'Additional Information';
+            const docsContent = docs.map(d => {
+              const text = d.extractedText?.slice(0, 3000) || '';
+              return `[${d.title || d.fileName}]\n${text}`;
+            }).join('\n\n');
+            
+            docSections.push(`### ${label}:\n${docsContent}`);
+          }
+          
+          documentContext = `\n\nUPLOADED DOCUMENTS:\n${docSections.join('\n\n')}\n`;
+        }
         
         if (productBoxes.length > 0) {
           // Group by category and get top items per category
@@ -8305,7 +8344,7 @@ CONTEXT:
 ${preview.siteSummary}
 
 ${preview.keyServices && preview.keyServices.length > 0 ? `SERVICES:
-${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}${productContext}
+${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}${productContext}${documentContext}
 
 RESPONSE STRUCTURE:
 1. Lead with the key insight or answer (1 sentence)
