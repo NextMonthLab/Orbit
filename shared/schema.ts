@@ -1595,6 +1595,43 @@ export const insertOrbitSourceSchema = createInsertSchema(orbitSources).omit({ i
 export type InsertOrbitSource = z.infer<typeof insertOrbitSourceSchema>;
 export type OrbitSource = typeof orbitSources.$inferSelect;
 
+// Orbit Documents - Uploaded documents (PDFs, presentations, manuals) for AI context
+export type OrbitDocumentType = 'pdf' | 'ppt' | 'pptx' | 'doc' | 'docx' | 'txt' | 'md';
+export type OrbitDocumentStatus = 'uploading' | 'processing' | 'ready' | 'error';
+export type OrbitDocumentCategory = 'product_manual' | 'presentation' | 'brochure' | 'specification' | 'guide' | 'other';
+
+export const orbitDocuments = pgTable("orbit_documents", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug).notNull(),
+  uploadedByUserId: integer("uploaded_by_user_id").references(() => users.id),
+  
+  // File info
+  fileName: text("file_name").notNull(),
+  fileType: text("file_type").$type<OrbitDocumentType>().notNull(),
+  fileSizeBytes: integer("file_size_bytes").notNull(),
+  storagePath: text("storage_path").notNull(),
+  
+  // Metadata
+  title: text("title"),
+  description: text("description"),
+  category: text("category").$type<OrbitDocumentCategory>().default('other'),
+  
+  // Extracted content
+  extractedText: text("extracted_text"),
+  pageCount: integer("page_count"),
+  
+  // Processing status
+  status: text("status").$type<OrbitDocumentStatus>().default('uploading').notNull(),
+  errorMessage: text("error_message"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertOrbitDocumentSchema = createInsertSchema(orbitDocuments).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertOrbitDocument = z.infer<typeof insertOrbitDocumentSchema>;
+export type OrbitDocument = typeof orbitDocuments.$inferSelect;
+
 // Hero Posts - Curated high-performing social posts for learning and content generation
 export type HeroPostPlatform = 'linkedin' | 'x' | 'instagram' | 'facebook' | 'youtube' | 'tiktok' | 'other';
 export type HeroPostStatus = 'pending' | 'enriching' | 'needs_text' | 'ready' | 'error';

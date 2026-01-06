@@ -11106,6 +11106,179 @@ ${businessType === 'restaurant' ? '- For menu queries: use £ for prices, refere
 
   // ==================== END HERO POSTS ====================
 
+  // ==================== ORBIT DOCUMENTS ====================
+  
+  // Upload a document
+  app.post("/api/orbit/:slug/documents", requireAuth, upload.single('file'), async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user as schema.User;
+      const file = req.file;
+      const { title, description, category } = req.body;
+      
+      if (!file) {
+        return res.status(400).json({ message: "File is required" });
+      }
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can upload documents" });
+      }
+      
+      const { detectDocumentType, isAllowedDocumentType, MAX_DOCUMENT_SIZE_BYTES } = await import("./services/documentProcessor");
+      
+      if (!isAllowedDocumentType(file.originalname)) {
+        return res.status(400).json({ message: "File type not allowed. Supported: PDF, PPT, PPTX, DOC, DOCX, TXT, MD" });
+      }
+      
+      if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
+        return res.status(400).json({ message: "File too large. Maximum size is 25MB" });
+      }
+      
+      const fileType = detectDocumentType(file.originalname);
+      const timestamp = Date.now();
+      const storagePath = `.private/orbit/${slug}/documents/${timestamp}_${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      
+      // Upload to object storage
+      const { isObjectStorageConfigured, putObject } = await import("./storage/objectStore");
+      if (!isObjectStorageConfigured()) {
+        return res.status(503).json({ message: "Object storage not configured" });
+      }
+      
+      await putObject(storagePath, file.buffer, file.mimetype || 'application/octet-stream');
+      
+      // Create document record
+      const doc = await storage.createOrbitDocument({
+        businessSlug: slug,
+        uploadedByUserId: user.id,
+        fileName: file.originalname,
+        fileType,
+        fileSizeBytes: file.size,
+        storagePath,
+        title: title || file.originalname,
+        description: description || null,
+        category: category || 'other',
+        status: 'processing',
+      });
+      
+      // Process document in background (extract text)
+      (async () => {
+        try {
+          const { extractDocumentText } = await import("./services/documentProcessor");
+          const { text, pageCount } = await extractDocumentText(file.buffer, fileType);
+          
+          await storage.updateOrbitDocument(doc.id, {
+            extractedText: text || null,
+            pageCount: pageCount || null,
+            status: text ? 'ready' : 'ready', // Even if no text, mark as ready
+          });
+        } catch (error) {
+          console.error('[OrbitDocuments] Text extraction error:', error);
+          await storage.updateOrbitDocument(doc.id, {
+            status: 'error',
+            errorMessage: error instanceof Error ? error.message : 'Text extraction failed',
+          });
+        }
+      })();
+      
+      res.json(doc);
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      res.status(500).json({ message: "Error uploading document" });
+    }
+  });
+
+  // List documents
+  app.get("/api/orbit/:slug/documents", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user as schema.User;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can view documents" });
+      }
+      
+      const documents = await storage.getOrbitDocuments(slug);
+      res.json({ documents });
+    } catch (error) {
+      console.error("Error getting documents:", error);
+      res.status(500).json({ message: "Error getting documents" });
+    }
+  });
+
+  // Update document metadata
+  app.put("/api/orbit/:slug/documents/:id", requireAuth, async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const user = req.user as schema.User;
+      const { title, description, category } = req.body;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can update documents" });
+      }
+      
+      const updated = await storage.updateOrbitDocument(parseInt(id), {
+        title,
+        description,
+        category,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating document:", error);
+      res.status(500).json({ message: "Error updating document" });
+    }
+  });
+
+  // Delete document
+  app.delete("/api/orbit/:slug/documents/:id", requireAuth, async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const user = req.user as schema.User;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can delete documents" });
+      }
+      
+      const doc = await storage.getOrbitDocument(parseInt(id));
+      if (doc && doc.storagePath) {
+        try {
+          const { deleteObject } = await import("./storage/objectStore");
+          await deleteObject(doc.storagePath);
+        } catch (err) {
+          console.warn('[OrbitDocuments] Failed to delete file from storage:', err);
+        }
+      }
+      
+      await storage.deleteOrbitDocument(parseInt(id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      res.status(500).json({ message: "Error deleting document" });
+    }
+  });
+
+  // ==================== END ORBIT DOCUMENTS ====================
+
   // Orbit Meta - Get basic orbit info (owner only)
   app.get("/api/orbit/:slug/meta", requireAuth, async (req, res) => {
     try {

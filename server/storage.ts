@@ -227,6 +227,13 @@ export interface IStorage {
   getHeroPostInsights(businessSlug: string): Promise<schema.HeroPostInsight | undefined>;
   upsertHeroPostInsights(businessSlug: string, data: Partial<schema.InsertHeroPostInsight>): Promise<schema.HeroPostInsight>;
 
+  // Orbit Documents
+  createOrbitDocument(data: schema.InsertOrbitDocument): Promise<schema.OrbitDocument>;
+  getOrbitDocuments(businessSlug: string): Promise<schema.OrbitDocument[]>;
+  getOrbitDocument(id: number): Promise<schema.OrbitDocument | undefined>;
+  updateOrbitDocument(id: number, data: Partial<schema.InsertOrbitDocument>): Promise<schema.OrbitDocument | undefined>;
+  deleteOrbitDocument(id: number): Promise<void>;
+
   // Orbit Analytics
   getOrbitAnalytics(businessSlug: string, days?: number): Promise<schema.OrbitAnalytics[]>;
   getOrbitAnalyticsSummary(businessSlug: string, days?: number): Promise<{
@@ -1825,6 +1832,38 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return result;
+  }
+
+  // Orbit Documents implementation
+  async createOrbitDocument(data: schema.InsertOrbitDocument): Promise<schema.OrbitDocument> {
+    const [created] = await db.insert(schema.orbitDocuments).values(data as any).returning();
+    return created;
+  }
+
+  async getOrbitDocuments(businessSlug: string): Promise<schema.OrbitDocument[]> {
+    return db.query.orbitDocuments.findMany({
+      where: eq(schema.orbitDocuments.businessSlug, businessSlug),
+      orderBy: [desc(schema.orbitDocuments.createdAt)],
+    });
+  }
+
+  async getOrbitDocument(id: number): Promise<schema.OrbitDocument | undefined> {
+    return db.query.orbitDocuments.findFirst({
+      where: eq(schema.orbitDocuments.id, id),
+    });
+  }
+
+  async updateOrbitDocument(id: number, data: Partial<schema.InsertOrbitDocument>): Promise<schema.OrbitDocument | undefined> {
+    const [updated] = await db
+      .update(schema.orbitDocuments)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.orbitDocuments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteOrbitDocument(id: number): Promise<void> {
+    await db.delete(schema.orbitDocuments).where(eq(schema.orbitDocuments.id, id));
   }
 
   async getOrCreateTodayAnalytics(businessSlug: string): Promise<schema.OrbitAnalytics> {

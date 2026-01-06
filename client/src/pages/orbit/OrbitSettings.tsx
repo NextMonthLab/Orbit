@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Settings, Building2, Globe, Bell, Shield, FileText, Zap, Check, ExternalLink, Plus, X, Link2, Instagram, Linkedin, Facebook, Twitter, Youtube } from "lucide-react";
+import { useState, useRef } from "react";
+import { Settings, Building2, Globe, Bell, Shield, FileText, Zap, Check, ExternalLink, Plus, X, Link2, Instagram, Linkedin, Facebook, Twitter, Youtube, Upload, Trash2, Loader2, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,19 @@ interface OrbitSource {
 interface OrbitMeta {
   strengthScore: number;
   planTier: string;
+}
+
+interface OrbitDocument {
+  id: number;
+  fileName: string;
+  fileType: string;
+  fileSizeBytes: number;
+  title: string;
+  category: string;
+  status: 'uploading' | 'processing' | 'ready' | 'error';
+  errorMessage?: string;
+  pageCount?: number;
+  createdAt: string;
 }
 
 type SourceLabel = 'about' | 'services' | 'faq' | 'contact' | 'homepage' | 'linkedin' | 'instagram' | 'facebook' | 'twitter' | 'tiktok' | 'youtube';
@@ -111,6 +124,79 @@ export default function OrbitSettings() {
   const sources = sourcesData?.sources || [];
   const strengthScore = orbitData?.strengthScore ?? 0;
   const isPowered = strengthScore > 0;
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const { data: documentsData, refetch: refetchDocuments } = useQuery<{ documents: OrbitDocument[] }>({
+    queryKey: ["orbit-documents", slug],
+    queryFn: async () => {
+      if (!slug) return { documents: [] };
+      const response = await fetch(`/api/orbit/${slug}/documents`, { credentials: "include" });
+      if (!response.ok) return { documents: [] };
+      return response.json();
+    },
+    enabled: !!slug,
+  });
+
+  const documents = documentsData?.documents || [];
+
+  const handleFileUpload = async (file: File) => {
+    if (!slug) return;
+    setIsUploading(true);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', file.name);
+    
+    try {
+      const response = await fetch(`/api/orbit/${slug}/documents`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+      
+      toast({ title: "Document uploaded", description: "Processing content..." });
+      refetchDocuments();
+    } catch (error) {
+      toast({ 
+        title: "Upload failed", 
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive" 
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: async (docId: number) => {
+      const response = await fetch(`/api/orbit/${slug}/documents/${docId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to delete');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Document deleted" });
+      refetchDocuments();
+    },
+    onError: () => {
+      toast({ title: "Delete failed", variant: "destructive" });
+    },
+  });
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   const getSourceLabel = (label: string) => {
     const labels: Record<string, string> = {
@@ -267,6 +353,120 @@ export default function OrbitSettings() {
                 {sources.length > 0 ? 'Add More Sources' : 'Add Your First Source'}
               </Button>
             )}
+          </div>
+
+          {/* Documents Section */}
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10" data-testid="section-documents">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                  <File className="w-4 h-4 text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Documents</h2>
+                  <p className="text-xs text-white/50">Product manuals, presentations, and guides</p>
+                </div>
+              </div>
+              <Badge variant="outline" className="border-purple-500/50 text-purple-400">
+                {documents.length} files
+              </Badge>
+            </div>
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,.md"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileUpload(file);
+                e.target.value = '';
+              }}
+              data-testid="input-document-file"
+            />
+
+            {/* Document List */}
+            {documents.length > 0 ? (
+              <div className="space-y-2 mb-4">
+                {documents.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-white/5"
+                    data-testid={`document-${doc.id}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-purple-400" />
+                      </div>
+                      <div>
+                        <span className="text-sm text-white/80 block truncate max-w-[180px]">{doc.title || doc.fileName}</span>
+                        <span className="text-xs text-white/40">
+                          {doc.fileType.toUpperCase()} • {formatFileSize(doc.fileSizeBytes)}
+                          {doc.pageCount ? ` • ${doc.pageCount} pages` : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {doc.status === 'processing' && (
+                        <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                      )}
+                      {doc.status === 'ready' && (
+                        <Badge variant="outline" className="text-xs border-green-500/50 text-green-400">Ready</Badge>
+                      )}
+                      {doc.status === 'error' && (
+                        <Badge variant="outline" className="text-xs border-red-500/50 text-red-400">Error</Badge>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-white/40 hover:text-red-400"
+                        onClick={() => {
+                          if (confirm('Delete this document?')) {
+                            deleteDocumentMutation.mutate(doc.id);
+                          }
+                        }}
+                        data-testid={`button-delete-doc-${doc.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 rounded-lg bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-dashed border-white/10 text-center mb-4">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-purple-500/10 flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-purple-400" />
+                </div>
+                <p className="text-sm text-white/70 mb-1">No documents yet</p>
+                <p className="text-xs text-white/40">Upload PDFs, presentations, or product manuals</p>
+              </div>
+            )}
+
+            {/* Upload Button */}
+            <Button
+              variant="outline"
+              className="w-full border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              data-testid="button-upload-document"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Document
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-white/40 mt-2 text-center">
+              Supported: PDF, PPT, PPTX, DOC, DOCX, TXT, MD (max 25MB)
+            </p>
           </div>
 
           {/* Value Proposition for Free Users */}
