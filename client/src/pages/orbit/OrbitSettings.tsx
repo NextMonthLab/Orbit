@@ -1,13 +1,15 @@
 import { useState, useRef } from "react";
-import { Settings, Building2, Globe, Bell, Shield, FileText, Zap, Check, ExternalLink, Plus, X, Link2, Instagram, Linkedin, Facebook, Twitter, Youtube, Upload, Trash2, Loader2, File } from "lucide-react";
+import { Settings, Building2, Globe, Bell, Shield, FileText, Zap, Check, ExternalLink, Plus, X, Link2, Instagram, Linkedin, Facebook, Twitter, Youtube, Upload, Trash2, Loader2, File, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OrbitLayout from "@/components/OrbitLayout";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -59,8 +61,11 @@ export default function OrbitSettings() {
   const queryClient = useQueryClient();
   
   const [showAddModal, setShowAddModal] = useState(false);
+  const [modalTab, setModalTab] = useState<'links' | 'hero' | 'docs'>('links');
   const [selectedSourceType, setSelectedSourceType] = useState<SourceLabel | ''>('');
   const [sourceUrl, setSourceUrl] = useState('');
+  const [heroPostUrl, setHeroPostUrl] = useState('');
+  const [heroPostText, setHeroPostText] = useState('');
   
   const { data: sourcesData, refetch: refetchSources } = useQuery<{ sources: OrbitSource[] }>({
     queryKey: ["orbit-sources", slug],
@@ -163,6 +168,7 @@ export default function OrbitSettings() {
       
       toast({ title: "Document uploaded", description: "Processing content..." });
       refetchDocuments();
+      setShowAddModal(false);
     } catch (error) {
       toast({ 
         title: "Upload failed", 
@@ -191,6 +197,44 @@ export default function OrbitSettings() {
       toast({ title: "Delete failed", variant: "destructive" });
     },
   });
+
+  const addHeroPostMutation = useMutation({
+    mutationFn: async (data: { url: string; text?: string }) => {
+      const response = await fetch(`/api/orbit/${slug}/hero-posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to add hero post');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Hero Post added", description: "Analyzing your post for patterns..." });
+      setShowAddModal(false);
+      setHeroPostUrl('');
+      setHeroPostText('');
+      queryClient.invalidateQueries({ queryKey: ["hero-posts", slug] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleAddHeroPost = () => {
+    if (!heroPostUrl.trim()) return;
+    addHeroPostMutation.mutate({ 
+      url: heroPostUrl.trim(), 
+      text: heroPostText.trim() || undefined 
+    });
+  };
+
+  const handleModalFileUpload = () => {
+    fileInputRef.current?.click();
+  };
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -569,76 +613,158 @@ export default function OrbitSettings() {
       </div>
 
       {/* Add Source Modal */}
-      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+      <Dialog open={showAddModal} onOpenChange={(open) => {
+        setShowAddModal(open);
+        if (!open) {
+          setSelectedSourceType('');
+          setSourceUrl('');
+          setHeroPostUrl('');
+          setHeroPostText('');
+          setModalTab('links');
+        }
+      }}>
         <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-md">
           <DialogHeader>
-            <DialogTitle>Add a Source</DialogTitle>
+            <DialogTitle>Power Up Your Orbit</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Add a URL or social channel to strengthen your Orbit
+              Add knowledge sources to make your Orbit smarter
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 mt-4">
-            <div>
-              <Label className="text-zinc-300 mb-2 block">Source Type</Label>
-              <Select value={selectedSourceType} onValueChange={(v) => setSelectedSourceType(v as SourceLabel)}>
-                <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                  <SelectValue placeholder="Select a source type" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  {availableOptions.map((option) => {
-                    const Icon = option.icon;
-                    return (
-                      <SelectItem 
-                        key={option.value} 
-                        value={option.value}
-                        className="text-white focus:bg-zinc-700 focus:text-white"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4" />
-                          <span>{option.label}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              {selectedSourceType && (
-                <p className="text-xs text-zinc-500 mt-1">
-                  {SOURCE_OPTIONS.find(o => o.value === selectedSourceType)?.description}
-                </p>
-              )}
-            </div>
+          <Tabs value={modalTab} onValueChange={(v) => setModalTab(v as 'links' | 'hero' | 'docs')} className="mt-2">
+            <TabsList className="grid w-full grid-cols-3 bg-zinc-800">
+              <TabsTrigger value="links" className="data-[state=active]:bg-blue-600 text-xs" data-testid="tab-links">
+                <Link2 className="w-3 h-3 mr-1" />
+                Links
+              </TabsTrigger>
+              <TabsTrigger value="hero" className="data-[state=active]:bg-purple-600 text-xs" data-testid="tab-hero">
+                <Sparkles className="w-3 h-3 mr-1" />
+                Hero Posts
+              </TabsTrigger>
+              <TabsTrigger value="docs" className="data-[state=active]:bg-pink-600 text-xs" data-testid="tab-docs">
+                <File className="w-3 h-3 mr-1" />
+                Documents
+              </TabsTrigger>
+            </TabsList>
 
-            <div>
-              <Label className="text-zinc-300 mb-2 block">URL</Label>
-              <Input
-                value={sourceUrl}
-                onChange={(e) => setSourceUrl(e.target.value)}
-                placeholder="https://..."
-                className="bg-zinc-800 border-zinc-700 text-white"
-                data-testid="input-source-url"
-              />
-            </div>
-
-            <div className="flex gap-2 pt-2">
+            {/* Links Tab */}
+            <TabsContent value="links" className="space-y-4 mt-4">
+              <div>
+                <Label className="text-zinc-300 mb-2 block">Source Type</Label>
+                <Select value={selectedSourceType} onValueChange={(v) => setSelectedSourceType(v as SourceLabel)}>
+                  <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
+                    <SelectValue placeholder="Select a source type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                    {availableOptions.map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <SelectItem 
+                          key={option.value} 
+                          value={option.value}
+                          className="text-white focus:bg-zinc-700 focus:text-white"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4" />
+                            <span>{option.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {selectedSourceType && (
+                  <p className="text-xs text-zinc-500 mt-1">
+                    {SOURCE_OPTIONS.find(o => o.value === selectedSourceType)?.description}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label className="text-zinc-300 mb-2 block">URL</Label>
+                <Input
+                  value={sourceUrl}
+                  onChange={(e) => setSourceUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="bg-zinc-800 border-zinc-700 text-white"
+                  data-testid="input-source-url"
+                />
+              </div>
               <Button
-                variant="outline"
-                className="flex-1 border-zinc-700 text-zinc-300"
-                onClick={() => setShowAddModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
                 onClick={handleAddSource}
                 disabled={!selectedSourceType || !sourceUrl || addSourceMutation.isPending}
                 data-testid="button-confirm-add-source"
               >
-                {addSourceMutation.isPending ? "Adding..." : "Add Source"}
+                {addSourceMutation.isPending ? "Adding..." : "Add Link"}
               </Button>
-            </div>
-          </div>
+            </TabsContent>
+
+            {/* Hero Posts Tab */}
+            <TabsContent value="hero" className="space-y-4 mt-4">
+              <p className="text-xs text-zinc-400">
+                Add your best-performing social posts to analyze patterns and get content suggestions.
+              </p>
+              <div>
+                <Label className="text-zinc-300 mb-2 block">Post URL</Label>
+                <Input
+                  value={heroPostUrl}
+                  onChange={(e) => setHeroPostUrl(e.target.value)}
+                  placeholder="https://linkedin.com/posts/... or https://x.com/..."
+                  className="bg-zinc-800 border-zinc-700 text-white"
+                  data-testid="input-hero-url"
+                />
+              </div>
+              <div>
+                <Label className="text-zinc-300 mb-2 block">Post Text (optional)</Label>
+                <Textarea
+                  value={heroPostText}
+                  onChange={(e) => setHeroPostText(e.target.value)}
+                  placeholder="Paste the post content here if the URL doesn't work..."
+                  className="bg-zinc-800 border-zinc-700 text-white min-h-[80px]"
+                  data-testid="input-hero-text"
+                />
+                <p className="text-xs text-zinc-500 mt-1">
+                  If we can't fetch content from the URL, paste the text here
+                </p>
+              </div>
+              <Button
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                onClick={handleAddHeroPost}
+                disabled={!heroPostUrl.trim() || addHeroPostMutation.isPending}
+                data-testid="button-confirm-add-hero"
+              >
+                {addHeroPostMutation.isPending ? "Adding..." : "Add Hero Post"}
+              </Button>
+            </TabsContent>
+
+            {/* Documents Tab */}
+            <TabsContent value="docs" className="space-y-4 mt-4">
+              <p className="text-xs text-zinc-400">
+                Upload product manuals, presentations, or guides to enhance your Orbit's knowledge.
+              </p>
+              <div 
+                className="p-6 rounded-lg bg-gradient-to-br from-pink-500/5 to-purple-500/5 border border-dashed border-white/20 text-center cursor-pointer hover:border-pink-500/50 transition-colors"
+                onClick={handleModalFileUpload}
+              >
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-pink-500/10 flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-pink-400" />
+                </div>
+                <p className="text-sm text-white/70 mb-1">Click to upload</p>
+                <p className="text-xs text-white/40">PDF, PPT, PPTX, DOC, DOCX, TXT, MD (max 25MB)</p>
+              </div>
+              {isUploading && (
+                <div className="flex items-center justify-center gap-2 text-pink-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">Uploading...</span>
+                </div>
+              )}
+              {documents.length > 0 && (
+                <div className="text-xs text-zinc-500">
+                  {documents.length} document{documents.length !== 1 ? 's' : ''} uploaded
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </OrbitLayout>
