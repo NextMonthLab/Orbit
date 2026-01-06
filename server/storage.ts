@@ -217,6 +217,16 @@ export interface IStorage {
   getOrbitSources(businessSlug: string): Promise<schema.OrbitSource[]>;
   updateOrbitTierAndStrength(businessSlug: string, planTier: string, strengthScore: number): Promise<schema.OrbitMeta | undefined>;
 
+  // Hero Posts
+  createHeroPost(data: schema.InsertHeroPost): Promise<schema.HeroPost>;
+  getHeroPosts(businessSlug: string, filters?: { status?: schema.HeroPostStatus; platform?: schema.HeroPostPlatform; limit?: number }): Promise<schema.HeroPost[]>;
+  getHeroPost(id: number): Promise<schema.HeroPost | undefined>;
+  getHeroPostByUrl(businessSlug: string, url: string): Promise<schema.HeroPost | undefined>;
+  updateHeroPost(id: number, data: Partial<schema.InsertHeroPost>): Promise<schema.HeroPost | undefined>;
+  deleteHeroPost(id: number): Promise<void>;
+  getHeroPostInsights(businessSlug: string): Promise<schema.HeroPostInsight | undefined>;
+  upsertHeroPostInsights(businessSlug: string, data: Partial<schema.InsertHeroPostInsight>): Promise<schema.HeroPostInsight>;
+
   // Orbit Analytics
   getOrbitAnalytics(businessSlug: string, days?: number): Promise<schema.OrbitAnalytics[]>;
   getOrbitAnalyticsSummary(businessSlug: string, days?: number): Promise<{
@@ -1732,6 +1742,89 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.orbitMeta.businessSlug, businessSlug))
       .returning();
     return updated;
+  }
+
+  // Hero Posts implementation
+  async createHeroPost(data: schema.InsertHeroPost): Promise<schema.HeroPost> {
+    const [created] = await db.insert(schema.heroPosts).values(data as any).returning();
+    return created;
+  }
+
+  async getHeroPosts(
+    businessSlug: string, 
+    filters?: { status?: schema.HeroPostStatus; platform?: schema.HeroPostPlatform; limit?: number }
+  ): Promise<schema.HeroPost[]> {
+    const conditions = [eq(schema.heroPosts.businessSlug, businessSlug)];
+    
+    if (filters?.status) {
+      conditions.push(eq(schema.heroPosts.status, filters.status));
+    }
+    if (filters?.platform) {
+      conditions.push(eq(schema.heroPosts.sourcePlatform, filters.platform));
+    }
+    
+    const results = await db.query.heroPosts.findMany({
+      where: and(...conditions),
+      orderBy: [desc(schema.heroPosts.createdAt)],
+      limit: filters?.limit || 100,
+    });
+    return results;
+  }
+
+  async getHeroPost(id: number): Promise<schema.HeroPost | undefined> {
+    return db.query.heroPosts.findFirst({
+      where: eq(schema.heroPosts.id, id),
+    });
+  }
+
+  async getHeroPostByUrl(businessSlug: string, url: string): Promise<schema.HeroPost | undefined> {
+    return db.query.heroPosts.findFirst({
+      where: and(
+        eq(schema.heroPosts.businessSlug, businessSlug),
+        eq(schema.heroPosts.url, url)
+      ),
+    });
+  }
+
+  async updateHeroPost(id: number, data: Partial<schema.InsertHeroPost>): Promise<schema.HeroPost | undefined> {
+    const [updated] = await db
+      .update(schema.heroPosts)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.heroPosts.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteHeroPost(id: number): Promise<void> {
+    await db.delete(schema.heroPosts).where(eq(schema.heroPosts.id, id));
+  }
+
+  async getHeroPostInsights(businessSlug: string): Promise<schema.HeroPostInsight | undefined> {
+    return db.query.heroPostInsights.findFirst({
+      where: eq(schema.heroPostInsights.businessSlug, businessSlug),
+    });
+  }
+
+  async upsertHeroPostInsights(
+    businessSlug: string, 
+    data: Partial<schema.InsertHeroPostInsight>
+  ): Promise<schema.HeroPostInsight> {
+    const [result] = await db
+      .insert(schema.heroPostInsights)
+      .values({ 
+        businessSlug, 
+        ...data,
+        updatedAt: new Date(),
+      } as any)
+      .onConflictDoUpdate({
+        target: schema.heroPostInsights.businessSlug,
+        set: {
+          ...data,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return result;
   }
 
   async getOrCreateTodayAnalytics(businessSlug: string): Promise<schema.OrbitAnalytics> {

@@ -1595,6 +1595,92 @@ export const insertOrbitSourceSchema = createInsertSchema(orbitSources).omit({ i
 export type InsertOrbitSource = z.infer<typeof insertOrbitSourceSchema>;
 export type OrbitSource = typeof orbitSources.$inferSelect;
 
+// Hero Posts - Curated high-performing social posts for learning and content generation
+export type HeroPostPlatform = 'linkedin' | 'x' | 'instagram' | 'facebook' | 'youtube' | 'tiktok' | 'other';
+export type HeroPostStatus = 'pending' | 'enriching' | 'needs_text' | 'ready' | 'error';
+export type HeroPostAuthorType = 'business_voice' | 'company_page' | 'unknown';
+
+export const heroPosts = pgTable("hero_posts", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug).notNull(),
+  createdByUserId: integer("created_by_user_id").references(() => users.id),
+  
+  // Source info
+  sourcePlatform: text("source_platform").$type<HeroPostPlatform>().notNull(),
+  url: text("url").notNull(),
+  
+  // Author info
+  authorName: text("author_name"),
+  authorType: text("author_type").$type<HeroPostAuthorType>().default('unknown'),
+  businessVoiceId: integer("business_voice_id"),
+  
+  // Content
+  title: text("title"),
+  text: text("text"),
+  outcomeNote: text("outcome_note"),
+  performedBecause: jsonb("performed_because").$type<string[]>(),
+  tags: jsonb("tags").$type<string[]>(),
+  
+  // OpenGraph metadata
+  ogImageUrl: text("og_image_url"),
+  ogDescription: text("og_description"),
+  publishedAt: timestamp("published_at"),
+  
+  // Processing status
+  status: text("status").$type<HeroPostStatus>().default('pending').notNull(),
+  errorMessage: text("error_message"),
+  
+  // Extracted insights (populated by AI)
+  extracted: jsonb("extracted").$type<{
+    topics?: string[];
+    hookType?: string;
+    intent?: 'educate' | 'sell' | 'recruit' | 'culture' | 'proof';
+    offers?: string[];
+    proofPoints?: string[];
+    entities?: string[];
+    riskFlags?: string[];
+    followUpIdeas?: Array<{ title: string; hook: string; linkBack: string }>;
+  }>(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueSlugUrl: unique().on(table.businessSlug, table.url),
+}));
+
+export const insertHeroPostSchema = createInsertSchema(heroPosts).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertHeroPost = z.infer<typeof insertHeroPostSchema>;
+export type HeroPost = typeof heroPosts.$inferSelect;
+
+// Hero Post Insights - Aggregated patterns across all hero posts
+export const heroPostInsights = pgTable("hero_post_insights", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug).notNull().unique(),
+  
+  // Aggregated analysis
+  summary: text("summary"),
+  topThemes: jsonb("top_themes").$type<Array<{ theme: string; count: number }>>(),
+  topHooks: jsonb("top_hooks").$type<Array<{ hookType: string; count: number }>>(),
+  topProofTypes: jsonb("top_proof_types").$type<Array<{ proofType: string; count: number }>>(),
+  
+  // Content suggestions
+  suggestions: jsonb("suggestions").$type<Array<{
+    title: string;
+    hook: string;
+    theme: string;
+    basedOnPostId: number;
+    linkBackSuggestion: string;
+  }>>(),
+  
+  // Cache management
+  postCount: integer("post_count").default(0).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertHeroPostInsightSchema = createInsertSchema(heroPostInsights).omit({ id: true, updatedAt: true });
+export type InsertHeroPostInsight = z.infer<typeof insertHeroPostInsightSchema>;
+export type HeroPostInsight = typeof heroPostInsights.$inferSelect;
+
 // Orbit Analytics - daily activity tracking for Data Hub
 export const orbitAnalytics = pgTable("orbit_analytics", {
   id: serial("id").primaryKey(),

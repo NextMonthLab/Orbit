@@ -24,6 +24,7 @@ import PreviewRedirect from "@/pages/PreviewRedirect";
 import OrbitView from "@/pages/orbit/OrbitView";
 import KioskOrbitView from "@/pages/orbit/KioskOrbitView";
 import DataHub from "@/pages/orbit/DataHub";
+import HeroPosts from "@/pages/orbit/HeroPosts";
 import OrbitHome from "@/pages/orbit/OrbitHome";
 import MyOrbits from "@/pages/orbit/MyOrbits";
 import OrbitMap from "@/pages/orbit/OrbitMap";
@@ -168,6 +169,7 @@ function Router() {
       <Route path="/orbit/:slug" component={OrbitRouter} />
       <Route path="/orbit/:slug/claim" component={OrbitView} />
       <Route path="/orbit/:slug/hub" component={DataHub} />
+      <Route path="/orbit/:slug/hero-posts" component={HeroPosts} />
       <Route path="/orbit/:slug/sources" component={OrbitSettings} />
       <Route path="/orbit/:slug/import" component={CatalogueImport} />
       <Route path="/orbit/:slug/proof" component={SocialProofLibrary} />

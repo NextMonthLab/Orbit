@@ -554,6 +554,30 @@ export default function DataHub() {
         </div>
 
         <div className="mb-8">
+          <h2 className="text-sm font-medium text-zinc-400 mb-4">Content Tools</h2>
+          <div 
+            className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5 cursor-pointer hover:border-zinc-700 transition-colors"
+            onClick={() => setLocation(`/orbit/${slug}/hero-posts`)}
+            data-testid="link-hero-posts"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  <h3 className="text-sm font-medium text-white">Hero Posts</h3>
+                </div>
+                <p className="text-xs text-zinc-500">
+                  Analyze your best-performing social posts to discover content patterns
+                </p>
+              </div>
+              <div className="text-zinc-600">
+                <ArrowLeft className="w-4 h-4 rotate-180" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-8">
           <h2 className="text-sm font-medium text-zinc-400 mb-4">Understanding</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <LockedSection

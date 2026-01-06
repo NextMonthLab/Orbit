@@ -10812,6 +10812,300 @@ ${businessType === 'restaurant' ? '- For menu queries: use £ for prices, refere
     }
   });
 
+  // ==================== HERO POSTS ====================
+  
+  // Create a single Hero Post
+  app.post("/api/orbit/:slug/hero-posts", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user as schema.User;
+      const { url, platform, text, performedBecause, outcomeNote, tags, businessVoiceId } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ message: "URL is required" });
+      }
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can add Hero Posts" });
+      }
+      
+      // Check for duplicate
+      const existing = await storage.getHeroPostByUrl(slug, url);
+      if (existing) {
+        return res.status(409).json({ message: "This URL has already been added", heroPost: existing });
+      }
+      
+      // Detect platform from URL if not provided
+      const { detectPlatform } = await import("./services/heroPostEnrichment");
+      const detectedPlatform = platform || detectPlatform(url);
+      
+      const heroPost = await storage.createHeroPost({
+        businessSlug: slug,
+        createdByUserId: user.id,
+        url,
+        sourcePlatform: detectedPlatform,
+        text: text || null,
+        performedBecause: performedBecause || null,
+        outcomeNote: outcomeNote || null,
+        tags: tags || null,
+        businessVoiceId: businessVoiceId || null,
+        status: 'pending',
+      });
+      
+      res.json(heroPost);
+    } catch (error) {
+      console.error("Error creating hero post:", error);
+      res.status(500).json({ message: "Error creating Hero Post" });
+    }
+  });
+
+  // Bulk create Hero Posts
+  app.post("/api/orbit/:slug/hero-posts/bulk", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user as schema.User;
+      const { urls } = req.body;
+      
+      if (!urls || !Array.isArray(urls) || urls.length === 0) {
+        return res.status(400).json({ message: "URLs array is required" });
+      }
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can add Hero Posts" });
+      }
+      
+      const { detectPlatform } = await import("./services/heroPostEnrichment");
+      const results: schema.HeroPost[] = [];
+      const errors: Array<{ url: string; error: string }> = [];
+      
+      for (const url of urls.slice(0, 20)) { // Limit to 20 at once
+        try {
+          const existing = await storage.getHeroPostByUrl(slug, url);
+          if (existing) {
+            errors.push({ url, error: "Already exists" });
+            continue;
+          }
+          
+          const heroPost = await storage.createHeroPost({
+            businessSlug: slug,
+            createdByUserId: user.id,
+            url,
+            sourcePlatform: detectPlatform(url),
+            status: 'pending',
+          });
+          results.push(heroPost);
+        } catch (err) {
+          errors.push({ url, error: "Failed to create" });
+        }
+      }
+      
+      res.json({ created: results, errors });
+    } catch (error) {
+      console.error("Error bulk creating hero posts:", error);
+      res.status(500).json({ message: "Error creating Hero Posts" });
+    }
+  });
+
+  // List Hero Posts
+  app.get("/api/orbit/:slug/hero-posts", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user as schema.User;
+      const { status, platform, limit } = req.query;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can view Hero Posts" });
+      }
+      
+      const posts = await storage.getHeroPosts(slug, {
+        status: status as schema.HeroPostStatus | undefined,
+        platform: platform as schema.HeroPostPlatform | undefined,
+        limit: limit ? parseInt(limit as string) : undefined,
+      });
+      
+      res.json({ posts });
+    } catch (error) {
+      console.error("Error getting hero posts:", error);
+      res.status(500).json({ message: "Error getting Hero Posts" });
+    }
+  });
+
+  // Update a Hero Post
+  app.put("/api/orbit/:slug/hero-posts/:id", requireAuth, async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const user = req.user as schema.User;
+      const { text, outcomeNote, tags, performedBecause } = req.body;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can update Hero Posts" });
+      }
+      
+      const updated = await storage.updateHeroPost(parseInt(id), {
+        text,
+        outcomeNote,
+        tags,
+        performedBecause,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating hero post:", error);
+      res.status(500).json({ message: "Error updating Hero Post" });
+    }
+  });
+
+  // Delete a Hero Post
+  app.delete("/api/orbit/:slug/hero-posts/:id", requireAuth, async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const user = req.user as schema.User;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can delete Hero Posts" });
+      }
+      
+      await storage.deleteHeroPost(parseInt(id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting hero post:", error);
+      res.status(500).json({ message: "Error deleting Hero Post" });
+    }
+  });
+
+  // Enrich a Hero Post (fetch metadata + run AI extraction)
+  app.post("/api/orbit/:slug/hero-posts/:id/enrich", requireAuth, async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const user = req.user as schema.User;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can enrich Hero Posts" });
+      }
+      
+      const heroPost = await storage.getHeroPost(parseInt(id));
+      if (!heroPost) {
+        return res.status(404).json({ message: "Hero Post not found" });
+      }
+      
+      // Mark as enriching
+      await storage.updateHeroPost(heroPost.id, { status: 'enriching' });
+      
+      const { fetchOpenGraphData, extractInsights } = await import("./services/heroPostEnrichment");
+      
+      // Fetch OpenGraph metadata
+      const ogData = await fetchOpenGraphData(heroPost.url);
+      
+      // Determine best available text
+      const textForAnalysis = heroPost.text || ogData.description || '';
+      
+      // If no text available, mark as needs_text
+      if (!textForAnalysis || textForAnalysis.length < 20) {
+        const updated = await storage.updateHeroPost(heroPost.id, {
+          status: 'needs_text',
+          title: ogData.title || null,
+          ogImageUrl: ogData.image || null,
+          ogDescription: ogData.description || null,
+        });
+        return res.json(updated);
+      }
+      
+      // Run AI extraction
+      const extracted = await extractInsights(textForAnalysis, heroPost.url);
+      
+      const updated = await storage.updateHeroPost(heroPost.id, {
+        status: 'ready',
+        title: heroPost.title || ogData.title || null,
+        ogImageUrl: ogData.image || null,
+        ogDescription: ogData.description || null,
+        extracted,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error enriching hero post:", error);
+      
+      // Mark as error
+      await storage.updateHeroPost(parseInt(req.params.id), {
+        status: 'error',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      });
+      
+      res.status(500).json({ message: "Error enriching Hero Post" });
+    }
+  });
+
+  // Get aggregated insights
+  app.get("/api/orbit/:slug/hero-posts/insights", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user as schema.User;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can view insights" });
+      }
+      
+      // Get all posts
+      const posts = await storage.getHeroPosts(slug);
+      
+      // Aggregate insights
+      const { aggregateInsights } = await import("./services/heroPostEnrichment");
+      const insights = aggregateInsights(posts);
+      
+      // Cache the insights
+      await storage.upsertHeroPostInsights(slug, {
+        ...insights,
+        postCount: posts.length,
+      });
+      
+      res.json({
+        ...insights,
+        postCount: posts.length,
+        readyCount: posts.filter(p => p.status === 'ready').length,
+      });
+    } catch (error) {
+      console.error("Error getting hero post insights:", error);
+      res.status(500).json({ message: "Error getting insights" });
+    }
+  });
+
+  // ==================== END HERO POSTS ====================
+
   // Orbit Meta - Get basic orbit info (owner only)
   app.get("/api/orbit/:slug/meta", requireAuth, async (req, res) => {
     try {
