@@ -42,6 +42,16 @@ interface OrbitDocument {
 
 type SourceLabel = 'about' | 'services' | 'faq' | 'contact' | 'homepage' | 'linkedin' | 'instagram' | 'facebook' | 'twitter' | 'tiktok' | 'youtube';
 
+const DOCUMENT_CATEGORIES = [
+  { value: 'products', label: 'Products/Services', description: 'What you offer' },
+  { value: 'pricing', label: 'Pricing', description: 'Costs, packages, quotes' },
+  { value: 'policies', label: 'Policies', description: 'Terms, refunds, guarantees' },
+  { value: 'guides', label: 'How-to/Guides', description: 'Instructions for customers' },
+  { value: 'faqs', label: 'FAQs', description: 'Common questions answered' },
+  { value: 'company', label: 'Company Info', description: 'About us, team, history' },
+  { value: 'other', label: 'Other', description: 'General reference material' },
+];
+
 const SOURCE_OPTIONS = [
   { value: 'homepage', label: 'Homepage', type: 'page_url', icon: Link2, description: 'Your main website URL' },
   { value: 'about', label: 'About Page', type: 'page_url', icon: FileText, description: 'Your about us page' },
@@ -66,6 +76,7 @@ export default function OrbitSettings() {
   const [sourceUrl, setSourceUrl] = useState('');
   const [heroPostUrl, setHeroPostUrl] = useState('');
   const [heroPostText, setHeroPostText] = useState('');
+  const [docCategory, setDocCategory] = useState('other');
   
   const { data: sourcesData, refetch: refetchSources } = useQuery<{ sources: OrbitSource[] }>({
     queryKey: ["orbit-sources", slug],
@@ -146,13 +157,14 @@ export default function OrbitSettings() {
 
   const documents = documentsData?.documents || [];
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = async (file: File, category: string) => {
     if (!slug) return;
     setIsUploading(true);
     
     const formData = new FormData();
     formData.append('file', file);
     formData.append('title', file.name);
+    formData.append('category', category);
     
     try {
       const response = await fetch(`/api/orbit/${slug}/documents`, {
@@ -166,9 +178,10 @@ export default function OrbitSettings() {
         throw new Error(error.message || 'Upload failed');
       }
       
-      toast({ title: "Document uploaded", description: "Processing content..." });
+      toast({ title: "Document uploaded", description: `Added to ${DOCUMENT_CATEGORIES.find(c => c.value === category)?.label || 'Other'} category` });
       refetchDocuments();
       setShowAddModal(false);
+      setDocCategory('other');
     } catch (error) {
       toast({ 
         title: "Upload failed", 
@@ -424,7 +437,7 @@ export default function OrbitSettings() {
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) handleFileUpload(file);
+                if (file) handleFileUpload(file, docCategory);
                 e.target.value = '';
               }}
               data-testid="input-document-file"
@@ -620,6 +633,7 @@ export default function OrbitSettings() {
           setSourceUrl('');
           setHeroPostUrl('');
           setHeroPostText('');
+          setDocCategory('other');
           setModalTab('links');
         }
       }}>
@@ -740,8 +754,34 @@ export default function OrbitSettings() {
             {/* Documents Tab */}
             <TabsContent value="docs" className="space-y-4 mt-4">
               <p className="text-xs text-zinc-400">
-                Upload product manuals, presentations, or guides to enhance your Orbit's knowledge.
+                Upload documents to enhance your Orbit's knowledge. Choose a category so the AI knows when to use it.
               </p>
+              
+              <div>
+                <Label className="text-zinc-300 mb-2 block">Document Category</Label>
+                <Select value={docCategory} onValueChange={setDocCategory}>
+                  <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white" data-testid="select-doc-category">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                    {DOCUMENT_CATEGORIES.map((cat) => (
+                      <SelectItem 
+                        key={cat.value} 
+                        value={cat.value}
+                        className="text-white focus:bg-zinc-700 focus:text-white"
+                      >
+                        <div className="flex flex-col">
+                          <span>{cat.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-zinc-500 mt-1">
+                  {DOCUMENT_CATEGORIES.find(c => c.value === docCategory)?.description}
+                </p>
+              </div>
+
               <div 
                 className="p-6 rounded-lg bg-gradient-to-br from-pink-500/5 to-purple-500/5 border border-dashed border-white/20 text-center cursor-pointer hover:border-pink-500/50 transition-colors"
                 onClick={handleModalFileUpload}
