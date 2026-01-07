@@ -40,6 +40,30 @@ interface OrbitDocument {
   createdAt: string;
 }
 
+interface HeroPost {
+  id: number;
+  url: string;
+  platform: string;
+  title?: string;
+  postText?: string;
+  status: 'pending' | 'enriching' | 'ready' | 'needs_text' | 'error';
+  createdAt: string;
+}
+
+interface BrandVoiceData {
+  brandVoiceSummary: string | null;
+  voiceTraits: string[];
+  audienceNotes: string | null;
+  toneGuidance: {
+    dosList?: string[];
+    dontsList?: string[];
+    keyPhrases?: string[];
+  } | null;
+  brandVoiceUpdatedAt: string | null;
+  heroPosts: HeroPost[];
+  readyPostCount: number;
+}
+
 type SourceLabel = 'about' | 'services' | 'faq' | 'contact' | 'homepage' | 'linkedin' | 'instagram' | 'facebook' | 'twitter' | 'tiktok' | 'youtube';
 
 const DOCUMENT_CATEGORIES = [
@@ -267,6 +291,38 @@ export default function OrbitSettings() {
       text: heroPostText.trim() || undefined 
     });
   };
+
+  const { data: brandVoiceData, refetch: refetchBrandVoice } = useQuery<BrandVoiceData>({
+    queryKey: ["brand-voice", slug],
+    queryFn: async () => {
+      if (!slug) return { brandVoiceSummary: null, voiceTraits: [], audienceNotes: null, toneGuidance: null, brandVoiceUpdatedAt: null, heroPosts: [], readyPostCount: 0 };
+      const response = await fetch(`/api/orbit/${slug}/brand-voice`, { credentials: "include" });
+      if (!response.ok) return { brandVoiceSummary: null, voiceTraits: [], audienceNotes: null, toneGuidance: null, brandVoiceUpdatedAt: null, heroPosts: [], readyPostCount: 0 };
+      return response.json();
+    },
+    enabled: !!slug,
+  });
+
+  const rebuildBrandVoiceMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/orbit/${slug}/brand-voice/rebuild`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to analyze brand voice');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Brand voice analyzed", description: "Your tone of voice profile has been updated" });
+      refetchBrandVoice();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Analysis failed", description: error.message, variant: "destructive" });
+    },
+  });
 
   const handleModalFileUpload = () => {
     fileInputRef.current?.click();
@@ -509,6 +565,138 @@ export default function OrbitSettings() {
               </div>
             </div>
           )}
+
+          {/* Tone of Voice Section */}
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10" data-testid="section-tone-of-voice">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Tone of Voice</h2>
+                  <p className="text-xs text-white/50">How Orbit speaks for your brand</p>
+                </div>
+              </div>
+              {(brandVoiceData?.heroPosts?.length ?? 0) > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => rebuildBrandVoiceMutation.mutate()}
+                  disabled={rebuildBrandVoiceMutation.isPending || (brandVoiceData?.readyPostCount ?? 0) === 0}
+                  className="text-purple-400 hover:text-purple-300"
+                  data-testid="button-rebuild-voice"
+                >
+                  {rebuildBrandVoiceMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {/* Show hero posts */}
+            {(brandVoiceData?.heroPosts?.length ?? 0) > 0 ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs text-white/60">Hero Posts</span>
+                  <Badge variant="outline" className="text-xs border-purple-500/50 text-purple-400">
+                    {brandVoiceData?.heroPosts.length}
+                  </Badge>
+                </div>
+                <div className="space-y-2 mb-4">
+                  {brandVoiceData?.heroPosts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="flex items-center justify-between p-2 rounded-lg bg-white/[0.03] border border-white/5"
+                      data-testid={`hero-post-${post.id}`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs text-purple-400 uppercase">{post.platform}</span>
+                        <span className="text-sm text-white/70 truncate">{post.title || post.url}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {post.status === 'pending' || post.status === 'enriching' ? (
+                          <Loader2 className="w-3 h-3 text-purple-400 animate-spin" />
+                        ) : post.status === 'ready' ? (
+                          <Check className="w-3 h-3 text-green-400" />
+                        ) : (
+                          <span className="text-xs text-amber-400">needs text</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Brand Voice Analysis */}
+                {brandVoiceData?.brandVoiceSummary ? (
+                  <div className="space-y-3 pt-3 border-t border-white/10">
+                    <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">
+                      {brandVoiceData.brandVoiceSummary}
+                    </p>
+                    
+                    {brandVoiceData.voiceTraits && brandVoiceData.voiceTraits.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {brandVoiceData.voiceTraits.map((trait, i) => (
+                          <Badge key={i} variant="outline" className="text-xs border-purple-500/30 text-purple-300 bg-purple-500/10">
+                            {trait}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {brandVoiceData.brandVoiceUpdatedAt && (
+                      <p className="text-xs text-white/30">
+                        Last analyzed: {new Date(brandVoiceData.brandVoiceUpdatedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                ) : (brandVoiceData?.readyPostCount ?? 0) > 0 ? (
+                  <div className="pt-3 border-t border-white/10">
+                    <Button
+                      onClick={() => rebuildBrandVoiceMutation.mutate()}
+                      disabled={rebuildBrandVoiceMutation.isPending}
+                      className="w-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-300"
+                      data-testid="button-analyze-voice"
+                    >
+                      {rebuildBrandVoiceMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Analyze Brand Voice
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-white/40 pt-3 border-t border-white/10">
+                    Waiting for hero posts to be processed...
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-white/50 mb-3">
+                  Add hero posts to train your brand voice
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setShowAddModal(true); setModalTab('hero'); }}
+                  className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                  data-testid="button-add-first-hero"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Hero Post
+                </Button>
+              </div>
+            )}
+          </div>
 
           {/* Value Proposition for Free Users */}
           {orbitData?.planTier === 'free' && (

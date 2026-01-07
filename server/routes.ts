@@ -10907,11 +10907,19 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
       const insights = await storage.getHeroPostInsights(slug);
       const posts = await storage.getHeroPosts(slug);
       
+      const toneGuidance = insights?.toneGuidance && typeof insights.toneGuidance === 'object' 
+        ? {
+            dosList: Array.isArray((insights.toneGuidance as any).dosList) ? (insights.toneGuidance as any).dosList : [],
+            dontsList: Array.isArray((insights.toneGuidance as any).dontsList) ? (insights.toneGuidance as any).dontsList : [],
+            keyPhrases: Array.isArray((insights.toneGuidance as any).keyPhrases) ? (insights.toneGuidance as any).keyPhrases : [],
+          }
+        : null;
+      
       res.json({
         brandVoiceSummary: insights?.brandVoiceSummary || null,
-        voiceTraits: insights?.voiceTraits || [],
+        voiceTraits: Array.isArray(insights?.voiceTraits) ? insights.voiceTraits : [],
         audienceNotes: insights?.audienceNotes || null,
-        toneGuidance: insights?.toneGuidance || null,
+        toneGuidance,
         brandVoiceUpdatedAt: insights?.brandVoiceUpdatedAt || null,
         heroPosts: posts,
         readyPostCount: posts.filter(p => p.status === 'ready').length,
@@ -10947,7 +10955,7 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
       }
       
       const { analyzeBrandVoice } = await import("./services/brandVoiceAnalysis");
-      const analysis = await analyzeBrandVoice(posts);
+      const analysis = await analyzeBrandVoice(readyPosts);
       
       if (!analysis) {
         return res.status(500).json({ message: "Failed to analyze brand voice" });
