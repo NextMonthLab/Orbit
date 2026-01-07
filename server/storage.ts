@@ -226,6 +226,19 @@ export interface IStorage {
   deleteHeroPost(id: number): Promise<void>;
   getHeroPostInsights(businessSlug: string): Promise<schema.HeroPostInsight | undefined>;
   upsertHeroPostInsights(businessSlug: string, data: Partial<schema.InsertHeroPostInsight>): Promise<schema.HeroPostInsight>;
+  getHeroPostsAsKnowledge(businessSlug: string): Promise<schema.HeroPost[]>;
+  countHeroPostsAsKnowledge(businessSlug: string): Promise<number>;
+  toggleHeroPostKnowledge(id: number, useAsKnowledge: boolean): Promise<schema.HeroPost | undefined>;
+
+  // Orbit Videos
+  createOrbitVideo(data: schema.InsertOrbitVideo): Promise<schema.OrbitVideo>;
+  getOrbitVideos(businessSlug: string, enabledOnly?: boolean): Promise<schema.OrbitVideo[]>;
+  getOrbitVideo(id: number): Promise<schema.OrbitVideo | undefined>;
+  updateOrbitVideo(id: number, data: Partial<schema.InsertOrbitVideo>): Promise<schema.OrbitVideo | undefined>;
+  deleteOrbitVideo(id: number): Promise<void>;
+  createVideoEvent(data: schema.InsertOrbitVideoEvent): Promise<schema.OrbitVideoEvent>;
+  getVideoEvents(videoId: number, limit?: number): Promise<schema.OrbitVideoEvent[]>;
+  incrementVideoStats(videoId: number, stats: { serve?: boolean; play?: boolean; watchTimeMs?: number }): Promise<void>;
 
   // Orbit Documents
   createOrbitDocument(data: schema.InsertOrbitDocument): Promise<schema.OrbitDocument>;

@@ -178,7 +178,7 @@ export async function buildOrbitContext(
   // Build hero post knowledge context
   let heroPostContext = '';
   if (heroPostsAsKnowledge.length > 0) {
-    const postsSummary = heroPostsAsKnowledge.slice(0, 10).map(post => {
+    const postsSummary = heroPostsAsKnowledge.slice(0, 10).map((post: any) => {
       const topics = post.extracted?.topics?.join(', ') || '';
       return `[${post.sourcePlatform}] ${post.title || 'Post'}\n${post.text?.slice(0, 500) || ''}${topics ? `\nTopics: ${topics}` : ''}`;
     }).join('\n\n');
@@ -188,7 +188,7 @@ export async function buildOrbitContext(
 
   // Build video context for suggestions
   let videoContext = '';
-  const videos = enabledVideos.map(v => ({
+  const videos = enabledVideos.map((v: any) => ({
     id: v.id,
     title: v.title,
     tags: (v.tags as string[]) || [],
@@ -196,7 +196,7 @@ export async function buildOrbitContext(
   }));
   
   if (videos.length > 0) {
-    const videoList = videos.slice(0, 10).map(v => 
+    const videoList = videos.slice(0, 10).map((v: any) => 
       `- "${v.title}" (${v.tags.join(', ') || 'no tags'})`
     ).join('\n');
     
