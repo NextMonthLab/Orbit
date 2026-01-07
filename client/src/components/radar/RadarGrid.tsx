@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
-import { ChatHub } from "./ChatHub";
+import { ChatHub, type ChatResponse } from "./ChatHub";
 import { KnowledgeTile } from "./KnowledgeTile";
 import type { SiteKnowledge, AnyKnowledgeItem } from "@/lib/siteKnowledge";
 import { getAllItems, rankByRelevance, scoreRelevance } from "@/lib/siteKnowledge";
@@ -36,7 +36,9 @@ function getItemSummary(item: AnyKnowledgeItem): string {
 
 interface RadarGridProps {
   knowledge: SiteKnowledge;
-  onSendMessage: (message: string) => Promise<string>;
+  onSendMessage: (message: string) => Promise<string | ChatResponse>;
+  onVideoEvent?: (videoId: number, event: 'play' | 'pause' | 'complete', msWatched?: number) => void;
+  orbitSlug?: string;
   accentColor?: string;
   onInteraction?: () => void;
   lightMode?: boolean;
@@ -67,7 +69,7 @@ function generateTilePositions(count: number, ringSpacing: number = 180): { x: n
   return positions;
 }
 
-export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6', onInteraction, lightMode = false }: RadarGridProps) {
+export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, accentColor = '#3b82f6', onInteraction, lightMode = false }: RadarGridProps) {
   const [isHubMinimized, setIsHubMinimized] = useState(false);
   const [conversationKeywords, setConversationKeywords] = useState<string[]>([]);
   const [selectedItem, setSelectedItem] = useState<AnyKnowledgeItem | null>(null);
@@ -480,6 +482,8 @@ export function RadarGrid({ knowledge, onSendMessage, accentColor = '#3b82f6', o
           accentColor={accentColor}
           lightMode={lightMode}
           onSendMessage={handleSendMessage}
+          onVideoEvent={onVideoEvent}
+          orbitSlug={orbitSlug}
           onIntentChange={handleIntentChange}
           initialMessage={getInitialMessage()}
           isMinimized={isHubMinimized}

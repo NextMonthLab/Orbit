@@ -45,7 +45,7 @@ export async function buildOrbitContext(
   documentContext: string;
   heroPostContext: string;
   videoContext: string;
-  videos: { id: number; title: string; tags: string[]; topics: string[] }[];
+  videos: { id: number; title: string; tags: string[]; topics: string[]; youtubeVideoId: string; thumbnailUrl: string | null; description: string | null }[];
   businessType: 'recruitment' | 'restaurant' | 'professional_services' | 'retail' | 'general';
   businessTypeLabel: string;
   offeringsLabel: string;
@@ -193,14 +193,20 @@ export async function buildOrbitContext(
     title: v.title,
     tags: (v.tags as string[]) || [],
     topics: (v.topics as string[]) || [],
+    youtubeVideoId: v.youtubeVideoId,
+    thumbnailUrl: v.thumbnailUrl,
+    description: v.description,
   }));
   
   if (videos.length > 0) {
     const videoList = videos.slice(0, 10).map((v: any) => 
-      `- "${v.title}" (${v.tags.join(', ') || 'no tags'})`
+      `- [ID:${v.id}] "${v.title}" (${v.tags.join(', ') || 'no tags'})`
     ).join('\n');
     
-    videoContext = `\n\nAVAILABLE VIDEOS (You can suggest these when relevant):\n${videoList}\n`;
+    videoContext = `\n\nAVAILABLE VIDEOS:
+${videoList}
+
+IMPORTANT: When a video is highly relevant to the user's question, include [VIDEO:id] at the END of your response (e.g. [VIDEO:${videos[0]?.id || 1}]). Only suggest ONE video per response, and only if it directly answers their question.\n`;
   }
 
   return {
@@ -468,4 +474,43 @@ export function processEchoResponse(rawResponse: string): string {
   }
   
   return response.trim();
+}
+
+export interface SuggestedVideo {
+  id: number;
+  title: string;
+  youtubeVideoId: string;
+  thumbnailUrl: string | null;
+  description: string | null;
+}
+
+export function parseVideoSuggestion(
+  response: string, 
+  videos: { id: number; title: string; youtubeVideoId?: string; thumbnailUrl?: string | null; description?: string | null }[]
+): { cleanResponse: string; suggestedVideo: SuggestedVideo | null } {
+  const videoMatch = response.match(/\[VIDEO:(\d+)\]/);
+  
+  if (!videoMatch) {
+    return { cleanResponse: response, suggestedVideo: null };
+  }
+  
+  const videoId = parseInt(videoMatch[1]);
+  const video = videos.find(v => v.id === videoId);
+  
+  const cleanResponse = response.replace(/\s*\[VIDEO:\d+\]\s*/g, '').trim();
+  
+  if (!video || !video.youtubeVideoId) {
+    return { cleanResponse, suggestedVideo: null };
+  }
+  
+  return {
+    cleanResponse,
+    suggestedVideo: {
+      id: video.id,
+      title: video.title,
+      youtubeVideoId: video.youtubeVideoId,
+      thumbnailUrl: video.thumbnailUrl || null,
+      description: video.description || null,
+    },
+  };
 }

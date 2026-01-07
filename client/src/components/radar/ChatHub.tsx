@@ -1,10 +1,24 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, Send, X, Minimize2, Loader2 } from "lucide-react";
+import { MessageCircle, Send, X, Minimize2, Loader2, Play } from "lucide-react";
+
+export interface SuggestedVideo {
+  id: number;
+  title: string;
+  youtubeVideoId: string;
+  thumbnailUrl: string | null;
+  description: string | null;
+}
+
+export interface ChatResponse {
+  text: string;
+  video?: SuggestedVideo | null;
+}
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  video?: SuggestedVideo | null;
 }
 
 function renderMessageContent(content: string, accentColor: string) {
@@ -111,7 +125,9 @@ function renderMessageContent(content: string, accentColor: string) {
 interface ChatHubProps {
   brandName: string;
   accentColor?: string;
-  onSendMessage: (message: string) => Promise<string>;
+  onSendMessage: (message: string) => Promise<string | ChatResponse>;
+  onVideoEvent?: (videoId: number, event: 'play' | 'pause' | 'complete', msWatched?: number) => void;
+  orbitSlug?: string;
   onIntentChange?: (keywords: string[]) => void;
   initialMessage?: string;
   isMinimized: boolean;
@@ -125,6 +141,8 @@ export function ChatHub({
   brandName,
   accentColor = '#3b82f6',
   onSendMessage,
+  onVideoEvent,
+  orbitSlug,
   onIntentChange,
   initialMessage,
   isMinimized,
@@ -133,6 +151,8 @@ export function ChatHub({
   nearbyTiles = [],
   lightMode = false,
 }: ChatHubProps) {
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
+  const videoStartTimeRef = useRef<number>(0);
   const getProactiveWelcome = () => {
     return `${brandName}\n\nTap any tile to learn more, or ask me a question.`;
   };
@@ -176,9 +196,14 @@ export function ChatHub({
     setIsTyping(true);
     try {
       const response = await onSendMessage(userMessage);
-      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
       
-      const responseKeywords = extractKeywords(response);
+      // Handle both string and ChatResponse formats
+      const text = typeof response === 'string' ? response : response.text;
+      const video = typeof response === 'string' ? null : response.video;
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: text, video }]);
+      
+      const responseKeywords = extractKeywords(text);
       onIntentChange?.([...keywords, ...responseKeywords]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble responding right now. Please try again." }]);
@@ -263,7 +288,7 @@ export function ChatHub({
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
             >
               <div
                 className={`max-w-[85%] px-3 py-2 rounded-xl text-sm ${
@@ -277,6 +302,61 @@ export function ChatHub({
                   ? renderMessageContent(msg.content, accentColor)
                   : msg.content}
               </div>
+              
+              {/* Video Card */}
+              {msg.video && (
+                <div className="mt-2 max-w-[85%]">
+                  {playingVideoId === msg.video.youtubeVideoId ? (
+                    <div className="relative rounded-lg overflow-hidden bg-black" style={{ aspectRatio: '16/9' }}>
+                      <iframe
+                        src={`https://www.youtube.com/embed/${msg.video.youtubeVideoId}?autoplay=1&rel=0`}
+                        className="absolute inset-0 w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                      <button
+                        onClick={() => {
+                          const msWatched = Date.now() - videoStartTimeRef.current;
+                          onVideoEvent?.(msg.video!.id, 'pause', msWatched);
+                          setPlayingVideoId(null);
+                        }}
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80"
+                        data-testid={`close-video-${msg.video.id}`}
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setPlayingVideoId(msg.video!.youtubeVideoId);
+                        videoStartTimeRef.current = Date.now();
+                        onVideoEvent?.(msg.video!.id, 'play');
+                      }}
+                      className="group relative w-full rounded-lg overflow-hidden"
+                      style={{ aspectRatio: '16/9' }}
+                      data-testid={`play-video-${msg.video.id}`}
+                    >
+                      <img 
+                        src={msg.video.thumbnailUrl || `https://img.youtube.com/vi/${msg.video.youtubeVideoId}/mqdefault.jpg`}
+                        alt={msg.video.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                        <div 
+                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: accentColor }}
+                        >
+                          <Play className="w-5 h-5 text-white ml-0.5" />
+                        </div>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                        <p className="text-xs text-white font-medium truncate">{msg.video.title}</p>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
           {isTyping && (

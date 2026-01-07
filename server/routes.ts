@@ -9884,7 +9884,7 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
       }
       
       // Use shared chat service for context building
-      const { buildOrbitContext, buildSystemPrompt, generateChatResponse } = await import('./services/orbitChatService');
+      const { buildOrbitContext, buildSystemPrompt, generateChatResponse, parseVideoSuggestion } = await import('./services/orbitChatService');
       
       const orbitContext = await buildOrbitContext(storage, slug);
       
@@ -9920,7 +9920,27 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         .slice(-6)
         .map((msg: any) => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
       
-      const response = await generateChatResponse(systemPrompt, historyForAI, message, { maxTokens: 300 });
+      const rawResponse = await generateChatResponse(systemPrompt, historyForAI, message, { maxTokens: 300 });
+      
+      // Parse video suggestions from response
+      const { cleanResponse, suggestedVideo } = parseVideoSuggestion(rawResponse, orbitContext.videos);
+      
+      // If video was suggested, track the serve event
+      if (suggestedVideo) {
+        try {
+          await storage.createVideoEvent({
+            videoId: suggestedVideo.id,
+            businessSlug: slug,
+            sessionId: null,
+            eventType: 'serve',
+            msWatched: 0,
+            followUpQuestion: null,
+          });
+          await storage.incrementVideoStats(suggestedVideo.id, { serve: true });
+        } catch (err) {
+          console.error('[VideoServe] Error tracking video serve:', err);
+        }
+      }
       
       // Track conversation metric (only on first message in conversation)
       if (!history || history.length === 0) {
@@ -9928,7 +9948,8 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
       }
       
       res.json({ 
-        response,
+        response: cleanResponse,
+        suggestedVideo,
         suggestionChip,
         praiseDetected: classificationResult?.praiseKeywordsFound?.length ? classificationResult.praiseKeywordsFound : undefined,
       });

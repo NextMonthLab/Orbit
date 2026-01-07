@@ -808,6 +808,18 @@ export default function OrbitView() {
               accentColor={accentColor}
               lightMode={brandPreferences?.theme === 'light'}
               onInteraction={() => trackMetric('interactions')}
+              orbitSlug={slug}
+              onVideoEvent={async (videoId, event, msWatched) => {
+                try {
+                  await fetch(`/api/orbit/${slug}/videos/${videoId}/event`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ eventType: event, msWatched }),
+                  });
+                } catch (e) {
+                  console.error('Failed to track video event:', e);
+                }
+              }}
               onSendMessage={async (message) => {
                 if (!conversationTracked) {
                   trackMetric('conversations');
@@ -856,7 +868,11 @@ export default function OrbitView() {
                     // Add assistant response to history
                     chatHistoryRef.current.push({ role: 'assistant', content: assistantResponse });
                     
-                    return assistantResponse;
+                    // Return response with video if present
+                    return {
+                      text: assistantResponse,
+                      video: data.suggestedVideo || null,
+                    };
                   }
                 } catch (e) {
                   console.error('Orbit chat error:', e);
