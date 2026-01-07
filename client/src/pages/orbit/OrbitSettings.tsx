@@ -699,9 +699,12 @@ export default function OrbitSettings() {
 
             {/* Hero Posts Tab */}
             <TabsContent value="hero" className="space-y-4 mt-4">
-              <p className="text-xs text-zinc-400">
-                Add your best-performing social posts to analyze patterns and get content suggestions.
-              </p>
+              <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                <p className="text-xs text-purple-300 mb-1 font-medium">Brand Voice Training</p>
+                <p className="text-xs text-zinc-400">
+                  Hero Posts teach Orbit your brand voice and content style. They don't add to your strength score - that comes from factual sources like documents and links.
+                </p>
+              </div>
               <div>
                 <Label className="text-zinc-300 mb-2 block">Post URL</Label>
                 <Input
