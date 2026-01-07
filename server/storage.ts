@@ -1806,6 +1806,30 @@ export class DatabaseStorage implements IStorage {
     await db.delete(schema.heroPosts).where(eq(schema.heroPosts.id, id));
   }
 
+  async getHeroPostsAsKnowledge(businessSlug: string): Promise<schema.HeroPost[]> {
+    return db.query.heroPosts.findMany({
+      where: and(
+        eq(schema.heroPosts.businessSlug, businessSlug),
+        eq(schema.heroPosts.useAsKnowledge, true),
+        eq(schema.heroPosts.status, 'ready')
+      ),
+    });
+  }
+
+  async countHeroPostsAsKnowledge(businessSlug: string): Promise<number> {
+    const posts = await this.getHeroPostsAsKnowledge(businessSlug);
+    return posts.filter(p => p.text && p.text.length > 0).length;
+  }
+
+  async toggleHeroPostKnowledge(id: number, useAsKnowledge: boolean): Promise<schema.HeroPost | undefined> {
+    const [updated] = await db
+      .update(schema.heroPosts)
+      .set({ useAsKnowledge, updatedAt: new Date() })
+      .where(eq(schema.heroPosts.id, id))
+      .returning();
+    return updated;
+  }
+
   async getHeroPostInsights(businessSlug: string): Promise<schema.HeroPostInsight | undefined> {
     return db.query.heroPostInsights.findFirst({
       where: eq(schema.heroPostInsights.businessSlug, businessSlug),
@@ -1864,6 +1888,69 @@ export class DatabaseStorage implements IStorage {
 
   async deleteOrbitDocument(id: number): Promise<void> {
     await db.delete(schema.orbitDocuments).where(eq(schema.orbitDocuments.id, id));
+  }
+
+  // Orbit Videos implementation
+  async createOrbitVideo(data: schema.InsertOrbitVideo): Promise<schema.OrbitVideo> {
+    const [created] = await db.insert(schema.orbitVideos).values(data as any).returning();
+    return created;
+  }
+
+  async getOrbitVideos(businessSlug: string, enabledOnly: boolean = false): Promise<schema.OrbitVideo[]> {
+    const conditions = [eq(schema.orbitVideos.businessSlug, businessSlug)];
+    if (enabledOnly) {
+      conditions.push(eq(schema.orbitVideos.isEnabled, true));
+    }
+    return db.query.orbitVideos.findMany({
+      where: and(...conditions),
+      orderBy: [desc(schema.orbitVideos.createdAt)],
+    });
+  }
+
+  async getOrbitVideo(id: number): Promise<schema.OrbitVideo | undefined> {
+    return db.query.orbitVideos.findFirst({
+      where: eq(schema.orbitVideos.id, id),
+    });
+  }
+
+  async updateOrbitVideo(id: number, data: Partial<schema.InsertOrbitVideo>): Promise<schema.OrbitVideo | undefined> {
+    const [updated] = await db
+      .update(schema.orbitVideos)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.orbitVideos.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteOrbitVideo(id: number): Promise<void> {
+    await db.delete(schema.orbitVideos).where(eq(schema.orbitVideos.id, id));
+  }
+
+  async incrementVideoStats(videoId: number, stats: { serve?: boolean; play?: boolean; watchTimeMs?: number }): Promise<void> {
+    const updates: any = { updatedAt: new Date() };
+    if (stats.serve) {
+      updates.serveCount = sql`${schema.orbitVideos.serveCount} + 1`;
+    }
+    if (stats.play) {
+      updates.playCount = sql`${schema.orbitVideos.playCount} + 1`;
+    }
+    if (stats.watchTimeMs) {
+      updates.totalWatchTimeMs = sql`${schema.orbitVideos.totalWatchTimeMs} + ${stats.watchTimeMs}`;
+    }
+    await db.update(schema.orbitVideos).set(updates).where(eq(schema.orbitVideos.id, videoId));
+  }
+
+  async createVideoEvent(data: schema.InsertOrbitVideoEvent): Promise<schema.OrbitVideoEvent> {
+    const [created] = await db.insert(schema.orbitVideoEvents).values(data as any).returning();
+    return created;
+  }
+
+  async getVideoEvents(videoId: number, limit: number = 100): Promise<schema.OrbitVideoEvent[]> {
+    return db.query.orbitVideoEvents.findMany({
+      where: eq(schema.orbitVideoEvents.videoId, videoId),
+      orderBy: [desc(schema.orbitVideoEvents.createdAt)],
+      limit,
+    });
   }
 
   async getOrCreateTodayAnalytics(businessSlug: string): Promise<schema.OrbitAnalytics> {

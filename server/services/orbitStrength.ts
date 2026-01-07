@@ -19,13 +19,19 @@ const SCORE_MAP: Record<string, number> = {
   contact: 10,
   homepage: 10,
   document: 10, // Each document with extracted text adds 10 points
+  heroPost: 5, // Hero posts marked as knowledge add 5 points each
 };
 
 // Social links don't add to strength - they're for visitor navigation, not knowledge
 const SOCIAL_LABELS = ['linkedin', 'instagram', 'facebook', 'twitter', 'tiktok', 'youtube'];
 const DOCUMENT_CAP = 30; // Max 30 points from documents (3 docs)
+const HERO_POST_CAP = 20; // Max 20 points from hero posts (4 posts)
 
-export function calculateStrengthScore(sources: SourceInput[], documentCount: number = 0): StrengthResult {
+export function calculateStrengthScore(
+  sources: SourceInput[], 
+  documentCount: number = 0,
+  heroPostKnowledgeCount: number = 0
+): StrengthResult {
   const breakdown: Record<string, number> = {};
   let totalScore = 0;
 
@@ -51,6 +57,13 @@ export function calculateStrengthScore(sources: SourceInput[], documentCount: nu
     const docPoints = Math.min(documentCount * SCORE_MAP.document, DOCUMENT_CAP);
     breakdown['documents'] = docPoints;
     totalScore += docPoints;
+  }
+
+  // Add hero post knowledge points (capped at HERO_POST_CAP)
+  if (heroPostKnowledgeCount > 0) {
+    const heroPoints = Math.min(heroPostKnowledgeCount * SCORE_MAP.heroPost, HERO_POST_CAP);
+    breakdown['heroPostKnowledge'] = heroPoints;
+    totalScore += heroPoints;
   }
 
   return {

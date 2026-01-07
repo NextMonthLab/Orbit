@@ -8206,7 +8206,9 @@ Return a JSON object with:
           orbitContext.businessType,
           orbitContext.businessTypeLabel,
           orbitContext.offeringsLabel,
-          orbitContext.items
+          orbitContext.items,
+          orbitContext.heroPostContext,
+          orbitContext.videoContext
         );
       } else {
         systemPrompt = `You are Echo, a calm and knowledgeable guide for ${preview.siteTitle}.
@@ -9908,7 +9910,9 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         orbitContext.businessType,
         orbitContext.businessTypeLabel,
         orbitContext.offeringsLabel,
-        orbitContext.items
+        orbitContext.items,
+        orbitContext.heroPostContext,
+        orbitContext.videoContext
       );
       
       const historyForAI = (history || [])
@@ -10491,9 +10495,12 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
       const allDocs = await storage.getOrbitDocuments(slug);
       const docsWithText = allDocs.filter(d => d.extractedText && d.extractedText.length > 0);
       
-      // Calculate strength score (includes documents)
+      // Get hero posts marked as knowledge
+      const heroPostKnowledgeCount = await storage.countHeroPostsAsKnowledge(slug);
+      
+      // Calculate strength score (includes documents and hero posts)
       const { calculateStrengthScore } = await import("./services/orbitStrength");
-      const { strengthScore } = calculateStrengthScore(validSources, docsWithText.length);
+      const { strengthScore } = calculateStrengthScore(validSources, docsWithText.length, heroPostKnowledgeCount);
       
       // Determine new tier (flip from free to grow if powered up)
       const newTier = orbitMeta.planTier === 'free' && strengthScore > 0 ? 'grow' : orbitMeta.planTier;
@@ -10557,19 +10564,21 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
       const sources = await storage.getOrbitSources(slug);
       const allDocs = await storage.getOrbitDocuments(slug);
       const docsWithText = allDocs.filter(d => d.extractedText && d.extractedText.length > 0);
+      const heroPostKnowledgeCount = await storage.countHeroPostsAsKnowledge(slug);
       
       const { calculateStrengthScore } = await import("./services/orbitStrength");
-      const { strengthScore, breakdown } = calculateStrengthScore(sources, docsWithText.length);
+      const { strengthScore, breakdown } = calculateStrengthScore(sources, docsWithText.length, heroPostKnowledgeCount);
       
       await storage.updateOrbitTierAndStrength(slug, orbitMeta.planTier || 'free', strengthScore);
       
-      console.log(`[OrbitStrength] Recalculated for ${slug}: ${strengthScore} (${docsWithText.length} docs, ${sources.length} sources)`);
+      console.log(`[OrbitStrength] Recalculated for ${slug}: ${strengthScore} (${docsWithText.length} docs, ${sources.length} sources, ${heroPostKnowledgeCount} hero posts)`);
       
       res.json({ 
         strengthScore, 
         breakdown,
         documentsWithText: docsWithText.length,
-        sourcesCount: sources.length
+        sourcesCount: sources.length,
+        heroPostsAsKnowledge: heroPostKnowledgeCount
       });
     } catch (error) {
       console.error("Error recalculating strength:", error);
@@ -10780,6 +10789,57 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
     } catch (error) {
       console.error("Error deleting hero post:", error);
       res.status(500).json({ message: "Error deleting Hero Post" });
+    }
+  });
+
+  // Toggle Hero Post Knowledge - mark/unmark post as knowledge source
+  app.patch("/api/orbit/:slug/hero-posts/:id/knowledge", requireAuth, async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const user = req.user as schema.User;
+      const { useAsKnowledge } = req.body;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can update Hero Posts" });
+      }
+      
+      const heroPost = await storage.getHeroPost(parseInt(id));
+      if (!heroPost) {
+        return res.status(404).json({ message: "Hero Post not found" });
+      }
+      
+      // Only allow knowledge toggle for ready posts with text
+      if (!heroPost.text || heroPost.status !== 'ready') {
+        return res.status(400).json({ message: "Only ready posts with text can be used as knowledge" });
+      }
+      
+      const updated = await storage.toggleHeroPostKnowledge(parseInt(id), Boolean(useAsKnowledge));
+      
+      // Recalculate strength score
+      try {
+        const sources = await storage.getOrbitSources(slug);
+        const allDocs = await storage.getOrbitDocuments(slug);
+        const docsWithText = allDocs.filter(d => d.extractedText && d.extractedText.length > 0);
+        const heroPostKnowledgeCount = await storage.countHeroPostsAsKnowledge(slug);
+        
+        const { calculateStrengthScore } = await import("./services/orbitStrength");
+        const { strengthScore } = calculateStrengthScore(sources, docsWithText.length, heroPostKnowledgeCount);
+        
+        await storage.updateOrbitTierAndStrength(slug, orbitMeta.planTier || 'free', strengthScore);
+        console.log(`[HeroPosts] Updated strength score to ${strengthScore} after knowledge toggle`);
+      } catch (err) {
+        console.error('[HeroPosts] Failed to update strength score:', err);
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error toggling hero post knowledge:", error);
+      res.status(500).json({ message: "Error updating Hero Post" });
     }
   });
 
@@ -11070,9 +11130,10 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
           const sources = await storage.getOrbitSources(slug);
           const allDocs = await storage.getOrbitDocuments(slug);
           const docsWithText = allDocs.filter(d => d.extractedText && d.extractedText.length > 0);
+          const heroPostKnowledgeCount = await storage.countHeroPostsAsKnowledge(slug);
           
           const { calculateStrengthScore } = await import("./services/orbitStrength");
-          const { strengthScore } = calculateStrengthScore(sources, docsWithText.length);
+          const { strengthScore } = calculateStrengthScore(sources, docsWithText.length, heroPostKnowledgeCount);
           
           await storage.updateOrbitTierAndStrength(slug, orbitMeta.planTier || 'free', strengthScore);
           console.log(`[OrbitDocuments] Updated strength score to ${strengthScore} (${docsWithText.length} docs with text)`);
@@ -11172,9 +11233,10 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         const sources = await storage.getOrbitSources(slug);
         const allDocs = await storage.getOrbitDocuments(slug);
         const docsWithText = allDocs.filter(d => d.extractedText && d.extractedText.length > 0);
+        const heroPostKnowledgeCount = await storage.countHeroPostsAsKnowledge(slug);
         
         const { calculateStrengthScore } = await import("./services/orbitStrength");
-        const { strengthScore } = calculateStrengthScore(sources, docsWithText.length);
+        const { strengthScore } = calculateStrengthScore(sources, docsWithText.length, heroPostKnowledgeCount);
         
         await storage.updateOrbitTierAndStrength(slug, orbitMeta.planTier || 'free', strengthScore);
         console.log(`[OrbitDocuments] Updated strength score to ${strengthScore} after deletion`);
@@ -11252,6 +11314,237 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
   });
 
   // ==================== END ORBIT DOCUMENTS ====================
+
+  // ==================== ORBIT VIDEOS ====================
+  
+  // Add a YouTube video
+  app.post("/api/orbit/:slug/videos", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user as schema.User;
+      const { youtubeUrl, title, description, tags, topics } = req.body;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can add videos" });
+      }
+      
+      if (!youtubeUrl) {
+        return res.status(400).json({ message: "YouTube URL is required" });
+      }
+      
+      // Extract video ID from YouTube URL
+      const videoIdMatch = youtubeUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      if (!videoIdMatch) {
+        return res.status(400).json({ message: "Invalid YouTube URL" });
+      }
+      const youtubeVideoId = videoIdMatch[1];
+      
+      // Check for duplicate
+      const existing = await storage.getOrbitVideos(slug);
+      if (existing.some(v => v.youtubeVideoId === youtubeVideoId)) {
+        return res.status(409).json({ message: "This video has already been added" });
+      }
+      
+      // Fetch video metadata from YouTube oEmbed API
+      let videoTitle = title || '';
+      let thumbnailUrl = '';
+      
+      try {
+        const oEmbedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(youtubeUrl)}&format=json`;
+        const response = await fetch(oEmbedUrl);
+        if (response.ok) {
+          const data = await response.json();
+          videoTitle = title || data.title || 'Untitled Video';
+          thumbnailUrl = data.thumbnail_url || `https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg`;
+        }
+      } catch (err) {
+        console.log('[OrbitVideos] oEmbed fetch failed, using defaults');
+        thumbnailUrl = `https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg`;
+      }
+      
+      const video = await storage.createOrbitVideo({
+        businessSlug: slug,
+        createdByUserId: user.id,
+        youtubeVideoId,
+        youtubeUrl,
+        title: videoTitle || 'Untitled Video',
+        description: description || null,
+        thumbnailUrl,
+        tags: tags || [],
+        topics: topics || [],
+        isEnabled: true,
+      });
+      
+      res.json(video);
+    } catch (error) {
+      console.error("Error adding video:", error);
+      res.status(500).json({ message: "Error adding video" });
+    }
+  });
+
+  // List videos
+  app.get("/api/orbit/:slug/videos", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user as schema.User;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can view videos" });
+      }
+      
+      const videos = await storage.getOrbitVideos(slug);
+      res.json({ videos });
+    } catch (error) {
+      console.error("Error getting videos:", error);
+      res.status(500).json({ message: "Error getting videos" });
+    }
+  });
+
+  // Update video
+  app.put("/api/orbit/:slug/videos/:id", requireAuth, async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const user = req.user as schema.User;
+      const { title, description, tags, topics, isEnabled } = req.body;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can update videos" });
+      }
+      
+      const updated = await storage.updateOrbitVideo(parseInt(id), {
+        title,
+        description,
+        tags,
+        topics,
+        isEnabled,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating video:", error);
+      res.status(500).json({ message: "Error updating video" });
+    }
+  });
+
+  // Delete video
+  app.delete("/api/orbit/:slug/videos/:id", requireAuth, async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const user = req.user as schema.User;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can delete videos" });
+      }
+      
+      await storage.deleteOrbitVideo(parseInt(id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting video:", error);
+      res.status(500).json({ message: "Error deleting video" });
+    }
+  });
+
+  // Track video event (public - for analytics)
+  app.post("/api/orbit/:slug/videos/:id/event", async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const { eventType, msWatched, followUpQuestion, sessionId } = req.body;
+      
+      if (!eventType || !['serve', 'play', 'pause', 'complete', 'cta_click'].includes(eventType)) {
+        return res.status(400).json({ message: "Invalid event type" });
+      }
+      
+      const video = await storage.getOrbitVideo(parseInt(id));
+      if (!video || video.businessSlug !== slug) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+      
+      // Create event
+      await storage.createVideoEvent({
+        videoId: parseInt(id),
+        businessSlug: slug,
+        sessionId: sessionId || null,
+        eventType,
+        msWatched: msWatched || 0,
+        followUpQuestion: followUpQuestion || null,
+      });
+      
+      // Update aggregate stats
+      await storage.incrementVideoStats(parseInt(id), {
+        serve: eventType === 'serve',
+        play: eventType === 'play',
+        watchTimeMs: msWatched || 0,
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error tracking video event:", error);
+      res.status(500).json({ message: "Error tracking event" });
+    }
+  });
+
+  // Get video analytics (owner only)
+  app.get("/api/orbit/:slug/videos/:id/analytics", requireAuth, async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const user = req.user as schema.User;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can view analytics" });
+      }
+      
+      const video = await storage.getOrbitVideo(parseInt(id));
+      if (!video) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+      
+      const events = await storage.getVideoEvents(parseInt(id), 50);
+      
+      // Calculate metrics
+      const followUpQuestions = events
+        .filter(e => e.followUpQuestion)
+        .map(e => e.followUpQuestion);
+      
+      res.json({
+        video,
+        totalServes: video.serveCount,
+        totalPlays: video.playCount,
+        totalWatchTimeMs: video.totalWatchTimeMs,
+        avgWatchTimeMs: video.playCount > 0 ? Math.round(video.totalWatchTimeMs / video.playCount) : 0,
+        recentFollowUpQuestions: followUpQuestions.slice(0, 10),
+      });
+    } catch (error) {
+      console.error("Error getting video analytics:", error);
+      res.status(500).json({ message: "Error getting analytics" });
+    }
+  });
+
+  // ==================== END ORBIT VIDEOS ====================
 
   // Orbit Meta - Get basic orbit info (owner only)
   app.get("/api/orbit/:slug/meta", requireAuth, async (req, res) => {

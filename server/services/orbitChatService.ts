@@ -43,6 +43,9 @@ export async function buildOrbitContext(
 ): Promise<{
   productContext: string;
   documentContext: string;
+  heroPostContext: string;
+  videoContext: string;
+  videos: { id: number; title: string; tags: string[]; topics: string[] }[];
   businessType: 'recruitment' | 'restaurant' | 'professional_services' | 'retail' | 'general';
   businessTypeLabel: string;
   offeringsLabel: string;
@@ -51,6 +54,12 @@ export async function buildOrbitContext(
   const boxes = await storage.getOrbitBoxes(slug);
   const documents = await storage.getOrbitDocuments(slug);
   const readyDocs = documents.filter(d => d.status === 'ready' && d.extractedText);
+  
+  // Get hero posts marked as knowledge sources
+  const heroPostsAsKnowledge = await storage.getHeroPostsAsKnowledge(slug);
+  
+  // Get enabled videos for chat suggestions
+  const enabledVideos = await storage.getOrbitVideos(slug, true);
   
   const items = boxes.slice(0, 60).map(b => ({
     name: b.title,
@@ -166,9 +175,40 @@ export async function buildOrbitContext(
     offeringsLabel = 'services';
   }
 
+  // Build hero post knowledge context
+  let heroPostContext = '';
+  if (heroPostsAsKnowledge.length > 0) {
+    const postsSummary = heroPostsAsKnowledge.slice(0, 10).map(post => {
+      const topics = post.extracted?.topics?.join(', ') || '';
+      return `[${post.sourcePlatform}] ${post.title || 'Post'}\n${post.text?.slice(0, 500) || ''}${topics ? `\nTopics: ${topics}` : ''}`;
+    }).join('\n\n');
+    
+    heroPostContext = `\n\nBRAND INSIGHTS (From our published content):\n${postsSummary}\n`;
+  }
+
+  // Build video context for suggestions
+  let videoContext = '';
+  const videos = enabledVideos.map(v => ({
+    id: v.id,
+    title: v.title,
+    tags: (v.tags as string[]) || [],
+    topics: (v.topics as string[]) || [],
+  }));
+  
+  if (videos.length > 0) {
+    const videoList = videos.slice(0, 10).map(v => 
+      `- "${v.title}" (${v.tags.join(', ') || 'no tags'})`
+    ).join('\n');
+    
+    videoContext = `\n\nAVAILABLE VIDEOS (You can suggest these when relevant):\n${videoList}\n`;
+  }
+
   return {
     productContext,
     documentContext,
+    heroPostContext,
+    videoContext,
+    videos,
     businessType,
     businessTypeLabel,
     offeringsLabel,
@@ -183,7 +223,9 @@ export function buildSystemPrompt(
   businessType: string,
   businessTypeLabel: string,
   offeringsLabel: string,
-  items: any[]
+  items: any[],
+  heroPostContext: string = '',
+  videoContext: string = ''
 ): string {
   const { brandName, sourceDomain, siteSummary, keyServices } = context;
 
@@ -231,7 +273,7 @@ For questions about our ${offeringsLabel}, how we can help, our approach, or bra
   return `You are a helpful assistant for ${brandName}, a ${businessTypeLabel}. You help visitors learn about our ${offeringsLabel} and find what they need.
 ${siteContext}${servicesSection}
 ${contextSummary}
-${documentContext}
+${documentContext}${heroPostContext}${videoContext}
 ## Response Guidelines:
 
 ### TRANSACTIONAL QUERIES (Answer directly):
@@ -250,7 +292,8 @@ For greetings, thanks, or unclear messages: Brief, warm response. Offer to help 
 - If you genuinely don't have information, say so and suggest where to find it
 - Lead with value, not filler like "Great question!" or "I'd be happy to..."
 - Never repeat the same information twice in one response
-${productContext ? '- For product/menu queries: cite specific items with prices when relevant' : ''}`;
+${productContext ? '- For product/menu queries: cite specific items with prices when relevant' : ''}
+${videoContext ? '- If a video is highly relevant to the question, suggest watching it for more detail' : ''}`;
 }
 
 export async function processProofCapture(
