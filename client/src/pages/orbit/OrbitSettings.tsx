@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Settings, Building2, Globe, Bell, Shield, FileText, Zap, Check, ExternalLink, Plus, X, Link2, Instagram, Linkedin, Facebook, Twitter, Youtube, Upload, Trash2, Loader2, File, Sparkles } from "lucide-react";
+import { Settings, Building2, Globe, Bell, Shield, FileText, Zap, Check, ExternalLink, Plus, X, Link2, Instagram, Linkedin, Facebook, Twitter, Youtube, Upload, Trash2, Loader2, File, Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -180,6 +180,7 @@ export default function OrbitSettings() {
       
       toast({ title: "Document uploaded", description: `Added to ${DOCUMENT_CATEGORIES.find(c => c.value === category)?.label || 'Other'} category` });
       refetchDocuments();
+      queryClient.invalidateQueries({ queryKey: ["orbit-meta", slug] });
       setShowAddModal(false);
       setDocCategory('other');
     } catch (error) {
@@ -205,9 +206,31 @@ export default function OrbitSettings() {
     onSuccess: () => {
       toast({ title: "Document deleted" });
       refetchDocuments();
+      queryClient.invalidateQueries({ queryKey: ["orbit-meta", slug] });
     },
     onError: () => {
       toast({ title: "Delete failed", variant: "destructive" });
+    },
+  });
+
+  const recalculateStrengthMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/orbit/${slug}/recalculate-strength`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to recalculate');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Strength updated", 
+        description: `Score: ${data.strengthScore}/100 (${data.documentsWithText} docs, ${data.sourcesCount} sources)` 
+      });
+      queryClient.invalidateQueries({ queryKey: ["orbit-meta", slug] });
+    },
+    onError: () => {
+      toast({ title: "Recalculation failed", variant: "destructive" });
     },
   });
 
@@ -340,7 +363,18 @@ export default function OrbitSettings() {
             <div className="mb-4 p-3 rounded-lg bg-white/[0.03] border border-white/5">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-white/60">Orbit Strength</span>
-                <span className="text-sm font-semibold text-white">{strengthScore}/100</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-white">{strengthScore}/100</span>
+                  <button
+                    onClick={() => recalculateStrengthMutation.mutate()}
+                    disabled={recalculateStrengthMutation.isPending}
+                    className="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white/60 transition-colors disabled:opacity-50"
+                    title="Recalculate strength"
+                    data-testid="button-recalculate-strength"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${recalculateStrengthMutation.isPending ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
               </div>
               <Progress value={strengthScore} className="h-1.5" />
               <p className="text-xs text-white/40 mt-2">

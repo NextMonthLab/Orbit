@@ -10539,6 +10539,44 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
     }
   });
 
+  // Orbit Strength - Recalculate strength score (owner only)
+  app.post("/api/orbit/:slug/recalculate-strength", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user as schema.User;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.ownerId !== user.id && !user.isAdmin) {
+        return res.status(403).json({ message: "Only the orbit owner can recalculate strength" });
+      }
+      
+      const sources = await storage.getOrbitSources(slug);
+      const allDocs = await storage.getOrbitDocuments(slug);
+      const docsWithText = allDocs.filter(d => d.extractedText && d.extractedText.length > 0);
+      
+      const { calculateStrengthScore } = await import("./services/orbitStrength");
+      const { strengthScore, breakdown } = calculateStrengthScore(sources, docsWithText.length);
+      
+      await storage.updateOrbitTierAndStrength(slug, orbitMeta.planTier || 'free', strengthScore);
+      
+      console.log(`[OrbitStrength] Recalculated for ${slug}: ${strengthScore} (${docsWithText.length} docs, ${sources.length} sources)`);
+      
+      res.json({ 
+        strengthScore, 
+        breakdown,
+        documentsWithText: docsWithText.length,
+        sourcesCount: sources.length
+      });
+    } catch (error) {
+      console.error("Error recalculating strength:", error);
+      res.status(500).json({ message: "Error recalculating strength" });
+    }
+  });
+
   // ==================== HERO POSTS ====================
   
   // Create a single Hero Post
@@ -10583,6 +10621,26 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         businessVoiceId: businessVoiceId || null,
         status: 'pending',
       });
+      
+      // Trigger enrichment in background (don't await)
+      (async () => {
+        try {
+          await storage.updateHeroPost(heroPost.id, { status: 'enriching' });
+          const { enrichHeroPost } = await import("./services/heroPostEnrichment");
+          const enriched = await enrichHeroPost(heroPost);
+          await storage.updateHeroPost(heroPost.id, {
+            ...enriched,
+            status: enriched.extracted ? 'ready' : (heroPost.text ? 'needs_text' : 'error'),
+          });
+          console.log(`[HeroPosts] Auto-enriched post ${heroPost.id}`);
+        } catch (err) {
+          console.error(`[HeroPosts] Auto-enrich failed for ${heroPost.id}:`, err);
+          await storage.updateHeroPost(heroPost.id, { 
+            status: 'error',
+            errorMessage: err instanceof Error ? err.message : 'Enrichment failed'
+          });
+        }
+      })();
       
       res.json(heroPost);
     } catch (error) {
