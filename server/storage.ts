@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import { eq, and, desc, asc, inArray, sql, gte } from "drizzle-orm";
+import { eq, and, desc, asc, inArray, sql, gte, lt } from "drizzle-orm";
 import * as schema from "@shared/schema";
 
 const { Pool } = pg;
@@ -318,6 +318,16 @@ export interface IStorage {
   getOrbitIceAllowance(businessSlug: string): Promise<{ allowance: number; used: number; periodStart: Date | null }>;
   incrementOrbitIceUsed(businessSlug: string): Promise<void>;
   resetOrbitIcePeriod(businessSlug: string, allowance: number): Promise<void>;
+
+  // Knowledge Coach: Proactive Gap Questions
+  createKnowledgePrompt(data: schema.InsertOrbitKnowledgePrompt): Promise<schema.OrbitKnowledgePrompt>;
+  createKnowledgePrompts(data: schema.InsertOrbitKnowledgePrompt[]): Promise<schema.OrbitKnowledgePrompt[]>;
+  getKnowledgePrompts(businessSlug: string, status?: schema.KnowledgePromptStatus): Promise<schema.OrbitKnowledgePrompt[]>;
+  getKnowledgePrompt(id: number): Promise<schema.OrbitKnowledgePrompt | undefined>;
+  updateKnowledgePrompt(id: number, data: Partial<schema.InsertOrbitKnowledgePrompt>): Promise<schema.OrbitKnowledgePrompt | undefined>;
+  getPendingKnowledgePromptsCount(businessSlug: string): Promise<number>;
+  getWeeklyKnowledgePrompts(businessSlug: string, weekNumber: number): Promise<schema.OrbitKnowledgePrompt[]>;
+  expireOldKnowledgePrompts(): Promise<number>;
 
   // Phase 4: Notifications
   createNotification(data: schema.InsertNotification): Promise<schema.Notification>;
@@ -2410,6 +2420,74 @@ export class DatabaseStorage implements IStorage {
         icePeriodStart: new Date()
       })
       .where(eq(schema.orbitMeta.businessSlug, businessSlug));
+  }
+
+  // Knowledge Coach: Proactive Gap Questions
+  async createKnowledgePrompt(data: schema.InsertOrbitKnowledgePrompt): Promise<schema.OrbitKnowledgePrompt> {
+    const [prompt] = await db.insert(schema.orbitKnowledgePrompts).values(data).returning();
+    return prompt;
+  }
+
+  async createKnowledgePrompts(data: schema.InsertOrbitKnowledgePrompt[]): Promise<schema.OrbitKnowledgePrompt[]> {
+    if (data.length === 0) return [];
+    const prompts = await db.insert(schema.orbitKnowledgePrompts).values(data).returning();
+    return prompts;
+  }
+
+  async getKnowledgePrompts(businessSlug: string, status?: schema.KnowledgePromptStatus): Promise<schema.OrbitKnowledgePrompt[]> {
+    const conditions = [eq(schema.orbitKnowledgePrompts.businessSlug, businessSlug)];
+    if (status) {
+      conditions.push(eq(schema.orbitKnowledgePrompts.status, status));
+    }
+    return db.query.orbitKnowledgePrompts.findMany({
+      where: and(...conditions),
+      orderBy: [desc(schema.orbitKnowledgePrompts.impactScore), desc(schema.orbitKnowledgePrompts.createdAt)],
+    });
+  }
+
+  async getKnowledgePrompt(id: number): Promise<schema.OrbitKnowledgePrompt | undefined> {
+    return db.query.orbitKnowledgePrompts.findFirst({
+      where: eq(schema.orbitKnowledgePrompts.id, id),
+    });
+  }
+
+  async updateKnowledgePrompt(id: number, data: Partial<schema.InsertOrbitKnowledgePrompt>): Promise<schema.OrbitKnowledgePrompt | undefined> {
+    const [prompt] = await db.update(schema.orbitKnowledgePrompts)
+      .set(data)
+      .where(eq(schema.orbitKnowledgePrompts.id, id))
+      .returning();
+    return prompt;
+  }
+
+  async getPendingKnowledgePromptsCount(businessSlug: string): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.orbitKnowledgePrompts)
+      .where(and(
+        eq(schema.orbitKnowledgePrompts.businessSlug, businessSlug),
+        eq(schema.orbitKnowledgePrompts.status, 'pending')
+      ));
+    return Number(result[0]?.count || 0);
+  }
+
+  async getWeeklyKnowledgePrompts(businessSlug: string, weekNumber: number): Promise<schema.OrbitKnowledgePrompt[]> {
+    return db.query.orbitKnowledgePrompts.findMany({
+      where: and(
+        eq(schema.orbitKnowledgePrompts.businessSlug, businessSlug),
+        eq(schema.orbitKnowledgePrompts.weekNumber, weekNumber)
+      ),
+      orderBy: [desc(schema.orbitKnowledgePrompts.impactScore)],
+    });
+  }
+
+  async expireOldKnowledgePrompts(): Promise<number> {
+    const result = await db.update(schema.orbitKnowledgePrompts)
+      .set({ status: 'expired' })
+      .where(and(
+        eq(schema.orbitKnowledgePrompts.status, 'pending'),
+        lt(schema.orbitKnowledgePrompts.expiresAt, new Date())
+      ))
+      .returning();
+    return result.length;
   }
 
   // Phase 4: Notifications

@@ -2015,6 +2015,78 @@ export const insertOrbitInsightsSummarySchema = createInsertSchema(orbitInsights
 export type InsertOrbitInsightsSummary = z.infer<typeof insertOrbitInsightsSummarySchema>;
 export type OrbitInsightsSummary = typeof orbitInsightsSummary.$inferSelect;
 
+// ============ KNOWLEDGE COACH: Proactive Gap Detection & Question Generation ============
+
+// Gap sources that triggered the question generation
+export type KnowledgeGapSource = 
+  | 'missing_category'      // No content in a common category (pricing, hours, etc.)
+  | 'thin_content'          // Content exists but is sparse
+  | 'chat_deflection'       // Visitor asked something Echo couldn't answer well
+  | 'unanswered_intent'     // Common visitor intent with no good response
+  | 'competitor_insight'    // Something competitors typically cover
+  | 'industry_standard';    // Standard info for this business type
+
+// Where the answer should be filed
+export type KnowledgeFilingDestination = 
+  | 'faq'                   // Add as new FAQ
+  | 'box_enrich'            // Enrich existing box content
+  | 'new_box'               // Create new content box
+  | 'document'              // Upload supporting document
+  | 'business_profile';     // Update business profile info
+
+// Status of each knowledge prompt
+export type KnowledgePromptStatus = 
+  | 'pending'               // Awaiting business owner response
+  | 'answered'              // Owner submitted an answer
+  | 'filed'                 // Answer has been filed into knowledge base
+  | 'dismissed'             // Owner dismissed without answering
+  | 'expired';              // Prompt expired without response
+
+// Knowledge Prompts - AI-generated questions to fill knowledge gaps
+export const orbitKnowledgePrompts = pgTable("orbit_knowledge_prompts", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug).notNull(),
+  
+  // The question itself
+  question: text("question").notNull(),
+  rationale: text("rationale").notNull(),           // Why this question matters
+  impactScore: integer("impact_score").default(5),  // 1-10 predicted impact on strength score
+  
+  // Gap detection context
+  gapSource: text("gap_source").$type<KnowledgeGapSource>().notNull(),
+  gapContext: jsonb("gap_context").$type<{
+    category?: string;              // Which category is thin/missing
+    sampleQuery?: string;           // Example visitor query that triggered this
+    relatedBoxIds?: number[];       // Boxes that could be enriched
+    deflectionCount?: number;       // How many times Echo struggled with this
+  }>(),
+  
+  // Suggested filing
+  suggestedDestination: text("suggested_destination").$type<KnowledgeFilingDestination>().notNull(),
+  suggestedBoxId: integer("suggested_box_id").references(() => orbitBoxes.id),
+  
+  // Status tracking
+  status: text("status").$type<KnowledgePromptStatus>().default("pending").notNull(),
+  
+  // Owner response
+  answerText: text("answer_text"),
+  filedDestination: text("filed_destination").$type<KnowledgeFilingDestination>(),
+  filedBoxId: integer("filed_box_id").references(() => orbitBoxes.id),
+  answeredAt: timestamp("answered_at"),
+  filedAt: timestamp("filed_at"),
+  
+  // Generation batch tracking
+  weekNumber: integer("week_number").notNull(),     // ISO week number for grouping
+  batchId: text("batch_id"),                        // Links prompts generated together
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),               // Prompts expire after 2 weeks
+});
+
+export const insertOrbitKnowledgePromptSchema = createInsertSchema(orbitKnowledgePrompts).omit({ id: true, createdAt: true });
+export type InsertOrbitKnowledgePrompt = z.infer<typeof insertOrbitKnowledgePromptSchema>;
+export type OrbitKnowledgePrompt = typeof orbitKnowledgePrompts.$inferSelect;
+
 // ICE Drafts - generated content from insights (Launchpad builder output)
 export type IceDraftFormat = 'hook_bullets' | 'myth_reality' | 'checklist' | 'problem_solution_proof';
 export type IceDraftTone = 'direct' | 'warm' | 'playful' | 'premium';
