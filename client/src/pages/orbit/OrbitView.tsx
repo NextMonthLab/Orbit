@@ -227,9 +227,23 @@ export default function OrbitView() {
           }),
         });
         
+        // Handle non-OK HTTP responses first
+        if (!response.ok) {
+          try {
+            const errorData = await response.json();
+            // Check for capped responses (these may come with non-200 status)
+            if (errorData.capped) {
+              return { text: errorData.response || "Message limit reached.", video: null };
+            }
+            return { text: errorData.message || "Sorry, something went wrong. Please try again.", video: null };
+          } catch {
+            return { text: "Sorry, I couldn't process that request. Please try again.", video: null };
+          }
+        }
+        
         const data = await response.json();
         
-        // Handle capped responses
+        // Handle capped responses (may come with 200 status)
         if (data.capped) {
           return {
             text: data.response || "Message limit reached. Upgrade to continue chatting.",
@@ -237,54 +251,54 @@ export default function OrbitView() {
           };
         }
         
-        if (response.ok && data.response) {
-          let assistantResponse = data.response;
-          
-          // Handle proof capture flow
-          if (data.proofCaptureFlow?.triggered) {
-            proofCaptureTriggeredRef.current = new Date().toISOString();
-            const consentOptions = data.proofCaptureFlow.consentOptions || [];
-            if (consentOptions.length > 0) {
-              assistantResponse += `\n\nWould you be happy for us to use your comment as a testimonial?\n\n• ${consentOptions.join('\n• ')}`;
-            }
+        // Validate we have a response
+        if (!data.response) {
+          return { text: "I'm here to help. What would you like to know?", video: null };
+        }
+        
+        let assistantResponse = data.response;
+        
+        // Handle proof capture flow
+        if (data.proofCaptureFlow?.triggered) {
+          proofCaptureTriggeredRef.current = new Date().toISOString();
+          const consentOptions = data.proofCaptureFlow.consentOptions || [];
+          if (consentOptions.length > 0) {
+            assistantResponse += `\n\nWould you be happy for us to use your comment as a testimonial?\n\n• ${consentOptions.join('\n• ')}`;
           }
-          
-          // Suggestion chip nudge
-          if (data.suggestionChip) {
-            assistantResponse += `\n\n💬 By the way, if you'd like to leave a testimonial, just let me know!`;
-          }
-          
-          // Update chat history after successful response
-          chatHistoryRef.current.push({ role: 'user', content: message });
-          chatHistoryRef.current.push({ role: 'assistant', content: assistantResponse });
-          if (chatHistoryRef.current.length > 10) {
-            chatHistoryRef.current = chatHistoryRef.current.slice(-10);
-          }
-          
-          // Map server response to expected SuggestedVideo format
-          let mappedVideo: SuggestedVideo | null = null;
-          if (data.suggestedVideo) {
-            mappedVideo = {
-              id: data.suggestedVideo.id,
-              title: data.suggestedVideo.title,
-              youtubeVideoId: data.suggestedVideo.youtubeVideoId || data.suggestedVideo.youtubeId,
-              thumbnailUrl: data.suggestedVideo.thumbnailUrl || null,
-              description: data.suggestedVideo.description || null,
-            };
-          }
-          
-          return {
-            text: assistantResponse,
-            video: mappedVideo,
+        }
+        
+        // Suggestion chip nudge
+        if (data.suggestionChip) {
+          assistantResponse += `\n\n💬 By the way, if you'd like to leave a testimonial, just let me know!`;
+        }
+        
+        // Update chat history after successful response
+        chatHistoryRef.current.push({ role: 'user', content: message });
+        chatHistoryRef.current.push({ role: 'assistant', content: assistantResponse });
+        if (chatHistoryRef.current.length > 10) {
+          chatHistoryRef.current = chatHistoryRef.current.slice(-10);
+        }
+        
+        // Map server response to expected SuggestedVideo format
+        let mappedVideo: SuggestedVideo | null = null;
+        if (data.suggestedVideo) {
+          mappedVideo = {
+            id: data.suggestedVideo.id,
+            title: data.suggestedVideo.title,
+            youtubeVideoId: data.suggestedVideo.youtubeVideoId || data.suggestedVideo.youtubeId,
+            thumbnailUrl: data.suggestedVideo.thumbnailUrl || null,
+            description: data.suggestedVideo.description || null,
           };
         }
+        
+        return {
+          text: assistantResponse,
+          video: mappedVideo,
+        };
       } catch (e) {
         console.error('Orbit chat error:', e);
+        return { text: "Sorry, I couldn't process that request. Please try again.", video: null };
       }
-      
-      return {
-        text: "Sorry, I couldn't process that request. Please try again.",
-      };
     };
   };
 
