@@ -1679,6 +1679,9 @@ export const heroPosts = pgTable("hero_posts", {
     followUpIdeas?: Array<{ title: string; hook: string; linkBack: string }>;
   }>(),
   
+  // Knowledge toggle - when true, post content is used as factual knowledge for chat
+  useAsKnowledge: boolean("use_as_knowledge").default(false).notNull(),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
@@ -1728,6 +1731,65 @@ export const heroPostInsights = pgTable("hero_post_insights", {
 export const insertHeroPostInsightSchema = createInsertSchema(heroPostInsights).omit({ id: true, updatedAt: true });
 export type InsertHeroPostInsight = z.infer<typeof insertHeroPostInsightSchema>;
 export type HeroPostInsight = typeof heroPostInsights.$inferSelect;
+
+// Orbit Videos - YouTube videos that Orbit can serve during chat
+export const orbitVideos = pgTable("orbit_videos", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug, { onDelete: "cascade" }).notNull(),
+  createdByUserId: integer("created_by_user_id").references(() => users.id),
+  
+  // YouTube info
+  youtubeVideoId: text("youtube_video_id").notNull(),
+  youtubeUrl: text("youtube_url").notNull(),
+  
+  // Metadata
+  title: text("title").notNull(),
+  description: text("description"),
+  thumbnailUrl: text("thumbnail_url"),
+  durationSeconds: integer("duration_seconds"),
+  
+  // Matching/retrieval
+  tags: jsonb("tags").$type<string[]>(),
+  topics: jsonb("topics").$type<string[]>(),
+  transcript: text("transcript"),
+  
+  // Status
+  isEnabled: boolean("is_enabled").default(true).notNull(),
+  
+  // Analytics aggregates (denormalized for quick display)
+  serveCount: integer("serve_count").default(0).notNull(),
+  playCount: integer("play_count").default(0).notNull(),
+  totalWatchTimeMs: integer("total_watch_time_ms").default(0).notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertOrbitVideoSchema = createInsertSchema(orbitVideos).omit({ id: true, createdAt: true, updatedAt: true, serveCount: true, playCount: true, totalWatchTimeMs: true });
+export type InsertOrbitVideo = z.infer<typeof insertOrbitVideoSchema>;
+export type OrbitVideo = typeof orbitVideos.$inferSelect;
+
+// Orbit Video Events - Analytics for video playback
+export type OrbitVideoEventType = 'serve' | 'play' | 'pause' | 'complete' | 'cta_click';
+
+export const orbitVideoEvents = pgTable("orbit_video_events", {
+  id: serial("id").primaryKey(),
+  videoId: integer("video_id").references(() => orbitVideos.id, { onDelete: "cascade" }).notNull(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug, { onDelete: "cascade" }).notNull(),
+  sessionId: text("session_id"),
+  
+  eventType: text("event_type").$type<OrbitVideoEventType>().notNull(),
+  msWatched: integer("ms_watched").default(0),
+  
+  // Follow-up tracking
+  followUpQuestion: text("follow_up_question"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertOrbitVideoEventSchema = createInsertSchema(orbitVideoEvents).omit({ id: true, createdAt: true });
+export type InsertOrbitVideoEvent = z.infer<typeof insertOrbitVideoEventSchema>;
+export type OrbitVideoEvent = typeof orbitVideoEvents.$inferSelect;
 
 // Orbit Analytics - daily activity tracking for Data Hub
 export const orbitAnalytics = pgTable("orbit_analytics", {
