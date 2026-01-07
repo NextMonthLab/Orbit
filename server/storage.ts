@@ -328,6 +328,7 @@ export interface IStorage {
   getPendingKnowledgePromptsCount(businessSlug: string): Promise<number>;
   getWeeklyKnowledgePrompts(businessSlug: string, weekNumber: number): Promise<schema.OrbitKnowledgePrompt[]>;
   expireOldKnowledgePrompts(): Promise<number>;
+  getEligibleOrbitsForKnowledgeCoach(): Promise<schema.OrbitMeta[]>;
 
   // Phase 4: Notifications
   createNotification(data: schema.InsertNotification): Promise<schema.Notification>;
@@ -2488,6 +2489,12 @@ export class DatabaseStorage implements IStorage {
       ))
       .returning();
     return result.length;
+  }
+
+  async getEligibleOrbitsForKnowledgeCoach(): Promise<schema.OrbitMeta[]> {
+    return db.query.orbitMetas.findMany({
+      where: inArray(schema.orbitMetas.planTier, ['grow', 'intelligence']),
+    });
   }
 
   // Phase 4: Notifications

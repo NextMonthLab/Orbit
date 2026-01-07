@@ -17,6 +17,7 @@ import dns from "dns/promises";
 import { isKlingConfigured, startImageToVideoGeneration, checkVideoStatus, waitForVideoCompletion } from "./video";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { startArchiveExpiredPreviewsJob } from "./jobs/archiveExpiredPreviews";
+import { startWeeklyKnowledgeCoachJob } from "./jobs/weeklyKnowledgeCoach";
 import { getFullEntitlements } from "./entitlements";
 import { 
   FREE_CONVERSATION_LIMIT, 
@@ -14981,6 +14982,7 @@ GUIDELINES:
 
   // Start background jobs
   startArchiveExpiredPreviewsJob(storage);
+  startWeeklyKnowledgeCoachJob(storage);
 
   return httpServer;
 }
