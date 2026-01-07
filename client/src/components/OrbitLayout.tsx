@@ -2,7 +2,6 @@ import { Link, useLocation } from "wouter";
 import { 
   Orbit,
   Globe,
-  Brain,
   Building2,
   LogIn
 } from "lucide-react";
@@ -45,7 +44,6 @@ export default function OrbitLayout({ children }: { children: React.ReactNode })
   const ownerNavItems = [
     { href: "/orbit/my", icon: Building2, label: "My Orbits" },
     { href: "/orbit", icon: Globe, label: "Explore Orbits", exact: true },
-    { href: "/orbit/intelligence", icon: Brain, label: "Intelligence" },
   ];
 
   const nonOwnerNavItems = [
