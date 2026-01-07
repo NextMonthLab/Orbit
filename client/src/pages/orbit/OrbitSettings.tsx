@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Settings, Building2, Globe, Bell, Shield, FileText, Zap, Check, ExternalLink, Plus, X, Link2, Instagram, Linkedin, Facebook, Twitter, Youtube, Upload, Trash2, Loader2, File, Sparkles, RefreshCw } from "lucide-react";
+import { Settings, Building2, Globe, Bell, Shield, FileText, Zap, Check, ExternalLink, Plus, X, Link2, Instagram, Linkedin, Facebook, Twitter, Youtube, Upload, Trash2, Loader2, File, Sparkles, RefreshCw, Play, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -95,12 +95,15 @@ export default function OrbitSettings() {
   const queryClient = useQueryClient();
   
   const [showAddModal, setShowAddModal] = useState(false);
-  const [modalTab, setModalTab] = useState<'links' | 'hero' | 'docs'>('links');
+  const [modalTab, setModalTab] = useState<'links' | 'hero' | 'docs' | 'videos'>('links');
   const [selectedSourceType, setSelectedSourceType] = useState<SourceLabel | ''>('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [heroPostUrl, setHeroPostUrl] = useState('');
   const [heroPostText, setHeroPostText] = useState('');
   const [docCategory, setDocCategory] = useState('other');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoTitle, setVideoTitle] = useState('');
+  const [videoTags, setVideoTags] = useState('');
   
   const { data: sourcesData, refetch: refetchSources } = useQuery<{ sources: OrbitSource[] }>({
     queryKey: ["orbit-sources", slug],
@@ -283,6 +286,84 @@ export default function OrbitSettings() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  // Video Library
+  interface OrbitVideo {
+    id: number;
+    title: string;
+    youtubeUrl: string;
+    thumbnailUrl?: string;
+    tags: string[];
+    enabled: boolean;
+  }
+
+  const { data: videosData, refetch: refetchVideos } = useQuery<{ videos: OrbitVideo[] }>({
+    queryKey: ["orbit-videos", slug],
+    queryFn: async () => {
+      if (!slug) return { videos: [] };
+      const response = await fetch(`/api/orbit/${slug}/videos`, { credentials: "include" });
+      if (!response.ok) return { videos: [] };
+      return response.json();
+    },
+    enabled: !!slug,
+  });
+
+  const videos = videosData?.videos || [];
+
+  const addVideoMutation = useMutation({
+    mutationFn: async (data: { youtubeUrl: string; title?: string; tags?: string[] }) => {
+      const response = await fetch(`/api/orbit/${slug}/videos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to add video');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Video added", description: "Video is now available in chat" });
+      setShowAddModal(false);
+      setVideoUrl('');
+      setVideoTitle('');
+      setVideoTags('');
+      refetchVideos();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteVideoMutation = useMutation({
+    mutationFn: async (videoId: number) => {
+      const response = await fetch(`/api/orbit/${slug}/videos/${videoId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to delete');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Video removed" });
+      refetchVideos();
+    },
+    onError: () => {
+      toast({ title: "Delete failed", variant: "destructive" });
+    },
+  });
+
+  const handleAddVideo = () => {
+    if (!videoUrl.trim()) return;
+    const tags = videoTags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+    addVideoMutation.mutate({
+      youtubeUrl: videoUrl.trim(),
+      title: videoTitle.trim() || undefined,
+      tags: tags.length > 0 ? tags : undefined,
+    });
+  };
 
   const handleAddHeroPost = () => {
     if (!heroPostUrl.trim()) return;
@@ -566,6 +647,54 @@ export default function OrbitSettings() {
             </div>
           )}
 
+          {/* Video Library - Only show if videos exist */}
+          {videos.length > 0 && (
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10" data-testid="section-videos">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-red-400" />
+                  <span className="text-sm font-medium text-white/80">Video Library</span>
+                </div>
+                <Badge variant="outline" className="text-xs border-red-500/50 text-red-400">
+                  {videos.length}
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                {videos.map((video) => (
+                  <div
+                    key={video.id}
+                    className="flex items-center justify-between p-2 rounded-lg bg-white/[0.03] border border-white/5"
+                    data-testid={`video-${video.id}`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {video.thumbnailUrl && (
+                        <img 
+                          src={video.thumbnailUrl} 
+                          alt="" 
+                          className="w-10 h-6 object-cover rounded flex-shrink-0"
+                        />
+                      )}
+                      <span className="text-sm text-white/70 truncate">{video.title}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-white/30 hover:text-red-400 flex-shrink-0"
+                      onClick={() => {
+                        if (confirm('Remove this video?')) {
+                          deleteVideoMutation.mutate(video.id);
+                        }
+                      }}
+                      data-testid={`button-delete-video-${video.id}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Tone of Voice Section */}
           <div className="p-4 rounded-xl bg-white/5 border border-white/10" data-testid="section-tone-of-voice">
             <div className="flex items-center justify-between mb-4">
@@ -806,6 +935,9 @@ export default function OrbitSettings() {
           setHeroPostUrl('');
           setHeroPostText('');
           setDocCategory('other');
+          setVideoUrl('');
+          setVideoTitle('');
+          setVideoTags('');
           setModalTab('links');
         }
       }}>
@@ -817,19 +949,23 @@ export default function OrbitSettings() {
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs value={modalTab} onValueChange={(v) => setModalTab(v as 'links' | 'hero' | 'docs')} className="mt-2">
-            <TabsList className="grid w-full grid-cols-3 bg-zinc-800">
-              <TabsTrigger value="links" className="data-[state=active]:bg-blue-600 text-xs" data-testid="tab-links">
+          <Tabs value={modalTab} onValueChange={(v) => setModalTab(v as 'links' | 'hero' | 'docs' | 'videos')} className="mt-2">
+            <TabsList className="grid w-full grid-cols-4 bg-zinc-800">
+              <TabsTrigger value="links" className="data-[state=active]:bg-blue-600 text-xs px-2" data-testid="tab-links">
                 <Link2 className="w-3 h-3 mr-1" />
                 Links
               </TabsTrigger>
-              <TabsTrigger value="hero" className="data-[state=active]:bg-purple-600 text-xs" data-testid="tab-hero">
+              <TabsTrigger value="hero" className="data-[state=active]:bg-purple-600 text-xs px-2" data-testid="tab-hero">
                 <Sparkles className="w-3 h-3 mr-1" />
-                Hero Posts
+                Posts
               </TabsTrigger>
-              <TabsTrigger value="docs" className="data-[state=active]:bg-pink-600 text-xs" data-testid="tab-docs">
+              <TabsTrigger value="docs" className="data-[state=active]:bg-pink-600 text-xs px-2" data-testid="tab-docs">
                 <File className="w-3 h-3 mr-1" />
-                Documents
+                Docs
+              </TabsTrigger>
+              <TabsTrigger value="videos" className="data-[state=active]:bg-red-600 text-xs px-2" data-testid="tab-videos">
+                <Play className="w-3 h-3 mr-1" />
+                Videos
               </TabsTrigger>
             </TabsList>
 
@@ -976,6 +1112,62 @@ export default function OrbitSettings() {
               {documents.length > 0 && (
                 <div className="text-xs text-zinc-500">
                   {documents.length} document{documents.length !== 1 ? 's' : ''} uploaded
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Videos Tab */}
+            <TabsContent value="videos" className="space-y-4 mt-4">
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                <p className="text-xs text-red-300 mb-1 font-medium">Video Library</p>
+                <p className="text-xs text-zinc-400">
+                  Add YouTube videos that your Orbit can suggest to visitors when relevant.
+                </p>
+              </div>
+              <div>
+                <Label className="text-zinc-300 mb-2 block">YouTube URL</Label>
+                <Input
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="bg-zinc-800 border-zinc-700 text-white"
+                  data-testid="input-video-url"
+                />
+              </div>
+              <div>
+                <Label className="text-zinc-300 mb-2 block">Title (optional)</Label>
+                <Input
+                  value={videoTitle}
+                  onChange={(e) => setVideoTitle(e.target.value)}
+                  placeholder="Leave blank to auto-detect from YouTube"
+                  className="bg-zinc-800 border-zinc-700 text-white"
+                  data-testid="input-video-title"
+                />
+              </div>
+              <div>
+                <Label className="text-zinc-300 mb-2 block">Tags (optional)</Label>
+                <Input
+                  value={videoTags}
+                  onChange={(e) => setVideoTags(e.target.value)}
+                  placeholder="pricing, demo, tutorial (comma separated)"
+                  className="bg-zinc-800 border-zinc-700 text-white"
+                  data-testid="input-video-tags"
+                />
+                <p className="text-xs text-zinc-500 mt-1">
+                  Tags help Orbit know when to suggest this video
+                </p>
+              </div>
+              <Button
+                className="w-full bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                onClick={handleAddVideo}
+                disabled={!videoUrl.trim() || addVideoMutation.isPending}
+                data-testid="button-confirm-add-video"
+              >
+                {addVideoMutation.isPending ? "Adding..." : "Add Video"}
+              </Button>
+              {videos.length > 0 && (
+                <div className="text-xs text-zinc-500">
+                  {videos.length} video{videos.length !== 1 ? 's' : ''} in library
                 </div>
               )}
             </TabsContent>

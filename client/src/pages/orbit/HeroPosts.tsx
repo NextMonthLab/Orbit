@@ -1,6 +1,7 @@
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Plus,
@@ -16,7 +17,8 @@ import {
   Hash,
   Filter,
   X,
-  Link2
+  Link2,
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import GlobalNav from "@/components/GlobalNav";
 
 interface HeroPost {
@@ -63,6 +66,7 @@ interface HeroPost {
   outcomeNote?: string;
   tags?: string[];
   errorMessage?: string;
+  useAsKnowledge?: boolean;
   createdAt: string;
 }
 
@@ -114,11 +118,13 @@ function HeroPostCard({
   post, 
   onEnrich, 
   onDelete,
+  onToggleKnowledge,
   isEnriching 
 }: { 
   post: HeroPost; 
   onEnrich: () => void; 
   onDelete: () => void;
+  onToggleKnowledge: (useAsKnowledge: boolean) => void;
   isEnriching: boolean;
 }) {
   const [showDetails, setShowDetails] = useState(false);
@@ -207,6 +213,25 @@ function HeroPostCard({
                   </Badge>
                 )}
               </div>
+              
+              {/* Knowledge toggle - only show for posts with text */}
+              {post.text && (
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-zinc-800">
+                  <Switch
+                    checked={post.useAsKnowledge || false}
+                    onCheckedChange={(checked) => onToggleKnowledge(checked)}
+                    id={`knowledge-${post.id}`}
+                    data-testid={`switch-knowledge-${post.id}`}
+                  />
+                  <label 
+                    htmlFor={`knowledge-${post.id}`}
+                    className="text-xs text-zinc-400 flex items-center gap-1 cursor-pointer"
+                  >
+                    <BookOpen className="w-3 h-3" />
+                    Use as knowledge source
+                  </label>
+                </div>
+              )}
               
               <Button
                 variant="ghost"
@@ -567,6 +592,27 @@ export default function HeroPosts() {
     },
   });
 
+  const toggleKnowledgeMutation = useMutation({
+    mutationFn: async ({ postId, useAsKnowledge }: { postId: number; useAsKnowledge: boolean }) => {
+      const res = await fetch(`/api/orbit/${slug}/hero-posts/${postId}/knowledge`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ useAsKnowledge }),
+      });
+      if (!res.ok) throw new Error('Failed to toggle');
+      return res.json();
+    },
+    onSuccess: (_, { useAsKnowledge }) => {
+      queryClient.invalidateQueries({ queryKey: ['hero-posts', slug] });
+      queryClient.invalidateQueries({ queryKey: ['orbit-strength', slug] });
+      toast.success(useAsKnowledge ? 'Added as knowledge source' : 'Removed from knowledge sources');
+    },
+    onError: () => {
+      toast.error('Failed to update knowledge setting');
+    },
+  });
+
   const posts = postsData?.posts || [];
 
   return (
@@ -676,6 +722,9 @@ export default function HeroPosts() {
                         deleteMutation.mutate(post.id);
                       }
                     }}
+                    onToggleKnowledge={(useAsKnowledge) => 
+                      toggleKnowledgeMutation.mutate({ postId: post.id, useAsKnowledge })
+                    }
                     isEnriching={enrichMutation.isPending && enrichMutation.variables === post.id}
                   />
                 ))}
