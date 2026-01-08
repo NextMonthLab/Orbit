@@ -1,0 +1,469 @@
+Absolutely. Below is a canonical CPAC JSON format you can hand to RAPID (and to Claude Deep Research) so every Industry Orbit pack is consistent, importable, and diff-friendly.
+
+I’m defining CPAC as: Canonical Pulse And Content pack for an Industry Orbit.
+
+You get two things:
+	1.	CPAC JSON Schema (contract) in plain JSON (schema-like)
+	2.	A complete CPAC example (Smart Glasses)
+
+You can copy this into your repo as the standard.
+
+⸻
+
+1) CPAC Contract (schema-like, importable)
+
+{
+  "cpac_version": "1.0.0",
+  "pack_type": "industry_orbit_cpac",
+  "generated_at": "ISO-8601",
+  "source_agent": {
+    "name": "RAPID",
+    "model": "string",
+    "notes": "string"
+  },
+  "orbit": {
+    "slug": "string",
+    "title": "string",
+    "summary": "string",
+    "region_focus": ["UK", "US", "EU"],
+    "language": "en-GB",
+    "orbit_type": "industry",
+    "visibility": "public",
+    "tags": ["string"],
+    "ui_defaults": {
+      "show_proof_of_life": true,
+      "proof_of_life_mode": "updated_recently",
+      "enable_ambient_tile_motion": true,
+      "enable_intent_gravity": true,
+      "enable_evidence_artefacts": true
+    }
+  },
+  "seed_pack": {
+    "core_concepts": [
+      {
+        "id": "string",
+        "label": "string",
+        "why_it_matters": "string",
+        "starter_questions": ["string"],
+        "intent_tags": ["string"]
+      }
+    ],
+    "starter_tiles": [
+      {
+        "id": "string",
+        "label": "string",
+        "sublabel": "string",
+        "intent_tags": ["string"],
+        "priority": 1,
+        "evidence_refs": {
+          "product_ids": ["string"],
+          "entity_ids": ["string"],
+          "community_ids": ["string"]
+        }
+      }
+    ]
+  },
+  "entities": [
+    {
+      "id": "string",
+      "entity_type": "manufacturer",
+      "name": "string",
+      "description": "string",
+      "website_url": "string",
+      "trust_level": "official",
+      "region_tags": ["string"],
+      "logo_asset_ref": "string",
+      "social_urls": {
+        "x": "string",
+        "linkedin": "string",
+        "youtube": "string",
+        "instagram": "string"
+      },
+      "notes": "string"
+    }
+  ],
+  "products": [
+    {
+      "id": "string",
+      "name": "string",
+      "manufacturer_entity_id": "string",
+      "category": "consumer",
+      "status": "shipping",
+      "release_date": "ISO-8601-or-null",
+      "primary_url": "string",
+      "summary": "string",
+      "hero_asset_ref": "string",
+      "media_refs": {
+        "image_asset_refs": ["string"],
+        "video_asset_refs": ["string"]
+      },
+      "specs": [
+        {
+          "spec_key": "string",
+          "spec_value": "string",
+          "spec_unit": "string",
+          "source_url": "string",
+          "last_verified_at": "ISO-8601-or-null"
+        }
+      ],
+      "reference_urls": ["string"],
+      "intent_tags": ["string"]
+    }
+  ],
+  "reviews": [
+    {
+      "id": "string",
+      "product_id": "string",
+      "reviewer_entity_id": "string",
+      "title": "string",
+      "url": "string",
+      "published_at": "ISO-8601-or-null",
+      "rating_value": "number-or-null",
+      "rating_scale": "number-or-null",
+      "summary": "string",
+      "sentiment": "mixed"
+    }
+  ],
+  "communities": [
+    {
+      "id": "string",
+      "name": "string",
+      "url": "string",
+      "community_type": "forum",
+      "notes": "string",
+      "region_tags": ["string"]
+    }
+  ],
+  "assets": [
+    {
+      "asset_ref": "string",
+      "asset_type": "image",
+      "title": "string",
+      "source_url": "string",
+      "licensing": {
+        "status": "unknown",
+        "notes": "string"
+      }
+    }
+  ],
+  "pulse": {
+    "sources": [
+      {
+        "id": "string",
+        "name": "string",
+        "source_type": "manufacturer",
+        "url": "string",
+        "rss_url": null,
+        "monitoring_method": "page_monitor",
+        "update_frequency": "weekly",
+        "event_types": ["product_launch", "firmware_update", "review"],
+        "trust_level": "official",
+        "keyword_triggers": ["string"],
+        "notes": "string"
+      }
+    ],
+    "monitoring_rules": {
+      "dedupe_rules": [
+        "Prefer canonical URL equality",
+        "If titles are near-identical within 14 days, treat as duplicate"
+      ],
+      "importance_scoring": [
+        {
+          "event_type": "product_launch",
+          "high": "Major manufacturer launches a new hardware product line",
+          "medium": "New variant, limited region, or accessory launch",
+          "low": "Rumour or teaser without specifications"
+        }
+      ],
+      "extraction_hints": {
+        "prefer_selectors": ["main", "article", ".post", ".news"],
+        "ignore_selectors": ["nav", "footer", ".cookie", ".subscribe"]
+      }
+    }
+  },
+  "governance": {
+    "neutrality": {
+      "is_unowned": true,
+      "sponsors_do_not_influence_intelligence": true,
+      "influencers_do_not_publish_conclusions": true
+    },
+    "data_quality": {
+      "do_not_invent_rss": true,
+      "require_source_url_for_specs": true,
+      "avoid_fake_numbers": true
+    }
+  }
+}
+
+
+⸻
+
+2) CPAC Example (Smart Glasses)
+
+This is a realistic example shape. Keep it as your reference fixture.
+
+{
+  "cpac_version": "1.0.0",
+  "pack_type": "industry_orbit_cpac",
+  "generated_at": "2026-01-08T12:00:00Z",
+  "source_agent": {
+    "name": "RAPID",
+    "model": "claude",
+    "notes": "Seed pack plus initial pulse sources. URLs must be validated by ingest layer."
+  },
+  "orbit": {
+    "slug": "smart-glasses",
+    "title": "Smart Glasses",
+    "summary": "A living view of smart glasses: products, platforms, adoption, and what is changing right now.",
+    "region_focus": ["UK", "EU", "US"],
+    "language": "en-GB",
+    "orbit_type": "industry",
+    "visibility": "public",
+    "tags": ["wearables", "ar", "ai", "hardware", "consumer-tech"],
+    "ui_defaults": {
+      "show_proof_of_life": true,
+      "proof_of_life_mode": "updated_recently",
+      "enable_ambient_tile_motion": true,
+      "enable_intent_gravity": true,
+      "enable_evidence_artefacts": true
+    }
+  },
+  "seed_pack": {
+    "core_concepts": [
+      {
+        "id": "concept-privacy",
+        "label": "Privacy and social acceptance",
+        "why_it_matters": "Smart glasses live on faces. Social trust, recording signals, and workplace rules often determine adoption more than specs.",
+        "starter_questions": [
+          "Are smart glasses allowed in offices and venues?",
+          "How do recording indicators work in practice?"
+        ],
+        "intent_tags": ["privacy", "recording", "social-acceptance", "policy"]
+      },
+      {
+        "id": "concept-display",
+        "label": "Displays and optics",
+        "why_it_matters": "Field of view, brightness, and waveguide quality shape whether these are useful or gimmicky.",
+        "starter_questions": [
+          "Do smart glasses have a screen or just audio?",
+          "What is the difference between AR glasses and smart glasses?"
+        ],
+        "intent_tags": ["display", "optics", "ar", "waveguides"]
+      }
+    ],
+    "starter_tiles": [
+      {
+        "id": "tile-buying-guide",
+        "label": "What features should I look for?",
+        "sublabel": "A practical buyer checklist",
+        "intent_tags": ["buying", "features", "comparison"],
+        "priority": 1,
+        "evidence_refs": {
+          "product_ids": [],
+          "entity_ids": [],
+          "community_ids": []
+        }
+      },
+      {
+        "id": "tile-compatibility",
+        "label": "Do they work with iPhone and Android?",
+        "sublabel": "Compatibility and app ecosystems",
+        "intent_tags": ["compatibility", "ios", "android", "apps"],
+        "priority": 2,
+        "evidence_refs": {
+          "product_ids": [],
+          "entity_ids": [],
+          "community_ids": []
+        }
+      }
+    ]
+  },
+  "entities": [
+    {
+      "id": "ent-meta",
+      "entity_type": "manufacturer",
+      "name": "Meta",
+      "description": "Consumer technology company with smart glasses initiatives and partnerships.",
+      "website_url": "https://about.meta.com/",
+      "trust_level": "official",
+      "region_tags": ["global"],
+      "logo_asset_ref": null,
+      "social_urls": {
+        "x": null,
+        "linkedin": "https://www.linkedin.com/company/meta/",
+        "youtube": null,
+        "instagram": null
+      },
+      "notes": "Prefer official newsroom or product pages for launches."
+    },
+    {
+      "id": "ent-apple",
+      "entity_type": "manufacturer",
+      "name": "Apple",
+      "description": "Consumer electronics company with wearable and spatial computing ecosystem.",
+      "website_url": "https://www.apple.com/",
+      "trust_level": "official",
+      "region_tags": ["global"],
+      "logo_asset_ref": null,
+      "social_urls": {
+        "x": null,
+        "linkedin": "https://www.linkedin.com/company/apple/",
+        "youtube": "https://www.youtube.com/@Apple",
+        "instagram": "https://www.instagram.com/apple/"
+      },
+      "notes": "Monitor press releases and newsroom updates."
+    },
+    {
+      "id": "ent-theverge",
+      "entity_type": "publication",
+      "name": "The Verge",
+      "description": "Technology publication covering consumer devices and product launches.",
+      "website_url": "https://www.theverge.com/",
+      "trust_level": "trade",
+      "region_tags": ["global"],
+      "logo_asset_ref": null,
+      "social_urls": {
+        "x": null,
+        "linkedin": null,
+        "youtube": null,
+        "instagram": null
+      },
+      "notes": "Use for reviews and launch reporting. Treat as trade press."
+    }
+  ],
+  "products": [
+    {
+      "id": "prod-example-1",
+      "name": "Example Smart Glasses Model",
+      "manufacturer_entity_id": "ent-meta",
+      "category": "consumer",
+      "status": "announced",
+      "release_date": null,
+      "primary_url": "https://example.com/product-page",
+      "summary": "Placeholder example product node. Replace with validated products during seed validation.",
+      "hero_asset_ref": null,
+      "media_refs": {
+        "image_asset_refs": [],
+        "video_asset_refs": []
+      },
+      "specs": [
+        {
+          "spec_key": "Battery life",
+          "spec_value": "Unknown",
+          "spec_unit": null,
+          "source_url": "https://example.com/product-page",
+          "last_verified_at": null
+        }
+      ],
+      "reference_urls": ["https://example.com/product-page"],
+      "intent_tags": ["consumer", "smart-glasses"]
+    }
+  ],
+  "reviews": [],
+  "communities": [
+    {
+      "id": "comm-example-1",
+      "name": "Example Smart Glasses Community",
+      "url": "https://example.com/community",
+      "community_type": "community_site",
+      "notes": "Replace with validated communities for the topic.",
+      "region_tags": ["global"]
+    }
+  ],
+  "assets": [],
+  "pulse": {
+    "sources": [
+      {
+        "id": "src-meta-news",
+        "name": "Meta Newsroom",
+        "source_type": "manufacturer",
+        "url": "https://about.meta.com/news/",
+        "rss_url": null,
+        "monitoring_method": "page_monitor",
+        "update_frequency": "twice_weekly",
+        "event_types": ["product_launch", "partnership", "availability_change"],
+        "trust_level": "official",
+        "keyword_triggers": ["glasses", "wearables", "AI", "Ray-Ban", "smart"],
+        "notes": "Prefer official announcements. Page monitor if RSS unavailable."
+      },
+      {
+        "id": "src-apple-news",
+        "name": "Apple Newsroom",
+        "source_type": "manufacturer",
+        "url": "https://www.apple.com/newsroom/",
+        "rss_url": null,
+        "monitoring_method": "page_monitor",
+        "update_frequency": "weekly",
+        "event_types": ["product_launch", "availability_change", "partnership"],
+        "trust_level": "official",
+        "keyword_triggers": ["vision", "glasses", "spatial", "wearable"],
+        "notes": "Monitor for launches and platform announcements."
+      },
+      {
+        "id": "src-verge-wearables",
+        "name": "The Verge Wearables Coverage",
+        "source_type": "publication",
+        "url": "https://www.theverge.com/wearables",
+        "rss_url": null,
+        "monitoring_method": "page_monitor",
+        "update_frequency": "twice_weekly",
+        "event_types": ["review", "product_launch", "rumour"],
+        "trust_level": "trade",
+        "keyword_triggers": ["smart glasses", "AR glasses", "Ray-Ban", "Meta", "Apple"],
+        "notes": "Trade press. Use as signal, confirm facts via official sources where possible."
+      }
+    ],
+    "monitoring_rules": {
+      "dedupe_rules": [
+        "If canonical URL matches an existing event within 30 days, dedupe",
+        "If titles are near-identical within 14 days from the same source, dedupe"
+      ],
+      "importance_scoring": [
+        {
+          "event_type": "product_launch",
+          "high": "New glasses hardware announced by a major manufacturer or major platform shift",
+          "medium": "New variant, limited region release, or significant accessory launch",
+          "low": "Teaser, rumour, or minor refresh without verified specs"
+        },
+        {
+          "event_type": "firmware_update",
+          "high": "Update adds major capability (new AI features, large compatibility expansion)",
+          "medium": "Noticeable UX improvements or meaningful bug fixes",
+          "low": "Minor patch notes"
+        }
+      ],
+      "extraction_hints": {
+        "prefer_selectors": ["main", "article", ".post", ".news", ".content"],
+        "ignore_selectors": ["nav", "footer", ".cookie", ".subscribe", ".newsletter"]
+      }
+    }
+  },
+  "governance": {
+    "neutrality": {
+      "is_unowned": true,
+      "sponsors_do_not_influence_intelligence": true,
+      "influencers_do_not_publish_conclusions": true
+    },
+    "data_quality": {
+      "do_not_invent_rss": true,
+      "require_source_url_for_specs": true,
+      "avoid_fake_numbers": true
+    }
+  }
+}
+
+
+⸻
+
+Notes you should give RAPID (so it behaves consistently)
+	•	IDs are mandatory and stable. Never regenerate IDs on re-run.
+	•	Do not invent RSS. If unsure, set rss_url: null and use page_monitor.
+	•	Specs must have source_url. If unknown, store “Unknown” and keep the source URL.
+	•	Assets are references, not downloads. Keep source_url and licensing notes.
+	•	Seed packs should be “good enough”, not exhaustive. The Pulse loop will grow it.
+
+⸻
+
+If you want, I can also produce:
+	•	a strict JSON Schema (draft-07 style) for validation in CI, and/or
+	•	an import “normaliser” spec (how to map this CPAC into your DB tables).
