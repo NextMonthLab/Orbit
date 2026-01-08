@@ -20,13 +20,13 @@ interface HubOverviewPanelProps {
 }
 
 interface HubAnalytics {
-  analytics: {
+  activity: {
     visits: number;
     interactions: number;
     conversations: number;
     iceViews: number;
   };
-  leads: {
+  leads?: {
     count: number;
   };
   conversationLimit?: {
@@ -64,7 +64,7 @@ export function HubOverviewPanel({ businessSlug, planTier }: HubOverviewPanelPro
   const metrics = [
     {
       label: "Total Visits",
-      value: hubData?.analytics.visits || 0,
+      value: hubData?.activity?.visits || 0,
       icon: Users,
       description: "People who viewed your Orbit",
       color: "text-blue-400",
@@ -72,7 +72,7 @@ export function HubOverviewPanel({ businessSlug, planTier }: HubOverviewPanelPro
     },
     {
       label: "Interactions",
-      value: hubData?.analytics.interactions || 0,
+      value: hubData?.activity?.interactions || 0,
       icon: MousePointer,
       description: "Clicks and taps on content",
       color: "text-emerald-400",
@@ -80,7 +80,7 @@ export function HubOverviewPanel({ businessSlug, planTier }: HubOverviewPanelPro
     },
     {
       label: "Conversations",
-      value: hubData?.analytics.conversations || 0,
+      value: hubData?.activity?.conversations || 0,
       icon: MessageCircle,
       description: "Chat sessions started",
       color: "text-purple-400",
@@ -88,7 +88,7 @@ export function HubOverviewPanel({ businessSlug, planTier }: HubOverviewPanelPro
     },
     {
       label: "ICE Views",
-      value: hubData?.analytics.iceViews || 0,
+      value: hubData?.activity?.iceViews || 0,
       icon: Sparkles,
       description: "Experience views",
       color: "text-pink-400",
