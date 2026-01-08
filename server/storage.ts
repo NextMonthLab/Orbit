@@ -2492,8 +2492,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getEligibleOrbitsForKnowledgeCoach(): Promise<schema.OrbitMeta[]> {
-    return db.query.orbitMetas.findMany({
-      where: inArray(schema.orbitMetas.planTier, ['grow', 'intelligence']),
+    return db.query.orbitMeta.findMany({
+      where: inArray(schema.orbitMeta.planTier, ['grow', 'intelligence']),
     });
   }
 

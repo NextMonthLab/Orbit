@@ -43,6 +43,12 @@ export function startWeeklyKnowledgeCoachJob(storage: IStorage) {
     }
   }
 
+  // Run after a short delay on startup to ensure storage is initialized
+  setTimeout(() => {
+    runJob();
+  }, 5000);
+  
+  // Then run weekly
   setInterval(runJob, WEEK_MS);
   log("Started weekly Knowledge Coach job (runs every 7 days)", "knowledge-coach-job");
 }

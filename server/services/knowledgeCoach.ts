@@ -333,6 +333,16 @@ export async function processAnswer(
         break;
         
       case "document":
+        // Create as a text/content box since we don't have an actual file to upload
+        await storage.createOrbitBox({
+          businessSlug: prompt.businessSlug,
+          boxType: "text",
+          title: `Knowledge: ${prompt.question.slice(0, 50)}${prompt.question.length > 50 ? '...' : ''}`,
+          description: answerText,
+          content: answerText,
+          isVisible: true,
+          sortOrder: 0,
+        });
         break;
     }
     
