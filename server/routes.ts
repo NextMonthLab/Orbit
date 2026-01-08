@@ -15151,6 +15151,221 @@ GUIDELINES:
     res.json({ success: true, message: "Thanks. We will be in touch within 2 working days." });
   });
 
+  // ============ INDUSTRY ORBIT SEED API ============
+  
+  const { seedPackSchema, importSeedPack, getOrbitDefinition } = await import("./services/industryOrbitSeedService");
+  
+  // POST /api/industry-orbits/:slug/seed - Import seed pack
+  app.post("/api/industry-orbits/:slug/seed", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      // Get orbit meta by slug
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      // Check if it's an industry orbit
+      if (orbitMeta.orbitType !== 'industry') {
+        return res.status(403).json({ 
+          message: "Seed packs can only be imported into Industry Orbits",
+          code: "NOT_INDUSTRY_ORBIT"
+        });
+      }
+      
+      // Validate the seed pack
+      const parseResult = seedPackSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({
+          message: "Invalid seed pack format",
+          errors: parseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
+        });
+      }
+      
+      const seedPack = parseResult.data;
+      
+      // Verify the pack is for this orbit
+      if (seedPack.orbitSlug !== slug) {
+        return res.status(400).json({
+          message: `Seed pack is for orbit "${seedPack.orbitSlug}" but you're importing to "${slug}"`,
+        });
+      }
+      
+      // Import the seed pack
+      const result = await importSeedPack(orbitMeta.id, seedPack);
+      
+      console.log(`[Industry Orbit Seed] Imported to ${slug}:`, result.imported);
+      
+      res.json({
+        success: result.success,
+        imported: result.imported,
+        errors: result.errors,
+      });
+      
+    } catch (error) {
+      console.error("[Industry Orbit Seed] Error:", error);
+      res.status(500).json({ message: "Failed to import seed pack" });
+    }
+  });
+  
+  // GET /api/industry-orbits/:slug/definition - Get full definition
+  app.get("/api/industry-orbits/:slug/definition", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      // Check if it's an industry orbit
+      if (orbitMeta.orbitType !== 'industry') {
+        return res.status(403).json({ 
+          message: "Definition endpoint is only available for Industry Orbits",
+          code: "NOT_INDUSTRY_ORBIT"
+        });
+      }
+      
+      const definition = await getOrbitDefinition(orbitMeta.id);
+      
+      res.json({
+        orbitId: orbitMeta.id,
+        slug: slug,
+        name: orbitMeta.customTitle || orbitMeta.businessName,
+        type: 'industry',
+        definition,
+      });
+      
+    } catch (error) {
+      console.error("[Industry Orbit Definition] Error:", error);
+      res.status(500).json({ message: "Failed to get orbit definition" });
+    }
+  });
+  
+  // GET /api/industry-orbits/:slug/entities - List entities
+  app.get("/api/industry-orbits/:slug/entities", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const entities = await storage.getIndustryEntitiesByOrbit(orbitMeta.id);
+      res.json({ entities });
+      
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get entities" });
+    }
+  });
+  
+  // GET /api/industry-orbits/:slug/products - List products with specs
+  app.get("/api/industry-orbits/:slug/products", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const products = await storage.getIndustryProductsByOrbit(orbitMeta.id);
+      
+      // Include specs for each product
+      const productsWithSpecs = await Promise.all(
+        products.map(async (product) => {
+          const specs = await storage.getProductSpecs(product.id);
+          return { ...product, specs };
+        })
+      );
+      
+      res.json({ products: productsWithSpecs });
+      
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get products" });
+    }
+  });
+  
+  // GET /api/industry-orbits/:slug/reviews - List reviews
+  app.get("/api/industry-orbits/:slug/reviews", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const reviews = await storage.getIndustryReviewsByOrbit(orbitMeta.id);
+      res.json({ reviews });
+      
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get reviews" });
+    }
+  });
+  
+  // GET /api/industry-orbits/:slug/communities - List community links
+  app.get("/api/industry-orbits/:slug/communities", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const communities = await storage.getCommunityLinksByOrbit(orbitMeta.id);
+      res.json({ communities });
+      
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get communities" });
+    }
+  });
+  
+  // GET /api/industry-orbits/:slug/tiles - List topic tiles
+  app.get("/api/industry-orbits/:slug/tiles", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const tiles = await storage.getTopicTilesByOrbit(orbitMeta.id);
+      res.json({ tiles });
+      
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get tiles" });
+    }
+  });
+  
+  // GET /api/industry-orbits/:slug/pulse-events - List pulse events
+  app.get("/api/industry-orbits/:slug/pulse-events", async (req, res) => {
+    const { slug } = req.params;
+    const status = req.query.status as string | undefined;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const validStatuses = ['new', 'processed', 'dismissed'] as const;
+      const statusFilter = status && validStatuses.includes(status as any) 
+        ? status as typeof validStatuses[number]
+        : undefined;
+      
+      const events = await storage.getPulseEventsByOrbit(orbitMeta.id, statusFilter);
+      res.json({ events });
+      
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get pulse events" });
+    }
+  });
+
   // Start background jobs
   startArchiveExpiredPreviewsJob(storage);
   startWeeklyKnowledgeCoachJob(storage);
