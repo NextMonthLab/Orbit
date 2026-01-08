@@ -147,10 +147,8 @@ function Router() {
       <Route path="/ai-discovery-control" component={AIDiscoveryControl} />
       <Route path="/ai-discovery" component={AIDiscoveryControl} />
       
-      <Route path="/smartglasses" component={SmartGlassesPage} />
+      <Route path="/smartglasses">{() => { window.location.href = "/orbit/smart-glasses"; return null; }}</Route>
       <Route path="/smartglasses/partners" component={SmartGlassesPartnersPage} />
-      <Route path="/smartglasses/friend" component={SmartGlassesPage} />
-      <Route path="/smartglasses/influencer" component={SmartGlassesPage} />
       
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsOfService} />
