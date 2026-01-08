@@ -2891,3 +2891,405 @@ export const videoExportJobs = pgTable("video_export_jobs", {
 export const insertVideoExportJobSchema = createInsertSchema(videoExportJobs).omit({ id: true, createdAt: true });
 export type InsertVideoExportJob = z.infer<typeof insertVideoExportJobSchema>;
 export type VideoExportJob = typeof videoExportJobs.$inferSelect;
+
+// ============ INDUSTRY ORBIT SYSTEM ============
+// These tables support Industry Orbits - neutral, unowned public intelligence spaces
+// Industry Orbits can NEVER be claimed or owned (this is a system invariant)
+
+// Entity types within an Industry Orbit
+export type IndustryEntityType = 
+  | 'manufacturer' 
+  | 'platform' 
+  | 'standards' 
+  | 'publication' 
+  | 'influencer' 
+  | 'community' 
+  | 'retailer' 
+  | 'distributor';
+
+// Trust level for industry entities and sources
+export type TrustLevel = 'official' | 'trade' | 'independent';
+
+// Industry Entity - Manufacturers, platforms, standards bodies, communities, influencers
+export const industryEntities = pgTable("industry_entities", {
+  id: serial("id").primaryKey(),
+  orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
+  
+  entityType: text("entity_type").$type<IndustryEntityType>().notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  websiteUrl: text("website_url"),
+  regionTags: jsonb("region_tags").$type<string[]>().default([]),
+  trustLevel: text("trust_level").$type<TrustLevel>().default("independent").notNull(),
+  logoAssetId: integer("logo_asset_id"), // FK to industryAssets, set after creation
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertIndustryEntitySchema = createInsertSchema(industryEntities).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertIndustryEntity = z.infer<typeof insertIndustryEntitySchema>;
+export type IndustryEntity = typeof industryEntities.$inferSelect;
+
+// Product status
+export type ProductStatus = 'shipping' | 'announced' | 'rumoured' | 'discontinued';
+
+// Product category
+export type ProductCategory = 'consumer' | 'enterprise' | 'developer';
+
+// Product - Products within an Industry Orbit
+export const industryProducts = pgTable("industry_products", {
+  id: serial("id").primaryKey(),
+  orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
+  manufacturerEntityId: integer("manufacturer_entity_id").references(() => industryEntities.id, { onDelete: "set null" }),
+  
+  name: text("name").notNull(),
+  category: text("category").$type<ProductCategory>().default("consumer").notNull(),
+  status: text("status").$type<ProductStatus>().default("announced").notNull(),
+  releaseDate: timestamp("release_date"),
+  primaryUrl: text("primary_url"),
+  summary: text("summary"),
+  heroAssetId: integer("hero_asset_id"), // FK to industryAssets
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertIndustryProductSchema = createInsertSchema(industryProducts).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertIndustryProduct = z.infer<typeof insertIndustryProductSchema>;
+export type IndustryProduct = typeof industryProducts.$inferSelect;
+
+// Product Spec - Flexible key-value specs for products
+export const productSpecs = pgTable("product_specs", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").references(() => industryProducts.id, { onDelete: "cascade" }).notNull(),
+  
+  specKey: text("spec_key").notNull(),
+  specValue: text("spec_value").notNull(),
+  specUnit: text("spec_unit"),
+  sourceUrl: text("source_url"),
+  lastVerifiedAt: timestamp("last_verified_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertProductSpecSchema = createInsertSchema(productSpecs).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertProductSpec = z.infer<typeof insertProductSpecSchema>;
+export type ProductSpec = typeof productSpecs.$inferSelect;
+
+// Review sentiment
+export type ReviewSentiment = 'positive' | 'mixed' | 'negative' | 'unknown';
+
+// Industry Review - Reviews from publications and influencers
+export const industryReviews = pgTable("industry_reviews", {
+  id: serial("id").primaryKey(),
+  orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
+  productId: integer("product_id").references(() => industryProducts.id, { onDelete: "set null" }),
+  reviewerEntityId: integer("reviewer_entity_id").references(() => industryEntities.id, { onDelete: "set null" }),
+  
+  title: text("title").notNull(),
+  url: text("url").notNull(),
+  publishedAt: timestamp("published_at"),
+  ratingValue: real("rating_value"),
+  ratingScale: real("rating_scale"),
+  summary: text("summary"),
+  sentiment: text("sentiment").$type<ReviewSentiment>().default("unknown").notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertIndustryReviewSchema = createInsertSchema(industryReviews).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertIndustryReview = z.infer<typeof insertIndustryReviewSchema>;
+export type IndustryReview = typeof industryReviews.$inferSelect;
+
+// Asset type for industry assets
+export type IndustryAssetType = 'image' | 'video' | 'document';
+
+// Industry Asset - Images, videos, documents for Industry Orbits
+export const industryAssets = pgTable("industry_assets", {
+  id: serial("id").primaryKey(),
+  orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
+  
+  assetType: text("asset_type").$type<IndustryAssetType>().notNull(),
+  storageUrl: text("storage_url").notNull(),
+  thumbUrl: text("thumb_url"),
+  sourceUrl: text("source_url"),
+  title: text("title"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertIndustryAssetSchema = createInsertSchema(industryAssets).omit({ id: true, createdAt: true });
+export type InsertIndustryAsset = z.infer<typeof insertIndustryAssetSchema>;
+export type IndustryAsset = typeof industryAssets.$inferSelect;
+
+// Community type
+export type CommunityType = 'forum' | 'subreddit' | 'discord' | 'slack' | 'community_site' | 'event_series';
+
+// Community Link - Forums, subreddits, Discords, etc.
+export const communityLinks = pgTable("community_links", {
+  id: serial("id").primaryKey(),
+  orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
+  
+  name: text("name").notNull(),
+  url: text("url").notNull(),
+  communityType: text("community_type").$type<CommunityType>().notNull(),
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCommunityLinkSchema = createInsertSchema(communityLinks).omit({ id: true, createdAt: true });
+export type InsertCommunityLink = z.infer<typeof insertCommunityLinkSchema>;
+export type CommunityLink = typeof communityLinks.$inferSelect;
+
+// Badge state for topic tiles
+export const topicTileBadgeSchema = z.object({
+  trending: z.boolean().optional(),
+  new: z.boolean().optional(),
+  debated: z.boolean().optional(),
+  updatedRecently: z.boolean().optional(),
+});
+export type TopicTileBadge = z.infer<typeof topicTileBadgeSchema>;
+
+// Topic Tile - The orbit tiles for Industry Orbits
+export const topicTiles = pgTable("topic_tiles", {
+  id: serial("id").primaryKey(),
+  orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
+  
+  label: text("label").notNull(),
+  sublabel: text("sublabel"),
+  intentTags: jsonb("intent_tags").$type<string[]>().default([]),
+  priority: integer("priority").default(0).notNull(),
+  badgeState: jsonb("badge_state").$type<TopicTileBadge>().default({}),
+  lastRefreshedAt: timestamp("last_refreshed_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertTopicTileSchema = createInsertSchema(topicTiles).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertTopicTile = z.infer<typeof insertTopicTileSchema>;
+export type TopicTile = typeof topicTiles.$inferSelect;
+
+// ============ PULSE MONITORING SYSTEM ============
+// Monitors industry sources for events and updates
+
+// Pulse source type (mirrors entity types + more)
+export type PulseSourceType = 
+  | 'manufacturer' 
+  | 'publication' 
+  | 'influencer' 
+  | 'standards' 
+  | 'community' 
+  | 'retailer';
+
+// Monitoring method
+export type MonitoringMethod = 'rss' | 'page_monitor';
+
+// Update frequency
+export type UpdateFrequency = 'daily' | 'twice_weekly' | 'weekly';
+
+// Pulse event types
+export type PulseEventType = 
+  | 'product_launch' 
+  | 'firmware_update' 
+  | 'pricing_change' 
+  | 'compatibility_change' 
+  | 'regulatory_change' 
+  | 'review' 
+  | 'rumour' 
+  | 'partnership' 
+  | 'availability_change';
+
+// Pulse event importance
+export type PulseEventImportance = 'low' | 'medium' | 'high';
+
+// Pulse event status
+export type PulseEventStatus = 'new' | 'processed' | 'dismissed';
+
+// Pulse Source - Monitored sources (RSS feeds, pages)
+export const pulseSources = pgTable("pulse_sources", {
+  id: serial("id").primaryKey(),
+  orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
+  
+  name: text("name").notNull(),
+  sourceType: text("source_type").$type<PulseSourceType>().notNull(),
+  url: text("url").notNull(),
+  rssUrl: text("rss_url"),
+  monitoringMethod: text("monitoring_method").$type<MonitoringMethod>().default("page_monitor").notNull(),
+  updateFrequency: text("update_frequency").$type<UpdateFrequency>().default("weekly").notNull(),
+  trustLevel: text("trust_level").$type<TrustLevel>().default("independent").notNull(),
+  eventTypes: jsonb("event_types").$type<PulseEventType[]>().default([]),
+  isEnabled: boolean("is_enabled").default(true).notNull(),
+  lastCheckedAt: timestamp("last_checked_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertPulseSourceSchema = createInsertSchema(pulseSources).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertPulseSource = z.infer<typeof insertPulseSourceSchema>;
+export type PulseSource = typeof pulseSources.$inferSelect;
+
+// Pulse Snapshot - For diffing page content
+export const pulseSnapshots = pgTable("pulse_snapshots", {
+  id: serial("id").primaryKey(),
+  pulseSourceId: integer("pulse_source_id").references(() => pulseSources.id, { onDelete: "cascade" }).notNull(),
+  
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+  contentHash: text("content_hash").notNull(),
+  contentExcerpt: text("content_excerpt"),
+  rawStorageUrl: text("raw_storage_url"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPulseSnapshotSchema = createInsertSchema(pulseSnapshots).omit({ id: true, createdAt: true });
+export type InsertPulseSnapshot = z.infer<typeof insertPulseSnapshotSchema>;
+export type PulseSnapshot = typeof pulseSnapshots.$inferSelect;
+
+// Entity references for pulse events
+export const pulseEventEntityRefsSchema = z.object({
+  manufacturerId: z.number().optional(),
+  productId: z.number().optional(),
+  entityIds: z.array(z.number()).optional(),
+});
+export type PulseEventEntityRefs = z.infer<typeof pulseEventEntityRefsSchema>;
+
+// Pulse Event - Detected events from monitoring
+export const pulseEvents = pgTable("pulse_events", {
+  id: serial("id").primaryKey(),
+  orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
+  pulseSourceId: integer("pulse_source_id").references(() => pulseSources.id, { onDelete: "cascade" }).notNull(),
+  
+  eventType: text("event_type").$type<PulseEventType>().notNull(),
+  importance: text("importance").$type<PulseEventImportance>().default("medium").notNull(),
+  title: text("title").notNull(),
+  url: text("url"),
+  detectedAt: timestamp("detected_at").defaultNow().notNull(),
+  entityRefs: jsonb("entity_refs").$type<PulseEventEntityRefs>().default({}),
+  summary: text("summary"),
+  status: text("status").$type<PulseEventStatus>().default("new").notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertPulseEventSchema = createInsertSchema(pulseEvents).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertPulseEvent = z.infer<typeof insertPulseEventSchema>;
+export type PulseEvent = typeof pulseEvents.$inferSelect;
+
+// ============ ALIGNMENT SYSTEM ============
+// How users relate to Industry Orbits (never ownership!)
+
+// Alignment mode - how a user participates in an Industry Orbit
+// DOCTRINE: Alignment NEVER equals ownership
+export type AlignmentMode = 'friend' | 'influencer' | 'sponsor';
+
+// Alignment status
+export type AlignmentStatus = 'active' | 'paused';
+
+// Alignment - User participation in Industry Orbits
+export const alignments = pgTable("alignments", {
+  id: serial("id").primaryKey(),
+  orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  
+  mode: text("mode").$type<AlignmentMode>().notNull(),
+  status: text("status").$type<AlignmentStatus>().default("active").notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueOrbitUser: unique().on(table.orbitId, table.userId),
+}));
+
+export const insertAlignmentSchema = createInsertSchema(alignments).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertAlignment = z.infer<typeof insertAlignmentSchema>;
+export type Alignment = typeof alignments.$inferSelect;
+
+// ============ SEED PACK SCHEMA ============
+// JSON structure for importing Industry Orbit data
+
+export const seedPackEntitySchema = z.object({
+  entityType: z.enum(['manufacturer', 'platform', 'standards', 'publication', 'influencer', 'community', 'retailer', 'distributor']),
+  name: z.string(),
+  description: z.string().optional(),
+  websiteUrl: z.string().optional(),
+  regionTags: z.array(z.string()).optional(),
+  trustLevel: z.enum(['official', 'trade', 'independent']).optional(),
+});
+
+export const seedPackProductSchema = z.object({
+  name: z.string(),
+  manufacturerName: z.string().optional(), // Resolved to ID during import
+  category: z.enum(['consumer', 'enterprise', 'developer']).optional(),
+  status: z.enum(['shipping', 'announced', 'rumoured', 'discontinued']).optional(),
+  releaseDate: z.string().optional(), // ISO date string
+  primaryUrl: z.string().optional(),
+  summary: z.string().optional(),
+  specs: z.array(z.object({
+    key: z.string(),
+    value: z.string(),
+    unit: z.string().optional(),
+    sourceUrl: z.string().optional(),
+  })).optional(),
+});
+
+export const seedPackReviewSchema = z.object({
+  title: z.string(),
+  url: z.string(),
+  productName: z.string().optional(), // Resolved to ID during import
+  reviewerName: z.string().optional(), // Resolved to entity ID
+  publishedAt: z.string().optional(),
+  ratingValue: z.number().optional(),
+  ratingScale: z.number().optional(),
+  summary: z.string().optional(),
+  sentiment: z.enum(['positive', 'mixed', 'negative', 'unknown']).optional(),
+});
+
+export const seedPackCommunitySchema = z.object({
+  name: z.string(),
+  url: z.string(),
+  communityType: z.enum(['forum', 'subreddit', 'discord', 'slack', 'community_site', 'event_series']),
+  notes: z.string().optional(),
+});
+
+export const seedPackTileSchema = z.object({
+  label: z.string(),
+  sublabel: z.string().optional(),
+  intentTags: z.array(z.string()).optional(),
+  priority: z.number().optional(),
+});
+
+export const seedPackPulseSourceSchema = z.object({
+  name: z.string(),
+  sourceType: z.enum(['manufacturer', 'publication', 'influencer', 'standards', 'community', 'retailer']),
+  url: z.string(),
+  rssUrl: z.string().optional(),
+  monitoringMethod: z.enum(['rss', 'page_monitor']).optional(),
+  updateFrequency: z.enum(['daily', 'twice_weekly', 'weekly']).optional(),
+  trustLevel: z.enum(['official', 'trade', 'independent']).optional(),
+  eventTypes: z.array(z.enum([
+    'product_launch', 'firmware_update', 'pricing_change', 'compatibility_change',
+    'regulatory_change', 'review', 'rumour', 'partnership', 'availability_change'
+  ])).optional(),
+});
+
+export const seedPackSchema = z.object({
+  version: z.string().default("1.0"),
+  orbitSlug: z.string(),
+  title: z.string(),
+  summary: z.string().optional(),
+  entities: z.array(seedPackEntitySchema).optional(),
+  products: z.array(seedPackProductSchema).optional(),
+  reviews: z.array(seedPackReviewSchema).optional(),
+  communities: z.array(seedPackCommunitySchema).optional(),
+  tiles: z.array(seedPackTileSchema).optional(),
+  pulseSources: z.array(seedPackPulseSourceSchema).optional(),
+});
+
+export type SeedPack = z.infer<typeof seedPackSchema>;
