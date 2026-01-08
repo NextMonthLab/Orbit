@@ -13,14 +13,22 @@ import {
   PlayCircle,
   ChevronRight,
   Loader2,
-  Settings2
+  Settings2,
+  Upload,
+  FileJson,
+  FileSpreadsheet,
+  Package
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface DataSourceConnection {
   id: number;
@@ -53,6 +61,7 @@ interface HubDataSourcesPanelProps {
 
 export function HubDataSourcesPanel({ businessSlug, planTier }: HubDataSourcesPanelProps) {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCatalogueModal, setShowCatalogueModal] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<DataSourceConnection | null>(null);
   const queryClient = useQueryClient();
 
@@ -117,17 +126,43 @@ export function HubDataSourcesPanel({ businessSlug, planTier }: HubDataSourcesPa
         <div>
           <h2 className="text-2xl font-semibold text-white mb-1">Data Sources</h2>
           <p className="text-zinc-400 text-sm">
-            Connect external APIs to bring live data into your Orbit
+            Import catalogues or connect APIs to bring data into your Orbit
           </p>
         </div>
-        <Button 
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <button
+          onClick={() => setShowCatalogueModal(true)}
+          className="flex items-start gap-4 p-5 bg-zinc-900/50 border border-zinc-800 rounded-xl text-left orbit-hover hover:border-pink-500/30 transition-all"
+          data-testid="button-import-catalogue"
+        >
+          <div className="p-3 bg-pink-500/20 rounded-xl">
+            <Package className="w-6 h-6 text-pink-400" />
+          </div>
+          <div>
+            <h3 className="text-white font-medium mb-1">Import Catalogue</h3>
+            <p className="text-zinc-400 text-sm">
+              Upload products or menu items from JSON or CSV files
+            </p>
+          </div>
+        </button>
+
+        <button
           onClick={() => setShowAddModal(true)}
-          className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+          className="flex items-start gap-4 p-5 bg-zinc-900/50 border border-zinc-800 rounded-xl text-left orbit-hover hover:border-purple-500/30 transition-all"
           data-testid="button-add-data-source"
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Connection
-        </Button>
+          <div className="p-3 bg-purple-500/20 rounded-xl">
+            <Database className="w-6 h-6 text-purple-400" />
+          </div>
+          <div>
+            <h3 className="text-white font-medium mb-1">Connect API</h3>
+            <p className="text-zinc-400 text-sm">
+              Pull live data from an external REST API
+            </p>
+          </div>
+        </button>
       </div>
 
       {isLoading ? (
@@ -236,6 +271,16 @@ export function HubDataSourcesPanel({ businessSlug, planTier }: HubDataSourcesPa
         isDeleting={deleteConnection.isPending}
         isRefreshing={triggerSnapshot.isPending}
         businessSlug={businessSlug}
+      />
+
+      <CatalogueImportModal
+        open={showCatalogueModal}
+        onOpenChange={setShowCatalogueModal}
+        businessSlug={businessSlug}
+        onSuccess={() => {
+          setShowCatalogueModal(false);
+          queryClient.invalidateQueries({ queryKey: ["orbit-boxes", businessSlug] });
+        }}
       />
     </div>
   );
@@ -569,6 +614,327 @@ function ConnectionDetailModal({
               </div>
             )}
           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface ImportItem {
+  title: string;
+  description?: string;
+  price?: string | number;
+  currency?: string;
+  category?: string;
+  subcategory?: string;
+  imageUrl?: string;
+  image_url?: string;
+  tags?: { key: string; value: string; label?: string }[];
+  sku?: string;
+  availability?: string;
+}
+
+interface CatalogueImportModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  businessSlug: string;
+  onSuccess: () => void;
+}
+
+function CatalogueImportModal({ open, onOpenChange, businessSlug, onSuccess }: CatalogueImportModalProps) {
+  const { toast } = useToast();
+  const [jsonInput, setJsonInput] = useState("");
+  const [parsedItems, setParsedItems] = useState<ImportItem[]>([]);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [clearExisting, setClearExisting] = useState(false);
+  const [boxType, setBoxType] = useState<'product' | 'menu_item'>('product');
+  const [isImporting, setIsImporting] = useState(false);
+
+  const reset = () => {
+    setJsonInput("");
+    setParsedItems([]);
+    setParseError(null);
+    setClearExisting(false);
+    setBoxType('product');
+  };
+
+  const parseJson = (input: string) => {
+    setParseError(null);
+    setParsedItems([]);
+    
+    if (!input.trim()) return;
+    
+    try {
+      const parsed = JSON.parse(input);
+      let items: ImportItem[] = [];
+      
+      if (Array.isArray(parsed)) {
+        items = parsed;
+      } else if (parsed.items && Array.isArray(parsed.items)) {
+        items = parsed.items;
+      } else if (parsed.products && Array.isArray(parsed.products)) {
+        items = parsed.products;
+      } else if (parsed.menu && Array.isArray(parsed.menu)) {
+        items = parsed.menu;
+      } else {
+        items = [parsed];
+      }
+      
+      const validItems = items.filter(item => item && typeof item === 'object' && item.title);
+      
+      if (validItems.length === 0) {
+        setParseError("No valid items found. Each item needs at least a 'title' field.");
+        return;
+      }
+      
+      setParsedItems(validItems.slice(0, 200));
+      
+      if (items.length > 200) {
+        setParseError(`Only first 200 items shown (${items.length} total). Maximum 200 per import.`);
+      }
+    } catch (err) {
+      setParseError(`Invalid JSON: ${err instanceof Error ? err.message : 'Parse error'}`);
+    }
+  };
+
+  const parseCsv = (csvText: string) => {
+    setParseError(null);
+    setParsedItems([]);
+    
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) {
+      setParseError("CSV needs at least a header row and one data row");
+      return;
+    }
+    
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+    const titleIndex = headers.findIndex(h => h === 'title' || h === 'name' || h === 'product');
+    
+    if (titleIndex === -1) {
+      setParseError("CSV must have a 'title', 'name', or 'product' column");
+      return;
+    }
+    
+    const items: ImportItem[] = [];
+    
+    for (let i = 1; i < Math.min(lines.length, 201); i++) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/['"]/g, ''));
+      
+      const item: ImportItem = { title: values[titleIndex] || '' };
+      
+      headers.forEach((header, idx) => {
+        const val = values[idx];
+        if (!val) return;
+        if (header === 'description' || header === 'desc') item.description = val;
+        if (header === 'price') item.price = val;
+        if (header === 'currency') item.currency = val;
+        if (header === 'category' || header === 'cat') item.category = val;
+        if (header === 'subcategory' || header === 'subcat') item.subcategory = val;
+        if (header === 'image' || header === 'imageurl' || header === 'image_url') item.imageUrl = val;
+        if (header === 'sku' || header === 'id' || header === 'product_id') item.sku = val;
+        if (header === 'availability' || header === 'status') item.availability = val;
+      });
+      
+      if (item.title) items.push(item);
+    }
+    
+    setParsedItems(items);
+    if (lines.length > 201) {
+      setParseError(`Only first 200 items shown (${lines.length - 1} total). Maximum 200 per import.`);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const text = await file.text();
+    
+    if (file.name.endsWith('.csv')) {
+      parseCsv(text);
+    } else {
+      setJsonInput(text);
+      parseJson(text);
+    }
+  };
+
+  const handleImport = async () => {
+    if (parsedItems.length === 0) return;
+    
+    setIsImporting(true);
+    
+    try {
+      const response = await fetch(`/api/orbit/${businessSlug}/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ items: parsedItems, clearExisting, boxType }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        toast({
+          title: "Import failed",
+          description: result.message || "Error importing items",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      toast({
+        title: "Import complete",
+        description: `${result.imported} items imported, ${result.skipped} skipped`,
+      });
+      
+      reset();
+      onSuccess();
+    } catch {
+      toast({
+        title: "Import error",
+        description: "Failed to connect to server",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
+      <DialogContent className="bg-zinc-900 border-zinc-800 max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-white">Import Catalogue</DialogTitle>
+          <DialogDescription className="text-zinc-400">
+            Upload products or menu items from JSON or CSV files
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-4">
+          <div className="flex gap-2">
+            <label className="flex-1 cursor-pointer">
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleFileUpload}
+                className="hidden"
+                data-testid="input-file-json"
+              />
+              <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-zinc-800 border border-dashed border-zinc-700 hover:border-pink-400 transition-colors">
+                <FileJson className="w-5 h-5 text-blue-400" />
+                <span className="text-sm text-zinc-300">JSON</span>
+              </div>
+            </label>
+            <label className="flex-1 cursor-pointer">
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="hidden"
+                data-testid="input-file-csv"
+              />
+              <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-zinc-800 border border-dashed border-zinc-700 hover:border-pink-400 transition-colors">
+                <FileSpreadsheet className="w-5 h-5 text-green-400" />
+                <span className="text-sm text-zinc-300">CSV</span>
+              </div>
+            </label>
+          </div>
+
+          <div>
+            <Label className="text-zinc-300 text-sm">Or paste JSON:</Label>
+            <Textarea
+              value={jsonInput}
+              onChange={(e) => {
+                setJsonInput(e.target.value);
+                parseJson(e.target.value);
+              }}
+              placeholder={`[
+  { "title": "Product Name", "price": "9.99", "category": "Drinks" },
+  { "title": "Another Item", "price": "12.50", "category": "Food" }
+]`}
+              className="mt-1 bg-zinc-800 border-zinc-700 text-white font-mono text-sm min-h-[120px]"
+              data-testid="input-catalogue-json"
+            />
+          </div>
+
+          {parseError && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-sm">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{parseError}</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-4 p-3 bg-zinc-800/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Label className="text-zinc-300 text-sm">Type:</Label>
+              <Button
+                size="sm"
+                variant={boxType === 'product' ? 'default' : 'outline'}
+                onClick={() => setBoxType('product')}
+                className={boxType === 'product' ? 'bg-pink-500 hover:bg-pink-600' : 'border-zinc-600'}
+                data-testid="button-type-product"
+              >
+                Product
+              </Button>
+              <Button
+                size="sm"
+                variant={boxType === 'menu_item' ? 'default' : 'outline'}
+                onClick={() => setBoxType('menu_item')}
+                className={boxType === 'menu_item' ? 'bg-pink-500 hover:bg-pink-600' : 'border-zinc-600'}
+                data-testid="button-type-menu"
+              >
+                Menu Item
+              </Button>
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <Label className="text-zinc-400 text-sm">Replace existing</Label>
+              <Switch
+                checked={clearExisting}
+                onCheckedChange={setClearExisting}
+                data-testid="toggle-clear-existing"
+              />
+            </div>
+          </div>
+
+          {parsedItems.length > 0 && (
+            <div className="p-3 bg-zinc-800/50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-zinc-300">Preview</span>
+                <Badge variant="secondary" className="bg-pink-500/20 text-pink-300">
+                  {parsedItems.length} items
+                </Badge>
+              </div>
+              <div className="space-y-1 max-h-[150px] overflow-y-auto">
+                {parsedItems.slice(0, 10).map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 bg-zinc-900/50 rounded text-sm">
+                    <span className="text-white truncate">{item.title}</span>
+                    {item.price && (
+                      <span className="text-green-400 ml-2">{item.currency || '£'}{item.price}</span>
+                    )}
+                  </div>
+                ))}
+                {parsedItems.length > 10 && (
+                  <p className="text-xs text-zinc-500 text-center py-1">
+                    + {parsedItems.length - 10} more items
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <Button
+            onClick={handleImport}
+            disabled={parsedItems.length === 0 || isImporting}
+            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+            data-testid="button-import-items"
+          >
+            {isImporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4 mr-2" />
+            )}
+            {isImporting ? "Importing..." : `Import ${parsedItems.length || 0} Items`}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

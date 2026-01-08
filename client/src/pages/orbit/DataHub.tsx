@@ -14,8 +14,7 @@ import {
   Users,
   Mail,
   Phone,
-  Building2,
-  Package
+  Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -424,16 +423,6 @@ export default function DataHub() {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLocation(`/orbit/${slug}/import`)}
-              className="text-pink-400 border-pink-500/30 hover:bg-pink-500/10"
-              data-testid="button-import-catalogue"
-            >
-              <Package className="w-4 h-4 mr-1.5" />
-              Import Catalogue
-            </Button>
             <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as '7' | '30')}>
               <TabsList className="bg-zinc-900">
                 <TabsTrigger value="7" className="text-xs" data-testid="tab-7-days">
