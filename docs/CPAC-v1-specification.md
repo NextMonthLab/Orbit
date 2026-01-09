@@ -72,18 +72,19 @@ CPAC accepts both camelCase and snake_case for all fields. Examples:
 ### Entity Types (Enum)
 
 - `manufacturer` - Hardware/product manufacturers
-- `reviewer` - Review publications/individuals
-- `investor` - Investment entities
-- `standards_body` - Standards organizations
-- `media` - Media outlets
-- `other` - Other entity types
+- `platform` - Platform providers
+- `standards` - Standards organizations
+- `publication` - Media publications
+- `influencer` - Reviewers and content creators
+- `community` - Community organizations
+- `retailer` - Retail sellers
+- `distributor` - Distribution companies
 
 ### Trust Levels (Enum)
 
-- `verified` - Officially verified entity
-- `established` - Well-known, established entity
-- `emerging` - Newer or less established
-- `unverified` - Not yet verified
+- `official` - Official/verified source
+- `trade` - Trade publication or industry source
+- `independent` - Independent source (default)
 
 ---
 
@@ -129,19 +130,13 @@ CPAC accepts both camelCase and snake_case for all fields. Examples:
 - `consumer` - Consumer-focused products
 - `enterprise` - Enterprise/business products
 - `developer` - Developer kits and tools
-- `medical` - Medical/healthcare devices
-- `industrial` - Industrial applications
-- `military` - Defense/military products
 
 ### Product Status (Enum)
 
 - `shipping` - Currently available for purchase
-- `preorder` - Available for pre-order
 - `announced` - Announced but not yet available
-- `rumored` - Rumored/leaked product
+- `rumoured` - Rumored/leaked product (British spelling)
 - `discontinued` - No longer sold
-- `prototype` - Prototype/demo only
-- `unknown` - Status unknown
 
 ---
 
@@ -178,7 +173,7 @@ CPAC accepts both camelCase and snake_case for all fields. Examples:
   "id": "reddit-smartglasses",
   "name": "r/smartglasses",
   "url": "https://reddit.com/r/smartglasses",
-  "communityType": "reddit",
+  "communityType": "subreddit",
   "regionTags": ["global"],
   "notes": "Main Reddit community for smart glasses discussion"
 }
@@ -186,12 +181,12 @@ CPAC accepts both camelCase and snake_case for all fields. Examples:
 
 ### Community Types (Enum)
 
-- `reddit` - Reddit subreddits
-- `discord` - Discord servers
 - `forum` - Traditional forums
-- `facebook` - Facebook groups
-- `linkedin` - LinkedIn groups
-- `other` - Other community types
+- `subreddit` - Reddit subreddits
+- `discord` - Discord servers
+- `slack` - Slack workspaces
+- `community_site` - Dedicated community websites
+- `event_series` - Recurring event series
 
 ---
 
@@ -241,35 +236,29 @@ CPAC accepts both camelCase and snake_case for all fields. Examples:
 
 ### Source Types (Enum)
 
-- `news` - News publications
-- `blog` - Blogs
-- `youtube` - YouTube channels
-- `podcast` - Podcasts
-- `social` - Social media accounts
-- `official` - Official manufacturer sources
-- `other` - Other source types
+- `manufacturer` - Official manufacturer sources
+- `publication` - Media publications
+- `influencer` - Content creators/reviewers
+- `standards` - Standards organizations
+- `community` - Community sources
+- `retailer` - Retail sources
 
 ### Monitoring Methods (Enum)
 
 - `rss` - RSS feed polling
-- `scrape` - Web scraping
-- `api` - API integration
-- `manual` - Manual updates
+- `page_monitor` - Web page monitoring
 
 ### Update Frequencies (Enum)
 
-- `realtime` - Real-time updates
-- `hourly` - Hourly updates
 - `daily` - Daily updates
+- `twice_weekly` - Twice weekly updates
 - `weekly` - Weekly updates
-- `monthly` - Monthly updates
 
 ### Trust Levels (Enum)
 
-- `high` - Highly trusted source
-- `medium` - Moderately trusted
-- `low` - Less trusted, requires verification
-- `unverified` - Not yet verified
+- `official` - Official/verified source
+- `trade` - Trade publication or industry source
+- `independent` - Independent source (default)
 
 ---
 
@@ -521,7 +510,7 @@ Any future schema changes MUST be:
       "id": "reddit-smartglasses",
       "name": "r/smartglasses",
       "url": "https://reddit.com/r/smartglasses",
-      "communityType": "reddit"
+      "communityType": "subreddit"
     }
   ],
   "governance": {
