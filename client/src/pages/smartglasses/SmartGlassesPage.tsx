@@ -30,6 +30,8 @@ export default function SmartGlassesPage() {
     staleTime: 5 * 60 * 1000,
   });
   
+  console.log("Front page data:", { frontPage, frontPageLoading, frontPageError });
+  
   if (frontPageError) {
     console.error("Front page error:", frontPageError);
   }
@@ -65,8 +67,19 @@ export default function SmartGlassesPage() {
     <div className="min-h-screen bg-black text-white">
       <HeroSection onStartAudit={scrollToAudit} onExploreQuestions={scrollToQA} />
       
+      <section className="py-8 px-4 border-t border-zinc-800 bg-gradient-to-b from-zinc-900/50 to-transparent">
+        <div className="max-w-6xl mx-auto text-center">
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium">
+            Industry Orbit
+          </span>
+          <p className="text-zinc-500 text-sm mt-2">
+            {frontPage ? `${frontPage.hero.productCount} products from ${frontPage.hero.entityCount} brands` : 'Loading...'}
+          </p>
+        </div>
+      </section>
+      
       {frontPageLoading && (
-        <section className="py-12 px-4 border-t border-zinc-800">
+        <section className="py-12 px-4">
           <div className="max-w-6xl mx-auto">
             <div className="animate-pulse space-y-4">
               <div className="h-6 w-48 bg-zinc-800 rounded" />
