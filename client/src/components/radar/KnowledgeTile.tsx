@@ -318,9 +318,8 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
     }
   };
 
-  const hasImage = hasOfficialImage;
-  const tileWidth = hasImage ? 180 : 160;
-  const tileHeight = hasImage ? 140 : 120;
+  const tileWidth = 200;
+  const tileHeight = 90;
 
   return (
     <motion.div
@@ -338,23 +337,27 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
         opacity: { duration: 0.3 }
       }}
       whileHover={shouldReduceMotion ? {} : { 
-        y: -2,
+        y: -3,
+        scale: 1.02,
         transition: { duration: 0.15 }
       }}
       whileTap={shouldReduceMotion ? {} : { 
-        y: -1,
+        scale: 0.98,
         transition: { duration: 0.08 }
       }}
-      className="absolute rounded-lg text-left overflow-hidden"
+      className="absolute rounded-xl text-left overflow-hidden group"
       style={{
         width: tileWidth,
         height: tileHeight,
-        backgroundColor: lightMode ? 'rgba(255, 255, 255, 0.95)' : 'rgba(20, 20, 20, 0.95)',
-        backdropFilter: 'blur(8px)',
-        border: `1px solid ${color}${Math.floor(30 + glowIntensity * 40).toString(16)}`,
-        boxShadow: glowIntensity > 0.2 
-          ? `0 0 ${20 + glowIntensity * 40}px ${color}${Math.floor(glowIntensity * 50).toString(16)}, 0 4px 20px ${lightMode ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.4)'}`
-          : lightMode ? '0 4px 20px rgba(0,0,0,0.1)' : '0 4px 20px rgba(0,0,0,0.3)',
+        background: lightMode 
+          ? `linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%)`
+          : `linear-gradient(135deg, rgba(24,24,27,0.95) 0%, ${color}08 100%)`,
+        backdropFilter: 'blur(12px)',
+        borderLeft: `4px solid ${color}`,
+        borderTop: `1px solid ${lightMode ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+        borderRight: `1px solid ${lightMode ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)'}`,
+        borderBottom: `1px solid ${lightMode ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.03)'}`,
+        boxShadow: `0 4px 24px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.03) inset`,
         left: '50%',
         top: '50%',
         marginLeft: -tileWidth / 2,
@@ -364,84 +367,61 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
       data-tile-id={item.id}
       data-testid={`tile-${item.id}`}
     >
-      {/* Image header - official image or designed placeholder */}
-      <div 
-        className="w-full relative overflow-hidden"
-        style={{ 
-          height: hasImage ? 60 : 48,
-          background: placeholderGradient,
-          borderBottom: `1px solid ${color}30`,
-        }}
-      >
-        {/* Official image with lazy loading and error fallback */}
-        {imageUrl && !imageError && (
-          <img
-            src={imageUrl}
-            alt=""
-            loading="lazy"
-            onError={() => setImageError(true)}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        )}
-        {/* Initials placeholder (always visible under image, shown when no image) */}
-        {!hasOfficialImage && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span 
-              className="text-xl font-bold"
-              style={{ color: 'white', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}
-            >
-              {getInitials()}
-            </span>
-          </div>
-        )}
-        {/* Gradient overlay for icon visibility */}
-        <div 
-          className="absolute inset-0"
-          style={{ background: hasOfficialImage ? `linear-gradient(135deg, ${color}90 0%, transparent 70%)` : 'none' }}
-        >
-          <CategoryIcon className="w-5 h-5 absolute top-2 left-2" style={{ color: 'white', opacity: 0.95 }} />
-        </div>
-        {/* Relevance indicator */}
-        {relevanceScore > 0 && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute top-2 right-2 w-3 h-3 rounded-full"
-            style={{ 
-              backgroundColor: color,
-              boxShadow: `0 0 10px ${color}`,
-            }}
-          />
-        )}
-      </div>
-      
-      {/* Content - show more copy with bigger fonts */}
-      <div className="p-2.5 flex flex-col gap-1">
-        <div className="flex items-start gap-2">
+      {/* Content-first layout */}
+      <div className="p-3 h-full flex flex-col justify-between">
+        {/* Header: icon + title */}
+        <div className="flex items-start gap-2.5">
+          {/* Type icon with tooltip */}
           <div 
-            className="w-6 h-6 rounded flex items-center justify-center shrink-0"
-            style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}60` }}
+            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+            style={{ 
+              backgroundColor: `${color}20`,
+              border: `1px solid ${color}30`,
+            }}
+            title={item.type.charAt(0).toUpperCase() + item.type.slice(1)}
           >
-            <TypeIcon className="w-3.5 h-3.5" style={{ color: 'white' }} />
+            <TypeIcon className="w-4 h-4" style={{ color }} />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className={`text-xs font-semibold leading-tight line-clamp-2 ${lightMode ? 'text-gray-900' : 'text-white'}`}>
-              {getLabel()}
-            </p>
+          
+          {/* Title + optional thumbnail */}
+          <div className="flex-1 min-w-0 flex items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-medium leading-snug line-clamp-2 ${lightMode ? 'text-gray-900' : 'text-white'}`}>
+                {getLabel()}
+              </p>
+            </div>
+            
+            {/* Small thumbnail for products/manufacturers with images */}
+            {hasOfficialImage && imageUrl && (
+              <div 
+                className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border"
+                style={{ borderColor: `${color}30` }}
+              >
+                <img
+                  src={imageUrl}
+                  alt=""
+                  loading="lazy"
+                  onError={() => setImageError(true)}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
           </div>
         </div>
-        <p className={`text-[10px] line-clamp-2 leading-snug ${lightMode ? 'text-gray-600' : 'text-white/70'}`}>
+        
+        {/* Summary - meaningful preview */}
+        <p className={`text-xs leading-relaxed line-clamp-2 ${lightMode ? 'text-gray-600' : 'text-white/60'}`}>
           {getSummary()}
         </p>
       </div>
       
-      {/* Type badge - more visible */}
+      {/* Subtle hover glow */}
       <div 
-        className="absolute bottom-2 left-2.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide font-semibold"
-        style={{ backgroundColor: `${color}40`, color }}
-      >
-        {item.type}
-      </div>
+        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+        style={{ 
+          boxShadow: `0 0 20px ${color}20, inset 0 0 20px ${color}05`,
+        }}
+      />
     </motion.div>
   );
 }
