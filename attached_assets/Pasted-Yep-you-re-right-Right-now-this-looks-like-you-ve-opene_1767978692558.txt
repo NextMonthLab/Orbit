@@ -1,0 +1,113 @@
+Yep, you’re right. Right now this looks like you’ve opened 27 little dialog boxes and forgotten why, not like “the internet for Smart Glasses with an intelligent interface”.
+
+Here’s what’s broken, and exactly how to fix it fast.
+
+What’s currently failing
+	1.	No hierarchy: everything is the same size and weight, so nothing feels important.
+	2.	No meaning on the tiles: single letters (C, Q, M, X) tell the user absolutely nothing.
+	3.	Media is invisible: Meta and Snap are technically there, but they’re tiny and cropped, so the “rich media-led orbit” promise isn’t landing.
+	4.	It’s not scannable: without names + one-line context, the whole thing reads as “a lot of the same”.
+	5.	No landing page moment: there’s no hero, no big statement, no immediate “wow”.
+
+The fix: make Orbits feel like a cinematic landing page with an interactive map behind it
+
+Think “homepage first, map second”.
+
+1) Add a proper Hero section (non negotiable)
+
+Pinned at the top (desktop) and first item (mobile).
+
+Hero content
+	•	Title: Smart Glasses
+	•	Subtitle (1 sentence): “Explore the companies, products, concepts, and Q&A shaping smart glasses in 2026.”
+	•	Primary CTA: Ask Smart Glasses (opens chat)
+	•	Secondary CTAs: Explore Products, Explore Manufacturers, Follow this Orbit
+	•	Hero image: wide, cinematic, smart glasses visual (21:9-ish on desktop, 16:9 on mobile)
+
+This alone changes the vibe from “tool” to “destination”.
+
+2) Create a Featured Media row (so the two images actually matter)
+
+Directly under the hero, add a “Featured” strip with 3 to 6 big media cards.
+	•	Meta (featured)
+	•	Snap Inc (featured)
+	•	Plus any other major players, even if they are placeholders until you have images
+
+Card size rule
+	•	Featured cards should be 2x to 3x the size of standard tiles.
+	•	They must show full logo or image, not cropped text.
+
+If you only have two images, great. Make them feel premium, not like accidental scraps behind the chat button.
+
+3) Replace the letter tiles with real “entity cards”
+
+Every tile needs, at minimum:
+	•	Name (Smart, readable)
+	•	Type badge (Manufacturer, Product, Concept, Community, Q&A)
+	•	One-line context (7 to 14 words)
+	•	Optional: small thumbnail or icon
+
+Example:
+	•	Snap Inc
+Manufacturer
+“Spectacles, AR experiments, and camera-first wearables.”
+
+Example:
+	•	Waveguide displays
+Concept
+“How images are projected into lenses without blocking vision.”
+
+This instantly makes the map scannable.
+
+4) Visual differentiation so it doesn’t look like 20 copies of the same box
+
+Right now everything shares the same silhouette. Keep the Orbit style, but add clear variation:
+	•	Manufacturers: logo thumbnail + slightly thicker header
+	•	Products: product image thumb + “Released / Rumoured” tag
+	•	Concepts: icon + softer gradient, more editorial
+	•	Q&A: chat icon + “Top question” preview line
+	•	Community: people icon + “Join” affordance
+
+Even subtle shape changes help, for example: different corner radius per type, or a notch / stripe accent.
+
+5) Give the map a “front layer / back layer” treatment
+
+The orbit map is cool, but it’s fighting the landing experience.
+
+Do this:
+	•	Front layer: Hero + Featured + a few “Top tiles”
+	•	Back layer: the full node cloud, slightly dimmed, slightly blurred until user interacts
+
+So the first impression is polished, then the exploration starts.
+
+6) Interaction that feels premium (and stops the “tabs on a laptop” feeling)
+
+Add one simple behaviour:
+	•	Hover (desktop): tile expands 20 to 40% and reveals the one-line description plus a “Open” button
+	•	Tap (mobile): opens a bottom sheet with the same preview
+
+Also add a tiny “last updated” or “fresh” indicator for anything with recent activity, it makes it feel alive.
+
+Smart Glasses Hero copy (ready to drop in)
+
+Smart Glasses
+The living map of the companies, products, and ideas shaping wearable computing.
+Buttons: Ask Smart Glasses | Explore Products | Explore Manufacturers | Follow Orbit
+
+Quick win design improvements (cheap, high impact)
+	•	Increase tile spacing slightly, reduce visual clutter
+	•	Reduce the amount of identical pink headers, use type-based header accents
+	•	Make the central chat button smaller or move it into the hero as the primary CTA, it’s currently blocking the only media you’ve got
+	•	Add a “Top Categories” filter bar: Manufacturers, Products, Concepts, Q&A, Community
+
+If you want one universal rule across all Orbits
+
+Every Orbit must have:
+	1.	Hero (title, 1 sentence, CTAs, hero image)
+	2.	Featured row (3 to 6 media-led entities)
+	3.	Scannable tiles (name + badge + 1 line)
+	4.	Map exploration underneath
+
+That’s the difference between “a UI” and “a destination”.
+
+If you want, I can turn this into a clean implementation spec for Claude/Replit (components, props, layout rules, and the exact data fields needed) so it becomes a repeatable Orbit template, not a one-off fix.

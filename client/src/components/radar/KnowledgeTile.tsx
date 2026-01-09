@@ -214,6 +214,11 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
   const TypeIcon = getTypeIcon();
   
   const getColor = (): string => {
+    // Industry orbit tiles always use type-specific colors for visual hierarchy
+    const industryTypes = ['manufacturer', 'product', 'concept', 'qa', 'community', 'cta', 'sponsored'];
+    if (industryTypes.includes(item.type)) {
+      return typeColors[item.type] || '#3b82f6';
+    }
     return accentColor || typeColors[item.type] || '#3b82f6';
   };
   const color = getColor();
@@ -257,6 +262,14 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
         const social = item as Social;
         return social.connected ? `@${social.handle}` : social.platform.charAt(0).toUpperCase() + social.platform.slice(1);
       }
+      case 'manufacturer': return (item as import('@/lib/siteKnowledge').Manufacturer).name;
+      case 'product': return (item as import('@/lib/siteKnowledge').Product).name;
+      case 'concept': return (item as import('@/lib/siteKnowledge').Concept).label;
+      case 'qa': return (item as import('@/lib/siteKnowledge').QA).question;
+      case 'community': return (item as import('@/lib/siteKnowledge').Community).name;
+      case 'cta': return (item as import('@/lib/siteKnowledge').CTA).label;
+      case 'sponsored': return (item as import('@/lib/siteKnowledge').Sponsored).name;
+      default: return 'Unknown';
     }
   };
 
@@ -273,11 +286,41 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
         if (!social.connected) return 'Connect to show feed';
         return social.followerCount ? `${social.followerCount.toLocaleString()} followers` : 'View feed';
       }
+      case 'manufacturer': {
+        const mfr = item as import('@/lib/siteKnowledge').Manufacturer;
+        return mfr.productCount > 0 ? `${mfr.productCount} product${mfr.productCount === 1 ? '' : 's'}` : 'Manufacturer';
+      }
+      case 'product': {
+        const prod = item as import('@/lib/siteKnowledge').Product;
+        return prod.summary || prod.category || 'Product';
+      }
+      case 'concept': {
+        const concept = item as import('@/lib/siteKnowledge').Concept;
+        return concept.whyItMatters || 'Learn more';
+      }
+      case 'qa': {
+        const qa = item as import('@/lib/siteKnowledge').QA;
+        return qa.sublabel || 'Tap to see answer';
+      }
+      case 'community': {
+        const community = item as import('@/lib/siteKnowledge').Community;
+        return community.communityType?.replace('_', ' ') || 'Community';
+      }
+      case 'cta': {
+        const cta = item as import('@/lib/siteKnowledge').CTA;
+        return cta.summary || 'Take action';
+      }
+      case 'sponsored': {
+        const sponsored = item as import('@/lib/siteKnowledge').Sponsored;
+        return sponsored.summary || 'Sponsored';
+      }
+      default: return '';
     }
   };
 
-  const tileWidth = 120;
-  const tileHeight = 100;
+  const hasImage = hasOfficialImage;
+  const tileWidth = hasImage ? 180 : 160;
+  const tileHeight = hasImage ? 140 : 120;
 
   return (
     <motion.div
@@ -323,8 +366,9 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
     >
       {/* Image header - official image or designed placeholder */}
       <div 
-        className="w-full h-10 relative overflow-hidden"
+        className="w-full relative overflow-hidden"
         style={{ 
+          height: hasImage ? 60 : 48,
           background: placeholderGradient,
           borderBottom: `1px solid ${color}30`,
         }}
@@ -343,8 +387,8 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
         {!hasOfficialImage && (
           <div className="absolute inset-0 flex items-center justify-center">
             <span 
-              className="text-sm font-bold"
-              style={{ color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
+              className="text-xl font-bold"
+              style={{ color: 'white', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}
             >
               {getInitials()}
             </span>
@@ -353,46 +397,48 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
         {/* Gradient overlay for icon visibility */}
         <div 
           className="absolute inset-0"
-          style={{ background: hasOfficialImage ? `linear-gradient(135deg, ${color}80 0%, transparent 60%)` : 'none' }}
+          style={{ background: hasOfficialImage ? `linear-gradient(135deg, ${color}90 0%, transparent 70%)` : 'none' }}
         >
-          <CategoryIcon className="w-4 h-4 absolute top-1 left-1" style={{ color: 'white', opacity: 0.9 }} />
+          <CategoryIcon className="w-5 h-5 absolute top-2 left-2" style={{ color: 'white', opacity: 0.95 }} />
         </div>
         {/* Relevance indicator */}
         {relevanceScore > 0 && (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full"
+            className="absolute top-2 right-2 w-3 h-3 rounded-full"
             style={{ 
               backgroundColor: color,
-              boxShadow: `0 0 8px ${color}`,
+              boxShadow: `0 0 10px ${color}`,
             }}
           />
         )}
       </div>
       
-      {/* Content - show more copy */}
-      <div className="p-1.5 flex items-start gap-1">
-        <div 
-          className="w-5 h-5 rounded flex items-center justify-center shrink-0"
-          style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}60` }}
-        >
-          <TypeIcon className="w-3 h-3" style={{ color: 'white' }} />
+      {/* Content - show more copy with bigger fonts */}
+      <div className="p-2.5 flex flex-col gap-1">
+        <div className="flex items-start gap-2">
+          <div 
+            className="w-6 h-6 rounded flex items-center justify-center shrink-0"
+            style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}60` }}
+          >
+            <TypeIcon className="w-3.5 h-3.5" style={{ color: 'white' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={`text-xs font-semibold leading-tight line-clamp-2 ${lightMode ? 'text-gray-900' : 'text-white'}`}>
+              {getLabel()}
+            </p>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className={`text-[9px] font-medium leading-tight line-clamp-2 ${lightMode ? 'text-gray-900' : 'text-white'}`}>
-            {getLabel()}
-          </p>
-          <p className={`text-[7px] line-clamp-2 mt-0.5 leading-tight ${lightMode ? 'text-gray-600' : 'text-white/60'}`}>
-            {getSummary()}
-          </p>
-        </div>
+        <p className={`text-[10px] line-clamp-2 leading-snug ${lightMode ? 'text-gray-600' : 'text-white/70'}`}>
+          {getSummary()}
+        </p>
       </div>
       
-      {/* Type badge - smaller */}
+      {/* Type badge - more visible */}
       <div 
-        className="absolute bottom-1 left-1.5 inline-flex items-center px-1 py-0.5 rounded text-[7px] uppercase tracking-wide font-semibold"
-        style={{ backgroundColor: `${color}30`, color }}
+        className="absolute bottom-2 left-2.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide font-semibold"
+        style={{ backgroundColor: `${color}40`, color }}
       >
         {item.type}
       </div>

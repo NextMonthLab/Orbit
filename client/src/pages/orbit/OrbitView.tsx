@@ -13,6 +13,7 @@ import { BusinessHubSidebar } from "@/components/orbit/BusinessHubSidebar";
 import { HubPanelContainer } from "@/components/orbit/HubPanelContainer";
 import { OrbitGrid } from "@/components/orbit/OrbitGrid";
 import { OrbitShareModal } from "@/components/orbit/OrbitShareModal";
+import { IndustryOrbitLanding } from "@/components/orbit/IndustryOrbitLanding";
 import type { SiteKnowledge } from "@/lib/siteKnowledge";
 import GlobalNav from "@/components/GlobalNav";
 import {
@@ -189,6 +190,9 @@ export default function OrbitView() {
   const [showHub, setShowHub] = useState(false);
   const [hubPanel, setHubPanel] = useState<'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications' | 'data-sources' | 'cubes' | 'ai-discovery'>('overview');
   
+  // Industry Orbit view mode: 'landing' shows the polished front page, 'map' shows the radar grid
+  const [industryViewMode, setIndustryViewMode] = useState<'landing' | 'map'>('landing');
+  
   // Conversation history for AI chat
   const chatHistoryRef = useRef<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   // Track when proof capture was triggered to prevent repeated prompts
@@ -346,6 +350,17 @@ export default function OrbitView() {
     queryFn: async () => {
       const response = await fetch(`/api/orbits/${slug}/knowledge`);
       if (!response.ok) throw new Error("Failed to fetch industry knowledge");
+      return response.json();
+    },
+    enabled: isIndustryOrbit && !!slug,
+  });
+  
+  // Fetch industry orbit front-page data for landing view
+  const { data: industryFrontPage } = useQuery({
+    queryKey: ["industry-front-page", slug],
+    queryFn: async () => {
+      const response = await fetch(`/api/industry-orbits/${slug}/front-page`);
+      if (!response.ok) throw new Error("Failed to fetch industry front page");
       return response.json();
     },
     enabled: isIndustryOrbit && !!slug,
@@ -880,39 +895,64 @@ export default function OrbitView() {
     };
   };
 
-  // Industry Orbit: Use industry knowledge from dedicated API
-  if (isIndustryOrbit && industryKnowledge?.knowledge) {
-    const knowledge = industryKnowledge.knowledge;
-    const accentColor = knowledge.brand.primaryColor || '#ec4899';
+  // Industry Orbit: Show landing page or radar map based on view mode
+  if (isIndustryOrbit && industryFrontPage) {
+    const knowledge = industryKnowledge?.knowledge;
+    const accentColor = knowledge?.brand?.primaryColor || '#ec4899';
+    const title = industryFrontPage.hero?.title || 'Industry Orbit';
     
-    return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col relative">
-        {!isEmbedMode && (
-          <GlobalNav context="orbit" showBreadcrumb breadcrumbLabel={knowledge.brand.name} />
-        )}
-        <div className="flex-1">
-          <RadarGrid
-            knowledge={knowledge}
-            accentColor={accentColor}
-            lightMode={false}
-            onInteraction={() => trackMetric('interactions')}
-            orbitSlug={slug}
-            onSendMessage={createChatHandler()}
+    // Landing view - polished front page
+    if (industryViewMode === 'landing') {
+      return (
+        <div className="min-h-screen bg-[#0a0a0f] text-white">
+          {!isEmbedMode && (
+            <GlobalNav context="orbit" showBreadcrumb breadcrumbLabel={title} />
+          )}
+          <IndustryOrbitLanding
+            frontPage={industryFrontPage}
+            onOpenChat={() => setIndustryViewMode('map')}
+            onExploreMap={() => setIndustryViewMode('map')}
           />
         </div>
-        {/* Industry Orbit footer */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-t border-white/10 py-2 px-4">
-          <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
-            <span className="text-xs text-white/60">
-              Powered by <span className="text-pink-400 font-medium">NextMonth</span>
-            </span>
-            <span className="text-xs text-zinc-400">
-              Industry Orbit
-            </span>
+      );
+    }
+    
+    // Map view - radar grid with chat
+    if (knowledge) {
+      return (
+        <div className="min-h-screen bg-background text-foreground flex flex-col relative">
+          {!isEmbedMode && (
+            <GlobalNav context="orbit" showBreadcrumb breadcrumbLabel={title} />
+          )}
+          <div className="flex-1">
+            <RadarGrid
+              knowledge={knowledge}
+              accentColor={accentColor}
+              lightMode={false}
+              onInteraction={() => trackMetric('interactions')}
+              orbitSlug={slug}
+              onSendMessage={createChatHandler()}
+            />
+          </div>
+          {/* Back to landing + footer */}
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-t border-white/10 py-2 px-4">
+            <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-white/60 hover:text-white"
+                onClick={() => setIndustryViewMode('landing')}
+              >
+                ← Back to Overview
+              </Button>
+              <span className="text-xs text-zinc-400">
+                Industry Orbit
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
   
   // Loading state for industry orbits
