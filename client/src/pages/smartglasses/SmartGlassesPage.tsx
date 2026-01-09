@@ -1,16 +1,34 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { HeroSection } from "./components/HeroSection";
 import { QuickExplainersGrid } from "./components/QuickExplainersGrid";
 import { AuditWizard } from "./components/AuditWizard";
 import { QALibrary } from "./components/QALibrary";
 import { CTASections } from "./components/CTASections";
 import { SponsoredProductsGrid } from "./components/SponsoredProductsGrid";
+import { BrandsGrid } from "./components/BrandsGrid";
+import { FeaturedProductsGrid } from "./components/FeaturedProductsGrid";
+import { StartHereGrid } from "./components/StartHereGrid";
+import { CommunitiesSection } from "./components/CommunitiesSection";
+import type { IndustryOrbitFrontPage } from "@/lib/types/industryOrbitFrontPage";
+
+const ORBIT_SLUG = "smart-glasses";
 
 export default function SmartGlassesPage() {
   const auditRef = useRef<HTMLDivElement>(null);
   const qaRef = useRef<HTMLDivElement>(null);
   const [location] = useLocation();
+
+  const { data: frontPage } = useQuery<IndustryOrbitFrontPage>({
+    queryKey: ["/api/industry-orbits", ORBIT_SLUG, "front-page"],
+    queryFn: async () => {
+      const res = await fetch(`/api/industry-orbits/${ORBIT_SLUG}/front-page`);
+      if (!res.ok) throw new Error("Failed to fetch front page");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -43,6 +61,12 @@ export default function SmartGlassesPage() {
     <div className="min-h-screen bg-black text-white">
       <HeroSection onStartAudit={scrollToAudit} onExploreQuestions={scrollToQA} />
       
+      {frontPage && <BrandsGrid brands={frontPage.brands} />}
+      
+      {frontPage && <FeaturedProductsGrid products={frontPage.featuredProducts} />}
+      
+      {frontPage && <StartHereGrid startHere={frontPage.startHere} />}
+      
       <QuickExplainersGrid />
       
       <div ref={auditRef}>
@@ -52,6 +76,13 @@ export default function SmartGlassesPage() {
       <div ref={qaRef}>
         <QALibrary />
       </div>
+      
+      {frontPage && (
+        <CommunitiesSection 
+          communities={frontPage.communities} 
+          sources={frontPage.sources} 
+        />
+      )}
       
       <CTASections />
       
