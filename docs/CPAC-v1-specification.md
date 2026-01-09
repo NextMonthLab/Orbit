@@ -430,6 +430,98 @@ This ensures entity-product integrity is maintained for:
 
 ---
 
+## Export/Import Behaviour
+
+### Null-Stripping Rule
+
+**Canonical behaviour:** Optional fields with `null` or `undefined` values are **omitted** from exports.
+
+- Exports vary structurally record-to-record (some records have more fields)
+- The importer schema marks all stripped fields as `.optional()`
+- **Missing field = null** (canonical interpretation)
+- All section arrays are always present, even if empty
+
+### Deterministic Ordering
+
+All exports follow these rules for reproducibility:
+
+1. All section arrays sorted by database `id` (ascending numeric order)
+2. CPAC IDs generated deterministically: `{type}-{slugified-name}-{dbId}`
+3. Nested arrays preserve database order
+
+### Orbit Field Mapping
+
+- `orbit.title` = Display name (canonical)
+- `orbit.slug` = Unique identifier
+- `orbit.type` = "industry" for Industry Orbits
+
+---
+
+## Assets Review CSV Format
+
+The `/api/industry-orbits/:slug/assets-review.csv` endpoint exports:
+
+| Column | Description |
+|--------|-------------|
+| RecordType | `entity` or `product` |
+| RecordName | Display name |
+| CpacId | CPAC ID for matching |
+| ImageType | `logo` (entities) or `hero` (products) |
+| CandidateImageUrl | Empty - to be populated |
+| SourcePageUrl | Where image was found |
+| SourceType | See Image Source Types |
+| CurrentAssetRef | Current asset ID if any |
+| Approved | Set to `YES` or `NO` |
+| ReviewerNotes | Optional notes |
+
+### Image Source Types
+
+| Value | Description |
+|-------|-------------|
+| `OFFICIAL_BRAND` | Official brand/manufacturer website |
+| `PRESS_KIT` | Official press/media kit |
+| `PRODUCT_PAGE` | Official product page |
+| `WIKIPEDIA` | Wikipedia (Creative Commons) |
+| `UPLOADED` | Manually uploaded |
+
+---
+
+## Asset Approvals Endpoint
+
+`POST /api/industry-orbits/:slug/assets-approvals`
+
+### Processing Rules
+
+1. **Only `Approved == "YES"` applied** (case-insensitive)
+2. `Approved == "NO"` counted as rejected
+3. Empty/other values skipped
+
+### URL Validation
+
+- Valid URL format required (parseable)
+- HTTP/HTTPS only (no file://, data://, javascript://)
+- Invalid URLs rejected with error
+
+### Input Formats
+
+- `Content-Type: application/json` - Array of approval objects
+- `Content-Type: text/csv` - CSV with matching headers
+
+### Response
+
+```json
+{
+  "success": true,
+  "updated": 5,
+  "rejected": 2,
+  "skipped": 1,
+  "errors": [],
+  "warnings": []
+}
+```
+
+---
+
 ## Version History
 
 ### v1.0.0 (2026-01-09)

@@ -1,0 +1,73 @@
+Brilliant – that’s the right set of endpoints and the right behavioural constraints. You’ve now turned CPAC into a real, portable artefact instead of “that blob we copy-paste”. That’s a big maturity jump.
+
+That said, there are two lines in your update that I want to sanity-check, because they can quietly cause pain later if they’re not intentional:
+
+1) “Strips null values” – good for importer, risky for universality
+
+I get why you did it: strict validators and legacy enums often choke on null.
+
+But for a universal CPAC format, you want to preserve shape stability. If you remove null fields entirely, you end up with:
+	•	exports that vary structurally record-to-record
+	•	harder diffs
+	•	harder tooling
+	•	harder Claude prompting (because it can’t rely on fields existing)
+
+Best practice compromise
+	•	Keep section arrays always present: coreConcepts: [], etc. (sounds like you’ve done this)
+	•	For records, either:
+	•	keep fields present with null (more universal), or
+	•	omit optional fields, but ensure the schema docs state “missing = null”
+
+If you’re omitting null fields, make sure CPAC v1 explicitly defines that as canonical behaviour. Otherwise v1 will drift.
+
+2) “Uses orbit.title not orbit.name” – fine, but lock it
+
+This is totally OK if your canonical orbit field is title in the DB.
+
+But your earlier mental model and prompts used name. If the export uses title, then CPAC spec must say:
+	•	orbit.title is the display name
+	•	orbit.slug is the canonical identifier
+	•	orbit.type is industry
+
+Otherwise you’ll keep getting “why is it title here and name there?” friction.
+
+⸻
+
+What I’d ask Ratplet for (one final deliverable)
+
+To prevent future confusion, get Ratplet to produce a single CPAC v1 README (in your repo or docs) containing:
+	1.	The exact CPAC v1 JSON shape
+	2.	Field meanings and enums (especially image source types)
+	3.	The deterministic ordering rules
+	4.	The “null-stripping” rule (explicit)
+	5.	The assets review CSV column definitions
+	6.	The approvals apply rule (Approved == YES)
+
+This turns your current success into a stable contract.
+
+⸻
+
+Quick acceptance checklist (tell me yes/no)
+
+Just answer mentally, you don’t need to reply unless something is off:
+	•	Does /cpac include cpacVersion: "1.0" at top level?
+	•	Are all arrays always present even if empty?
+	•	Is ordering deterministic across every section?
+	•	Does /assets-review.csv include both entities + products and their current image fields?
+	•	Does approvals endpoint ignore everything except Approved == YES (case-insensitive)?
+	•	Does approvals validate URL format and refuse weird schemes?
+
+If all yes, you’ve genuinely got a reusable pipeline.
+
+⸻
+
+Next obvious step (so this delivers value immediately)
+
+Now you can do the “minimum viable images” flow properly:
+	1.	Export assets-review CSV for smart-glasses
+	2.	Ask Claude to populate candidate URLs into that CSV (not into CPAC)
+	3.	You approve in Sheets
+	4.	Upload to /assets-approvals
+	5.	Orbit tiles instantly look real
+
+If you want, paste the header row of the CSV export here and I’ll give you the exact Claude prompt that fills it in safely (official sources only, one URL per item, confidence column, no guesses).

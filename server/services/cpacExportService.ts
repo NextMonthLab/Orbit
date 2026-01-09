@@ -537,9 +537,12 @@ export async function applyAssetApprovals(
   }
   
   for (const approval of approvals) {
+    // Normalize approved field to uppercase for case-insensitive comparison
+    const approvedNormalized = (approval.approved || '').toUpperCase();
+    
     // Only process YES approvals
-    if (approval.approved !== "YES") {
-      if (approval.approved === "NO") {
+    if (approvedNormalized !== "YES") {
+      if (approvedNormalized === "NO") {
         result.rejected++;
       } else {
         result.skipped++;
@@ -550,6 +553,18 @@ export async function applyAssetApprovals(
     // Validate required fields
     if (!approval.candidateImageUrl) {
       result.errors.push(`Missing candidateImageUrl for ${approval.cpacId}`);
+      continue;
+    }
+    
+    // Validate URL format - only allow https:// URLs
+    try {
+      const url = new URL(approval.candidateImageUrl);
+      if (!['https:', 'http:'].includes(url.protocol)) {
+        result.errors.push(`Invalid URL scheme for ${approval.cpacId}: only http/https allowed`);
+        continue;
+      }
+    } catch {
+      result.errors.push(`Invalid URL format for ${approval.cpacId}: ${approval.candidateImageUrl}`);
       continue;
     }
     
