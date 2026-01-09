@@ -1196,6 +1196,7 @@ export async function getOrbitKnowledge(orbitId: number, orbitName: string): Pro
 
   const productItems = validProducts.map(p => {
     const manufacturer = p.manufacturerEntityId ? entityMap.get(p.manufacturerEntityId) : null;
+    const manufacturerLogoUrl = manufacturer?.logoAssetId ? `/api/assets/${manufacturer.logoAssetId}` : null;
     return {
       id: `product-${p.id}`,
       type: 'product' as const,
@@ -1217,6 +1218,8 @@ export async function getOrbitKnowledge(orbitId: number, orbitName: string): Pro
       productId: p.id,
       referenceUrls: (p.referenceUrls as string[]) || [],
       intentTags: (p.intentTags as string[]) || [],
+      imageUrl: p.heroImageUrl || null,
+      manufacturerLogoUrl,
     };
   });
 

@@ -122,17 +122,23 @@ function hashString(str: string): number {
   return Math.abs(hash);
 }
 
-function generateUniqueImageUrl(item: AnyKnowledgeItem, highRes: boolean = false): string {
-  const itemHash = hashString(item.id);
-  const keywordHash = item.keywords.length > 0 ? hashString(item.keywords[0]) : 0;
-  const combinedHash = itemHash + keywordHash;
-  
-  const uniqueSeed = combinedHash % 1000;
-  
-  const width = highRes ? 400 : 200;
-  const height = highRes ? 240 : 120;
-  
-  return `https://picsum.photos/seed/${item.id}-${uniqueSeed}/${width}/${height}`;
+function getOfficialImageUrl(item: AnyKnowledgeItem): string | null {
+  if ('imageUrl' in item && (item as any).imageUrl) {
+    return (item as any).imageUrl;
+  }
+  if (item.type === 'product') {
+    const product = item as import('@/lib/siteKnowledge').Product;
+    if (product.manufacturerLogoUrl) {
+      return product.manufacturerLogoUrl;
+    }
+  }
+  if (item.type === 'manufacturer') {
+    const manufacturer = item as import('@/lib/siteKnowledge').Manufacturer;
+    if (manufacturer.logoUrl) {
+      return manufacturer.logoUrl;
+    }
+  }
+  return null;
 }
 
 function getCategoryIcon(item: AnyKnowledgeItem): LucideIcon {
@@ -180,23 +186,30 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
   const color = getColor();
   const glowIntensity = Math.min(relevanceScore / 30, 1);
   
-  const rawImageUrl = 'imageUrl' in item ? (item as any).imageUrl : undefined;
+  const officialImageUrl = getOfficialImageUrl(item);
   
-  // Try to get higher resolution version of website images by removing size suffixes
   const enhanceImageUrl = (url: string): string => {
     if (!url) return url;
-    // WordPress thumbnail pattern: -300x225.jpg, -960x940_c.png, etc.
     const wpEnhanced = url.replace(/-\d+x\d+(_c)?(\.[a-z]+)$/i, '$2');
     if (wpEnhanced !== url) return wpEnhanced;
-    // Squarespace/other pattern with size in path
     const sqEnhanced = url.replace(/\/s\/\d+x\d+\//, '/s/');
     if (sqEnhanced !== url) return sqEnhanced;
     return url;
   };
   
-  const imageUrl = rawImageUrl && typeof rawImageUrl === 'string' && rawImageUrl.length > 0 
-    ? enhanceImageUrl(rawImageUrl)
-    : generateUniqueImageUrl(item, true);
+  const imageUrl = officialImageUrl ? enhanceImageUrl(officialImageUrl) : null;
+  const hasOfficialImage = !!imageUrl;
+  
+  const getInitials = (): string => {
+    if (item.type === 'manufacturer') {
+      return (item as import('@/lib/siteKnowledge').Manufacturer).initials;
+    }
+    if (item.type === 'product') {
+      return (item as import('@/lib/siteKnowledge').Product).manufacturerInitials;
+    }
+    const label = getLabel() || item.type;
+    return label?.split(/\s+/).map(w => w[0]?.toUpperCase() || '').slice(0, 2).join('') || item.type[0].toUpperCase();
+  };
   
   const getLabel = () => {
     switch (item.type) {
@@ -274,20 +287,34 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
       data-tile-id={item.id}
       data-testid={`tile-${item.id}`}
     >
-      {/* Image header with category icon overlay */}
+      {/* Image header - official image or designed placeholder */}
       <div 
         className="w-full h-10 relative bg-cover bg-center"
         style={{ 
-          backgroundImage: `url(${imageUrl})`,
+          backgroundImage: hasOfficialImage ? `url(${imageUrl})` : undefined,
+          background: hasOfficialImage 
+            ? undefined 
+            : `linear-gradient(135deg, ${color}40 0%, ${color}20 50%, transparent 100%)`,
           borderBottom: `1px solid ${color}30`,
         }}
       >
+        {/* If no official image, show initials as placeholder */}
+        {!hasOfficialImage && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span 
+              className="text-sm font-bold opacity-60"
+              style={{ color }}
+            >
+              {getInitials()}
+            </span>
+          </div>
+        )}
         {/* Gradient overlay for icon visibility */}
         <div 
           className="absolute inset-0"
-          style={{ background: `linear-gradient(135deg, ${color}60 0%, transparent 50%)` }}
+          style={{ background: hasOfficialImage ? `linear-gradient(135deg, ${color}60 0%, transparent 50%)` : 'none' }}
         >
-          <CategoryIcon className="w-4 h-4 absolute top-1 left-1" style={{ color: 'white', opacity: 0.9 }} />
+          <CategoryIcon className="w-4 h-4 absolute top-1 left-1" style={{ color: hasOfficialImage ? 'white' : color, opacity: 0.9 }} />
         </div>
         {/* Relevance indicator */}
         {relevanceScore > 0 && (

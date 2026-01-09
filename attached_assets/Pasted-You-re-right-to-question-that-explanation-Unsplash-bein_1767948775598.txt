@@ -1,0 +1,168 @@
+You’re right to question that explanation. Unsplash being discontinued is irrelevant to whether the Smart Glasses Orbit should show images.
+
+That answer is basically a red herring.
+
+Here’s the straight truth and the fix.
+
+⸻
+
+The real reason images aren’t showing
+
+Right now, your Orbit is image-agnostic by default. It was previously leaning on a generic image provider (Unsplash) as a convenience fallback. When that went away, nothing replaced it.
+
+But for industry Orbits, especially hardware categories, images should never come from stock photography anyway.
+
+Smart glasses must use:
+	•	Official product images
+	•	Official brand imagery
+	•	Verified press images (secondary fallback)
+
+So your instinct is exactly right.
+
+⸻
+
+What should be happening instead (CPAC-correct)
+
+Images should be treated as first-class CPAC assets, not UI decorations.
+
+Canonical image priority order
+
+For products and manufacturers, the Orbit should resolve images in this order:
+	1.	Official manufacturer product images
+	•	Product pages
+	•	Press kits / newsroom media
+	2.	Official brand assets
+	•	Logos (SVG/PNG)
+	•	Lifestyle shots
+	3.	Reputable secondary press images
+	•	Verge, Road to VR, UploadVR (only if licensed/embeddable)
+	4.	No image (clean placeholder)
+	•	Never stock filler for hardware
+
+If none exist → show a designed placeholder, not random imagery.
+
+⸻
+
+What’s missing in your current system
+
+From everything you’ve shared, the blocker is not availability, it’s wiring.
+
+You already have:
+	•	canonical_url for products and manufacturers
+	•	Pulse sources pointing at official pages
+	•	Product specs and entities resolved cleanly
+
+What’s missing is:
+	•	mediaRefs / imageRefs actually being populated
+	•	A resolver that pulls images from official URLs
+	•	The Orbit UI knowing where to look
+
+⸻
+
+The correct fix (no Unsplash, no hacks)
+
+1. Extend the CPAC model properly (if not already)
+
+You want this shape on products and entities:
+
+mediaRefs: {
+  primaryImage: {
+    url: "https://www.xreal.com/assets/air-2.png",
+    source: "official",
+    sourceUrl: "https://www.xreal.com/air-2",
+    license: "manufacturer"
+  },
+  gallery: [
+    { "url": "...", "type": "product" },
+    { "url": "...", "type": "lifestyle" }
+  ],
+  logo: {
+    url: "https://www.meta.com/logo.svg"
+  }
+}
+
+No AI. No scraping magic. Just stored references.
+
+⸻
+
+2. Populate images during seed import
+
+When importing a product:
+	•	If mediaRefs are provided → use them
+	•	Else:
+	•	Attempt one-time fetch from canonical product page
+	•	Extract:
+	•	og:image
+	•	<img> with product hero markers
+	•	Store URL, don’t hotlink blindly
+
+This happens once at import time, not on every page load.
+
+⸻
+
+3. Update Orbit tile rendering logic
+
+Every floating tile should follow this rule:
+
+If mediaRefs.primaryImage exists → show it
+Else if manufacturer.logo exists → show logo
+Else → show designed placeholder (icon + initials)
+
+Never:
+	•	fall back to stock photography
+	•	show unrelated lifestyle shots
+	•	leave a broken image frame
+
+⸻
+
+What users expect to see (and why they’re right)
+
+When someone opens Smart Glasses, they expect to instantly recognise products.
+
+For example, these are the kinds of images that should appear:
+
+Those aren’t “nice to have”.
+They are table stakes for credibility.
+
+⸻
+
+Why Unsplash should never come back
+
+Using Unsplash (or any stock library) for hardware:
+	•	Breaks trust
+	•	Confuses users
+	•	Undermines sponsors and manufacturers
+	•	Makes the Orbit feel fake
+
+If there’s no official image yet, it’s better to show none than the wrong one.
+
+⸻
+
+The instruction you should give Replit (copy/paste)
+
+Use this verbatim if you want:
+
+The Smart Glasses Orbit must not rely on Unsplash or stock imagery.
+
+Product and brand images should come from official manufacturer sources and be stored as mediaRefs in CPAC.
+
+During seed import, populate mediaRefs from provided data or extract from canonical product pages (og:image / hero images).
+
+Orbit tiles should resolve images in this order: product image → manufacturer logo → designed placeholder.
+
+If no official image exists, show a placeholder. Do not use stock photography.
+
+⸻
+
+Bottom line
+
+You weren’t wrong.
+The Unsplash explanation was a symptom, not a cause.
+
+This Orbit is now strong enough that image integrity matters. Fixing this properly will instantly make Smart Glasses feel real, premium, and sponsor-ready.
+
+If you want, next we can:
+	•	define a designed placeholder system so “no image” still looks intentional
+	•	or create a one-time backfill plan to populate images for your existing 9 products
+
+Just say the word.

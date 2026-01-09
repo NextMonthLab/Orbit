@@ -95,6 +95,8 @@ export interface Product extends KnowledgeItem {
   productId: number;
   referenceUrls: string[];
   intentTags: string[];
+  imageUrl?: string | null;
+  manufacturerLogoUrl?: string | null;
 }
 
 export interface Concept extends KnowledgeItem {
