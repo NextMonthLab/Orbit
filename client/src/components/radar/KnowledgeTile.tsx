@@ -123,23 +123,16 @@ function hashString(str: string): number {
 }
 
 function generateUniqueImageUrl(item: AnyKnowledgeItem, highRes: boolean = false): string {
-  const queries = typeImageQueries[item.type];
   const itemHash = hashString(item.id);
   const keywordHash = item.keywords.length > 0 ? hashString(item.keywords[0]) : 0;
   const combinedHash = itemHash + keywordHash;
   
-  const queryIndex = combinedHash % queries.length;
-  const baseQuery = queries[queryIndex];
+  const uniqueSeed = combinedHash % 1000;
   
-  const primaryKeyword = item.keywords[0] || item.type;
-  const uniqueQuery = encodeURIComponent(`${primaryKeyword} ${baseQuery}`);
+  const width = highRes ? 400 : 200;
+  const height = highRes ? 240 : 120;
   
-  const uniqueSeed = combinedHash % 10000;
-  
-  // Use higher resolution for better zoom quality (400x240 instead of 200x120)
-  const size = highRes ? '400x240' : '400x240';
-  
-  return `https://source.unsplash.com/${size}/?${uniqueQuery}&sig=${item.id}-${uniqueSeed}`;
+  return `https://picsum.photos/seed/${item.id}-${uniqueSeed}/${width}/${height}`;
 }
 
 function getCategoryIcon(item: AnyKnowledgeItem): LucideIcon {
