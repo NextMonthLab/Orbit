@@ -1,0 +1,74 @@
+Good. That’s the correct fix, and it matches the Industry Orbit doctrine: official first, designed fallback second, never stock photos.
+
+A couple of tighten-ups so this stays bulletproof as you scale:
+
+1) Don’t stop at heroImageUrl and logoUrl
+
+Those are fine as “immediate fields”, but make sure you also store provenance so you don’t end up with random hotlinks later:
+
+Minimum extra fields (even if optional):
+	•	imageSourceType: OFFICIAL | PRIMARY | SECONDARY | UPLOADED
+	•	imageSourceUrl: where you found it (product page / newsroom)
+	•	lastVerifiedUtc: so you can refresh if links die
+
+This protects you when manufacturers redesign sites and break URLs.
+
+2) Backfill plan (so Smart Glasses stops looking half-finished)
+
+Right now you’ve made the UI resilient, which is great. Next, make the Orbit look premium fast with a simple backfill rule:
+
+Manufacturers (entities)
+	•	Add logoAssetId (or logoUrl) for the top 10 brands first.
+	•	If you can only do 5: do Meta, Apple, Google, XREAL, Rokid (or Vuzix depending on your dataset).
+
+Products
+
+During CPAC seed import:
+	•	If heroImageUrl provided, store it.
+	•	If not, attempt a one-time extraction from canonical product page:
+	•	og:image first
+	•	else first “hero” image selector
+	•	If extraction fails, leave blank and rely on placeholder (that’s fine).
+
+3) Make placeholders feel “brand-tier”, not “random gradient”
+
+Your initials placeholder is the right idea. Two small improvements:
+	•	Generate gradient deterministically from the entity/product ID (so Meta always looks like Meta-ish, not changing every refresh).
+	•	Use two-letter initials for multi-word brands (e.g., ML for Magic Leap, XR for XREAL if you want it stylised).
+
+4) Ensure the Orbit tiles never show broken image chrome
+
+Even with correct URLs, some will 404.
+
+UI rules:
+	•	onError → swap to placeholder immediately (no broken image icon)
+	•	lazy-load images
+	•	always reserve aspect ratio so tiles don’t jump around
+
+5) One more alignment point
+
+You mentioned:
+
+“Add logoAssetId to manufacturers… Add heroImageUrl to products during CPAC seed import”
+
+Yes, but pick one canonical approach:
+	•	Either store asset IDs and serve via your own CDN/proxy
+	•	Or store URLs and optionally proxy later
+
+I’d recommend: asset IDs long-term, but allow URL passthrough for now, with a later “asset ingest” job that pulls official images into your own storage.
+
+That’s how you avoid a future “half the Orbit images broke overnight” incident.
+
+⸻
+
+Quick acceptance criteria (so you can be sure it’s done)
+
+On /orbit/smart-glasses:
+	•	Every product tile shows either hero image, manufacturer logo, or placeholder (never empty).
+	•	No stock imagery ever appears.
+	•	Broken image URLs automatically fall back to placeholder.
+	•	Brands and products look intentional even with zero images populated.
+
+If Rapplet has already shipped those behaviours, you’re in a very strong place.
+
+Next thing I’d focus on is featured selection (intentTags / heuristics) so the best products surface automatically.

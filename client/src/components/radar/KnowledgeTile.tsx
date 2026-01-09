@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { FileText, User, Star, Video, Phone, Mail, Quote, Lightbulb, ExternalLink, Cloud, Sun, Calendar, MapPin, Globe, Briefcase, Award, MessageCircle, Zap, Book, TrendingUp, Shield, Heart, HelpCircle, Settings, Home, DollarSign, Clock, Users, Target, Sparkles, Rss, Twitter, Facebook, Instagram, Linkedin, Youtube, type LucideIcon } from "lucide-react";
 import type { AnyKnowledgeItem, Topic, Page, Person, Proof, Action, Blog, Social } from "@/lib/siteKnowledge";
@@ -122,6 +123,38 @@ function hashString(str: string): number {
   return Math.abs(hash);
 }
 
+function getDeterministicGradient(id: string, baseColor: string): string {
+  const hash = hashString(id);
+  const hueShift = (hash % 30) - 15;
+  const satShift = (hash % 20) - 10;
+  
+  const hexToHsl = (hex: string): [number, number, number] => {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+    return [h * 360, s * 100, l * 100];
+  };
+  
+  const [h, s, l] = hexToHsl(baseColor);
+  const h1 = (h + hueShift + 360) % 360;
+  const h2 = (h + hueShift + 30 + 360) % 360;
+  const s1 = Math.max(20, Math.min(80, s + satShift));
+  
+  return `linear-gradient(135deg, hsl(${h1}, ${s1}%, ${l + 10}%) 0%, hsl(${h2}, ${s1 - 10}%, ${l - 5}%) 100%)`;
+}
+
 function getOfficialImageUrl(item: AnyKnowledgeItem): string | null {
   if ('imageUrl' in item && (item as any).imageUrl) {
     return (item as any).imageUrl;
@@ -170,6 +203,7 @@ function getActionIcon(actionType: string) {
 
 export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoomLevel = 1, lightMode = false }: KnowledgeTileProps) {
   const shouldReduceMotion = useReducedMotion();
+  const [imageError, setImageError] = useState(false);
   const CategoryIcon = getCategoryIcon(item);
   
   const getTypeIcon = (): LucideIcon => {
@@ -180,7 +214,6 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
   const TypeIcon = getTypeIcon();
   
   const getColor = (): string => {
-    // Always use accent color for consistent branding
     return accentColor || typeColors[item.type] || '#3b82f6';
   };
   const color = getColor();
@@ -198,7 +231,8 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
   };
   
   const imageUrl = officialImageUrl ? enhanceImageUrl(officialImageUrl) : null;
-  const hasOfficialImage = !!imageUrl;
+  const hasOfficialImage = !!imageUrl && !imageError;
+  const placeholderGradient = getDeterministicGradient(item.id, color);
   
   const getInitials = (): string => {
     if (item.type === 'manufacturer') {
@@ -289,21 +323,28 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
     >
       {/* Image header - official image or designed placeholder */}
       <div 
-        className="w-full h-10 relative bg-cover bg-center"
+        className="w-full h-10 relative overflow-hidden"
         style={{ 
-          backgroundImage: hasOfficialImage ? `url(${imageUrl})` : undefined,
-          background: hasOfficialImage 
-            ? undefined 
-            : `linear-gradient(135deg, ${color}40 0%, ${color}20 50%, transparent 100%)`,
+          background: placeholderGradient,
           borderBottom: `1px solid ${color}30`,
         }}
       >
-        {/* If no official image, show initials as placeholder */}
+        {/* Official image with lazy loading and error fallback */}
+        {imageUrl && !imageError && (
+          <img
+            src={imageUrl}
+            alt=""
+            loading="lazy"
+            onError={() => setImageError(true)}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
+        {/* Initials placeholder (always visible under image, shown when no image) */}
         {!hasOfficialImage && (
           <div className="absolute inset-0 flex items-center justify-center">
             <span 
-              className="text-sm font-bold opacity-60"
-              style={{ color }}
+              className="text-sm font-bold"
+              style={{ color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
             >
               {getInitials()}
             </span>
@@ -312,9 +353,9 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
         {/* Gradient overlay for icon visibility */}
         <div 
           className="absolute inset-0"
-          style={{ background: hasOfficialImage ? `linear-gradient(135deg, ${color}60 0%, transparent 50%)` : 'none' }}
+          style={{ background: hasOfficialImage ? `linear-gradient(135deg, ${color}80 0%, transparent 60%)` : 'none' }}
         >
-          <CategoryIcon className="w-4 h-4 absolute top-1 left-1" style={{ color: hasOfficialImage ? 'white' : color, opacity: 0.9 }} />
+          <CategoryIcon className="w-4 h-4 absolute top-1 left-1" style={{ color: 'white', opacity: 0.9 }} />
         </div>
         {/* Relevance indicator */}
         {relevanceScore > 0 && (
