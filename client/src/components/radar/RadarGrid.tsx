@@ -19,6 +19,14 @@ function getItemLabel(item: AnyKnowledgeItem): string {
     case 'action': return item.label;
     case 'blog': return item.title;
     case 'social': return item.connected ? `@${item.handle}` : item.platform.charAt(0).toUpperCase() + item.platform.slice(1);
+    case 'manufacturer': return item.name;
+    case 'product': return item.name;
+    case 'concept': return item.label;
+    case 'qa': return item.question;
+    case 'community': return item.name;
+    case 'cta': return item.label;
+    case 'sponsored': return item.name;
+    default: return 'Unknown';
   }
 }
 
@@ -31,6 +39,14 @@ function getItemSummary(item: AnyKnowledgeItem): string {
     case 'action': return item.summary;
     case 'blog': return item.summary;
     case 'social': return item.connected ? (item.followerCount ? `${item.followerCount.toLocaleString()} followers` : 'View feed') : 'Connect to show feed';
+    case 'manufacturer': return `${item.productCount} products`;
+    case 'product': return item.summary || item.category || 'Product';
+    case 'concept': return item.whyItMatters || 'Learn more';
+    case 'qa': return item.sublabel || 'Tap to see answer';
+    case 'community': return item.communityType || 'Community';
+    case 'cta': return item.summary;
+    case 'sponsored': return item.summary || 'Sponsored';
+    default: return '';
   }
 }
 

@@ -139,9 +139,17 @@ interface OrbitResponse {
   customDescription?: string | null;
   lastUpdated?: string;
   previewId?: string | null;
+  orbitType?: 'standard' | 'industry';
   boxes?: OrbitBox[];
   error?: string;
   requestedAt?: string;
+}
+
+interface IndustryKnowledgeResponse {
+  orbitId: number;
+  slug: string;
+  type: 'industry';
+  knowledge: SiteKnowledge;
 }
 
 export default function OrbitView() {
@@ -329,6 +337,18 @@ export default function OrbitView() {
       return response.json();
     },
     enabled: !!orbitData?.previewId,
+  });
+
+  const isIndustryOrbit = orbitData?.orbitType === 'industry';
+  
+  const { data: industryKnowledge, isLoading: industryKnowledgeLoading } = useQuery<IndustryKnowledgeResponse>({
+    queryKey: ["industry-knowledge", slug],
+    queryFn: async () => {
+      const response = await fetch(`/api/orbits/${slug}/knowledge`);
+      if (!response.ok) throw new Error("Failed to fetch industry knowledge");
+      return response.json();
+    },
+    enabled: isIndustryOrbit && !!slug,
   });
 
   // Check if current user is the owner
@@ -859,6 +879,51 @@ export default function OrbitView() {
       socials: [],
     };
   };
+
+  // Industry Orbit: Use industry knowledge from dedicated API
+  if (isIndustryOrbit && industryKnowledge?.knowledge) {
+    const knowledge = industryKnowledge.knowledge;
+    const accentColor = knowledge.brand.primaryColor || '#ec4899';
+    
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col relative">
+        {!isEmbedMode && (
+          <GlobalNav context="orbit" showBreadcrumb breadcrumbLabel={knowledge.brand.name} />
+        )}
+        <div className="flex-1">
+          <RadarGrid
+            knowledge={knowledge}
+            accentColor={accentColor}
+            lightMode={false}
+            onInteraction={() => trackMetric('interactions')}
+            orbitSlug={slug}
+            onSendMessage={createChatHandler()}
+          />
+        </div>
+        {/* Industry Orbit footer */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-t border-white/10 py-2 px-4">
+          <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+            <span className="text-xs text-white/60">
+              Powered by <span className="text-pink-400 font-medium">NextMonth</span>
+            </span>
+            <span className="text-xs text-zinc-400">
+              Industry Orbit
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Loading state for industry orbits
+  if (isIndustryOrbit && industryKnowledgeLoading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-pink-500 mb-4" />
+        <p className="text-zinc-400">Loading Industry Orbit...</p>
+      </div>
+    );
+  }
 
   // Priority: Boxes (extracted menu/products) > Preview siteIdentity (scraped pages)
   // Boxes contain real product data; siteIdentity often only has page titles

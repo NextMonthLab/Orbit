@@ -9503,6 +9503,7 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
           customDescription: orbitMeta.customDescription,
           lastUpdated: orbitMeta.lastUpdated,
           previewId: orbitMeta.previewId,
+          orbitType: orbitMeta.orbitType || 'standard',
           boxes,
         });
       }
@@ -9521,6 +9522,7 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
             customTitle: orbitMeta.customTitle,
             customDescription: orbitMeta.customDescription,
             lastUpdated: orbitMeta.lastUpdated,
+            orbitType: orbitMeta.orbitType || 'standard',
             pack: packResult.pack,
             boxes,
           });
@@ -9537,6 +9539,7 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
           customTitle: orbitMeta.customTitle,
           customDescription: orbitMeta.customDescription,
           lastUpdated: orbitMeta.lastUpdated,
+          orbitType: orbitMeta.orbitType || 'standard',
           boxes,
         });
       }
@@ -15153,7 +15156,7 @@ GUIDELINES:
 
   // ============ INDUSTRY ORBIT SEED API ============
   
-  const { seedPackSchema, importSeedPack, getOrbitDefinition, getOrbitFrontPage } = await import("./services/industryOrbitSeedService");
+  const { seedPackSchema, importSeedPack, getOrbitDefinition, getOrbitFrontPage, getOrbitKnowledge } = await import("./services/industryOrbitSeedService");
   
   // POST /api/industry-orbits/:slug/seed - Import seed pack
   app.post("/api/industry-orbits/:slug/seed", async (req, res) => {
@@ -15408,6 +15411,41 @@ GUIDELINES:
       
     } catch (error) {
       res.status(500).json({ message: "Failed to get pulse events" });
+    }
+  });
+  
+  // GET /api/orbits/:slug/knowledge - Get knowledge items for RadarGrid (unified Orbit UI)
+  app.get("/api/orbits/:slug/knowledge", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.orbitType !== 'industry') {
+        return res.status(400).json({ 
+          message: "Knowledge endpoint is for Industry Orbits. Use standard orbit data for business orbits.",
+          code: "NOT_INDUSTRY_ORBIT"
+        });
+      }
+      
+      const knowledge = await getOrbitKnowledge(
+        orbitMeta.id, 
+        orbitMeta.customTitle || orbitMeta.businessName || slug
+      );
+      
+      res.json({
+        orbitId: orbitMeta.id,
+        slug,
+        type: 'industry',
+        knowledge,
+      });
+      
+    } catch (error) {
+      console.error("[Orbit Knowledge] Error:", error);
+      res.status(500).json({ message: "Failed to get orbit knowledge" });
     }
   });
 

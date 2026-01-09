@@ -7,7 +7,7 @@ export interface Brand {
 
 export interface KnowledgeItem {
   id: string;
-  type: 'topic' | 'page' | 'person' | 'proof' | 'action' | 'blog' | 'social';
+  type: 'topic' | 'page' | 'person' | 'proof' | 'action' | 'blog' | 'social' | 'manufacturer' | 'product' | 'concept' | 'qa' | 'community' | 'cta' | 'sponsored';
   keywords: string[];
 }
 
@@ -71,7 +71,76 @@ export interface Social extends KnowledgeItem {
   imageUrl?: string;
 }
 
-export type AnyKnowledgeItem = Topic | Page | Person | Proof | Action | Blog | Social;
+export interface Manufacturer extends KnowledgeItem {
+  type: 'manufacturer';
+  name: string;
+  initials: string;
+  logoUrl: string | null;
+  websiteUrl: string | null;
+  productCount: number;
+  trustLevel: string;
+  entityId: number;
+}
+
+export interface Product extends KnowledgeItem {
+  type: 'product';
+  name: string;
+  summary: string | null;
+  status: string | null;
+  category: string | null;
+  manufacturerName: string | null;
+  manufacturerInitials: string;
+  primarySpec: { key: string; value: string } | null;
+  specCount: number;
+  productId: number;
+  referenceUrls: string[];
+  intentTags: string[];
+}
+
+export interface Concept extends KnowledgeItem {
+  type: 'concept';
+  label: string;
+  whyItMatters: string | null;
+  starterQuestions: string[];
+  conceptId: number;
+}
+
+export interface QA extends KnowledgeItem {
+  type: 'qa';
+  question: string;
+  answer: string;
+  tileId: number;
+  sublabel: string | null;
+  priority: number;
+}
+
+export interface Community extends KnowledgeItem {
+  type: 'community';
+  name: string;
+  url: string;
+  communityType: string | null;
+  regionTags: string[];
+  communityId: number;
+}
+
+export interface CTA extends KnowledgeItem {
+  type: 'cta';
+  label: string;
+  summary: string;
+  ctaType: 'friend' | 'upgrade' | 'sponsor';
+  actionUrl?: string;
+}
+
+export interface Sponsored extends KnowledgeItem {
+  type: 'sponsored';
+  name: string;
+  summary: string | null;
+  imageUrl: string | null;
+  sponsorUrl: string;
+  productId?: number;
+}
+
+export type AnyKnowledgeItem = Topic | Page | Person | Proof | Action | Blog | Social | Manufacturer | Product | Concept | QA | Community | CTA | Sponsored;
 
 export interface SiteKnowledge {
   brand: Brand;
@@ -82,6 +151,13 @@ export interface SiteKnowledge {
   actions: Action[];
   blogs: Blog[];
   socials: Social[];
+  manufacturers?: Manufacturer[];
+  products?: Product[];
+  concepts?: Concept[];
+  qas?: QA[];
+  communities?: Community[];
+  ctas?: CTA[];
+  sponsored?: Sponsored[];
 }
 
 export function getAllItems(knowledge: SiteKnowledge): AnyKnowledgeItem[] {
@@ -93,6 +169,13 @@ export function getAllItems(knowledge: SiteKnowledge): AnyKnowledgeItem[] {
     ...knowledge.actions,
     ...(knowledge.blogs || []),
     ...(knowledge.socials || []),
+    ...(knowledge.manufacturers || []),
+    ...(knowledge.products || []),
+    ...(knowledge.concepts || []),
+    ...(knowledge.qas || []),
+    ...(knowledge.communities || []),
+    ...(knowledge.ctas || []),
+    ...(knowledge.sponsored || []),
   ];
 }
 
@@ -116,8 +199,17 @@ export function scoreRelevance(item: AnyKnowledgeItem, query: string): number {
     if (item.type === 'action' && item.label.toLowerCase().includes(word)) score += 10;
     if (item.type === 'blog' && item.title.toLowerCase().includes(word)) score += 15;
     if (item.type === 'social' && (item.platform.toLowerCase().includes(word) || item.handle.toLowerCase().includes(word))) score += 12;
+    if (item.type === 'manufacturer' && item.name.toLowerCase().includes(word)) score += 20;
+    if (item.type === 'product' && item.name.toLowerCase().includes(word)) score += 18;
+    if (item.type === 'concept' && item.label.toLowerCase().includes(word)) score += 15;
+    if (item.type === 'qa' && item.question.toLowerCase().includes(word)) score += 15;
+    if (item.type === 'community' && item.name.toLowerCase().includes(word)) score += 12;
+    if (item.type === 'cta' && item.label.toLowerCase().includes(word)) score += 8;
+    if (item.type === 'sponsored' && item.name.toLowerCase().includes(word)) score += 10;
     
-    if ('summary' in item && item.summary.toLowerCase().includes(word)) score += 5;
+    if ('summary' in item && typeof item.summary === 'string' && item.summary.toLowerCase().includes(word)) score += 5;
+    if ('answer' in item && typeof item.answer === 'string' && item.answer.toLowerCase().includes(word)) score += 5;
+    if ('whyItMatters' in item && typeof item.whyItMatters === 'string' && item.whyItMatters?.toLowerCase().includes(word)) score += 5;
   }
   
   return score;

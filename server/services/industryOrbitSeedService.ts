@@ -1076,3 +1076,202 @@ export async function getOrbitFrontPage(orbitId: number, orbitName: string): Pro
     },
   };
 }
+
+export interface IndustryOrbitKnowledge {
+  brand: {
+    name: string;
+    domain: string;
+    tagline: string;
+    primaryColor: string;
+  };
+  topics: never[];
+  pages: never[];
+  people: never[];
+  proof: never[];
+  actions: never[];
+  blogs: never[];
+  socials: never[];
+  manufacturers: Array<{
+    id: string;
+    type: 'manufacturer';
+    keywords: string[];
+    name: string;
+    initials: string;
+    logoUrl: string | null;
+    websiteUrl: string | null;
+    productCount: number;
+    trustLevel: string;
+    entityId: number;
+  }>;
+  products: Array<{
+    id: string;
+    type: 'product';
+    keywords: string[];
+    name: string;
+    summary: string | null;
+    status: string | null;
+    category: string | null;
+    manufacturerName: string | null;
+    manufacturerInitials: string;
+    primarySpec: { key: string; value: string } | null;
+    specCount: number;
+    productId: number;
+    referenceUrls: string[];
+    intentTags: string[];
+  }>;
+  concepts: Array<{
+    id: string;
+    type: 'concept';
+    keywords: string[];
+    label: string;
+    whyItMatters: string | null;
+    starterQuestions: string[];
+    conceptId: number;
+  }>;
+  qas: Array<{
+    id: string;
+    type: 'qa';
+    keywords: string[];
+    question: string;
+    answer: string;
+    tileId: number;
+    sublabel: string | null;
+    priority: number;
+  }>;
+  communities: Array<{
+    id: string;
+    type: 'community';
+    keywords: string[];
+    name: string;
+    url: string;
+    communityType: string | null;
+    regionTags: string[];
+    communityId: number;
+  }>;
+  ctas: never[];
+  sponsored: never[];
+}
+
+export async function getOrbitKnowledge(orbitId: number, orbitName: string): Promise<IndustryOrbitKnowledge> {
+  const [entities, products, tiles, coreConcepts, communities] = await Promise.all([
+    storage.getIndustryEntitiesByOrbit(orbitId),
+    storage.getIndustryProductsByOrbit(orbitId),
+    storage.getTopicTilesByOrbit(orbitId),
+    storage.getCoreConceptsByOrbit(orbitId),
+    storage.getCommunityLinksByOrbit(orbitId),
+  ]);
+
+  const productsWithSpecs = await Promise.all(
+    products.map(async (product) => {
+      const specs = await storage.getProductSpecs(product.id);
+      return { ...product, specs };
+    })
+  );
+
+  const validProducts = productsWithSpecs.filter(p => p.manufacturerEntityId !== null);
+  const entityMap = new Map(entities.map(e => [e.id, e]));
+  
+  const productCountByEntity = new Map<number, number>();
+  for (const p of validProducts) {
+    if (p.manufacturerEntityId) {
+      productCountByEntity.set(p.manufacturerEntityId, (productCountByEntity.get(p.manufacturerEntityId) || 0) + 1);
+    }
+  }
+
+  const manufacturerItems = entities
+    .filter(e => e.entityType === 'manufacturer')
+    .map(e => ({
+      id: `manufacturer-${e.id}`,
+      type: 'manufacturer' as const,
+      keywords: [e.name.toLowerCase(), e.entityType || '', ...(e.regionTags as string[] || [])],
+      name: e.name,
+      initials: getInitials(e.name),
+      logoUrl: e.logoAssetId ? `/api/assets/${e.logoAssetId}` : null,
+      websiteUrl: e.websiteUrl,
+      productCount: productCountByEntity.get(e.id) || 0,
+      trustLevel: e.trustLevel || 'independent',
+      entityId: e.id,
+    }))
+    .sort((a, b) => b.productCount - a.productCount);
+
+  const productItems = validProducts.map(p => {
+    const manufacturer = p.manufacturerEntityId ? entityMap.get(p.manufacturerEntityId) : null;
+    return {
+      id: `product-${p.id}`,
+      type: 'product' as const,
+      keywords: [
+        p.name.toLowerCase(),
+        manufacturer?.name.toLowerCase() || '',
+        p.category?.toLowerCase() || '',
+        p.status?.toLowerCase() || '',
+        ...((p.intentTags as string[]) || []),
+      ].filter(Boolean),
+      name: p.name,
+      summary: p.summary,
+      status: p.status,
+      category: p.category,
+      manufacturerName: manufacturer?.name || null,
+      manufacturerInitials: manufacturer ? getInitials(manufacturer.name) : '?',
+      primarySpec: p.specs?.[0] ? { key: p.specs[0].specKey, value: p.specs[0].specValue } : null,
+      specCount: p.specs?.length || 0,
+      productId: p.id,
+      referenceUrls: (p.referenceUrls as string[]) || [],
+      intentTags: (p.intentTags as string[]) || [],
+    };
+  });
+
+  const conceptItems = coreConcepts.map(c => ({
+    id: `concept-${c.id}`,
+    type: 'concept' as const,
+    keywords: [c.label.toLowerCase(), ...(c.starterQuestions as string[] || []).map(q => q.toLowerCase())],
+    label: c.label,
+    whyItMatters: c.whyItMatters,
+    starterQuestions: (c.starterQuestions as string[]) || [],
+    conceptId: c.id,
+  }));
+
+  const qaItems = tiles.map(t => ({
+    id: `qa-${t.id}`,
+    type: 'qa' as const,
+    keywords: [t.label.toLowerCase(), t.sublabel?.toLowerCase() || '', ...((t.intentTags as string[]) || [])].filter(Boolean),
+    question: t.label,
+    answer: t.sublabel || '',
+    tileId: t.id,
+    sublabel: t.sublabel,
+    priority: t.priority || 0,
+  }));
+
+  const communityItems = communities.map(c => ({
+    id: `community-${c.id}`,
+    type: 'community' as const,
+    keywords: [c.name.toLowerCase(), c.communityType?.toLowerCase() || '', ...((c.regionTags as string[]) || [])].filter(Boolean),
+    name: c.name,
+    url: c.url,
+    communityType: c.communityType,
+    regionTags: (c.regionTags as string[]) || [],
+    communityId: c.id,
+  }));
+
+  return {
+    brand: {
+      name: orbitName,
+      domain: '',
+      tagline: `Discover ${validProducts.length} products from ${manufacturerItems.length} brands`,
+      primaryColor: '#ec4899',
+    },
+    topics: [],
+    pages: [],
+    people: [],
+    proof: [],
+    actions: [],
+    blogs: [],
+    socials: [],
+    manufacturers: manufacturerItems,
+    products: productItems,
+    concepts: conceptItems,
+    qas: qaItems,
+    communities: communityItems,
+    ctas: [],
+    sponsored: [],
+  };
+}
