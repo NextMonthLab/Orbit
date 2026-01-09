@@ -517,6 +517,13 @@ export interface IStorage {
   getAlignmentsByUser(userId: number): Promise<schema.Alignment[]>;
   updateAlignment(id: number, data: Partial<schema.InsertAlignment>): Promise<schema.Alignment | undefined>;
   deleteAlignment(id: number): Promise<void>;
+  
+  // Core Concepts (CPAC)
+  createCoreConcept(data: schema.InsertCoreConcept): Promise<schema.CoreConcept>;
+  getCoreConceptsByOrbit(orbitId: number): Promise<schema.CoreConcept[]>;
+  getCoreConceptByConceptId(orbitId: number, conceptId: string): Promise<schema.CoreConcept | undefined>;
+  deleteCoreConcept(id: number): Promise<void>;
+  deleteCoreConceptsByOrbit(orbitId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3708,6 +3715,35 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAlignment(id: number): Promise<void> {
     await db.delete(schema.alignments).where(eq(schema.alignments.id, id));
+  }
+
+  // Core Concepts (CPAC)
+  async createCoreConcept(data: schema.InsertCoreConcept): Promise<schema.CoreConcept> {
+    const [result] = await db.insert(schema.coreConcepts).values(data).returning();
+    return result;
+  }
+
+  async getCoreConceptsByOrbit(orbitId: number): Promise<schema.CoreConcept[]> {
+    return await db.query.coreConcepts.findMany({
+      where: eq(schema.coreConcepts.orbitId, orbitId),
+    });
+  }
+
+  async getCoreConceptByConceptId(orbitId: number, conceptId: string): Promise<schema.CoreConcept | undefined> {
+    return await db.query.coreConcepts.findFirst({
+      where: and(
+        eq(schema.coreConcepts.orbitId, orbitId),
+        eq(schema.coreConcepts.conceptId, conceptId)
+      ),
+    });
+  }
+
+  async deleteCoreConcept(id: number): Promise<void> {
+    await db.delete(schema.coreConcepts).where(eq(schema.coreConcepts.id, id));
+  }
+
+  async deleteCoreConceptsByOrbit(orbitId: number): Promise<void> {
+    await db.delete(schema.coreConcepts).where(eq(schema.coreConcepts.orbitId, orbitId));
   }
 }
 

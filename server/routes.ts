@@ -15185,10 +15185,11 @@ GUIDELINES:
       
       const seedPack = parseResult.data;
       
-      // Verify the pack is for this orbit
-      if (seedPack.orbitSlug !== slug) {
+      // Verify the pack is for this orbit (support both CPAC orbit.slug and legacy orbitSlug)
+      const packSlug = seedPack.orbit?.slug ?? seedPack.orbitSlug;
+      if (packSlug && packSlug !== slug) {
         return res.status(400).json({
-          message: `Seed pack is for orbit "${seedPack.orbitSlug}" but you're importing to "${slug}"`,
+          message: `Seed pack is for orbit "${packSlug}" but you're importing to "${slug}"`,
         });
       }
       
@@ -15196,11 +15197,15 @@ GUIDELINES:
       const result = await importSeedPack(orbitMeta.id, seedPack);
       
       console.log(`[Industry Orbit Seed] Imported to ${slug}:`, result.imported);
+      if (result.warnings && result.warnings.length > 0) {
+        console.log(`[Industry Orbit Seed] Warnings:`, result.warnings);
+      }
       
       res.json({
         success: result.success,
         imported: result.imported,
         errors: result.errors,
+        warnings: result.warnings || [],
       });
       
     } catch (error) {

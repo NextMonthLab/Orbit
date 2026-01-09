@@ -2911,6 +2911,15 @@ export type IndustryEntityType =
 export type TrustLevel = 'official' | 'trade' | 'independent';
 
 // Industry Entity - Manufacturers, platforms, standards bodies, communities, influencers
+// Social URLs for entities (CPAC format)
+export const entitySocialUrlsSchema = z.object({
+  x: z.string().nullable().optional(),
+  linkedin: z.string().nullable().optional(),
+  youtube: z.string().nullable().optional(),
+  instagram: z.string().nullable().optional(),
+});
+export type EntitySocialUrls = z.infer<typeof entitySocialUrlsSchema>;
+
 export const industryEntities = pgTable("industry_entities", {
   id: serial("id").primaryKey(),
   orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
@@ -2922,6 +2931,10 @@ export const industryEntities = pgTable("industry_entities", {
   regionTags: jsonb("region_tags").$type<string[]>().default([]),
   trustLevel: text("trust_level").$type<TrustLevel>().default("independent").notNull(),
   logoAssetId: integer("logo_asset_id"), // FK to industryAssets, set after creation
+  
+  // CPAC additions
+  socialUrls: jsonb("social_urls").$type<EntitySocialUrls>().default({}),
+  notes: text("notes"),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -2937,6 +2950,13 @@ export type ProductStatus = 'shipping' | 'announced' | 'rumoured' | 'discontinue
 // Product category
 export type ProductCategory = 'consumer' | 'enterprise' | 'developer';
 
+// Media refs for products (CPAC format)
+export const productMediaRefsSchema = z.object({
+  imageAssetRefs: z.array(z.string()).optional(),
+  videoAssetRefs: z.array(z.string()).optional(),
+});
+export type ProductMediaRefs = z.infer<typeof productMediaRefsSchema>;
+
 // Product - Products within an Industry Orbit
 export const industryProducts = pgTable("industry_products", {
   id: serial("id").primaryKey(),
@@ -2950,6 +2970,11 @@ export const industryProducts = pgTable("industry_products", {
   primaryUrl: text("primary_url"),
   summary: text("summary"),
   heroAssetId: integer("hero_asset_id"), // FK to industryAssets
+  
+  // CPAC additions
+  mediaRefs: jsonb("media_refs").$type<ProductMediaRefs>().default({}),
+  referenceUrls: jsonb("reference_urls").$type<string[]>().default([]),
+  intentTags: jsonb("intent_tags").$type<string[]>().default([]),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -3038,6 +3063,9 @@ export const communityLinks = pgTable("community_links", {
   communityType: text("community_type").$type<CommunityType>().notNull(),
   notes: text("notes"),
   
+  // CPAC addition
+  regionTags: jsonb("region_tags").$type<string[]>().default([]),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -3054,6 +3082,14 @@ export const topicTileBadgeSchema = z.object({
 });
 export type TopicTileBadge = z.infer<typeof topicTileBadgeSchema>;
 
+// Evidence refs for topic tiles (CPAC format)
+export const tileEvidenceRefsSchema = z.object({
+  productIds: z.array(z.string()).optional(),
+  entityIds: z.array(z.string()).optional(),
+  communityIds: z.array(z.string()).optional(),
+});
+export type TileEvidenceRefs = z.infer<typeof tileEvidenceRefsSchema>;
+
 // Topic Tile - The orbit tiles for Industry Orbits
 export const topicTiles = pgTable("topic_tiles", {
   id: serial("id").primaryKey(),
@@ -3065,6 +3101,9 @@ export const topicTiles = pgTable("topic_tiles", {
   priority: integer("priority").default(0).notNull(),
   badgeState: jsonb("badge_state").$type<TopicTileBadge>().default({}),
   lastRefreshedAt: timestamp("last_refreshed_at"),
+  
+  // CPAC addition
+  evidenceRefs: jsonb("evidence_refs").$type<TileEvidenceRefs>().default({}),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -3125,6 +3164,10 @@ export const pulseSources = pgTable("pulse_sources", {
   eventTypes: jsonb("event_types").$type<PulseEventType[]>().default([]),
   isEnabled: boolean("is_enabled").default(true).notNull(),
   lastCheckedAt: timestamp("last_checked_at"),
+  
+  // CPAC additions
+  keywordTriggers: jsonb("keyword_triggers").$type<string[]>().default([]),
+  notes: text("notes"),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -3211,65 +3254,198 @@ export const insertAlignmentSchema = createInsertSchema(alignments).omit({ id: t
 export type InsertAlignment = z.infer<typeof insertAlignmentSchema>;
 export type Alignment = typeof alignments.$inferSelect;
 
-// ============ SEED PACK SCHEMA ============
-// JSON structure for importing Industry Orbit data
+// ============ CORE CONCEPTS ============
+// Educational concepts for Industry Orbits (CPAC format)
 
+export const coreConcepts = pgTable("core_concepts", {
+  id: serial("id").primaryKey(),
+  orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
+  
+  conceptId: text("concept_id").notNull(), // e.g., "concept-privacy"
+  label: text("label").notNull(),
+  whyItMatters: text("why_it_matters"),
+  starterQuestions: jsonb("starter_questions").$type<string[]>().default([]),
+  intentTags: jsonb("intent_tags").$type<string[]>().default([]),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCoreConceptSchema = createInsertSchema(coreConcepts).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertCoreConcept = z.infer<typeof insertCoreConceptSchema>;
+export type CoreConcept = typeof coreConcepts.$inferSelect;
+
+// ============ CPAC SEED PACK SCHEMA ============
+// Canonical Pulse And Content pack format for Industry Orbits
+
+// Source agent metadata
+export const cpacSourceAgentSchema = z.object({
+  name: z.string(),
+  model: z.string().optional(),
+  notes: z.string().optional(),
+});
+export type CpacSourceAgent = z.infer<typeof cpacSourceAgentSchema>;
+
+// UI defaults for orbit
+export const cpacUiDefaultsSchema = z.object({
+  showProofOfLife: z.boolean().optional(),
+  proofOfLifeMode: z.enum(['updated_recently', 'always', 'never']).optional(),
+  enableAmbientTileMotion: z.boolean().optional(),
+  enableIntentGravity: z.boolean().optional(),
+  enableEvidenceArtefacts: z.boolean().optional(),
+});
+export type CpacUiDefaults = z.infer<typeof cpacUiDefaultsSchema>;
+
+// Governance rules
+export const cpacGovernanceSchema = z.object({
+  neutrality: z.object({
+    isUnowned: z.boolean().optional(),
+    sponsorsDoNotInfluenceIntelligence: z.boolean().optional(),
+    influencersDoNotPublishConclusions: z.boolean().optional(),
+  }).optional(),
+  dataQuality: z.object({
+    doNotInventRss: z.boolean().optional(),
+    requireSourceUrlForSpecs: z.boolean().optional(),
+    avoidFakeNumbers: z.boolean().optional(),
+  }).optional(),
+});
+export type CpacGovernance = z.infer<typeof cpacGovernanceSchema>;
+
+// Importance scoring rules
+export const cpacImportanceScoringSchema = z.object({
+  eventType: z.string(),
+  high: z.string().optional(),
+  medium: z.string().optional(),
+  low: z.string().optional(),
+});
+
+// Monitoring rules
+export const cpacMonitoringRulesSchema = z.object({
+  dedupeRules: z.array(z.string()).optional(),
+  importanceScoring: z.array(cpacImportanceScoringSchema).optional(),
+  extractionHints: z.object({
+    preferSelectors: z.array(z.string()).optional(),
+    ignoreSelectors: z.array(z.string()).optional(),
+  }).optional(),
+});
+export type CpacMonitoringRules = z.infer<typeof cpacMonitoringRulesSchema>;
+
+// Asset licensing
+export const cpacAssetLicensingSchema = z.object({
+  status: z.enum(['unknown', 'public_domain', 'creative_commons', 'licensed', 'proprietary']).optional(),
+  notes: z.string().optional(),
+});
+export type CpacAssetLicensing = z.infer<typeof cpacAssetLicensingSchema>;
+
+// ============ SEED PACK SCHEMA ============
+// JSON structure for importing Industry Orbit data (CPAC-compatible)
+
+// Core concept for seed pack
+export const seedPackCoreConceptSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  whyItMatters: z.string().optional(),
+  starterQuestions: z.array(z.string()).optional(),
+  intentTags: z.array(z.string()).optional(),
+});
+
+// Entity with CPAC additions
 export const seedPackEntitySchema = z.object({
+  id: z.string().optional(), // CPAC entity ID like "ent-meta"
   entityType: z.enum(['manufacturer', 'platform', 'standards', 'publication', 'influencer', 'community', 'retailer', 'distributor']),
   name: z.string(),
   description: z.string().optional(),
   websiteUrl: z.string().optional(),
   regionTags: z.array(z.string()).optional(),
   trustLevel: z.enum(['official', 'trade', 'independent']).optional(),
+  // CPAC additions
+  logoAssetRef: z.string().nullable().optional(),
+  socialUrls: z.object({
+    x: z.string().nullable().optional(),
+    linkedin: z.string().nullable().optional(),
+    youtube: z.string().nullable().optional(),
+    instagram: z.string().nullable().optional(),
+  }).optional(),
+  notes: z.string().optional(),
 });
 
+// Product with CPAC additions
 export const seedPackProductSchema = z.object({
+  id: z.string().optional(), // CPAC product ID like "prod-example-1"
   name: z.string(),
   manufacturerName: z.string().optional(), // Resolved to ID during import
+  manufacturerEntityId: z.string().optional(), // CPAC reference like "ent-meta"
   category: z.enum(['consumer', 'enterprise', 'developer']).optional(),
   status: z.enum(['shipping', 'announced', 'rumoured', 'discontinued']).optional(),
-  releaseDate: z.string().optional(), // ISO date string
+  releaseDate: z.string().nullable().optional(), // ISO date string
   primaryUrl: z.string().optional(),
   summary: z.string().optional(),
+  heroAssetRef: z.string().nullable().optional(),
+  // CPAC additions
+  mediaRefs: z.object({
+    imageAssetRefs: z.array(z.string()).optional(),
+    videoAssetRefs: z.array(z.string()).optional(),
+  }).optional(),
+  referenceUrls: z.array(z.string()).optional(),
+  intentTags: z.array(z.string()).optional(),
   specs: z.array(z.object({
-    key: z.string(),
-    value: z.string(),
-    unit: z.string().optional(),
+    specKey: z.string(),
+    specValue: z.string(),
+    specUnit: z.string().nullable().optional(),
     sourceUrl: z.string().optional(),
+    lastVerifiedAt: z.string().nullable().optional(),
   })).optional(),
 });
 
+// Review with CPAC additions
 export const seedPackReviewSchema = z.object({
+  id: z.string().optional(),
   title: z.string(),
   url: z.string(),
   productName: z.string().optional(), // Resolved to ID during import
+  productId: z.string().optional(), // CPAC reference
   reviewerName: z.string().optional(), // Resolved to entity ID
-  publishedAt: z.string().optional(),
-  ratingValue: z.number().optional(),
-  ratingScale: z.number().optional(),
+  reviewerEntityId: z.string().optional(), // CPAC reference
+  publishedAt: z.string().nullable().optional(),
+  ratingValue: z.number().nullable().optional(),
+  ratingScale: z.number().nullable().optional(),
   summary: z.string().optional(),
   sentiment: z.enum(['positive', 'mixed', 'negative', 'unknown']).optional(),
 });
 
+// Community with CPAC additions
 export const seedPackCommunitySchema = z.object({
+  id: z.string().optional(),
   name: z.string(),
   url: z.string(),
   communityType: z.enum(['forum', 'subreddit', 'discord', 'slack', 'community_site', 'event_series']),
   notes: z.string().optional(),
+  // CPAC addition
+  regionTags: z.array(z.string()).optional(),
 });
 
+// Tile with CPAC additions
 export const seedPackTileSchema = z.object({
+  id: z.string().optional(),
   label: z.string(),
   sublabel: z.string().optional(),
   intentTags: z.array(z.string()).optional(),
   priority: z.number().optional(),
+  // CPAC addition
+  evidenceRefs: z.object({
+    productIds: z.array(z.string()).optional(),
+    entityIds: z.array(z.string()).optional(),
+    communityIds: z.array(z.string()).optional(),
+  }).optional(),
 });
 
+// Pulse source with CPAC additions
 export const seedPackPulseSourceSchema = z.object({
+  id: z.string().optional(),
   name: z.string(),
   sourceType: z.enum(['manufacturer', 'publication', 'influencer', 'standards', 'community', 'retailer']),
   url: z.string(),
-  rssUrl: z.string().optional(),
+  rssUrl: z.string().nullable().optional(),
   monitoringMethod: z.enum(['rss', 'page_monitor']).optional(),
   updateFrequency: z.enum(['daily', 'twice_weekly', 'weekly']).optional(),
   trustLevel: z.enum(['official', 'trade', 'independent']).optional(),
@@ -3277,12 +3453,71 @@ export const seedPackPulseSourceSchema = z.object({
     'product_launch', 'firmware_update', 'pricing_change', 'compatibility_change',
     'regulatory_change', 'review', 'rumour', 'partnership', 'availability_change'
   ])).optional(),
+  // CPAC additions
+  keywordTriggers: z.array(z.string()).optional(),
+  notes: z.string().optional(),
 });
 
+// Asset with CPAC format
+export const seedPackAssetSchema = z.object({
+  assetRef: z.string(),
+  assetType: z.enum(['image', 'video', 'document']),
+  title: z.string().optional(),
+  sourceUrl: z.string().optional(),
+  licensing: cpacAssetLicensingSchema.optional(),
+});
+
+// Full CPAC-compatible seed pack schema
+export const cpacSeedPackSchema = z.object({
+  // CPAC metadata
+  cpacVersion: z.string().optional(),
+  packType: z.literal('industry_orbit_cpac').optional(),
+  generatedAt: z.string().optional(),
+  sourceAgent: cpacSourceAgentSchema.optional(),
+  
+  // Orbit configuration
+  orbit: z.object({
+    slug: z.string(),
+    title: z.string(),
+    summary: z.string().optional(),
+    regionFocus: z.array(z.string()).optional(),
+    language: z.string().optional(),
+    orbitType: z.literal('industry').optional(),
+    visibility: z.enum(['public', 'private']).optional(),
+    tags: z.array(z.string()).optional(),
+    uiDefaults: cpacUiDefaultsSchema.optional(),
+  }).optional(),
+  
+  // Seed pack content
+  seedPack: z.object({
+    coreConcepts: z.array(seedPackCoreConceptSchema).optional(),
+    starterTiles: z.array(seedPackTileSchema).optional(),
+  }).optional(),
+  
+  // Main data arrays
+  entities: z.array(seedPackEntitySchema).optional(),
+  products: z.array(seedPackProductSchema).optional(),
+  reviews: z.array(seedPackReviewSchema).optional(),
+  communities: z.array(seedPackCommunitySchema).optional(),
+  assets: z.array(seedPackAssetSchema).optional(),
+  
+  // Pulse monitoring
+  pulse: z.object({
+    sources: z.array(seedPackPulseSourceSchema).optional(),
+    monitoringRules: cpacMonitoringRulesSchema.optional(),
+  }).optional(),
+  
+  // Governance
+  governance: cpacGovernanceSchema.optional(),
+});
+
+export type CpacSeedPack = z.infer<typeof cpacSeedPackSchema>;
+
+// Legacy seed pack schema (backwards compatible)
 export const seedPackSchema = z.object({
   version: z.string().default("1.0"),
   orbitSlug: z.string(),
-  title: z.string(),
+  title: z.string().optional(),
   summary: z.string().optional(),
   entities: z.array(seedPackEntitySchema).optional(),
   products: z.array(seedPackProductSchema).optional(),
