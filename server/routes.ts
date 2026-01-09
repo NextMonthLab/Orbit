@@ -15449,6 +15449,37 @@ GUIDELINES:
     }
   });
   
+  // ============ INDUSTRY ASSET SERVING ============
+  
+  // GET /api/assets/:id - Serve industry asset by ID (redirect to storage URL)
+  app.get("/api/assets/:id", async (req, res) => {
+    const { id } = req.params;
+    const assetId = parseInt(id, 10);
+    
+    if (isNaN(assetId)) {
+      return res.status(400).json({ message: "Invalid asset ID" });
+    }
+    
+    try {
+      const asset = await storage.getIndustryAsset(assetId);
+      
+      if (!asset) {
+        return res.status(404).json({ message: "Asset not found" });
+      }
+      
+      if (!asset.storageUrl) {
+        return res.status(404).json({ message: "Asset has no storage URL" });
+      }
+      
+      // Redirect to the actual storage URL
+      res.redirect(asset.storageUrl);
+      
+    } catch (error) {
+      console.error("[Assets] Error serving asset:", error);
+      res.status(500).json({ message: "Failed to serve asset" });
+    }
+  });
+  
   // ============ CPAC EXPORT/IMPORT API ============
   
   // GET /api/industry-orbits - List all industry orbits
