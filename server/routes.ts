@@ -15451,6 +15451,29 @@ GUIDELINES:
   
   // ============ CPAC EXPORT/IMPORT API ============
   
+  // GET /api/industry-orbits - List all industry orbits
+  app.get("/api/industry-orbits", async (req, res) => {
+    try {
+      const industryOrbits = await db.select({
+        id: schema.orbitMeta.id,
+        slug: schema.orbitMeta.businessSlug,
+        title: schema.orbitMeta.customTitle,
+      })
+        .from(schema.orbitMeta)
+        .where(eq(schema.orbitMeta.orbitType, 'industry'));
+      
+      res.json({ 
+        orbits: industryOrbits.map(o => ({
+          ...o,
+          title: o.title || o.slug,
+        }))
+      });
+    } catch (error) {
+      console.error("[Industry Orbits] Error listing orbits:", error);
+      res.status(500).json({ message: "Failed to list industry orbits" });
+    }
+  });
+  
   const { exportCpac, exportAssetsReviewCsv, applyAssetApprovals, parseAssetApprovalsCsv } = await import("./services/cpacExportService");
   
   // GET /api/industry-orbits/:slug/cpac - Export full CPAC JSON

@@ -121,6 +121,9 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// Add text parser for CSV uploads
+app.use(express.text({ type: 'text/csv' }));
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
