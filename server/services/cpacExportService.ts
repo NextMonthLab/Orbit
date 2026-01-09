@@ -1,0 +1,674 @@
+import { storage } from "../storage";
+import type {
+  IndustryEntity,
+  IndustryProduct,
+  IndustryReview,
+  CommunityLink,
+  TopicTile,
+  PulseSource,
+  CoreConcept,
+  ProductSpec,
+  IndustryAsset,
+  OrbitMeta,
+} from "@shared/schema";
+
+// CPAC v1.0 Export Format
+// Universal format for all Industry Orbits
+// Round-trip compatible with importer
+
+export interface CpacV1Export {
+  formatVersion: "1.0.0";
+  cpacVersion: "1.0.0";
+  packType: "export";
+  generatedAt: string;
+  sourceAgent: {
+    name: string;
+    version: string;
+  };
+  orbit: {
+    slug: string;
+    title: string;
+    type: "industry";
+    summary?: string;
+    regionFocus?: string[];
+    language?: string;
+    visibility?: string;
+    tags?: string[];
+  };
+  coreConcepts: CpacCoreConcept[];
+  entities: CpacEntity[];
+  products: CpacProduct[];
+  reviews: CpacReview[];
+  communities: CpacCommunity[];
+  tiles: CpacTile[];
+  pulseSources: CpacPulseSource[];
+  assets: CpacAsset[];
+}
+
+export interface CpacCoreConcept {
+  id: string;
+  label: string;
+  whyItMatters?: string | null;
+  starterQuestions?: string[];
+  intentTags?: string[];
+}
+
+export interface CpacEntity {
+  id: string;
+  name: string;
+  entityType: string;
+  description?: string | null;
+  websiteUrl?: string | null;
+  regionTags?: string[];
+  trustLevel: string;
+  logoUrl?: string | null;
+  logoSourceUrl?: string | null;
+  logoSourceType?: string | null;
+  socialUrls?: {
+    x?: string | null;
+    linkedin?: string | null;
+    youtube?: string | null;
+    instagram?: string | null;
+  };
+  notes?: string | null;
+}
+
+export interface CpacProductSpec {
+  specKey: string;
+  specValue: string;
+  specUnit?: string | null;
+  sourceUrl?: string | null;
+  lastVerifiedAt?: string | null;
+}
+
+export interface CpacProduct {
+  id: string;
+  name: string;
+  manufacturerEntityId?: string | null;
+  category: string;
+  status: string;
+  releaseDate?: string | null;
+  primaryUrl?: string | null;
+  summary?: string | null;
+  heroImageUrl?: string | null;
+  heroSourceUrl?: string | null;
+  heroSourceType?: string | null;
+  mediaRefs?: {
+    imageAssetRefs?: string[];
+    videoAssetRefs?: string[];
+  };
+  referenceUrls?: string[];
+  intentTags?: string[];
+  specs?: CpacProductSpec[];
+}
+
+export interface CpacReview {
+  id: string;
+  title: string;
+  url: string;
+  productId?: string | null;
+  reviewerEntityId?: string | null;
+  publishedAt?: string | null;
+  ratingValue?: number | null;
+  ratingScale?: number | null;
+  summary?: string | null;
+  sentiment: string;
+}
+
+export interface CpacCommunity {
+  id: string;
+  name: string;
+  url: string;
+  communityType: string;
+  regionTags?: string[];
+  notes?: string | null;
+}
+
+export interface CpacTile {
+  id: string;
+  label: string;
+  sublabel?: string | null;
+  intentTags?: string[];
+  priority?: number | null;
+  badgeState?: {
+    new?: boolean;
+    trending?: boolean;
+    debated?: boolean;
+    updatedRecently?: boolean;
+  };
+  evidenceRefs?: {
+    productIds?: string[];
+    entityIds?: string[];
+    communityIds?: string[];
+  };
+}
+
+export interface CpacPulseSource {
+  id: string;
+  name: string;
+  sourceType: string;
+  url: string;
+  rssUrl?: string | null;
+  monitoringMethod?: string | null;
+  updateFrequency?: string | null;
+  trustLevel?: string | null;
+  eventTypes?: string[];
+  isEnabled: boolean;
+  keywordTriggers?: string[];
+  notes?: string | null;
+}
+
+export interface CpacAsset {
+  id: string;
+  assetType: string;
+  storageUrl: string;
+  thumbUrl?: string | null;
+  sourceUrl?: string | null;
+  title?: string | null;
+}
+
+// ID mapping for cross-references (DB IDs to CPAC string IDs)
+interface IdMaps {
+  entities: Map<number, string>;
+  products: Map<number, string>;
+  communities: Map<number, string>;
+  assets: Map<number, string>;
+}
+
+function generateCpacId(type: string, name: string, dbId: number): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 40);
+  return `${type}-${slug}-${dbId}`;
+}
+
+function formatDate(date: Date | null | undefined): string | null {
+  if (!date) return null;
+  return date.toISOString().split('T')[0];
+}
+
+function formatTimestamp(date: Date | null | undefined): string | undefined {
+  if (!date) return undefined;
+  return date.toISOString();
+}
+
+function stripNulls<T extends Record<string, unknown>>(obj: T): T {
+  const result = {} as T;
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== null && value !== undefined) {
+      result[key as keyof T] = value as T[keyof T];
+    }
+  }
+  return result;
+}
+
+export async function exportCpac(orbitMeta: OrbitMeta): Promise<CpacV1Export> {
+  const orbitId = orbitMeta.id;
+  
+  // Fetch all data from database in parallel
+  const [
+    entities,
+    products,
+    reviews,
+    communities,
+    tiles,
+    pulseSources,
+    coreConcepts,
+    assets,
+  ] = await Promise.all([
+    storage.getIndustryEntitiesByOrbit(orbitId),
+    storage.getIndustryProductsByOrbit(orbitId),
+    storage.getIndustryReviewsByOrbit(orbitId),
+    storage.getCommunityLinksByOrbit(orbitId),
+    storage.getTopicTilesByOrbit(orbitId),
+    storage.getPulseSourcesByOrbit(orbitId),
+    storage.getCoreConceptsByOrbit(orbitId),
+    storage.getIndustryAssetsByOrbit(orbitId),
+  ]);
+  
+  // Fetch specs for all products
+  const productSpecs = new Map<number, ProductSpec[]>();
+  for (const product of products) {
+    const specs = await storage.getProductSpecs(product.id);
+    productSpecs.set(product.id, specs);
+  }
+  
+  // Build ID maps for cross-references
+  const idMaps: IdMaps = {
+    entities: new Map(entities.map(e => [e.id, generateCpacId('entity', e.name, e.id)])),
+    products: new Map(products.map(p => [p.id, generateCpacId('product', p.name, p.id)])),
+    communities: new Map(communities.map(c => [c.id, generateCpacId('community', c.name, c.id)])),
+    assets: new Map(assets.map(a => [a.id, generateCpacId('asset', a.title || 'asset', a.id)])),
+  };
+  
+  // Build asset URL lookup
+  const assetUrls = new Map(assets.map(a => [a.id, a.storageUrl]));
+  const assetSources = new Map(assets.map(a => [a.id, a.sourceUrl]));
+  
+  // Sort everything deterministically by ID for stable exports
+  const sortById = <T extends { id: number }>(arr: T[]) => [...arr].sort((a, b) => a.id - b.id);
+  
+  const cpacEntities: CpacEntity[] = sortById(entities).map(e => stripNulls({
+    id: idMaps.entities.get(e.id)!,
+    name: e.name,
+    entityType: e.entityType,
+    description: e.description || undefined,
+    websiteUrl: e.websiteUrl || undefined,
+    regionTags: (e.regionTags as string[]) || [],
+    trustLevel: e.trustLevel,
+    logoUrl: e.logoAssetId ? assetUrls.get(e.logoAssetId) : undefined,
+    logoSourceUrl: e.logoAssetId ? assetSources.get(e.logoAssetId) || undefined : undefined,
+    logoSourceType: e.logoAssetId ? "UPLOADED" : undefined,
+    socialUrls: e.socialUrls as CpacEntity['socialUrls'],
+    notes: e.notes || undefined,
+  }) as CpacEntity);
+  
+  const cpacProducts: CpacProduct[] = sortById(products).map(p => stripNulls({
+    id: idMaps.products.get(p.id)!,
+    name: p.name,
+    manufacturerEntityId: p.manufacturerEntityId ? idMaps.entities.get(p.manufacturerEntityId) : undefined,
+    category: p.category,
+    status: p.status,
+    releaseDate: formatDate(p.releaseDate) || undefined,
+    primaryUrl: p.primaryUrl || undefined,
+    summary: p.summary || undefined,
+    heroImageUrl: p.heroAssetId ? assetUrls.get(p.heroAssetId) : undefined,
+    heroSourceUrl: p.heroAssetId ? assetSources.get(p.heroAssetId) || undefined : undefined,
+    heroSourceType: p.heroAssetId ? "UPLOADED" : undefined,
+    mediaRefs: p.mediaRefs as CpacProduct['mediaRefs'],
+    referenceUrls: (p.referenceUrls as string[]) || [],
+    intentTags: (p.intentTags as string[]) || [],
+    specs: (productSpecs.get(p.id) || []).map(s => stripNulls({
+      specKey: s.specKey,
+      specValue: s.specValue,
+      specUnit: s.specUnit || undefined,
+      sourceUrl: s.sourceUrl || undefined,
+      lastVerifiedAt: formatTimestamp(s.lastVerifiedAt),
+    }) as CpacProductSpec),
+  }) as CpacProduct);
+  
+  const cpacReviews: CpacReview[] = sortById(reviews).map(r => stripNulls({
+    id: generateCpacId('review', r.title, r.id),
+    title: r.title,
+    url: r.url,
+    productId: r.productId ? idMaps.products.get(r.productId) : undefined,
+    reviewerEntityId: r.reviewerEntityId ? idMaps.entities.get(r.reviewerEntityId) : undefined,
+    publishedAt: formatDate(r.publishedAt) || undefined,
+    ratingValue: r.ratingValue ?? undefined,
+    ratingScale: r.ratingScale ?? undefined,
+    summary: r.summary || undefined,
+    sentiment: r.sentiment,
+  }) as CpacReview);
+  
+  const cpacCommunities: CpacCommunity[] = sortById(communities).map(c => stripNulls({
+    id: idMaps.communities.get(c.id)!,
+    name: c.name,
+    url: c.url,
+    communityType: c.communityType,
+    regionTags: (c.regionTags as string[]) || [],
+    notes: c.notes || undefined,
+  }) as CpacCommunity);
+  
+  const cpacTiles: CpacTile[] = sortById(tiles).map(t => stripNulls({
+    id: generateCpacId('tile', t.label, t.id),
+    label: t.label,
+    sublabel: t.sublabel || undefined,
+    intentTags: (t.intentTags as string[]) || [],
+    priority: t.priority ?? undefined,
+    badgeState: t.badgeState as CpacTile['badgeState'],
+    evidenceRefs: t.evidenceRefs as CpacTile['evidenceRefs'],
+  }) as CpacTile);
+  
+  const cpacPulseSources: CpacPulseSource[] = sortById(pulseSources).map(ps => stripNulls({
+    id: generateCpacId('pulse', ps.name, ps.id),
+    name: ps.name,
+    sourceType: ps.sourceType,
+    url: ps.url,
+    rssUrl: ps.rssUrl || undefined,
+    monitoringMethod: ps.monitoringMethod || undefined,
+    updateFrequency: ps.updateFrequency || undefined,
+    trustLevel: ps.trustLevel || undefined,
+    eventTypes: (ps.eventTypes as string[]) || [],
+    isEnabled: ps.isEnabled ?? true,
+    keywordTriggers: (ps.keywordTriggers as string[]) || [],
+    notes: ps.notes || undefined,
+  }) as CpacPulseSource);
+  
+  const cpacCoreConcepts: CpacCoreConcept[] = sortById(coreConcepts).map(cc => stripNulls({
+    id: generateCpacId('concept', cc.label, cc.id),
+    label: cc.label,
+    whyItMatters: cc.whyItMatters || undefined,
+    starterQuestions: (cc.starterQuestions as string[]) || [],
+    intentTags: (cc.intentTags as string[]) || [],
+  }) as CpacCoreConcept);
+  
+  const cpacAssets: CpacAsset[] = sortById(assets).map(a => stripNulls({
+    id: idMaps.assets.get(a.id)!,
+    assetType: a.assetType,
+    storageUrl: a.storageUrl,
+    thumbUrl: a.thumbUrl || undefined,
+    sourceUrl: a.sourceUrl || undefined,
+    title: a.title || undefined,
+  }) as CpacAsset);
+  
+  return {
+    formatVersion: "1.0.0",
+    cpacVersion: "1.0.0",
+    packType: "export",
+    generatedAt: new Date().toISOString(),
+    sourceAgent: {
+      name: "NextMonth CPAC Exporter",
+      version: "1.0.0",
+    },
+    orbit: {
+      slug: orbitMeta.businessSlug,
+      title: orbitMeta.customTitle || orbitMeta.businessSlug,
+      type: "industry",
+      summary: orbitMeta.customDescription || undefined,
+      visibility: orbitMeta.visibility || "public",
+    },
+    coreConcepts: cpacCoreConcepts,
+    entities: cpacEntities,
+    products: cpacProducts,
+    reviews: cpacReviews,
+    communities: cpacCommunities,
+    tiles: cpacTiles,
+    pulseSources: cpacPulseSources,
+    assets: cpacAssets,
+  };
+}
+
+// Asset Review CSV Row
+export interface AssetReviewRow {
+  itemType: "entity" | "product";
+  itemName: string;
+  cpacId: string;
+  imageType: "logo" | "hero";
+  candidateImageUrl: string;
+  sourcePageUrl: string;
+  sourceType: string;
+  confidence: string;
+  approved: string;
+  reviewerNotes: string;
+}
+
+export async function exportAssetsReviewCsv(orbitMeta: OrbitMeta): Promise<string> {
+  const orbitId = orbitMeta.id;
+  
+  const [entities, products, assets] = await Promise.all([
+    storage.getIndustryEntitiesByOrbit(orbitId),
+    storage.getIndustryProductsByOrbit(orbitId),
+    storage.getIndustryAssetsByOrbit(orbitId),
+  ]);
+  
+  const assetUrls = new Map(assets.map(a => [a.id, a.storageUrl]));
+  const assetSources = new Map(assets.map(a => [a.id, a.sourceUrl || '']));
+  
+  const rows: AssetReviewRow[] = [];
+  
+  // Sort entities and products for deterministic output
+  const sortedEntities = [...entities].sort((a, b) => a.id - b.id);
+  const sortedProducts = [...products].sort((a, b) => a.id - b.id);
+  
+  // Add entity rows
+  for (const entity of sortedEntities) {
+    const cpacId = generateCpacId('entity', entity.name, entity.id);
+    rows.push({
+      itemType: "entity",
+      itemName: entity.name,
+      cpacId,
+      imageType: "logo",
+      candidateImageUrl: entity.logoAssetId ? assetUrls.get(entity.logoAssetId) || '' : '',
+      sourcePageUrl: entity.logoAssetId ? assetSources.get(entity.logoAssetId) || '' : '',
+      sourceType: entity.logoAssetId ? "UPLOADED" : "",
+      confidence: "",
+      approved: "",
+      reviewerNotes: "",
+    });
+  }
+  
+  // Add product rows
+  for (const product of sortedProducts) {
+    const cpacId = generateCpacId('product', product.name, product.id);
+    rows.push({
+      itemType: "product",
+      itemName: product.name,
+      cpacId,
+      imageType: "hero",
+      candidateImageUrl: product.heroAssetId ? assetUrls.get(product.heroAssetId) || '' : '',
+      sourcePageUrl: product.heroAssetId ? assetSources.get(product.heroAssetId) || '' : '',
+      sourceType: product.heroAssetId ? "UPLOADED" : "",
+      confidence: "",
+      approved: "",
+      reviewerNotes: "",
+    });
+  }
+  
+  // Generate CSV with proper escaping
+  const headers = [
+    "Item Type",
+    "Item Name",
+    "CPAC ID",
+    "Image Type",
+    "Candidate Image URL",
+    "Source Page URL",
+    "Source Type",
+    "Confidence",
+    "Approved",
+    "Reviewer Notes",
+  ];
+  
+  const escapeCsvField = (field: string): string => {
+    if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+      return `"${field.replace(/"/g, '""')}"`;
+    }
+    return field;
+  };
+  
+  const csvLines = [
+    headers.join(','),
+    ...rows.map(row => [
+      escapeCsvField(row.itemType),
+      escapeCsvField(row.itemName),
+      escapeCsvField(row.cpacId),
+      escapeCsvField(row.imageType),
+      escapeCsvField(row.candidateImageUrl),
+      escapeCsvField(row.sourcePageUrl),
+      escapeCsvField(row.sourceType),
+      escapeCsvField(row.confidence),
+      escapeCsvField(row.approved),
+      escapeCsvField(row.reviewerNotes),
+    ].join(',')),
+  ];
+  
+  return csvLines.join('\n');
+}
+
+// Asset approval input
+export interface AssetApprovalInput {
+  cpacId: string;
+  imageType: "logo" | "hero";
+  candidateImageUrl: string;
+  sourcePageUrl: string;
+  sourceType: "OFFICIAL_BRAND" | "OFFICIAL_PRODUCT" | "PRESS_KIT" | "UPLOADED";
+  approved: "YES" | "NO" | "";
+  reviewerNotes?: string;
+}
+
+export interface AssetApprovalResult {
+  updated: number;
+  rejected: number;
+  skipped: number;
+  errors: string[];
+  warnings: string[];
+}
+
+export async function applyAssetApprovals(
+  orbitMeta: OrbitMeta,
+  approvals: AssetApprovalInput[]
+): Promise<AssetApprovalResult> {
+  const orbitId = orbitMeta.id;
+  const result: AssetApprovalResult = {
+    updated: 0,
+    rejected: 0,
+    skipped: 0,
+    errors: [],
+    warnings: [],
+  };
+  
+  const [entities, products] = await Promise.all([
+    storage.getIndustryEntitiesByOrbit(orbitId),
+    storage.getIndustryProductsByOrbit(orbitId),
+  ]);
+  
+  // Build lookup maps from CPAC ID to DB record
+  const entityByCpacId = new Map<string, IndustryEntity>();
+  for (const entity of entities) {
+    const cpacId = generateCpacId('entity', entity.name, entity.id);
+    entityByCpacId.set(cpacId, entity);
+  }
+  
+  const productByCpacId = new Map<string, IndustryProduct>();
+  for (const product of products) {
+    const cpacId = generateCpacId('product', product.name, product.id);
+    productByCpacId.set(cpacId, product);
+  }
+  
+  for (const approval of approvals) {
+    // Only process YES approvals
+    if (approval.approved !== "YES") {
+      if (approval.approved === "NO") {
+        result.rejected++;
+      } else {
+        result.skipped++;
+      }
+      continue;
+    }
+    
+    // Validate required fields
+    if (!approval.candidateImageUrl) {
+      result.errors.push(`Missing candidateImageUrl for ${approval.cpacId}`);
+      continue;
+    }
+    
+    if (!approval.sourceType) {
+      result.warnings.push(`Missing sourceType for ${approval.cpacId}, defaulting to UPLOADED`);
+      approval.sourceType = "UPLOADED";
+    }
+    
+    if (approval.imageType === "logo") {
+      const entity = entityByCpacId.get(approval.cpacId);
+      if (!entity) {
+        result.errors.push(`Entity not found: ${approval.cpacId}`);
+        continue;
+      }
+      
+      // Create or update asset
+      const asset = await storage.createIndustryAsset({
+        orbitId,
+        assetType: 'image',
+        storageUrl: approval.candidateImageUrl,
+        sourceUrl: approval.sourcePageUrl || null,
+        title: `${entity.name} logo`,
+      });
+      
+      // Update entity with new asset ID
+      await storage.updateIndustryEntity(entity.id, {
+        logoAssetId: asset.id,
+      });
+      
+      result.updated++;
+    } else if (approval.imageType === "hero") {
+      const product = productByCpacId.get(approval.cpacId);
+      if (!product) {
+        result.errors.push(`Product not found: ${approval.cpacId}`);
+        continue;
+      }
+      
+      // Create or update asset
+      const asset = await storage.createIndustryAsset({
+        orbitId,
+        assetType: 'image',
+        storageUrl: approval.candidateImageUrl,
+        sourceUrl: approval.sourcePageUrl || null,
+        title: `${product.name} hero`,
+      });
+      
+      // Update product with new asset ID
+      await storage.updateIndustryProduct(product.id, {
+        heroAssetId: asset.id,
+      });
+      
+      result.updated++;
+    } else {
+      result.errors.push(`Unknown imageType "${approval.imageType}" for ${approval.cpacId}`);
+    }
+  }
+  
+  return result;
+}
+
+// Parse CSV to approval inputs
+export function parseAssetApprovalsCsv(csvContent: string): AssetApprovalInput[] {
+  const lines = csvContent.split('\n').filter(line => line.trim());
+  if (lines.length < 2) return [];
+  
+  // Skip header row
+  const dataLines = lines.slice(1);
+  const approvals: AssetApprovalInput[] = [];
+  
+  for (const line of dataLines) {
+    // Parse CSV with proper handling of quoted fields
+    const fields = parseCsvLine(line);
+    if (fields.length < 10) continue;
+    
+    approvals.push({
+      cpacId: fields[2] || '',
+      imageType: fields[3] as "logo" | "hero",
+      candidateImageUrl: fields[4] || '',
+      sourcePageUrl: fields[5] || '',
+      sourceType: (fields[6] || 'UPLOADED') as AssetApprovalInput['sourceType'],
+      approved: (fields[8] || '').toUpperCase() as "YES" | "NO" | "",
+      reviewerNotes: fields[9] || '',
+    });
+  }
+  
+  return approvals;
+}
+
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (inQuotes) {
+      if (char === '"') {
+        if (line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ',') {
+        fields.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+  }
+  
+  fields.push(current);
+  return fields;
+}

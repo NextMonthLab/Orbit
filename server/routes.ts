@@ -15433,7 +15433,7 @@ GUIDELINES:
       
       const knowledge = await getOrbitKnowledge(
         orbitMeta.id, 
-        orbitMeta.customTitle || orbitMeta.businessName || slug
+        orbitMeta.customTitle || slug
       );
       
       res.json({
@@ -15446,6 +15446,138 @@ GUIDELINES:
     } catch (error) {
       console.error("[Orbit Knowledge] Error:", error);
       res.status(500).json({ message: "Failed to get orbit knowledge" });
+    }
+  });
+  
+  // ============ CPAC EXPORT/IMPORT API ============
+  
+  const { exportCpac, exportAssetsReviewCsv, applyAssetApprovals, parseAssetApprovalsCsv } = await import("./services/cpacExportService");
+  
+  // GET /api/industry-orbits/:slug/cpac - Export full CPAC JSON
+  app.get("/api/industry-orbits/:slug/cpac", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.orbitType !== 'industry') {
+        return res.status(403).json({ 
+          message: "CPAC export is only available for Industry Orbits",
+          code: "NOT_INDUSTRY_ORBIT"
+        });
+      }
+      
+      const cpac = await exportCpac(orbitMeta);
+      
+      // Set filename for download
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${slug}-cpac-v1.json"`);
+      
+      res.json(cpac);
+      
+    } catch (error) {
+      console.error("[CPAC Export] Error:", error);
+      res.status(500).json({ message: "Failed to export CPAC" });
+    }
+  });
+  
+  // GET /api/industry-orbits/:slug/assets-review.csv - Export assets review CSV
+  app.get("/api/industry-orbits/:slug/assets-review.csv", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.orbitType !== 'industry') {
+        return res.status(403).json({ 
+          message: "Assets review export is only available for Industry Orbits",
+          code: "NOT_INDUSTRY_ORBIT"
+        });
+      }
+      
+      const csv = await exportAssetsReviewCsv(orbitMeta);
+      
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${slug}-assets-review.csv"`);
+      
+      res.send(csv);
+      
+    } catch (error) {
+      console.error("[Assets Review Export] Error:", error);
+      res.status(500).json({ message: "Failed to export assets review CSV" });
+    }
+  });
+  
+  // POST /api/industry-orbits/:slug/assets-approvals - Apply asset approvals
+  app.post("/api/industry-orbits/:slug/assets-approvals", async (req, res) => {
+    const { slug } = req.params;
+    const contentType = req.headers['content-type'] || '';
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.orbitType !== 'industry') {
+        return res.status(403).json({ 
+          message: "Asset approvals are only available for Industry Orbits",
+          code: "NOT_INDUSTRY_ORBIT"
+        });
+      }
+      
+      let approvals;
+      
+      if (contentType.includes('text/csv')) {
+        // Parse CSV body
+        const csvContent = typeof req.body === 'string' ? req.body : req.body.toString();
+        approvals = parseAssetApprovalsCsv(csvContent);
+      } else if (contentType.includes('application/json')) {
+        // JSON array of approvals
+        if (!Array.isArray(req.body)) {
+          return res.status(400).json({ message: "Request body must be an array of approval rows" });
+        }
+        approvals = req.body;
+      } else {
+        return res.status(400).json({ 
+          message: "Content-Type must be text/csv or application/json" 
+        });
+      }
+      
+      if (!approvals || approvals.length === 0) {
+        return res.status(400).json({ message: "No approval rows provided" });
+      }
+      
+      const result = await applyAssetApprovals(orbitMeta, approvals);
+      
+      console.log(`[Asset Approvals] Applied to ${slug}:`, {
+        updated: result.updated,
+        rejected: result.rejected,
+        skipped: result.skipped,
+      });
+      
+      if (result.errors.length > 0) {
+        console.warn(`[Asset Approvals] Errors:`, result.errors);
+      }
+      
+      res.json({
+        success: result.errors.length === 0,
+        updated: result.updated,
+        rejected: result.rejected,
+        skipped: result.skipped,
+        errors: result.errors,
+        warnings: result.warnings,
+      });
+      
+    } catch (error) {
+      console.error("[Asset Approvals] Error:", error);
+      res.status(500).json({ message: "Failed to apply asset approvals" });
     }
   });
 
