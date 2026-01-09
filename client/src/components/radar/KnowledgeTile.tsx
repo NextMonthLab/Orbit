@@ -19,6 +19,13 @@ const typeIcons: Record<string, LucideIcon> = {
   action: Video,
   blog: Rss,
   social: Globe,
+  manufacturer: Briefcase,
+  product: Sparkles,
+  concept: Book,
+  qa: HelpCircle,
+  community: Users,
+  cta: Zap,
+  sponsored: Award,
 };
 
 const typeColors: Record<string, string> = {
@@ -29,6 +36,13 @@ const typeColors: Record<string, string> = {
   action: '#ec4899',
   blog: '#f97316',
   social: '#06b6d4',
+  manufacturer: '#6366f1',
+  product: '#14b8a6',
+  concept: '#a855f7',
+  qa: '#f59e0b',
+  community: '#10b981',
+  cta: '#f43f5e',
+  sponsored: '#facc15',
 };
 
 const socialIcons: Record<string, LucideIcon> = {
@@ -89,6 +103,13 @@ const typeImageQueries: Record<string, string[]> = {
   action: ['action button', 'call to action', 'contact form', 'schedule calendar', 'video conference', 'phone call', 'email inbox', 'booking appointment', 'quick response', 'instant message'],
   blog: ['blog article', 'writing desk', 'content creation', 'news article', 'publishing media', 'editorial content', 'newsletter design', 'journal writing', 'story telling', 'media content'],
   social: ['social media', 'digital marketing', 'online community', 'social network', 'viral content', 'engagement metrics', 'follower growth', 'influencer marketing', 'brand presence', 'social sharing'],
+  manufacturer: ['brand logo', 'company headquarters', 'tech company', 'corporate building', 'innovation lab', 'manufacturing facility', 'product design', 'technology campus', 'enterprise office', 'brand identity'],
+  product: ['smart glasses', 'wearable tech', 'AR device', 'tech gadget', 'electronic device', 'consumer electronics', 'product photography', 'tech hardware', 'digital accessory', 'modern device'],
+  concept: ['concept design', 'idea lightbulb', 'innovation thinking', 'creative process', 'abstract concept', 'knowledge learning', 'education diagram', 'understanding visualization', 'conceptual art', 'idea sketch'],
+  qa: ['question answer', 'help desk', 'FAQ support', 'customer service', 'knowledge base', 'information guide', 'help center', 'support ticket', 'assistance request', 'inquiry response'],
+  community: ['online community', 'user group', 'forum discussion', 'social gathering', 'community members', 'group collaboration', 'networking event', 'team meeting', 'user conference', 'community engagement'],
+  cta: ['call to action', 'button click', 'sign up form', 'action prompt', 'engagement button', 'subscribe now', 'get started', 'join community', 'take action', 'click here'],
+  sponsored: ['advertisement', 'sponsored content', 'promotional banner', 'marketing campaign', 'brand promotion', 'advertising media', 'commercial content', 'featured product', 'promotional offer', 'brand partnership'],
 };
 
 function hashString(str: string): number {

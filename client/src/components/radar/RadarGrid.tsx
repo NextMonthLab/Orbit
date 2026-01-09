@@ -300,6 +300,42 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
         }
         break;
       }
+      case 'manufacturer': {
+        const manufacturer = selectedItem as import('@/lib/siteKnowledge').Manufacturer;
+        const productInfo = manufacturer.productCount > 0 ? `${manufacturer.productCount} product${manufacturer.productCount > 1 ? 's' : ''}` : '';
+        const websiteInfo = manufacturer.websiteUrl ? `\n\nWebsite: ${manufacturer.websiteUrl}` : '';
+        message = `${manufacturer.name}${productInfo ? ` · ${productInfo}` : ''}${websiteInfo}\n\nAsk me about ${manufacturer.name}'s products or latest news.`;
+        break;
+      }
+      case 'product': {
+        const product = selectedItem as import('@/lib/siteKnowledge').Product;
+        const status = product.status || 'unknown';
+        const statusEmoji = status === 'shipping' ? '✅' : status === 'announced' ? '📢' : '🔮';
+        const specInfo = product.primarySpec ? `${product.primarySpec.key}: ${product.primarySpec.value}` : '';
+        const manufacturerPart = product.manufacturerName ? ` by ${product.manufacturerName}` : '';
+        const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+        message = `${product.name}${manufacturerPart}\n\n${statusEmoji} ${statusLabel}${specInfo ? ` · ${specInfo}` : ''}${product.summary ? `\n\n${product.summary}` : ''}`;
+        break;
+      }
+      case 'concept': {
+        const concept = selectedItem as import('@/lib/siteKnowledge').Concept;
+        const questions = concept.starterQuestions?.slice(0, 2).map(q => `• ${q}`).join('\n') || '';
+        message = `${concept.label}\n\n${concept.whyItMatters}${questions ? `\n\nQuestions you might ask:\n${questions}` : ''}`;
+        break;
+      }
+      case 'qa': {
+        const qa = selectedItem as import('@/lib/siteKnowledge').QA;
+        message = `${qa.question}\n\n${qa.answer}`;
+        break;
+      }
+      case 'community': {
+        const community = selectedItem as import('@/lib/siteKnowledge').Community;
+        const communityType = community.communityType || 'online';
+        const typeLabel = communityType === 'subreddit' ? 'Reddit' : communityType.charAt(0).toUpperCase() + communityType.slice(1);
+        const urlPart = community.url ? `\n\nJoin: ${community.url}` : '';
+        message = `${community.name}\n\n${typeLabel} community${urlPart}`;
+        break;
+      }
       default:
         message = `${itemName}\n\n${summary}`;
     }
