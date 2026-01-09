@@ -15197,13 +15197,17 @@ GUIDELINES:
       const result = await importSeedPack(orbitMeta.id, seedPack);
       
       console.log(`[Industry Orbit Seed] Imported to ${slug}:`, result.imported);
+      if (result.skipped && Object.values(result.skipped).some(v => v > 0)) {
+        console.log(`[Industry Orbit Seed] Skipped:`, result.skipped);
+      }
       if (result.warnings && result.warnings.length > 0) {
-        console.log(`[Industry Orbit Seed] Warnings:`, result.warnings);
+        console.log(`[Industry Orbit Seed] Warnings:`, result.warnings.map(w => `[${w.severity}] ${w.message}`));
       }
       
       res.json({
         success: result.success,
         imported: result.imported,
+        skipped: result.skipped,
         errors: result.errors,
         warnings: result.warnings || [],
       });

@@ -332,6 +332,22 @@ export const seedPackSchema = z.object({
 
 export type SeedPack = z.infer<typeof seedPackSchema>;
 
+// Structured warning types
+export type WarningSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
+export type WarningCode = 
+  | 'UNSUPPORTED_SECTIONS'
+  | 'MISSING_MANUFACTURER_REF'
+  | 'INVALID_ENUM_VALUE'
+  | 'SKIPPED_RECORD';
+
+export interface StructuredWarning {
+  code: WarningCode;
+  severity: WarningSeverity;
+  message: string;
+  path?: string;
+  suggestedFix?: string;
+}
+
 export interface SeedResult {
   success: boolean;
   imported: {
@@ -345,8 +361,15 @@ export interface SeedResult {
     pulseSources: number;
     assets: number;
   };
+  skipped: {
+    products: number;
+    entities: number;
+    communities: number;
+    tiles: number;
+    pulseSources: number;
+  };
   errors: string[];
-  warnings: string[];
+  warnings: StructuredWarning[];
 }
 
 // Helper to get value with snake_case fallback
@@ -387,25 +410,35 @@ export async function importSeedPack(orbitId: number, pack: SeedPack): Promise<S
       pulseSources: 0,
       assets: 0,
     },
+    skipped: {
+      products: 0,
+      entities: 0,
+      communities: 0,
+      tiles: 0,
+      pulseSources: 0,
+    },
     errors: [],
     warnings: [],
   };
 
   try {
-    // Check for unsupported CPAC sections and warn
-    if (pack.governance) {
-      result.warnings.push('governance section provided but not persisted (not yet implemented)');
-    }
+    // Check for unsupported CPAC sections and group into single INFO warning
+    const unsupportedSections: string[] = [];
     const orbitConfig = pack.orbit;
-    if (orbitConfig?.uiDefaults || orbitConfig?.ui_defaults) {
-      result.warnings.push('orbit.uiDefaults provided but not persisted (not yet implemented)');
-    }
     const pulseSection = pack.pulse;
-    if (pulseSection?.monitoringRules || pulseSection?.monitoring_rules) {
-      result.warnings.push('pulse.monitoringRules provided but not persisted (not yet implemented)');
-    }
-    if (pack.assets && pack.assets.length > 0) {
-      result.warnings.push(`${pack.assets.length} assets provided but not persisted (not yet implemented)`);
+    
+    if (pack.governance) unsupportedSections.push('governance');
+    if (orbitConfig?.uiDefaults || orbitConfig?.ui_defaults) unsupportedSections.push('uiDefaults');
+    if (pulseSection?.monitoringRules || pulseSection?.monitoring_rules) unsupportedSections.push('monitoringRules');
+    if (pack.assets && pack.assets.length > 0) unsupportedSections.push(`assets (${pack.assets.length})`);
+    
+    if (unsupportedSections.length > 0) {
+      result.warnings.push({
+        code: 'UNSUPPORTED_SECTIONS',
+        severity: 'INFO',
+        message: `${unsupportedSections.length} unsupported sections provided and ignored: ${unsupportedSections.join(', ')}`,
+        suggestedFix: 'These sections will be supported in a future update'
+      });
     }
     
     // Import core concepts from CPAC seed_pack section
@@ -488,10 +521,13 @@ export async function importSeedPack(orbitId: number, pack: SeedPack): Promise<S
       }
     }
 
-    // Import products
+    // Import products (Strict mode for Industry Orbits: skip products with missing manufacturer refs)
     const productIdMap = new Map<string, number>();
     if (pack.products) {
-      for (const product of pack.products) {
+      for (let i = 0; i < pack.products.length; i++) {
+        const product = pack.products[i];
+        const productPath = `products[${i}]`;
+        
         const rawCategory = product.category;
         const category = validateEnum(rawCategory, VALID_PRODUCT_CATEGORIES, 'category', 'consumer');
         const rawStatus = product.status;
@@ -502,14 +538,24 @@ export async function importSeedPack(orbitId: number, pack: SeedPack): Promise<S
         const referenceUrls = getVal<string[]>(product, 'referenceUrls', 'reference_urls');
         const intentTags = getVal<string[]>(product, 'intentTags', 'intent_tags');
         
-        // Resolve manufacturer with error reporting
+        // Resolve manufacturer - STRICT MODE: skip product if ref provided but not found
         let manufacturerEntityId: number | undefined;
         const manufacturerRef = getVal<string>(product, 'manufacturerEntityId', 'manufacturer_entity_id') 
           ?? getVal<string>(product, 'manufacturerName', 'manufacturer_name');
+        
         if (manufacturerRef) {
           manufacturerEntityId = entityIdMap.get(manufacturerRef);
           if (!manufacturerEntityId) {
-            result.warnings.push(`Product "${product.name}": manufacturer reference "${manufacturerRef}" not found in entities`);
+            // Strict mode: skip this product entirely
+            result.warnings.push({
+              code: 'MISSING_MANUFACTURER_REF',
+              severity: 'WARNING',
+              message: `Product "${product.name}" skipped: manufacturer "${manufacturerRef}" not found in entities`,
+              path: `${productPath}.manufacturerEntityId`,
+              suggestedFix: `Add entity with id "${manufacturerRef}" to entities array, or remove manufacturerEntityId from product`
+            });
+            result.skipped.products++;
+            continue; // Skip this product
           }
         }
         
