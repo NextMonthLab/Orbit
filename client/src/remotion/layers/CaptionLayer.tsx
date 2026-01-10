@@ -7,6 +7,10 @@ import { colorTokens } from "@/caption-engine/tokens/colors";
 import { backgroundTokens } from "@/caption-engine/tokens/backgrounds";
 import { getAnimationToken } from "@/caption-engine/tokens/animation";
 import { getCaptionSafeY, getCaptionMaxWidth } from "@/caption-engine/safe-area";
+import { getWordHighlightAtTime } from "@/caption-engine/karaoke/useKaraokeHighlight";
+import { getKaraokeStyle, type KaraokeStyleResult } from "@/caption-engine/karaoke/styles";
+import type { KaraokeStyle, KaraokeConfig, WordHighlightState } from "@/caption-engine/karaoke/types";
+import { defaultKaraokeConfig } from "@/caption-engine/karaoke/types";
 
 interface CaptionLayerProps {
   captionState: CaptionState;
@@ -23,6 +27,9 @@ interface CaptionBlockProps {
   videoHeight: number;
   fontSizeScale?: number;
   verticalOffset?: number;
+  karaokeEnabled?: boolean;
+  karaokeStyle?: KaraokeStyle;
+  karaokeConfig?: KaraokeConfig;
 }
 
 function CaptionBlock({
@@ -36,6 +43,9 @@ function CaptionBlock({
   videoHeight,
   fontSizeScale = 1,
   verticalOffset = 0,
+  karaokeEnabled = false,
+  karaokeStyle = "weight",
+  karaokeConfig = defaultKaraokeConfig,
 }: CaptionBlockProps) {
   const preset = getCaptionPreset(presetId);
   const typography = typographyTokens[preset.typography];
@@ -129,12 +139,104 @@ function CaptionBlock({
       : undefined,
   } : {};
   
+  const currentTimeMs = (currentFrame / frameRate) * 1000;
+  const words = phraseGroup.words || [];
+  
+  const wordsPerLine = useMemo(() => {
+    if (words.length === 0 || phraseGroup.lines.length === 0) {
+      return [];
+    }
+    
+    const result: Array<Array<{ word: typeof words[0]; globalIndex: number }>> = [];
+    let wordIndex = 0;
+    
+    for (const line of phraseGroup.lines) {
+      const lineWords: Array<{ word: typeof words[0]; globalIndex: number }> = [];
+      const lineWordTexts = line.split(/\s+/).filter(w => w);
+      
+      for (const _ of lineWordTexts) {
+        if (wordIndex < words.length) {
+          lineWords.push({ word: words[wordIndex], globalIndex: wordIndex });
+          wordIndex++;
+        }
+      }
+      result.push(lineWords);
+    }
+    
+    return result;
+  }, [words, phraseGroup.lines]);
+  
+  const karaokeState = useMemo(() => {
+    if (!karaokeEnabled || words.length === 0) {
+      return null;
+    }
+    
+    const highlightedWords: WordHighlightState[] = words.map((word, index) => {
+      const isPast = currentTimeMs > word.endMs;
+      const isActive = currentTimeMs >= word.startMs && currentTimeMs <= word.endMs;
+      
+      let progress = 0;
+      if (isPast) {
+        progress = 1;
+      } else if (isActive) {
+        const duration = word.endMs - word.startMs;
+        progress = duration > 0 ? (currentTimeMs - word.startMs) / duration : 1;
+      } else if (karaokeConfig.highlightAhead) {
+        const preStart = word.startMs - karaokeConfig.transitionMs;
+        if (currentTimeMs > preStart && currentTimeMs < word.startMs) {
+          progress = (currentTimeMs - preStart) / karaokeConfig.transitionMs;
+        }
+      }
+      
+      return {
+        wordIndex: index,
+        progress: Math.max(0, Math.min(1, progress)),
+        isActive,
+        isPast,
+      };
+    });
+    
+    return { highlightedWords };
+  }, [words, currentTimeMs, karaokeEnabled, karaokeConfig]);
+  
+  const renderKaraokeWords = () => {
+    if (!karaokeEnabled || words.length === 0 || !karaokeState) {
+      return phraseGroup.lines.map((line, index) => (
+        <div key={index}>{line}</div>
+      ));
+    }
+    
+    return wordsPerLine.map((lineWords, lineIdx) => (
+      <div key={lineIdx}>
+        {lineWords.map(({ word, globalIndex }, wordIdx) => {
+          const highlightState = karaokeState.highlightedWords[globalIndex];
+          const karaokeResult = getKaraokeStyle(
+            karaokeStyle,
+            highlightState,
+            karaokeConfig
+          );
+          
+          return (
+            <span
+              key={globalIndex}
+              style={{
+                ...karaokeResult.style,
+                display: "inline",
+              }}
+            >
+              {word.word}
+              {wordIdx < lineWords.length - 1 ? " " : ""}
+            </span>
+          );
+        })}
+      </div>
+    ));
+  };
+  
   return (
     <div style={containerStyle}>
       <div style={{ ...textStyle, ...backgroundStyle }}>
-        {phraseGroup.lines.map((line, index) => (
-          <div key={index}>{line}</div>
-        ))}
+        {renderKaraokeWords()}
       </div>
     </div>
   );
@@ -149,8 +251,15 @@ export function CaptionLayer({ captionState }: CaptionLayerProps) {
     presetId, 
     animationId, 
     safeAreaProfileId,
-    overrides 
+    overrides,
+    karaokeEnabled,
+    karaokeStyle,
   } = captionState;
+  
+  const karaokeConfig: KaraokeConfig = {
+    ...defaultKaraokeConfig,
+    style: karaokeStyle || "weight",
+  };
   
   if (phraseGroups.length === 0) {
     return null;
@@ -171,6 +280,9 @@ export function CaptionLayer({ captionState }: CaptionLayerProps) {
           videoHeight={height}
           fontSizeScale={overrides?.fontSizeScale}
           verticalOffset={overrides?.verticalOffset}
+          karaokeEnabled={karaokeEnabled}
+          karaokeStyle={karaokeStyle}
+          karaokeConfig={karaokeConfig}
         />
       ))}
     </div>

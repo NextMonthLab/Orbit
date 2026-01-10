@@ -92,6 +92,16 @@ export const CaptionOverridesSchema = z.object({
 }).strict();
 export type CaptionOverrides = z.infer<typeof CaptionOverridesSchema>;
 
+export const KaraokeStyleSchema = z.enum([
+  "weight",
+  "brightness",
+  "underline",
+  "color",
+  "scale",
+  "glow",
+]);
+export type KaraokeStyleId = z.infer<typeof KaraokeStyleSchema>;
+
 export const CaptionStateSchema = z.object({
   schemaVersion: z.number().default(CAPTION_SCHEMA_VERSION),
   tokenVersion: z.number().default(TOKEN_VERSION),
@@ -103,6 +113,8 @@ export const CaptionStateSchema = z.object({
   
   karaokeRequested: z.boolean().default(false),
   karaokeEffective: z.boolean().default(false),
+  karaokeEnabled: z.boolean().default(false),
+  karaokeStyle: KaraokeStyleSchema.default("weight"),
   karaokeConfidenceThreshold: z.number().min(0).max(1).default(0.85),
   
   transcriptionProvider: TranscriptionProviderSchema.optional(),
@@ -128,6 +140,8 @@ export function createDefaultCaptionState(): CaptionState {
     safeAreaProfileId: "universal",
     karaokeRequested: false,
     karaokeEffective: false,
+    karaokeEnabled: false,
+    karaokeStyle: "weight",
     karaokeConfidenceThreshold: 0.85,
     segments: [],
     phraseGroups: [],
