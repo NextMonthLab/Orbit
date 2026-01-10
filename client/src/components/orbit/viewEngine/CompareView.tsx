@@ -54,28 +54,9 @@ export function CompareView({ data, onAskAbout }: CompareViewProps) {
 
   return (
     <div className="flex flex-col">
-      {winner && (
-        <div 
-          className="mx-4 mt-4 p-3 rounded-xl border"
-          style={{
-            backgroundColor: orbitTokens.winner.bg,
-            borderColor: orbitTokens.winner.border,
-          }}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <Trophy className="w-4 h-4" style={{ color: orbitTokens.winner.text }} />
-            <span className="text-xs font-medium" style={{ color: orbitTokens.winner.text }}>Top Pick</span>
-          </div>
-          <p className="text-sm text-white font-medium">{winner.name}</p>
-          {winner.verdict && (
-            <p className="text-xs text-white/60 mt-1">{winner.verdict}</p>
-          )}
-        </div>
-      )}
-
-      {data.verdict && !winner && (
-        <div className="mx-4 mt-4 p-3 rounded-xl bg-white/5 border border-white/10">
-          <p className="text-sm text-white/80">{data.verdict}</p>
+      {data.verdict && (
+        <div className="mx-4 mt-4 px-1">
+          <p className="text-sm text-white/60 leading-relaxed">{data.verdict}</p>
         </div>
       )}
 
@@ -112,10 +93,7 @@ export function CompareView({ data, onAskAbout }: CompareViewProps) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className="border-b border-white/5 hover:bg-white/5 transition-colors"
-                style={{
-                  backgroundColor: row.id === data.winner_id ? orbitTokens.winner.bg : undefined,
-                }}
+                className="border-b border-white/5 hover:bg-white/[0.03] transition-colors"
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -133,10 +111,10 @@ export function CompareView({ data, onAskAbout }: CompareViewProps) {
                       </div>
                     )}
                     <div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-white">{row.name}</p>
                         {row.id === data.winner_id && (
-                          <Star className="w-3 h-3 fill-current" style={{ color: orbitTokens.winner.text }} />
+                          <span className="text-[10px] text-white/40 font-medium uppercase tracking-wide">Top pick</span>
                         )}
                       </div>
                       {row.brand && (

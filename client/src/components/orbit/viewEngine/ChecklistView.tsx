@@ -45,8 +45,7 @@ export function ChecklistView({ data, onToggle }: ChecklistViewProps) {
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
-            className="h-full rounded-full"
-            style={{ backgroundColor: orbitTokens.typeAccents.product }}
+            className="h-full rounded-full bg-white/50"
           />
         </div>
         <span className="text-xs text-white/60 tabular-nums">
@@ -64,8 +63,7 @@ export function ChecklistView({ data, onToggle }: ChecklistViewProps) {
           items={dealbreakers}
           checkedItems={checkedItems}
           onToggle={handleToggle}
-          icon={<AlertCircle className="w-3.5 h-3.5 text-red-400" />}
-          accentColor="red"
+          icon={<AlertCircle className="w-3.5 h-3.5 text-white/50" />}
         />
       )}
 
@@ -75,8 +73,7 @@ export function ChecklistView({ data, onToggle }: ChecklistViewProps) {
           items={mustHaves}
           checkedItems={checkedItems}
           onToggle={handleToggle}
-          icon={<Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
-          accentColor="amber"
+          icon={<Star className="w-3.5 h-3.5 text-white/50" />}
         />
       )}
 
@@ -87,7 +84,6 @@ export function ChecklistView({ data, onToggle }: ChecklistViewProps) {
           checkedItems={checkedItems}
           onToggle={handleToggle}
           icon={<Circle className="w-3.5 h-3.5 text-white/40" />}
-          accentColor="white"
         />
       )}
     </div>
@@ -100,26 +96,18 @@ function ChecklistSection({
   checkedItems,
   onToggle,
   icon,
-  accentColor,
 }: {
   title: string;
   items: ChecklistItem[];
   checkedItems: Set<string>;
   onToggle: (id: string) => void;
   icon: React.ReactNode;
-  accentColor: 'red' | 'amber' | 'white';
 }) {
-  const colorMap = {
-    red: 'border-red-500/30 bg-red-500/5',
-    amber: 'border-amber-500/30 bg-amber-500/5',
-    white: 'border-white/10 bg-white/5',
-  };
-
   return (
     <div className="mb-4">
       <div className="flex items-center gap-2 mb-2">
         {icon}
-        <span className="text-xs font-medium text-white/60 uppercase tracking-wider">
+        <span className="text-xs font-medium text-white/50 uppercase tracking-wider">
           {title}
         </span>
       </div>
@@ -136,8 +124,7 @@ function ChecklistSection({
               transition={{ delay: idx * 0.05 }}
               onClick={() => onToggle(item.id)}
               className={cn(
-                "w-full text-left p-3 rounded-xl border transition-all",
-                colorMap[accentColor],
+                "w-full text-left p-3 rounded-xl border border-white/10 bg-white/[0.02] transition-all hover:bg-white/[0.04]",
                 isChecked && "opacity-60"
               )}
               data-testid={`checklist-item-${item.id}`}
@@ -146,10 +133,10 @@ function ChecklistSection({
                 <div className={cn(
                   "w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors",
                   isChecked 
-                    ? "bg-pink-500 border-pink-500" 
+                    ? "bg-white/60 border-white/60" 
                     : "border-white/30"
                 )}>
-                  {isChecked && <Check className="w-3 h-3 text-white" />}
+                  {isChecked && <Check className="w-3 h-3 text-black" />}
                 </div>
                 
                 <div className="flex-1 min-w-0">

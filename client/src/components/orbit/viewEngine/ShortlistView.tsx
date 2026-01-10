@@ -60,17 +60,10 @@ function ShortlistCard({
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: rank * 0.1 }}
-      className="relative p-4 rounded-xl border transition-all bg-white/5 hover:border-white/20"
-      style={{
-        borderColor: isTop ? orbitTokens.winner.border : 'rgba(255,255,255,0.1)',
-        backgroundColor: isTop ? orbitTokens.winner.bg : 'rgba(255,255,255,0.05)',
-      }}
+      className="relative p-4 rounded-xl border border-white/10 transition-all bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]"
     >
       <div className="absolute -left-2 -top-2 w-6 h-6 rounded-full bg-black flex items-center justify-center border border-white/20">
-        <span 
-          className="text-xs font-bold"
-          style={{ color: isTop ? orbitTokens.winner.text : 'rgba(255,255,255,0.6)' }}
-        >
+        <span className="text-xs font-bold text-white/60">
           {rank}
         </span>
       </div>
@@ -94,9 +87,9 @@ function ShortlistCard({
           <div className="flex items-center justify-between gap-2">
             <h4 className="text-sm font-medium text-white truncate">{item.name}</h4>
             {item.score && (
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10">
-                <Award className="w-3 h-3" style={{ color: orbitTokens.winner.text }} />
-                <span className="text-xs text-white/80">{item.score}</span>
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5">
+                <Award className="w-3 h-3 text-white/40" />
+                <span className="text-xs text-white/60">{item.score}</span>
               </div>
             )}
           </div>
@@ -106,22 +99,22 @@ function ShortlistCard({
           )}
           
           {item.price && (
-            <p className="text-xs text-pink-400 mt-0.5">{item.price}</p>
+            <p className="text-xs text-white/50 mt-0.5">{item.price}</p>
           )}
 
           <p className="text-xs text-white/70 mt-2 line-clamp-2">{item.why}</p>
 
           {item.best_for && (
             <div className="flex items-center gap-1 mt-2">
-              <Target className="w-3 h-3 text-emerald-400" />
-              <span className="text-xs text-emerald-400">Best for: {item.best_for}</span>
+              <Target className="w-3 h-3 text-white/40" />
+              <span className="text-xs text-white/50">Best for: {item.best_for}</span>
             </div>
           )}
 
           {item.tradeoffs.length > 0 && (
             <div className="flex items-start gap-1 mt-2">
-              <AlertTriangle className="w-3 h-3 text-amber-400 mt-0.5 flex-shrink-0" />
-              <span className="text-xs text-amber-400/80">
+              <AlertTriangle className="w-3 h-3 text-white/40 mt-0.5 flex-shrink-0" />
+              <span className="text-xs text-white/40">
                 {item.tradeoffs[0]}
               </span>
             </div>
@@ -130,11 +123,11 @@ function ShortlistCard({
 
         <button
           onClick={() => onAskAbout?.(`Tell me more about ${item.name}`)}
-          className="p-2 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0"
+          className="p-2 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0 group"
           title="Ask about this"
           data-testid={`ask-shortlist-${item.id}`}
         >
-          <MessageCircle className="w-4 h-4 text-white/30 hover:text-pink-400 transition-colors" />
+          <MessageCircle className="w-4 h-4 text-white/30 group-hover:text-white/70 transition-colors" />
         </button>
       </div>
     </motion.div>
