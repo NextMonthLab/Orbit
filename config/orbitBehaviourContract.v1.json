@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "title": "NextMonth Orbit Behaviour Contract",
-  "description": "30-item contract defining expected Orbit system behaviours with evidence-based verification",
+  "description": "41-item contract defining expected Orbit system behaviours with evidence-based verification, including Ingestion v2 and compliance checks",
   "lastUpdated": "2026-01-10",
   "categories": {
     "chat_core": "Core chat functionality",
@@ -12,7 +12,9 @@
     "theme_system": "Theme and visual consistency",
     "data_persistence": "Data storage and caching",
     "security": "Access control and validation",
-    "performance": "Response times and limits"
+    "performance": "Response times and limits",
+    "ingestion_v2": "Ingestion v2 discovery, sampling, throttling, caching",
+    "compliance": "Robots.txt respect and friction handling"
   },
   "items": [
     {
@@ -368,6 +370,138 @@
       "validation": {
         "maxValue": 30000
       }
+    },
+    {
+      "id": "INGEST_001",
+      "category": "ingestion_v2",
+      "title": "Light mode uses discovery-first strategy",
+      "description": "Light mode attempts discovery sources (homepage, robots, sitemap) before sampling, fetches <=12 pages",
+      "severity": "high",
+      "evidenceType": "playback",
+      "evidenceKey": "nm_ingest",
+      "endpoint": "POST /api/orbit/:slug/ingest-url",
+      "component": "IngestionSummary",
+      "validation": {
+        "mode": "light",
+        "requiredSources": ["homepage", "robots"],
+        "maxPagesFetched": 12
+      }
+    },
+    {
+      "id": "INGEST_002",
+      "category": "ingestion_v2",
+      "title": "Sitemap is preferred when available",
+      "description": "When sitemap returns 200, it is used as canonical URL source for sampling",
+      "severity": "high",
+      "evidenceType": "playback",
+      "evidenceKey": "nm_ingest",
+      "endpoint": "POST /api/orbit/:slug/ingest-url",
+      "component": null,
+      "validation": {
+        "sitemapCheck": "if_available_must_use"
+      }
+    },
+    {
+      "id": "INGEST_003",
+      "category": "ingestion_v2",
+      "title": "Adaptive throttling increases delay after friction",
+      "description": "When friction signals (403/429/503) detected, recommendedDelayMs increases and ingestion stops early",
+      "severity": "high",
+      "evidenceType": "playback",
+      "evidenceKey": "nm_ingest",
+      "endpoint": "POST /api/orbit/:slug/ingest-url",
+      "component": null,
+      "validation": {
+        "frictionMustIncreaseDelay": true
+      }
+    },
+    {
+      "id": "INGEST_004",
+      "category": "ingestion_v2",
+      "title": "Bot protection yields first-class blocked outcome",
+      "description": "When bot protection detected, outcome is 'blocked', not fake success. No confirmed tiles without sources.",
+      "severity": "critical",
+      "evidenceType": "playback",
+      "evidenceKey": "nm_ingest",
+      "endpoint": "POST /api/orbit/:slug/ingest-url",
+      "component": "BlockedTile",
+      "validation": {
+        "outcomeOnBlock": "blocked",
+        "noFakeSuccess": true
+      }
+    },
+    {
+      "id": "INGEST_005",
+      "category": "ingestion_v2",
+      "title": "URL-level caching reduces repeated fetches",
+      "description": "Repeated runs within cache window show cache hits, reducing total requests",
+      "severity": "medium",
+      "evidenceType": "deterministic",
+      "evidenceKey": "nm_ingest",
+      "endpoint": "POST /api/orbit/:slug/ingest-url",
+      "component": null,
+      "validation": {
+        "cacheHitsOnRepeat": true,
+        "maxRefetchesPerUrl24h": 3
+      }
+    },
+    {
+      "id": "INGEST_006",
+      "category": "ingestion_v2",
+      "title": "User-assisted mode only fetches user-provided URLs",
+      "description": "In user_assisted mode, only the URLs provided by user are fetched, no extra crawling",
+      "severity": "medium",
+      "evidenceType": "playback",
+      "evidenceKey": "nm_ingest",
+      "endpoint": "POST /api/orbit/:slug/ingest-url",
+      "component": null,
+      "validation": {
+        "mode": "user_assisted",
+        "urlSource": "user_list"
+      }
+    },
+    {
+      "id": "INGEST_007",
+      "category": "ingestion_v2",
+      "title": "Domain risk score persisted per host",
+      "description": "Domain risk record exists after ingestion with lastAttemptAt and frictionCount fields",
+      "severity": "medium",
+      "evidenceType": "deterministic",
+      "evidenceKey": "nm_domain_risk",
+      "endpoint": null,
+      "component": null,
+      "validation": {
+        "fieldsRequired": ["lastAttemptAt", "frictionCount", "recommendedDelayMs"]
+      }
+    },
+    {
+      "id": "COMPLY_001",
+      "category": "compliance",
+      "title": "Robots.txt respected for disallowed paths",
+      "description": "URLs disallowed in robots.txt are not fetched during ingestion",
+      "severity": "high",
+      "evidenceType": "deterministic",
+      "evidenceKey": "nm_ingest",
+      "endpoint": "POST /api/orbit/:slug/ingest-url",
+      "component": null,
+      "validation": {
+        "robotsRespected": true
+      }
+    },
+    {
+      "id": "COMPLY_002",
+      "category": "compliance",
+      "title": "Ingestion stops on friction (no aggressive retries)",
+      "description": "When 403/429/challenge detected, system halts further requests. Retry count per URL capped at 1.",
+      "severity": "high",
+      "evidenceType": "deterministic",
+      "evidenceKey": "nm_ingest",
+      "endpoint": "POST /api/orbit/:slug/ingest-url",
+      "component": null,
+      "validation": {
+        "haltOnFriction": true,
+        "maxRetriesPerUrl": 1
+      }
     }
   ],
   "severityLevels": {
@@ -398,6 +532,7 @@
     "api_metadata": "Server response metadata contains specific field",
     "deterministic": "Automated check verifies behaviour programmatically",
     "route_exists": "Route registered in router and accessible",
-    "visual_audit": "Manual/automated visual verification required"
+    "visual_audit": "Manual/automated visual verification required",
+    "playback": "End-to-end verification via Playwright or controlled test requiring both server nm_ingest and client render events"
   }
 }

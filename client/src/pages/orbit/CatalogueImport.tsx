@@ -92,12 +92,12 @@ export default function CatalogueImport() {
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   
   const ingestMutation = useMutation({
-    mutationFn: async ({ url, forceRescan }: { url: string; forceRescan?: boolean }) => {
+    mutationFn: async ({ url, forceRescan, mode }: { url: string; forceRescan?: boolean; mode?: string }) => {
       const response = await fetch(`/api/orbit/${slug}/ingest-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ url, forceRescan }),
+        body: JSON.stringify({ url, forceRescan, mode }),
       });
       
       if (!response.ok) {
@@ -118,10 +118,10 @@ export default function CatalogueImport() {
     },
   });
   
-  const handleUrlIngest = async (url: string, forceRescan?: boolean) => {
+  const handleUrlIngest = async (url: string, options?: { forceRescan?: boolean; mode?: 'light' | 'standard' | 'user_assisted' }) => {
     setLastUrl(url);
     setResultMessage(null);
-    await ingestMutation.mutateAsync({ url, forceRescan });
+    await ingestMutation.mutateAsync({ url, forceRescan: options?.forceRescan, mode: options?.mode });
   };
   
   const groupedTiles = groupTilesByCategory(tiles);

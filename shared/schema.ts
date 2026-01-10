@@ -1966,6 +1966,101 @@ export const insertOrbitBoxSchema = createInsertSchema(orbitBoxes).omit({ id: tr
 export type InsertOrbitBox = z.infer<typeof insertOrbitBoxSchema>;
 export type OrbitBox = typeof orbitBoxes.$inferSelect;
 
+// ============ INGESTION V2: DOMAIN RISK & URL CACHE ============
+
+// Domain Risk - per-host throttling state for adaptive ingestion
+export type IngestionMode = 'light' | 'standard' | 'user_assisted';
+export type IngestionOutcome = 'success' | 'partial' | 'blocked' | 'error';
+
+export const domainRisk = pgTable("domain_risk", {
+  id: serial("id").primaryKey(),
+  hostname: text("hostname").notNull().unique(),
+  
+  // Throttling state
+  lastAttemptAt: timestamp("last_attempt_at"),
+  lastSuccessAt: timestamp("last_success_at"),
+  recommendedDelayMs: integer("recommended_delay_ms").default(2000).notNull(),
+  
+  // Friction tracking
+  frictionCount: integer("friction_count").default(0).notNull(),
+  lastFrictionCodes: jsonb("last_friction_codes").$type<number[]>(),
+  
+  // Status history
+  lastOutcome: text("last_outcome").$type<IngestionOutcome>(),
+  successCount: integer("success_count").default(0).notNull(),
+  failureCount: integer("failure_count").default(0).notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDomainRiskSchema = createInsertSchema(domainRisk).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertDomainRisk = z.infer<typeof insertDomainRiskSchema>;
+export type DomainRisk = typeof domainRisk.$inferSelect;
+
+// URL Fetch Cache - per-URL content hash to avoid refetching unchanged pages
+export const urlFetchCache = pgTable("url_fetch_cache", {
+  id: serial("id").primaryKey(),
+  url: text("url").notNull().unique(),
+  hostname: text("hostname").notNull(),
+  
+  // Content fingerprint
+  contentHash: text("content_hash"),
+  contentLength: integer("content_length"),
+  lastHttpStatus: integer("last_http_status"),
+  
+  // Timing
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+  
+  // Metadata
+  fetchCount: integer("fetch_count").default(1).notNull(),
+});
+
+export const insertUrlFetchCacheSchema = createInsertSchema(urlFetchCache).omit({ id: true });
+export type InsertUrlFetchCache = z.infer<typeof insertUrlFetchCacheSchema>;
+export type UrlFetchCache = typeof urlFetchCache.$inferSelect;
+
+// Ingestion Run Log - records each ingestion attempt with evidence markers
+export const ingestionRuns = pgTable("ingestion_runs", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug).notNull(),
+  traceId: text("trace_id").notNull(),
+  
+  // Mode and configuration
+  mode: text("mode").$type<IngestionMode>().notNull(),
+  
+  // Discovery sources used
+  discoverySources: jsonb("discovery_sources").$type<string[]>(),
+  
+  // Counts
+  pagesPlanned: integer("pages_planned").default(0).notNull(),
+  pagesFetched: integer("pages_fetched").default(0).notNull(),
+  pagesUsed: integer("pages_used").default(0).notNull(),
+  
+  // Cache stats
+  cacheHits: integer("cache_hits").default(0).notNull(),
+  cacheMisses: integer("cache_misses").default(0).notNull(),
+  cacheWrites: integer("cache_writes").default(0).notNull(),
+  
+  // Outcome
+  outcome: text("outcome").$type<IngestionOutcome>().notNull(),
+  frictionSignals: jsonb("friction_signals").$type<string[]>(),
+  domainRiskScore: integer("domain_risk_score"),
+  
+  // Timing
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  durationMs: integer("duration_ms"),
+  
+  // Error tracking
+  lastError: text("last_error"),
+});
+
+export const insertIngestionRunSchema = createInsertSchema(ingestionRuns).omit({ id: true, startedAt: true });
+export type InsertIngestionRun = z.infer<typeof insertIngestionRunSchema>;
+export type IngestionRun = typeof ingestionRuns.$inferSelect;
+
 // ============ ORBIT PHASE 2: SESSIONS, EVENTS, CONVERSATIONS ============
 
 // Orbit Sessions - visitor journey tracking
