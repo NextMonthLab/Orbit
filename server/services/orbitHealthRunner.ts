@@ -244,6 +244,82 @@ async function checkTileStorageExists(slug: string): Promise<InternalCheckResult
   }
 }
 
+async function checkTileSummaries(slug: string): Promise<InternalCheckResult> {
+  const tilePath = path.join(process.cwd(), 'data', 'orbits', `${slug}.json`);
+  
+  if (!fs.existsSync(tilePath)) {
+    return {
+      status: 'pending',
+      message: `No tile data for ${slug} - ingestion not yet performed`,
+      evidence: { slug, exists: false },
+    };
+  }
+  
+  try {
+    const data = JSON.parse(fs.readFileSync(tilePath, 'utf-8'));
+    const tiles = data.tiles || [];
+    
+    const contextTypes = ['about', 'faq', 'contact', 'business_profile', 'team_member', 'testimonial', 'opening_hours'];
+    const contextTiles = tiles.filter((t: any) => contextTypes.includes(t.type || t.category));
+    
+    if (contextTiles.length === 0) {
+      return {
+        status: 'warn',
+        message: `Orbit ${slug} has no business context tiles (about, FAQ, contact, etc.)`,
+        evidence: { slug, contextTileCount: 0, totalTiles: tiles.length },
+      };
+    }
+    
+    const tilesWithSummaries = contextTiles.filter((t: any) => {
+      const content = t.content || t.summary || t.description || '';
+      return content.length >= 50;
+    });
+    
+    const summaryRate = Math.round((tilesWithSummaries.length / contextTiles.length) * 100);
+    
+    if (summaryRate >= 80) {
+      return {
+        status: 'pass',
+        message: `${tilesWithSummaries.length}/${contextTiles.length} context tiles have summaries (${summaryRate}%)`,
+        evidence: { 
+          slug, 
+          contextTileCount: contextTiles.length,
+          tilesWithSummaries: tilesWithSummaries.length,
+          summaryRate,
+          types: contextTiles.map((t: any) => t.type || t.category),
+        },
+      };
+    } else if (summaryRate >= 50) {
+      return {
+        status: 'warn',
+        message: `Only ${tilesWithSummaries.length}/${contextTiles.length} context tiles have summaries (${summaryRate}% - target: 80%)`,
+        evidence: { 
+          slug, 
+          contextTileCount: contextTiles.length,
+          tilesWithSummaries: tilesWithSummaries.length,
+          summaryRate,
+        },
+      };
+    } else {
+      return {
+        status: 'fail',
+        message: `Most context tiles lack summaries: ${tilesWithSummaries.length}/${contextTiles.length} (${summaryRate}%)`,
+        evidence: { 
+          slug, 
+          contextTileCount: contextTiles.length,
+          tilesWithSummaries: tilesWithSummaries.length,
+          summaryRate,
+        },
+      };
+    }
+  } catch (error: any) {
+    return {
+      status: 'fail',
+      message: `Error reading tile data: ${error.message}`,
+    };
+  }
+}
+
 async function runDeterministicCheck(item: ContractItem, orbitSlug?: string): Promise<RawCheckResult> {
   const now = new Date().toISOString();
   
@@ -254,6 +330,14 @@ async function runDeterministicCheck(item: ContractItem, orbitSlug?: string): Pr
       } else {
         const tileResult = await checkTileStorageExists(orbitSlug);
         return { itemId: item.id, ...tileResult, checkedAt: now };
+      }
+      
+    case 'nm_tile_summaries':
+      if (!orbitSlug) {
+        return { itemId: item.id, status: 'pending', message: 'Requires orbit slug', checkedAt: now };
+      } else {
+        const summaryResult = await checkTileSummaries(orbitSlug);
+        return { itemId: item.id, ...summaryResult, checkedAt: now };
       }
       
     case 'nm_orbit_validated':

@@ -184,6 +184,21 @@
       "component": null
     },
     {
+      "id": "TILE_006",
+      "category": "tile_system",
+      "title": "Business context tiles include summaries",
+      "description": "About, FAQ, Contact, and other context tiles have pre-populated content summaries rather than just links",
+      "severity": "high",
+      "evidenceType": "deterministic",
+      "evidenceKey": "nm_tile_summaries",
+      "endpoint": "GET /api/orbit/:slug/tiles",
+      "component": null,
+      "validation": {
+        "requiredTypes": ["about", "faq", "contact", "business_profile"],
+        "minSummaryLength": 50
+      }
+    },
+    {
       "id": "NAV_001",
       "category": "orbit_navigation",
       "title": "Public Orbit page loads at /orbit/:slug",
