@@ -7657,7 +7657,7 @@ Stay engaging, reference story details, and help the audience understand the nar
   app.post("/api/ice/preview/:previewId/export", requireAuth, async (req, res) => {
     try {
       const { previewId } = req.params;
-      const { quality = "standard", includeNarration = true, includeMusic = true, titlePackId } = req.body;
+      const { quality = "standard", includeNarration = true, includeMusic = true, titlePackId, captionState, useCaptionEngine = false } = req.body;
       
       const preview = await storage.getIcePreview(previewId);
       if (!preview) {
@@ -7699,6 +7699,8 @@ Stay engaging, reference story details, and help the audience understand the nar
         musicTrackUrl: preview.musicTrackUrl || undefined,
         musicVolume: preview.musicVolume || 50,
         narrationVolume: preview.narrationVolume || 100,
+        captionState,
+        useCaptionEngine,
       });
       
       res.json({

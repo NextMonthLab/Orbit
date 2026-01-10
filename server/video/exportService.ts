@@ -6,6 +6,8 @@ import { storage } from "../storage";
 import { VideoExportQuality, VideoExportStatus } from "@shared/schema";
 import { getTitlePackById, DEFAULT_TITLE_PACK_ID, TITLE_PACKS } from "@shared/titlePacks";
 import { putObject, isObjectStorageConfigured } from "../storage/objectStore";
+import type { CaptionState } from "@shared/captionTypes";
+import { generateASSFromCaptionState } from "../caption-engine/assGenerator";
 
 interface ExportConfig {
   jobId: string;
@@ -18,6 +20,8 @@ interface ExportConfig {
   musicTrackUrl?: string;
   musicVolume?: number;
   narrationVolume?: number;
+  captionState?: CaptionState;
+  useCaptionEngine?: boolean;
 }
 
 interface CardData {
@@ -100,7 +104,7 @@ async function updateJobStatus(jobId: string, status: VideoExportStatus, errorMe
 }
 
 export async function processVideoExport(config: ExportConfig): Promise<string> {
-  const { jobId, previewId, quality, includeNarration, includeMusic, musicTrackUrl, musicVolume = 50, narrationVolume = 100 } = config;
+  const { jobId, previewId, quality, includeNarration, includeMusic, musicTrackUrl, musicVolume = 50, narrationVolume = 100, captionState, useCaptionEngine = false } = config;
   const titlePackId = config.titlePackId || DEFAULT_TITLE_PACK_ID;
 
   const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ice-export-"));
@@ -175,57 +179,104 @@ export async function processVideoExport(config: ExportConfig): Promise<string> 
     const titlePack = getTitlePackById(titlePackId) || TITLE_PACKS[0];
     const cardVideosWithCaptions: string[] = [];
 
-    for (let i = 0; i < cardInputs.length; i++) {
-      const card = cards[i];
-      const inputPath = cardInputs[i];
-      const outputPath = path.join(tempDir, `card_${i}_captioned.mp4`);
+    if (useCaptionEngine && captionState && captionState.phraseGroups && captionState.phraseGroups.length > 0) {
+      const assContent = generateASSFromCaptionState(captionState, {
+        width: qualitySettings.width,
+        height: qualitySettings.height,
+      });
+      const assPath = path.join(tempDir, "captions.ass");
+      await fs.promises.writeFile(assPath, assContent, "utf-8");
 
-      const captionText = card.content.split(". ").slice(0, 2).join(". ");
-      const escapedText = captionText
-        .replace(/\\/g, "\\\\")
-        .replace(/'/g, "'\\''")
-        .replace(/:/g, "\\:")
-        .replace(/\[/g, "\\[")
-        .replace(/\]/g, "\\]");
+      const concatListPath = path.join(tempDir, "all_cards.txt");
+      const concatContent = cardInputs.map((p) => `file '${p}'`).join("\n");
+      await fs.promises.writeFile(concatListPath, concatContent);
 
-      const headlineStyle = titlePack.headline;
-      const fontColor = headlineStyle.color.replace("#", "");
-      const shadowColor = headlineStyle.shadow?.color || "black";
-      const fontSize = Math.round((headlineStyle.sizeMin + headlineStyle.sizeMax) / 2);
-      const fontWeight = headlineStyle.fontWeight >= 700 ? ":force_style='Bold'" : "";
-
+      const concatenatedPath = path.join(tempDir, "all_cards.mp4");
       await runFFmpeg([
         "-y",
-        "-i", inputPath,
-        "-vf", `drawtext=text='${escapedText}':fontcolor=${fontColor}:fontsize=${fontSize}:x=(w-text_w)/2:y=h-th-100:shadowcolor=${shadowColor}:shadowx=2:shadowy=2${fontWeight}`,
+        "-f", "concat",
+        "-safe", "0",
+        "-i", concatListPath,
+        "-c:v", "libx264",
+        "-crf", qualitySettings.crf.toString(),
+        "-preset", qualitySettings.preset,
+        "-c:a", "aac",
+        concatenatedPath,
+      ]);
+
+      const withCaptionsPath = path.join(tempDir, "with_captions.mp4");
+      const escapedAssPath = assPath.replace(/\\/g, "/").replace(/:/g, "\\:");
+      await runFFmpeg([
+        "-y",
+        "-i", concatenatedPath,
+        "-vf", `ass='${escapedAssPath}'`,
         "-c:v", "libx264",
         "-crf", qualitySettings.crf.toString(),
         "-preset", qualitySettings.preset,
         "-c:a", "copy",
-        outputPath,
+        withCaptionsPath,
       ]);
 
-      cardVideosWithCaptions.push(outputPath);
+      cardVideosWithCaptions.push(withCaptionsPath);
+    } else {
+      for (let i = 0; i < cardInputs.length; i++) {
+        const card = cards[i];
+        const inputPath = cardInputs[i];
+        const outputPath = path.join(tempDir, `card_${i}_captioned.mp4`);
+
+        const captionText = card.content.split(". ").slice(0, 2).join(". ");
+        const escapedText = captionText
+          .replace(/\\/g, "\\\\")
+          .replace(/'/g, "'\\''")
+          .replace(/:/g, "\\:")
+          .replace(/\[/g, "\\[")
+          .replace(/\]/g, "\\]");
+
+        const headlineStyle = titlePack.headline;
+        const fontColor = headlineStyle.color.replace("#", "");
+        const shadowColor = headlineStyle.shadow?.color || "black";
+        const fontSize = Math.round((headlineStyle.sizeMin + headlineStyle.sizeMax) / 2);
+        const fontWeight = headlineStyle.fontWeight >= 700 ? ":force_style='Bold'" : "";
+
+        await runFFmpeg([
+          "-y",
+          "-i", inputPath,
+          "-vf", `drawtext=text='${escapedText}':fontcolor=${fontColor}:fontsize=${fontSize}:x=(w-text_w)/2:y=h-th-100:shadowcolor=${shadowColor}:shadowx=2:shadowy=2${fontWeight}`,
+          "-c:v", "libx264",
+          "-crf", qualitySettings.crf.toString(),
+          "-preset", qualitySettings.preset,
+          "-c:a", "copy",
+          outputPath,
+        ]);
+
+        cardVideosWithCaptions.push(outputPath);
+      }
     }
 
     await updateJobProgress(jobId, 70, "Concatenating cards...");
 
-    const concatListPath = path.join(tempDir, "concat.txt");
-    const concatContent = cardVideosWithCaptions.map((p) => `file '${p}'`).join("\n");
-    await fs.promises.writeFile(concatListPath, concatContent);
+    let concatenatedPath: string;
+    
+    if (useCaptionEngine && captionState && cardVideosWithCaptions.length === 1) {
+      concatenatedPath = cardVideosWithCaptions[0];
+    } else {
+      const concatListPath = path.join(tempDir, "concat.txt");
+      const concatContent = cardVideosWithCaptions.map((p) => `file '${p}'`).join("\n");
+      await fs.promises.writeFile(concatListPath, concatContent);
 
-    const concatenatedPath = path.join(tempDir, "concatenated.mp4");
-    await runFFmpeg([
-      "-y",
-      "-f", "concat",
-      "-safe", "0",
-      "-i", concatListPath,
-      "-c:v", "libx264",
-      "-crf", qualitySettings.crf.toString(),
-      "-preset", qualitySettings.preset,
-      "-c:a", "aac",
-      concatenatedPath,
-    ]);
+      concatenatedPath = path.join(tempDir, "concatenated.mp4");
+      await runFFmpeg([
+        "-y",
+        "-f", "concat",
+        "-safe", "0",
+        "-i", concatListPath,
+        "-c:v", "libx264",
+        "-crf", qualitySettings.crf.toString(),
+        "-preset", qualitySettings.preset,
+        "-c:a", "aac",
+        concatenatedPath,
+      ]);
+    }
 
     let finalVideoPath = concatenatedPath;
 
