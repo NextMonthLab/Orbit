@@ -14,6 +14,7 @@ import {
   Film,
   GraduationCap,
   Compass,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -242,6 +243,25 @@ export default function SiteNav({ variant: explicitVariant, onStartTour }: SiteN
               </Link>
             );
           })}
+          
+          {user?.isAdmin && (
+            <>
+              <div className="border-t border-white/10 my-2" />
+              <Link href="/admin">
+                <div 
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 cursor-pointer",
+                    isActiveLink('/admin') && "text-white bg-white/10"
+                  )}
+                  onClick={() => setMobileMenuOpen(false)}
+                  data-testid="nav-mobile-admin"
+                >
+                  <Shield className="w-4 h-4" />
+                  Admin
+                </div>
+              </Link>
+            </>
+          )}
           
           {!user && (
             <>
