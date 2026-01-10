@@ -2,6 +2,7 @@ import { useRoute, useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Globe, ExternalLink, AlertCircle, CheckCircle, Mail, MessageCircle, LayoutDashboard, Share2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -13,11 +14,12 @@ import { BusinessHubSidebar } from "@/components/orbit/BusinessHubSidebar";
 import { HubPanelContainer } from "@/components/orbit/HubPanelContainer";
 import { OrbitGrid } from "@/components/orbit/OrbitGrid";
 import { OrbitShareModal } from "@/components/orbit/OrbitShareModal";
-import { IndustryOrbitLanding } from "@/components/orbit/IndustryOrbitLanding";
 import { ViewWindscreen, MobileViewSheet } from "@/components/orbit/viewEngine/ViewWindscreen";
+
 import type { ViewPayload } from "@shared/orbitViewEngine";
 import type { SiteKnowledge } from "@/lib/siteKnowledge";
 import GlobalNav from "@/components/GlobalNav";
+
 import {
   Dialog,
   DialogContent,
@@ -25,6 +27,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+function AutoDismissEffect({ onDismiss, delayMs }: { onDismiss: () => void; delayMs: number }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, delayMs);
+    return () => clearTimeout(timer);
+  }, [onDismiss, delayMs]);
+  return null;
+}
 
 interface ValidatedContent {
   overview: string;
@@ -190,10 +200,11 @@ export default function OrbitView() {
 
   // Business Hub state
   const [showHub, setShowHub] = useState(false);
-  const [hubPanel, setHubPanel] = useState<'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications' | 'data-sources' | 'cubes' | 'ai-discovery'>('overview');
+  const [hubPanel, setHubPanel] = useState<'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications' | 'data-sources' | 'cubes' | 'ai-discovery' | 'knowledge-coach'>('overview');
   
-  // Industry Orbit view mode: 'landing' shows the polished front page, 'map' shows the radar grid
-  const [industryViewMode, setIndustryViewMode] = useState<'landing' | 'map'>('landing');
+  // Industry Orbit: Launch directly into map view (instant launch)
+  // Mobile shows a brief intro overlay that auto-dismisses
+  const [showMobileIntro, setShowMobileIntro] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
   
   // View Engine state for industry orbits
   const [activeView, setActiveView] = useState<ViewPayload | null>(null);
@@ -962,32 +973,16 @@ export default function OrbitView() {
     };
   };
 
-  // Industry Orbit: Show landing page or radar map based on view mode
+  // Industry Orbit: Launch directly into the Orbit UI (instant launch)
   if (isIndustryOrbit && industryFrontPage) {
     const knowledge = industryKnowledge?.knowledge;
     const accentColor = knowledge?.brand?.primaryColor || '#ec4899';
     const title = industryFrontPage.hero?.title || 'Industry Orbit';
+    const subtitle = 'The living map of the companies, products, and ideas shaping wearable computing.';
     
-    // Landing view - polished front page
-    if (industryViewMode === 'landing') {
-      return (
-        <div className="min-h-screen bg-[#0a0a0f] text-white">
-          {!isEmbedMode && (
-            <GlobalNav context="orbit" showBreadcrumb breadcrumbLabel={title} />
-          )}
-          <IndustryOrbitLanding
-            frontPage={industryFrontPage}
-            onOpenChat={() => setIndustryViewMode('map')}
-            onExploreMap={() => setIndustryViewMode('map')}
-          />
-        </div>
-      );
-    }
-    
-    // Map view - radar grid with chat + view engine windscreen
+    // Map view - radar grid with chat + view engine windscreen (launches immediately)
     if (knowledge) {
       const handleAskAboutRow = (query: string) => {
-        // Send the query through the chat handler
         createIndustryViewChatHandler()(query);
       };
       
@@ -996,10 +991,84 @@ export default function OrbitView() {
       };
       
       return (
-        <div className="min-h-screen bg-background text-foreground flex flex-col relative">
+        <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col relative">
+          {/* Minimal Premium Header */}
           {!isEmbedMode && (
-            <GlobalNav context="orbit" showBreadcrumb breadcrumbLabel={title} />
+            <header className="sticky top-0 z-40 bg-[#0a0a0f]/95 backdrop-blur-md border-b border-white/5">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    {industryFrontPage.hero?.heroImageUrl && (
+                      <img 
+                        src={industryFrontPage.hero.heroImageUrl} 
+                        alt={title}
+                        className="w-10 h-10 rounded-lg object-cover"
+                      />
+                    )}
+                    <div>
+                      <h1 className="text-xl font-semibold tracking-tight text-white">
+                        {title}
+                      </h1>
+                      <p className="text-xs text-white/40 hidden sm:block">
+                        {industryFrontPage.hero.entityCount} brands · {industryFrontPage.hero.productCount} products
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-white/50 hover:text-white"
+                    onClick={() => setShowShareModal(true)}
+                    data-testid="button-share-orbit"
+                  >
+                    <Share2 className="w-4 h-4 mr-1" />
+                    Share
+                  </Button>
+                </div>
+              </div>
+            </header>
           )}
+          
+          {/* Mobile Intro Overlay - auto-dismisses after 2 seconds */}
+          {showMobileIntro && isMobile && (
+            <div 
+              className="fixed inset-0 z-50 bg-[#0a0a0f] flex flex-col items-center justify-center p-6"
+              onClick={() => setShowMobileIntro(false)}
+              onTouchStart={() => setShowMobileIntro(false)}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center max-w-sm"
+              >
+                {industryFrontPage.hero?.heroImageUrl && (
+                  <motion.img 
+                    src={industryFrontPage.hero.heroImageUrl} 
+                    alt={title}
+                    className="w-16 h-16 rounded-2xl object-cover mx-auto mb-6"
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                  />
+                )}
+                <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">
+                  {title}
+                </h1>
+                <p className="text-base text-white/50 leading-relaxed mb-8">
+                  {subtitle}
+                </p>
+                <p className="text-xs text-white/30 animate-pulse">
+                  Tap anywhere to explore
+                </p>
+              </motion.div>
+            </div>
+          )}
+          
+          {/* Auto-dismiss mobile intro after 2 seconds */}
+          {showMobileIntro && isMobile && (
+            <AutoDismissEffect onDismiss={() => setShowMobileIntro(false)} delayMs={2000} />
+          )}
+          
+          {/* Main Orbit UI */}
           <div className={`flex-1 ${activeView && !isMobile ? 'mr-[420px]' : ''}`}>
             <RadarGrid
               knowledge={knowledge}
@@ -1033,33 +1102,38 @@ export default function OrbitView() {
             />
           )}
           
-          {/* Back to landing + footer */}
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-t border-white/10 py-2 px-4">
-            <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs text-white/60 hover:text-white"
-                onClick={() => setIndustryViewMode('landing')}
-              >
-                ← Back to Overview
-              </Button>
-              <span className="text-xs text-zinc-400">
-                Industry Orbit
-              </span>
-            </div>
-          </div>
+          {/* Share Modal */}
+          <OrbitShareModal
+            open={showShareModal}
+            onClose={() => setShowShareModal(false)}
+            businessSlug={slug || ''}
+            brandName={title}
+          />
         </div>
       );
     }
   }
   
-  // Loading state for industry orbits
+  // Calm, neutral loading state for industry orbits
   if (isIndustryOrbit && industryKnowledgeLoading) {
+    const title = industryFrontPage?.hero?.title || 'Smart Glasses';
+    const subtitle = 'The living map of the companies, products, and ideas shaping wearable computing.';
+    
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-pink-500 mb-4" />
-        <p className="text-zinc-400">Loading Industry Orbit...</p>
+      <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-md"
+        >
+          <h1 className="text-2xl font-semibold tracking-tight text-white mb-3">
+            {title}
+          </h1>
+          <p className="text-sm text-white/50 mb-8">
+            {subtitle}
+          </p>
+          <Loader2 className="w-5 h-5 animate-spin text-white/40 mx-auto" />
+        </motion.div>
       </div>
     );
   }
