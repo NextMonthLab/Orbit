@@ -9968,6 +9968,69 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
     }
   });
 
+  // Priority Setup Request - For businesses whose websites block automated access
+  app.post("/api/orbit/:slug/priority-setup", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { name, email, phone, notes } = req.body;
+      
+      // Validate required fields
+      if (!name || typeof name !== 'string' || name.trim().length < 2) {
+        return res.status(400).json({ message: "Name is required (minimum 2 characters)" });
+      }
+      if (!email || typeof email !== 'string' || !email.includes('@')) {
+        return res.status(400).json({ message: "Valid email is required" });
+      }
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      // Store the priority setup request as a lead
+      await storage.createOrbitLead({
+        businessSlug: slug,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone?.trim() || null,
+        message: `[Priority Setup Request]\n\n${notes?.trim() || 'No additional notes provided.'}\n\nSource URL: ${orbitMeta.sourceUrl}`,
+        source: 'priority_setup',
+      });
+      
+      // Send notification email to admin
+      try {
+        const { sendEmail } = await import("./services/email");
+        await sendEmail({
+          to: process.env.ADMIN_EMAIL || 'admin@nextmonth.io',
+          subject: `Priority Setup Request: ${slug}`,
+          html: `
+            <h2>New Priority Setup Request</h2>
+            <p><strong>Business:</strong> ${slug}</p>
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
+            <p><strong>Source URL:</strong> ${orbitMeta.sourceUrl}</p>
+            <h3>Notes:</h3>
+            <p>${notes || 'None provided'}</p>
+          `,
+        });
+      } catch (emailError) {
+        console.error("Failed to send priority setup notification:", emailError);
+        // Don't fail the request if email fails
+      }
+      
+      console.log(`[Priority Setup] Request received for ${slug} from ${email}`);
+      
+      res.json({ 
+        success: true, 
+        message: "Priority setup request received. We'll be in touch within 24 hours." 
+      });
+    } catch (error) {
+      console.error("Error processing priority setup request:", error);
+      res.status(500).json({ message: "Error submitting request" });
+    }
+  });
+
   // Orbit Chat - Unified AI chat endpoint for both owners and public viewers
   // Supports: authenticated owners OR public access via accessToken
   app.post("/api/orbit/:slug/chat", async (req, res) => {
