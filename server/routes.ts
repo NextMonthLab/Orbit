@@ -7710,7 +7710,7 @@ Stay engaging, reference story details, and help the audience understand the nar
   app.put("/api/ice/preview/:previewId/settings", async (req, res) => {
     try {
       const { previewId } = req.params;
-      const { musicTrackUrl, musicVolume, musicEnabled, titlePackId, narrationVolume } = req.body;
+      const { musicTrackUrl, musicVolume, musicEnabled, titlePackId, narrationVolume, captionSettings } = req.body;
       
       const preview = await storage.getIcePreview(previewId);
       if (!preview) {
@@ -7724,6 +7724,7 @@ Stay engaging, reference story details, and help the audience understand the nar
       if (musicEnabled !== undefined) updateData.musicEnabled = musicEnabled;
       if (titlePackId !== undefined) updateData.titlePackId = titlePackId;
       if (narrationVolume !== undefined) updateData.narrationVolume = narrationVolume;
+      if (captionSettings !== undefined) updateData.captionSettings = captionSettings;
       
       await storage.updateIcePreview(previewId, updateData);
       
