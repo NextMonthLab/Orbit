@@ -15574,7 +15574,7 @@ Current category: ${categoryName}`;
     }
   });
   
-  const { exportCpac, exportAssetsReviewCsv, applyAssetApprovals, parseAssetApprovalsCsv } = await import("./services/cpacExportService");
+  const { exportCpac, exportAssetsReviewCsv, applyAssetApprovals, parseAssetApprovalsCsv, calculateCpacStats, generateClaudeExtensionPrompt, analyzeCpacDiff } = await import("./services/cpacExportService");
   
   // GET /api/industry-orbits/:slug/cpac - Export full CPAC JSON
   app.get("/api/industry-orbits/:slug/cpac", async (req, res) => {
@@ -15701,6 +15701,119 @@ Current category: ${categoryName}`;
     } catch (error) {
       console.error("[Asset Approvals] Error:", error);
       res.status(500).json({ message: "Failed to apply asset approvals" });
+    }
+  });
+  
+  // GET /api/industry-orbits/:slug/cpac/stats - Get CPAC stats and counts
+  app.get("/api/industry-orbits/:slug/cpac/stats", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.orbitType !== 'industry') {
+        return res.status(403).json({ 
+          message: "CPAC stats are only available for Industry Orbits",
+          code: "NOT_INDUSTRY_ORBIT"
+        });
+      }
+      
+      const cpac = await exportCpac(orbitMeta);
+      const stats = calculateCpacStats(cpac);
+      
+      res.json({
+        orbit: {
+          slug: orbitMeta.businessSlug,
+          title: orbitMeta.customTitle || orbitMeta.businessSlug,
+        },
+        stats,
+        generatedAt: new Date().toISOString(),
+      });
+      
+    } catch (error) {
+      console.error("[CPAC Stats] Error:", error);
+      res.status(500).json({ message: "Failed to get CPAC stats" });
+    }
+  });
+  
+  // GET /api/industry-orbits/:slug/cpac/claude-prompt - Generate Claude extension prompt
+  app.get("/api/industry-orbits/:slug/cpac/claude-prompt", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.orbitType !== 'industry') {
+        return res.status(403).json({ 
+          message: "Claude prompt generation is only available for Industry Orbits",
+          code: "NOT_INDUSTRY_ORBIT"
+        });
+      }
+      
+      const cpac = await exportCpac(orbitMeta);
+      const stats = calculateCpacStats(cpac);
+      const prompt = generateClaudeExtensionPrompt(cpac, stats);
+      
+      // Return as plain text for easy copying
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${slug}-claude-prompt.txt"`);
+      
+      res.send(prompt);
+      
+    } catch (error) {
+      console.error("[Claude Prompt] Error:", error);
+      res.status(500).json({ message: "Failed to generate Claude prompt" });
+    }
+  });
+  
+  // POST /api/industry-orbits/:slug/cpac/diff - Analyze diff between current and uploaded CPAC
+  app.post("/api/industry-orbits/:slug/cpac/diff", async (req, res) => {
+    const { slug } = req.params;
+    
+    try {
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      if (orbitMeta.orbitType !== 'industry') {
+        return res.status(403).json({ 
+          message: "CPAC diff is only available for Industry Orbits",
+          code: "NOT_INDUSTRY_ORBIT"
+        });
+      }
+      
+      const incomingCpac = req.body;
+      if (!incomingCpac || !incomingCpac.formatVersion) {
+        return res.status(400).json({ message: "Invalid CPAC format" });
+      }
+      
+      const existingCpac = await exportCpac(orbitMeta);
+      const diff = analyzeCpacDiff(existingCpac, incomingCpac);
+      
+      res.json({
+        orbit: {
+          slug: orbitMeta.businessSlug,
+          title: orbitMeta.customTitle || orbitMeta.businessSlug,
+        },
+        diff,
+        summary: {
+          totalAdditions: diff.newEntities.length + diff.newProducts.length + diff.newCommunities.length + diff.newTiles.length + diff.newPulseSources.length,
+          potentialDuplicates: diff.potentialDuplicates.length,
+          warnings: diff.warnings.length,
+        },
+        analyzedAt: new Date().toISOString(),
+      });
+      
+    } catch (error) {
+      console.error("[CPAC Diff] Error:", error);
+      res.status(500).json({ message: "Failed to analyze CPAC diff" });
     }
   });
 

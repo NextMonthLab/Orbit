@@ -687,3 +687,292 @@ function parseCsvLine(line: string): string[] {
   fields.push(current);
   return fields;
 }
+
+// ============ CLAUDE EXTENSION PROMPT GENERATOR ============
+
+export interface CpacStats {
+  entities: number;
+  products: number;
+  reviews: number;
+  communities: number;
+  tiles: number;
+  pulseSources: number;
+  coreConcepts: number;
+  assets: number;
+  entityTypes: Record<string, number>;
+  productCategories: Record<string, number>;
+  productStatuses: Record<string, number>;
+}
+
+export function calculateCpacStats(cpac: CpacV1Export): CpacStats {
+  const entityTypes: Record<string, number> = {};
+  for (const entity of cpac.entities) {
+    entityTypes[entity.entityType] = (entityTypes[entity.entityType] || 0) + 1;
+  }
+  
+  const productCategories: Record<string, number> = {};
+  const productStatuses: Record<string, number> = {};
+  for (const product of cpac.products) {
+    productCategories[product.category] = (productCategories[product.category] || 0) + 1;
+    productStatuses[product.status] = (productStatuses[product.status] || 0) + 1;
+  }
+  
+  return {
+    entities: cpac.entities.length,
+    products: cpac.products.length,
+    reviews: cpac.reviews.length,
+    communities: cpac.communities.length,
+    tiles: cpac.tiles.length,
+    pulseSources: cpac.pulseSources.length,
+    coreConcepts: cpac.coreConcepts.length,
+    assets: cpac.assets.length,
+    entityTypes,
+    productCategories,
+    productStatuses,
+  };
+}
+
+export function generateClaudeExtensionPrompt(cpac: CpacV1Export, stats: CpacStats): string {
+  const orbitTitle = cpac.orbit.title;
+  const orbitSlug = cpac.orbit.slug;
+  
+  // Build entity type summary
+  const entityTypeSummary = Object.entries(stats.entityTypes)
+    .map(([type, count]) => `${type}: ${count}`)
+    .join(', ');
+  
+  // Build product category summary
+  const categorySummary = Object.entries(stats.productCategories)
+    .map(([cat, count]) => `${cat}: ${count}`)
+    .join(', ');
+  
+  // Build product status summary
+  const statusSummary = Object.entries(stats.productStatuses)
+    .map(([status, count]) => `${status}: ${count}`)
+    .join(', ');
+  
+  // Extract existing entity names for deduplication reference
+  const existingEntities = cpac.entities.map(e => e.name).slice(0, 30);
+  const existingProducts = cpac.products.map(p => p.name).slice(0, 30);
+  
+  return `# Orbit CPAC Extension Task
+
+You are extending the knowledge base for the "${orbitTitle}" Industry Orbit (slug: ${orbitSlug}).
+
+## Current CPAC Contents
+
+The attached Orbit CPAC JSON contains:
+- **${stats.entities} entities** (${entityTypeSummary || 'none'})
+- **${stats.products} products** (${categorySummary || 'none'})
+- **${stats.reviews} reviews**
+- **${stats.communities} communities**
+- **${stats.tiles} tiles**
+- **${stats.pulseSources} pulse sources**
+- **${stats.coreConcepts} core concepts**
+- **${stats.assets} assets**
+
+Product statuses: ${statusSummary || 'none'}
+
+## Your Task
+
+Extend this CPAC with **meaningful new entries** that add genuine value. Do NOT duplicate or repeat existing content.
+
+### Strict Rules
+
+1. **NO DUPLICATES**: The following entities already exist (sample): ${existingEntities.join(', ')}${existingEntities.length >= 30 ? '...' : ''}
+   - The following products already exist (sample): ${existingProducts.join(', ')}${existingProducts.length >= 30 ? '...' : ''}
+   - Check the full CPAC JSON before adding anything
+
+2. **QUALITY OVER QUANTITY**: Only add entries with real value. Each addition must:
+   - Have verifiable sources for key claims
+   - Include meaningful descriptions (not placeholder text)
+   - Use correct status tags (announced, available, discontinued, rumored)
+   - Include confidence indicators where uncertain
+
+3. **REQUIRED FIELDS**: Every new entry must include:
+   - For entities: name, entityType, description, trustLevel, at least one source URL
+   - For products: name, category, status, releaseDate (if known), summary with target audience
+   - For communities: name, url, communityType, notes explaining what the community is
+
+4. **STATUS TAGGING**: Use these product statuses correctly:
+   - \`announced\` - Officially announced but not shipping
+   - \`available\` - Currently purchasable
+   - \`discontinued\` - No longer made but historically significant
+   - \`rumored\` - Unconfirmed reports only
+   - \`in_development\` - Known to be in development
+
+### Expansion Buckets
+
+Add entries across these categories (prioritize gaps in current coverage):
+
+1. **Enterprise/Industrial** - B2B solutions, warehouse/logistics, field service
+2. **Optics & Display Suppliers** - Component manufacturers, display technology companies
+3. **Audio-First Devices** - Smart glasses focused on audio rather than AR/display
+4. **Regional Players** - Non-US manufacturers (China, Japan, Korea, Europe)
+5. **Accessories & Ecosystem** - Cases, mounts, prescription inserts, charging solutions
+6. **Developer Tools** - SDKs, development kits, simulation tools
+7. **Key Communities** - Subreddits, Discord servers, forums, YouTube channels
+8. **Discontinued But Influential** - Products that shaped the industry (mark status: discontinued)
+
+### Output Format
+
+Return a valid JSON object that can be merged with the existing CPAC. Structure:
+
+\`\`\`json
+{
+  "additions": {
+    "entities": [...],
+    "products": [...],
+    "communities": [...],
+    "tiles": [...],
+    "pulseSources": [...]
+  },
+  "notes": "Brief summary of what was added and why"
+}
+\`\`\`
+
+Use the same schema as the input CPAC. Generate unique IDs using the pattern: \`{type}-{slug}-new-{n}\` (e.g., \`entity-vuzix-new-1\`).
+
+## Important
+
+- Merge aliases and alternate names rather than creating duplicates
+- If uncertain about a detail, omit it rather than guessing
+- Focus on entries that would help someone researching this industry
+- Include reasoning for why each addition is valuable in a \`_additionReason\` field
+
+Attach the current Orbit CPAC JSON to this prompt, then provide your extensions.`;
+}
+
+// Generate a summary of what to check when reviewing import diffs
+export interface CpacDiffSummary {
+  newEntities: { id: string; name: string; entityType: string }[];
+  newProducts: { id: string; name: string; category: string; status: string }[];
+  newCommunities: { id: string; name: string; communityType: string }[];
+  newTiles: { id: string; label: string }[];
+  newPulseSources: { id: string; name: string; sourceType: string }[];
+  potentialDuplicates: { type: string; newName: string; existingName: string; similarity: number }[];
+  warnings: string[];
+}
+
+function levenshteinDistance(a: string, b: string): number {
+  const matrix: number[][] = [];
+  
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  
+  return matrix[b.length][a.length];
+}
+
+function nameSimilarity(name1: string, name2: string): number {
+  const a = name1.toLowerCase().trim();
+  const b = name2.toLowerCase().trim();
+  if (a === b) return 1;
+  
+  const distance = levenshteinDistance(a, b);
+  const maxLen = Math.max(a.length, b.length);
+  return 1 - (distance / maxLen);
+}
+
+export function analyzeCpacDiff(
+  existingCpac: CpacV1Export,
+  incomingCpac: CpacV1Export
+): CpacDiffSummary {
+  const existingEntityNames = new Set(existingCpac.entities.map(e => e.name.toLowerCase()));
+  const existingProductNames = new Set(existingCpac.products.map(p => p.name.toLowerCase()));
+  const existingCommunityNames = new Set(existingCpac.communities.map(c => c.name.toLowerCase()));
+  const existingTileLabels = new Set(existingCpac.tiles.map(t => t.label.toLowerCase()));
+  const existingSourceNames = new Set(existingCpac.pulseSources.map(s => s.name.toLowerCase()));
+  
+  const existingEntityIds = new Set(existingCpac.entities.map(e => e.id));
+  const existingProductIds = new Set(existingCpac.products.map(p => p.id));
+  
+  const newEntities = incomingCpac.entities.filter(e => 
+    !existingEntityIds.has(e.id) && !existingEntityNames.has(e.name.toLowerCase())
+  );
+  const newProducts = incomingCpac.products.filter(p => 
+    !existingProductIds.has(p.id) && !existingProductNames.has(p.name.toLowerCase())
+  );
+  const newCommunities = incomingCpac.communities.filter(c => 
+    !existingCommunityNames.has(c.name.toLowerCase())
+  );
+  const newTiles = incomingCpac.tiles.filter(t => 
+    !existingTileLabels.has(t.label.toLowerCase())
+  );
+  const newPulseSources = incomingCpac.pulseSources.filter(s => 
+    !existingSourceNames.has(s.name.toLowerCase())
+  );
+  
+  // Check for potential duplicates (similar names)
+  const potentialDuplicates: CpacDiffSummary['potentialDuplicates'] = [];
+  const SIMILARITY_THRESHOLD = 0.8;
+  
+  for (const newEntity of newEntities) {
+    for (const existing of existingCpac.entities) {
+      const sim = nameSimilarity(newEntity.name, existing.name);
+      if (sim >= SIMILARITY_THRESHOLD && sim < 1) {
+        potentialDuplicates.push({
+          type: 'entity',
+          newName: newEntity.name,
+          existingName: existing.name,
+          similarity: Math.round(sim * 100),
+        });
+      }
+    }
+  }
+  
+  for (const newProduct of newProducts) {
+    for (const existing of existingCpac.products) {
+      const sim = nameSimilarity(newProduct.name, existing.name);
+      if (sim >= SIMILARITY_THRESHOLD && sim < 1) {
+        potentialDuplicates.push({
+          type: 'product',
+          newName: newProduct.name,
+          existingName: existing.name,
+          similarity: Math.round(sim * 100),
+        });
+      }
+    }
+  }
+  
+  const warnings: string[] = [];
+  
+  // Check for products without manufacturers
+  const orphanProducts = newProducts.filter(p => !p.manufacturerEntityId);
+  if (orphanProducts.length > 0) {
+    warnings.push(`${orphanProducts.length} new products have no manufacturer linked`);
+  }
+  
+  // Check for products without release dates
+  const undatedProducts = newProducts.filter(p => !p.releaseDate);
+  if (undatedProducts.length > 0) {
+    warnings.push(`${undatedProducts.length} new products have no release date`);
+  }
+  
+  return {
+    newEntities: newEntities.map(e => ({ id: e.id, name: e.name, entityType: e.entityType })),
+    newProducts: newProducts.map(p => ({ id: p.id, name: p.name, category: p.category, status: p.status })),
+    newCommunities: newCommunities.map(c => ({ id: c.id, name: c.name, communityType: c.communityType })),
+    newTiles: newTiles.map(t => ({ id: t.id, label: t.label })),
+    newPulseSources: newPulseSources.map(s => ({ id: s.id, name: s.name, sourceType: s.sourceType })),
+    potentialDuplicates,
+    warnings,
+  };
+}
