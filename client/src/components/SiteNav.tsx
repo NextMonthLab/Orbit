@@ -15,8 +15,11 @@ import {
   GraduationCap,
   Compass,
   Shield,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import { useAuth } from "@/lib/auth";
 import {
   DropdownMenu,
@@ -52,9 +55,14 @@ const appLinks = [
 export default function SiteNav({ variant: explicitVariant, onStartTour }: SiteNavProps) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const variant: NavVariant = explicitVariant || (location.startsWith('/for') || location === '/' ? 'marketing' : 'app');
+  
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
   
   const logoHref = variant === 'marketing' ? '/' : '/launchpad';
   const centerLinks = variant === 'marketing' ? marketingLinks : appLinks;
@@ -178,6 +186,23 @@ export default function SiteNav({ variant: explicitVariant, onStartTour }: SiteN
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem 
+                    onClick={toggleTheme} 
+                    className="cursor-pointer text-white/80 hover:text-white"
+                    data-testid="nav-menu-theme"
+                  >
+                    {theme === 'dark' ? (
+                      <>
+                        <Sun className="w-4 h-4 mr-2" />
+                        Light Mode
+                      </>
+                    ) : (
+                      <>
+                        <Moon className="w-4 h-4 mr-2" />
+                        Dark Mode
+                      </>
+                    )}
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-400 hover:text-red-300" data-testid="nav-menu-logout">
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
