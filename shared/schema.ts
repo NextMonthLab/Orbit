@@ -4,8 +4,8 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Users
-// User roles: viewer (default), creator (storytellers), admin (full access)
-export type UserRole = 'viewer' | 'creator' | 'admin';
+// User roles: viewer (default), creator (storytellers), influencer (can publish ICE), admin (full access)
+export type UserRole = 'viewer' | 'creator' | 'influencer' | 'admin';
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -1087,6 +1087,46 @@ export const insertIcePreviewSchema = createInsertSchema(icePreviews).omit({ cre
 export type InsertIcePreview = z.infer<typeof insertIcePreviewSchema>;
 export type IcePreview = typeof icePreviews.$inferSelect;
 
+// ============ ORBIT → ICE FLYWHEEL (Types Only - Tables in main ICE section) ============
+
+// ICE Template types for Orbit-powered content
+export type IceTemplateType = 'compare_ice' | 'shortlist_ice' | 'weekly_pulse_ice' | 'buyer_checklist_ice' | 'custom';
+
+// View types from Orbit windscreen
+export type OrbitViewType = 'compare' | 'shortlist' | 'timeline' | 'pulse' | 'evidence' | 'none';
+
+// Orbit View State for deep linking
+export const orbitViewStateSchema = z.object({
+  question: z.string().optional(),
+  viewType: z.enum(['compare', 'shortlist', 'timeline', 'pulse', 'evidence', 'none']).optional(),
+  selectedEntities: z.array(z.string()).optional(), // product/brand IDs
+  filters: z.record(z.string(), z.any()).optional(), // use-case chips, etc.
+  highlightTarget: z.string().optional(), // row ID to highlight
+});
+
+export type OrbitViewState = z.infer<typeof orbitViewStateSchema>;
+
+// ICE Draft Payload from Orbit capture
+export const iceDraftPayloadSchema = z.object({
+  orbitSlug: z.string(),
+  orbitType: z.enum(['industry', 'standard']),
+  sourceMessageId: z.string().optional(),
+  viewType: z.enum(['compare', 'shortlist', 'timeline', 'pulse', 'evidence', 'none']),
+  viewData: z.any().optional(), // structured JSON from view
+  summaryText: z.string(),
+  sources: z.array(z.string()).optional(),
+  recommendedTemplate: z.enum(['compare_ice', 'shortlist_ice', 'weekly_pulse_ice', 'buyer_checklist_ice', 'custom']),
+  deepLink: z.string(),
+});
+
+export type IceDraftPayload = z.infer<typeof iceDraftPayloadSchema>;
+
+// ICE Analytics Events (for tracking flywheel metrics)
+export type IceAnalyticsEventType = 'ice_view' | 'ice_share' | 'cta_click_to_orbit' | 'orbit_session_started_from_ice';
+
+// Moderation status for influencer submissions
+export type ModerationStatus = 'pending' | 'approved' | 'rejected';
+
 // ============ SUBSCRIPTION & ENTITLEMENTS ============
 
 // Plans table (Free, Pro, Business)
@@ -2121,41 +2161,107 @@ export const insertOrbitKnowledgePromptSchema = createInsertSchema(orbitKnowledg
 export type InsertOrbitKnowledgePrompt = z.infer<typeof insertOrbitKnowledgePromptSchema>;
 export type OrbitKnowledgePrompt = typeof orbitKnowledgePrompts.$inferSelect;
 
-// ICE Drafts - generated content from insights (Launchpad builder output)
+// ICE Drafts - unified table for Launchpad and Orbit-sourced content
+export type IceDraftSource = 'launchpad' | 'orbit';
 export type IceDraftFormat = 'hook_bullets' | 'myth_reality' | 'checklist' | 'problem_solution_proof';
 export type IceDraftTone = 'direct' | 'warm' | 'playful' | 'premium';
 export type IceDraftOutputType = 'video_card' | 'interactive';
-export type IceDraftStatus = 'draft' | 'published';
+export type IceDraftStatus = 'draft' | 'pending_review' | 'published' | 'rejected';
 
 export const iceDrafts = pgTable("ice_drafts", {
   id: serial("id").primaryKey(),
-  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug).notNull(),
   userId: integer("user_id").references(() => users.id).notNull(),
   
-  // Source linking
-  insightId: text("insight_id").notNull(),
+  // Source discriminator (launchpad vs orbit)
+  source: text("source").$type<IceDraftSource>().default("launchpad").notNull(),
   
-  // Content configuration
-  format: text("format").$type<IceDraftFormat>().notNull(),
-  tone: text("tone").$type<IceDraftTone>().notNull(),
-  outputType: text("output_type").$type<IceDraftOutputType>().notNull(),
+  // === LAUNCHPAD FIELDS (required when source='launchpad') ===
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug), // Optional for orbit source
+  insightId: text("insight_id"), // Required for launchpad
+  format: text("format").$type<IceDraftFormat>(), // Required for launchpad
+  tone: text("tone").$type<IceDraftTone>(), // Required for launchpad
+  outputType: text("output_type").$type<IceDraftOutputType>(), // Required for launchpad
   
-  // Generated content
-  headline: text("headline").notNull(),
-  captions: text("captions").array().notNull(),
+  // Generated content (shared)
+  headline: text("headline"),
+  captions: text("captions").array(),
   ctaText: text("cta_text"),
   previewFrameUrl: text("preview_frame_url"),
   
-  // Status
+  // === ORBIT FIELDS (required when source='orbit') ===
+  orbitSlug: text("orbit_slug"), // Required for orbit source
+  orbitType: text("orbit_type").$type<'industry' | 'standard'>(), // Required for orbit source
+  sourceMessageId: text("source_message_id"), // Chat message that triggered this
+  viewType: text("view_type").$type<OrbitViewType>(), // View context (compare, shortlist, etc.)
+  viewData: jsonb("view_data"), // Structured data from view
+  summaryText: text("summary_text"), // Assistant's summary text
+  sources: jsonb("sources").$type<string[]>(), // Source references
+  templateType: text("template_type").$type<IceTemplateType>(), // Orbit template type
+  generatedCards: jsonb("generated_cards").$type<IcePreviewCard[]>(), // Generated card content
+  deepLink: text("deep_link"), // Deep link back to Orbit state
+  orbitViewState: jsonb("orbit_view_state").$type<OrbitViewState>(), // Full view state for restoration
+  ctaLabel: text("cta_label").default("Ask in Orbit"), // CTA button label
+  ctaLink: text("cta_link"), // CTA destination URL
+  campaignId: text("campaign_id"), // For tracking campaigns
+  
+  // Published ICE reference
+  publishedIceId: text("published_ice_id").references(() => icePreviews.id),
+  
+  // Status (extended for moderation)
   status: text("status").$type<IceDraftStatus>().default("draft").notNull(),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
   publishedAt: timestamp("published_at"),
 });
 
-export const insertIceDraftSchema = createInsertSchema(iceDrafts).omit({ id: true, createdAt: true });
+export const insertIceDraftSchema = createInsertSchema(iceDrafts).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertIceDraft = z.infer<typeof insertIceDraftSchema>;
 export type IceDraft = typeof iceDrafts.$inferSelect;
+
+// ICE Moderation Queue (for influencer submissions to industry orbits)
+export const iceModeration = pgTable("ice_moderation", {
+  id: serial("id").primaryKey(),
+  draftId: integer("draft_id").references(() => iceDrafts.id).notNull(),
+  submittedBy: integer("submitted_by").references(() => users.id).notNull(),
+  
+  // Review status
+  status: text("status").$type<ModerationStatus>().default("pending").notNull(),
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  rejectionReason: text("rejection_reason"),
+  
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+});
+
+export const insertIceModerationSchema = createInsertSchema(iceModeration).omit({ id: true, submittedAt: true });
+export type InsertIceModeration = z.infer<typeof insertIceModerationSchema>;
+export type IceModeration = typeof iceModeration.$inferSelect;
+
+// ICE Analytics Events (for tracking flywheel metrics)
+export const iceAnalyticsEvents = pgTable("ice_analytics_events", {
+  id: serial("id").primaryKey(),
+  iceId: text("ice_id").references(() => icePreviews.id),
+  draftId: integer("draft_id").references(() => iceDrafts.id),
+  
+  eventType: text("event_type").$type<IceAnalyticsEventType>().notNull(),
+  
+  // Attribution
+  orbitSlug: text("orbit_slug"),
+  creatorId: integer("creator_id").references(() => users.id),
+  campaignId: text("campaign_id"),
+  ref: text("ref"), // influencer handle or channel
+  
+  // Context
+  visitorIp: text("visitor_ip"),
+  userAgent: text("user_agent"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertIceAnalyticsEventSchema = createInsertSchema(iceAnalyticsEvents).omit({ id: true, createdAt: true });
+export type InsertIceAnalyticsEvent = z.infer<typeof insertIceAnalyticsEventSchema>;
+export type IceAnalyticsEvent = typeof iceAnalyticsEvents.$inferSelect;
 
 // Notification Types
 export type NotificationType = 

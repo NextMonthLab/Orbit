@@ -366,6 +366,28 @@ class ApiClient {
     return this.request("/admin/industry-orbits");
   }
 
+  // Orbit → ICE Flywheel
+  async createIceDraftFromOrbit(orbitSlug: string, data: {
+    sourceMessageId?: string;
+    viewType?: string;
+    viewData?: any;
+    summaryText: string;
+    sources?: any[];
+    templateType?: string;
+    deepLink?: string;
+    orbitViewState?: any;
+    title?: string;
+  }): Promise<any> {
+    return this.request(`/orbit/${orbitSlug}/ice-drafts`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+  
+  async getOrbitIceDrafts(orbitSlug: string): Promise<any[]> {
+    return this.request(`/orbit/${orbitSlug}/ice-drafts`);
+  }
+
   // Audio
   async scanAudioFiles(): Promise<{ files: ScannedAudioFile[] }> {
     return this.request<{ files: ScannedAudioFile[] }>("/admin/audio/scan");

@@ -1,7 +1,7 @@
 import { useRoute, useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Globe, ExternalLink, AlertCircle, CheckCircle, Mail, MessageCircle, LayoutDashboard, Share2 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,9 @@ import { HubPanelContainer } from "@/components/orbit/HubPanelContainer";
 import { OrbitGrid } from "@/components/orbit/OrbitGrid";
 import { OrbitShareModal } from "@/components/orbit/OrbitShareModal";
 import { ViewWindscreen, MobileViewSheet } from "@/components/orbit/viewEngine/ViewWindscreen";
+import { useAuth } from "@/lib/auth";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 import type { ViewPayload } from "@shared/orbitViewEngine";
 import type { SiteKnowledge } from "@/lib/siteKnowledge";
@@ -215,6 +218,66 @@ export default function OrbitView() {
   const chatHistoryRef = useRef<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   // Track when proof capture was triggered to prevent repeated prompts
   const proofCaptureTriggeredRef = useRef<string | null>(null);
+  
+  // Auth for ICE creation permissions
+  const { user } = useAuth();
+  const canCreateIce = user && (user.role === 'admin' || user.role === 'influencer' || user.isAdmin);
+  
+  // Map view types to valid ICE template types
+  const mapViewTypeToTemplate = (viewType: string): string => {
+    const mapping: Record<string, string> = {
+      'compare': 'compare_ice',
+      'shortlist': 'shortlist_ice',
+      'checklist': 'buyer_checklist_ice',
+      'pulse': 'weekly_pulse_ice',
+    };
+    return mapping[viewType] || 'custom';
+  };
+  
+  // ICE creation callback for ViewWindscreen
+  const handleCreateIceFromView = useCallback(async (view: ViewPayload) => {
+    if (!slug || !canCreateIce) return;
+    
+    try {
+      const draft = await api.createIceDraftFromOrbit(slug, {
+        viewType: view.type,
+        viewData: view.data,
+        summaryText: view.title || 'View from Orbit',
+        templateType: mapViewTypeToTemplate(view.type),
+        title: view.title,
+      });
+      
+      toast.success('ICE draft created', {
+        description: 'Your content draft has been saved. Visit ICE Maker to customize and publish.',
+      });
+    } catch (error) {
+      toast.error('Failed to create ICE draft', {
+        description: error instanceof Error ? error.message : 'Please try again',
+      });
+    }
+  }, [slug, canCreateIce]);
+  
+  // ICE creation callback for ChatHub messages
+  const handleCreateIceFromChat = useCallback(async (messageContent: string, _messageIndex: number) => {
+    if (!slug || !canCreateIce) return;
+    
+    try {
+      await api.createIceDraftFromOrbit(slug, {
+        viewType: 'chat_response',
+        summaryText: messageContent.substring(0, 500),
+        templateType: 'custom',
+        title: `Chat insight from ${slug}`,
+      });
+      
+      toast.success('ICE draft created', {
+        description: 'Your content draft has been saved. Visit ICE Maker to customize and publish.',
+      });
+    } catch (error) {
+      toast.error('Failed to create ICE draft', {
+        description: error instanceof Error ? error.message : 'Please try again',
+      });
+    }
+  }, [slug, canCreateIce]);
 
   useEffect(() => {
     if (slug && slug !== lastTrackedSlug) {
@@ -1077,6 +1140,8 @@ export default function OrbitView() {
               onInteraction={() => trackMetric('interactions')}
               orbitSlug={slug}
               onSendMessage={createIndustryViewChatHandler()}
+              onCreateIce={handleCreateIceFromChat}
+              canCreateIce={!!canCreateIce}
             />
           </div>
           
@@ -1088,6 +1153,8 @@ export default function OrbitView() {
               onClose={() => setActiveView(null)}
               onAskAbout={handleAskAboutRow}
               onFollowupClick={handleFollowupClick}
+              onCreateIce={handleCreateIceFromView}
+              canCreateIce={!!canCreateIce}
             />
           )}
           
@@ -1099,6 +1166,8 @@ export default function OrbitView() {
               onClose={() => setActiveView(null)}
               onAskAbout={handleAskAboutRow}
               onFollowupClick={handleFollowupClick}
+              onCreateIce={handleCreateIceFromView}
+              canCreateIce={!!canCreateIce}
             />
           )}
           
@@ -1199,6 +1268,8 @@ export default function OrbitView() {
                 }
               }}
               onSendMessage={createChatHandler(undefined, menuContext)}
+              onCreateIce={handleCreateIceFromChat}
+              canCreateIce={!!canCreateIce}
             />
           )}
         </div>
@@ -1607,6 +1678,8 @@ export default function OrbitView() {
             }
           }}
           onSendMessage={createChatHandler(preview.previewAccessToken)}
+          onCreateIce={handleCreateIceFromChat}
+          canCreateIce={!!canCreateIce}
         />
       )}
 

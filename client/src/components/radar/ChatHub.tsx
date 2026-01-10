@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, Send, X, Minimize2, Loader2, Play } from "lucide-react";
+import { MessageCircle, Send, X, Minimize2, Loader2, Play, Sparkles } from "lucide-react";
 
 export interface SuggestedVideo {
   id: number;
@@ -212,6 +212,8 @@ interface ChatHubProps {
   onExpand: () => void;
   nearbyTiles?: string[];
   lightMode?: boolean;
+  onCreateIce?: (messageContent: string, messageIndex: number) => void;
+  canCreateIce?: boolean;
 }
 
 export function ChatHub({
@@ -227,6 +229,8 @@ export function ChatHub({
   onExpand,
   nearbyTiles = [],
   lightMode = false,
+  onCreateIce,
+  canCreateIce = false,
 }: ChatHubProps) {
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
   const videoStartTimeRef = useRef<number>(0);
@@ -390,7 +394,7 @@ export function ChatHub({
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+              className={`group flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
             >
               <div
                 className={`max-w-[85%] px-3 py-2 rounded-xl text-sm ${
@@ -404,6 +408,21 @@ export function ChatHub({
                   ? renderMessageContent(msg.content, accentColor, handleChipClick, lightMode)
                   : msg.content}
               </div>
+              
+              {msg.role === 'assistant' && canCreateIce && i > 0 && (
+                <button
+                  onClick={() => onCreateIce?.(msg.content, i)}
+                  className={`mt-1 px-2 py-1 rounded-md text-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${
+                    lightMode 
+                      ? 'bg-purple-50 text-purple-600 hover:bg-purple-100' 
+                      : 'bg-purple-500/10 text-purple-300 hover:bg-purple-500/20'
+                  }`}
+                  data-testid={`create-ice-${i}`}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Turn into ICE
+                </button>
+              )}
               
               {/* Video Card */}
               {msg.video && (

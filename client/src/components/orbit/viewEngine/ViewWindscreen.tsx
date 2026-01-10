@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronRight, ChevronLeft, Bookmark, MessageCircle, ExternalLink, Settings2 } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, Bookmark, MessageCircle, ExternalLink, Settings2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ViewPayload, AssistantResponse } from "@shared/orbitViewEngine";
 import { CompareView } from "./CompareView";
@@ -13,6 +13,8 @@ interface ViewWindscreenProps {
   onClose: () => void;
   onAskAbout?: (query: string) => void;
   onFollowupClick?: (followup: string) => void;
+  onCreateIce?: (view: ViewPayload) => void;
+  canCreateIce?: boolean;
   className?: string;
 }
 
@@ -22,6 +24,8 @@ export function ViewWindscreen({
   onClose, 
   onAskAbout,
   onFollowupClick,
+  onCreateIce,
+  canCreateIce = false,
   className 
 }: ViewWindscreenProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -116,6 +120,17 @@ export function ViewWindscreen({
         </div>
         
         <div className="flex items-center gap-1">
+          {canCreateIce && (
+            <button
+              onClick={() => onCreateIce?.(view)}
+              className="px-2 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 transition-colors flex items-center gap-1"
+              title="Turn this view into shareable ICE content"
+              data-testid="create-ice-from-view"
+            >
+              <Sparkles className="w-3 h-3 text-purple-300" />
+              <span className="text-xs text-purple-200">Create ICE</span>
+            </button>
+          )}
           <button
             className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
             title="Save view"
@@ -190,6 +205,8 @@ export function MobileViewSheet({
   onClose,
   onAskAbout,
   onFollowupClick,
+  onCreateIce,
+  canCreateIce = false,
 }: ViewWindscreenProps) {
   if (!view) return null;
 
@@ -223,13 +240,25 @@ export function MobileViewSheet({
         <h2 className="text-sm font-medium text-white">
           {view.title || 'View'}
         </h2>
-        <button
-          onClick={onClose}
-          className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-          data-testid="close-mobile-view"
-        >
-          <X className="w-5 h-5 text-white/60" />
-        </button>
+        <div className="flex items-center gap-2">
+          {canCreateIce && (
+            <button
+              onClick={() => onCreateIce?.(view)}
+              className="px-2 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 transition-colors flex items-center gap-1"
+              data-testid="mobile-create-ice"
+            >
+              <Sparkles className="w-3 h-3 text-purple-300" />
+              <span className="text-xs text-purple-200">ICE</span>
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+            data-testid="close-mobile-view"
+          >
+            <X className="w-5 h-5 text-white/60" />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">

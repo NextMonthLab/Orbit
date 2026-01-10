@@ -3410,6 +3410,92 @@ export async function registerRoutes(
     }
   });
 
+  // ============ ORBIT → ICE FLYWHEEL ROUTES ============
+  
+  // Create ICE draft from Orbit context (admin or influencer only)
+  app.post("/api/orbit/:slug/ice-drafts", async (req, res) => {
+    try {
+      const user = req.user as schema.User | undefined;
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Check if user is admin or influencer
+      const canCreate = user.role === 'admin' || user.role === 'influencer' || user.isAdmin;
+      if (!canCreate) {
+        return res.status(403).json({ message: "Only admins and influencers can create ICE from Orbit" });
+      }
+      
+      const { slug } = req.params;
+      const orbit = await storage.getOrbitMetaBySlug(slug);
+      if (!orbit) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const { 
+        sourceMessageId,
+        viewType = 'none',
+        viewData,
+        summaryText,
+        sources,
+        templateType = 'custom',
+        deepLink,
+        orbitViewState,
+        title,
+      } = req.body;
+      
+      if (!summaryText) {
+        return res.status(400).json({ message: "Summary text is required" });
+      }
+      
+      // Create the ICE draft
+      const draft = await storage.createIceDraft({
+        userId: user.id,
+        source: 'orbit',
+        orbitSlug: slug,
+        orbitType: orbit.orbitType || 'standard',
+        sourceMessageId,
+        viewType,
+        viewData,
+        summaryText,
+        sources,
+        templateType,
+        deepLink: deepLink || `/orbit/${slug}`,
+        orbitViewState,
+        headline: title,
+        status: 'draft',
+      });
+      
+      res.status(201).json(draft);
+    } catch (error) {
+      console.error("Error creating ICE draft:", error);
+      res.status(500).json({ message: "Error creating ICE draft" });
+    }
+  });
+  
+  // Get ICE drafts for an Orbit
+  app.get("/api/orbit/:slug/ice-drafts", async (req, res) => {
+    try {
+      const user = req.user as schema.User | undefined;
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const { slug } = req.params;
+      
+      // Query ice drafts by orbit slug
+      const drafts = await db.query.iceDrafts.findMany({
+        where: eq(schema.iceDrafts.orbitSlug, slug),
+        orderBy: [desc(schema.iceDrafts.createdAt)],
+      });
+      
+      res.json(drafts);
+    } catch (error) {
+      console.error("Error fetching ICE drafts:", error);
+      res.status(500).json({ message: "Error fetching ICE drafts" });
+    }
+  });
+
   // ============ AUDIO LIBRARY ROUTES ============
 
   // Scan uploads/audio directory for unimported tracks
