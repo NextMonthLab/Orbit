@@ -1,0 +1,186 @@
+Here you go, Rob. Copy and paste this straight into Replit (RAPTOR/REPLAYER). It’s written to implement the Orbit → ICE Maker flywheel properly, with deep links, tracking, and role gating.
+
+⸻
+
+Replit Prompt: Make Industry Orbits power the ICE Maker (Admin + Influencer growth loop)
+
+Context
+
+We have two Orbit types:
+	•	Industry Orbits (public hubs like /orbit/smart-glasses)
+	•	Business Orbits (private or business-specific hubs)
+
+Design and UI improvements are shared across both. We already have an Orbit UI (chat + map) and an ICE Maker product that generates interactive experiences and video-like outputs.
+
+Objective
+
+Build a tight growth loop where:
+	1.	Industry Orbit insights and views can be turned into ICE content in one click
+	2.	Admins and approved influencers can create and publish that content
+	3.	Every ICE drives traffic back into the Orbit via deep links
+	4.	Orbit converts traffic into more questions and more shareable ICE content
+
+Key UX principle
+
+Chat is the universal interface. Any ICE creation action must be accessible from the chat thread (works on mobile). Desktop can also use a side pane, but it must not be required.
+
+⸻
+
+Part A: Add “Create ICE” actions inside Orbit
+
+1) Add CTA locations
+
+Add a “Turn into ICE” action in these places:
+	•	On assistant answers in the chat thread (message actions)
+	•	In the right “windscreen” pane when a view is rendered (compare, shortlist, timeline, pulse)
+
+Minimum UI:
+	•	A small button: “Turn into ICE”
+	•	An optional dropdown: “Video”, “Interactive”, “Carousel” (MVP can default to one)
+
+2) What gets sent to ICE Maker
+
+When the user clicks “Turn into ICE”, generate an IceDraftPayload from the current context:
+
+Include:
+	•	orbitSlug
+	•	orbitType (industry or business)
+	•	sourceMessageId (or the relevant conversation turn)
+	•	viewType (compare, shortlist, checklist, pulse, evidence, none)
+	•	viewData (structured JSON if available)
+	•	summaryText (short assistant summary)
+	•	sources (if available)
+	•	recommendedTemplate (compare_ice, weekly_pulse, buyer_checklist, etc.)
+	•	deepLink back to the exact Orbit state (see Part C)
+
+This payload should create a draft in ICE Maker and open the ICE Maker editor on that draft.
+
+⸻
+
+Part B: ICE Maker templates that are Orbit-powered
+
+3) Implement Orbit templates (MVP set)
+
+Add a template selector inside ICE Maker that can be preselected by recommendedTemplate:
+
+MVP templates:
+	•	compare_ice (table driven, top pick plus quick reasons, CTA to compare in Orbit)
+	•	shortlist_ice (top 3–5 picks, why, CTA to ask in Orbit)
+	•	weekly_pulse_ice (what changed this week, CTA to open Orbit pulse)
+	•	buyer_checklist_ice (priorities and dealbreakers, CTA to personalise in Orbit)
+
+Templates must render from structured data, not from freeform text.
+
+4) Mandatory CTA back into Orbit
+
+Every ICE published from an Orbit must include:
+	•	A clear CTA label: “Ask in Orbit” or “Compare in Orbit”
+	•	A deep link to the relevant Orbit and state
+
+This should be enforced automatically, not left to user discipline.
+
+⸻
+
+Part C: Deep linking back to Orbit state (critical)
+
+5) Implement “View State URL”
+
+We need the ICE to open the Orbit in the same context that generated it.
+
+Implement one of these approaches (choose simplest that fits current architecture):
+	•	Option A: Store a viewStateId server-side and link: /orbit/smart-glasses?state=abc123
+	•	Option B: Encode a compact state in query params (only if small and safe)
+
+State should include:
+	•	question or intent
+	•	viewType
+	•	selectedEntities (products/brands)
+	•	filters (use-case chips etc.)
+	•	optional highlight target (row ID etc.)
+
+When Orbit loads with state=..., it should restore:
+	•	the windscreen view
+	•	the relevant chat context (or a pinned “context card”)
+
+⸻
+
+Part D: Roles, permissions, and publishing controls
+
+6) Roles
+
+We need:
+	•	admin
+	•	influencer (approved)
+	•	normal users
+
+Only admins and influencers can publish ICE content to a public Industry Orbit.
+
+7) Publishing workflow (MVP)
+	•	Influencers create ICE drafts
+	•	Publish action requires:
+	•	title
+	•	CTA
+	•	deep link present
+	•	Optional: influencer posts go into a moderation queue for admin approval (recommended)
+
+Admins can:
+	•	publish immediately
+	•	pin featured ICE to Orbit
+	•	remove ICE from Orbit
+
+⸻
+
+Part E: Tracking and growth reporting
+
+8) Tracking links
+
+Each published ICE should generate a trackable URL with:
+	•	orbitSlug
+	•	iceId
+	•	creatorId
+	•	campaignId (optional)
+	•	ref (influencer handle or channel)
+
+Track events:
+	•	ice_view
+	•	ice_share
+	•	cta_click_to_orbit
+	•	orbit_session_started_from_ice
+	•	conversion (if any exists later)
+
+9) Influencer dashboard (simple)
+
+Create a basic influencer stats view:
+	•	ICEs published
+	•	views
+	•	CTA clicks
+	•	clicks back to Orbit
+	•	leaderboard (rank by Orbit clicks driven)
+
+⸻
+
+Part F: UI standards (important)
+	•	Keep Orbit UI and windscreen pane visually calm and mostly neutral
+	•	In the windscreen pane, allow colour mainly from thumbnails, logos, and media, not UI blocks
+	•	In ICE Maker, keep template outputs clean and modern, not neon
+
+⸻
+
+Acceptance criteria
+	1.	From an industry Orbit, I can click “Turn into ICE” on a chat answer or windscreen view.
+	2.	This creates an ICE draft in ICE Maker with template preselected and data prefilled.
+	3.	Publishing the ICE automatically includes a CTA and deep link back to the Orbit.
+	4.	Clicking the CTA opens Orbit in the same comparison, shortlist, or pulse context.
+	5.	Admin and influencer permissions are enforced.
+	6.	Tracking records views and click-through back into Orbit.
+
+⸻
+
+Notes
+	•	Do not break existing Orbit chat or ICE Maker flows.
+	•	Prefer reusable types: IceDraftPayload, OrbitViewState, PublishIceRequest.
+	•	Log routing and creation events for debugging.
+
+⸻
+
+If you want, I can also give you the companion Replit prompt that connects this directly to the “view engine” router (so the compare and shortlist templates always have clean structured data to feed into ICE).

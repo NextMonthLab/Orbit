@@ -18,6 +18,19 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<schema.User | undefined>;
   createUser(user: schema.InsertUser): Promise<schema.User>;
   updateUser(id: number, data: Partial<schema.InsertUser>): Promise<schema.User | undefined>;
+  getAllUsers(): Promise<schema.User[]>;
+  
+  // Admin Platform Metrics
+  getPlatformMetrics(): Promise<{
+    totalUsers: number;
+    usersByRole: { role: string; count: number }[];
+    totalOrbits: number;
+    industryOrbits: number;
+    standardOrbits: number;
+    totalVisits30d: number;
+    totalConversations30d: number;
+  }>;
+  getIndustryOrbits(): Promise<schema.OrbitMeta[]>;
   
   // Creator Profiles
   getCreatorProfile(userId: number): Promise<schema.CreatorProfile | undefined>;
@@ -558,6 +571,70 @@ export class DatabaseStorage implements IStorage {
   async updateUser(id: number, data: Partial<schema.InsertUser>): Promise<schema.User | undefined> {
     const [user] = await db.update(schema.users).set(data).where(eq(schema.users.id, id)).returning();
     return user;
+  }
+  
+  async getAllUsers(): Promise<schema.User[]> {
+    return await db.query.users.findMany({
+      orderBy: [desc(schema.users.createdAt)],
+    });
+  }
+  
+  // Admin Platform Metrics
+  async getPlatformMetrics(): Promise<{
+    totalUsers: number;
+    usersByRole: { role: string; count: number }[];
+    totalOrbits: number;
+    industryOrbits: number;
+    standardOrbits: number;
+    totalVisits30d: number;
+    totalConversations30d: number;
+  }> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    // Count users
+    const allUsers = await db.query.users.findMany();
+    const totalUsers = allUsers.length;
+    
+    // Users by role
+    const roleCounts: Record<string, number> = {};
+    allUsers.forEach(u => {
+      const role = u.role || 'viewer';
+      roleCounts[role] = (roleCounts[role] || 0) + 1;
+    });
+    const usersByRole = Object.entries(roleCounts).map(([role, count]) => ({ role, count }));
+    
+    // Count orbits
+    const allOrbits = await db.query.orbitMeta.findMany();
+    const totalOrbits = allOrbits.length;
+    const industryOrbits = allOrbits.filter(o => o.orbitType === 'industry').length;
+    const standardOrbits = allOrbits.filter(o => o.orbitType === 'standard').length;
+    
+    // Count visits and conversations (30 days)
+    const analytics = await db
+      .select({
+        totalVisits: sql<number>`COALESCE(SUM(total_visits), 0)`,
+        totalConversations: sql<number>`COALESCE(SUM(total_conversations), 0)`,
+      })
+      .from(schema.orbitAnalytics)
+      .where(gte(schema.orbitAnalytics.lastUpdated, thirtyDaysAgo));
+    
+    return {
+      totalUsers,
+      usersByRole,
+      totalOrbits,
+      industryOrbits,
+      standardOrbits,
+      totalVisits30d: Number(analytics[0]?.totalVisits || 0),
+      totalConversations30d: Number(analytics[0]?.totalConversations || 0),
+    };
+  }
+  
+  async getIndustryOrbits(): Promise<schema.OrbitMeta[]> {
+    return await db.query.orbitMeta.findMany({
+      where: eq(schema.orbitMeta.orbitType, 'industry'),
+      orderBy: [desc(schema.orbitMeta.lastUpdated)],
+    });
   }
   
   // Creator Profiles

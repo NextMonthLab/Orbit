@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, ImageIcon, CheckCircle, Trash2, Settings, Image as PhotoIcon, Clapperboard, ExternalLink, Music, Wand2, User, MoreHorizontal } from "lucide-react";
+import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, ImageIcon, CheckCircle, Trash2, Settings, Image as PhotoIcon, Clapperboard, ExternalLink, Music, Wand2, User, MoreHorizontal, Globe, MessageCircle, TrendingUp, Layers } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,11 +40,265 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+type AdminTab = 'overview' | 'users' | 'industry-orbits' | 'content';
+
+function AdminOverview() {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["admin-stats"],
+    queryFn: () => api.getAdminStats(),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats?.totalUsers || 0}</p>
+                <p className="text-xs text-zinc-400">Total Users</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <Globe className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats?.totalOrbits || 0}</p>
+                <p className="text-xs text-zinc-400">Total Orbits</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats?.totalVisits30d || 0}</p>
+                <p className="text-xs text-zinc-400">Visits (30d)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-pink-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats?.totalConversations30d || 0}</p>
+                <p className="text-xs text-zinc-400">Conversations (30d)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="text-white text-sm font-medium">Users by Role</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {stats?.usersByRole?.map(({ role, count }) => (
+                <div key={role} className="flex items-center justify-between">
+                  <span className="text-sm text-zinc-400 capitalize">{role}</span>
+                  <span className="text-sm font-medium text-white">{count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="text-white text-sm font-medium">Orbit Types</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-zinc-400">Industry Orbits</span>
+                <span className="text-sm font-medium text-white">{stats?.industryOrbits || 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-zinc-400">Business Orbits</span>
+                <span className="text-sm font-medium text-white">{stats?.standardOrbits || 0}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function AdminUsers() {
+  const { data: users, isLoading } = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: () => api.getAdminUsers(),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <Card className="bg-zinc-900 border-zinc-800">
+      <CardHeader>
+        <CardTitle className="text-white">Registered Users</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-800">
+                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Username</th>
+                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Email</th>
+                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Role</th>
+                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users?.map(user => (
+                <tr key={user.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                  <td className="py-3 px-4 text-white font-medium">{user.username}</td>
+                  <td className="py-3 px-4 text-zinc-400">{user.email || '—'}</td>
+                  <td className="py-3 px-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      user.isAdmin ? 'bg-red-500/10 text-red-400' :
+                      user.role === 'creator' ? 'bg-purple-500/10 text-purple-400' :
+                      'bg-zinc-700 text-zinc-300'
+                    }`}>
+                      {user.isAdmin ? 'Admin' : user.role || 'Viewer'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-zinc-500 text-xs">
+                    {new Date(user.createdAt).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AdminIndustryOrbits() {
+  const { data: orbits, isLoading } = useQuery({
+    queryKey: ["admin-industry-orbits"],
+    queryFn: () => api.getAdminIndustryOrbits(),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!orbits || orbits.length === 0) {
+    return (
+      <Card className="bg-zinc-900 border-zinc-800">
+        <CardContent className="py-12 text-center">
+          <Layers className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+          <p className="text-zinc-400">No industry orbits found</p>
+          <Link href="/admin/cpac">
+            <Button className="mt-4" variant="outline">
+              Create Industry Orbit
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-white">Industry Orbits</h3>
+        <Link href="/admin/cpac">
+          <Button variant="outline" size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Manage CPAC
+          </Button>
+        </Link>
+      </div>
+      
+      <div className="grid gap-4">
+        {orbits.map(orbit => (
+          <Card key={orbit.id} className="bg-zinc-900 border-zinc-800">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                    <Globe className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-white">{orbit.businessSlug}</h4>
+                    <p className="text-xs text-zinc-400">
+                      {orbit.generationStatus === 'ready' ? 'Active' : orbit.generationStatus}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link href={`/orbit/${orbit.businessSlug}`}>
+                    <Button variant="ghost" size="sm">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      View
+                    </Button>
+                  </Link>
+                  <Link href="/admin/industry-assets">
+                    <Button variant="outline" size="sm">
+                      Assets
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Admin() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   
   const [selectedUniverseId, setSelectedUniverseId] = useState<number | null>(null);
   const [showNewUniverseDialog, setShowNewUniverseDialog] = useState(false);
@@ -414,9 +668,46 @@ export default function Admin() {
     <Layout>
       <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in">
         
-        {/* Header Section - Mobile Optimized */}
-        <div className="space-y-4">
-            <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">Showrunner Dashboard</h1>
+        {/* Admin Command Center Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">Admin Command Center</h1>
+        </div>
+        
+        {/* Tab Navigation */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminTab)} className="space-y-6">
+          <TabsList className="bg-zinc-900 border border-zinc-800 p-1">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-zinc-800" data-testid="tab-overview">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-zinc-800" data-testid="tab-users">
+              <Users className="w-4 h-4 mr-2" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="industry-orbits" className="data-[state=active]:bg-zinc-800" data-testid="tab-industry">
+              <Globe className="w-4 h-4 mr-2" />
+              Industry Orbits
+            </TabsTrigger>
+            <TabsTrigger value="content" className="data-[state=active]:bg-zinc-800" data-testid="tab-content">
+              <Layers className="w-4 h-4 mr-2" />
+              Content
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview">
+            <AdminOverview />
+          </TabsContent>
+          
+          <TabsContent value="users">
+            <AdminUsers />
+          </TabsContent>
+          
+          <TabsContent value="industry-orbits">
+            <AdminIndustryOrbits />
+          </TabsContent>
+          
+          <TabsContent value="content">
+            {/* Original Showrunner Dashboard content */}
             
             {/* Universe Selector */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -488,7 +779,6 @@ export default function Admin() {
                     </Button>
                 </Link>
             </div>
-        </div>
         
         {!selectedUniverse ? (
           <Card className="border-2 border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-blue-500/5">
@@ -1276,7 +1566,8 @@ export default function Admin() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

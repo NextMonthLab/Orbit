@@ -3366,6 +3366,50 @@ export async function registerRoutes(
     }
   });
 
+  // ============ ADMIN COMMAND CENTER ROUTES ============
+  
+  // Get platform-wide metrics for admin dashboard
+  app.get("/api/admin/stats", requireAdmin, async (req, res) => {
+    try {
+      const metrics = await storage.getPlatformMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching platform metrics:", error);
+      res.status(500).json({ message: "Error fetching platform metrics" });
+    }
+  });
+  
+  // Get all users for admin user management
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Return users without password hash for security
+      const safeUsers = users.map(u => ({
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        role: u.role,
+        isAdmin: u.isAdmin,
+        createdAt: u.createdAt,
+      }));
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Error fetching users" });
+    }
+  });
+  
+  // Get all industry orbits for admin management
+  app.get("/api/admin/industry-orbits", requireAdmin, async (req, res) => {
+    try {
+      const orbits = await storage.getIndustryOrbits();
+      res.json(orbits);
+    } catch (error) {
+      console.error("Error fetching industry orbits:", error);
+      res.status(500).json({ message: "Error fetching industry orbits" });
+    }
+  });
+
   // ============ AUDIO LIBRARY ROUTES ============
 
   // Scan uploads/audio directory for unimported tracks

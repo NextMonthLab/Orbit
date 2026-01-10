@@ -338,6 +338,34 @@ class ApiClient {
     return response.json();
   }
 
+  // Admin Command Center
+  async getAdminStats(): Promise<{
+    totalUsers: number;
+    usersByRole: { role: string; count: number }[];
+    totalOrbits: number;
+    industryOrbits: number;
+    standardOrbits: number;
+    totalVisits30d: number;
+    totalConversations30d: number;
+  }> {
+    return this.request("/admin/stats");
+  }
+  
+  async getAdminUsers(): Promise<Array<{
+    id: number;
+    username: string;
+    email: string | null;
+    role: string | null;
+    isAdmin: boolean | null;
+    createdAt: string;
+  }>> {
+    return this.request("/admin/users");
+  }
+  
+  async getAdminIndustryOrbits(): Promise<any[]> {
+    return this.request("/admin/industry-orbits");
+  }
+
   // Audio
   async scanAudioFiles(): Promise<{ files: ScannedAudioFile[] }> {
     return this.request<{ files: ScannedAudioFile[] }>("/admin/audio/scan");
