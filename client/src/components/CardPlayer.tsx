@@ -529,77 +529,37 @@ export default function CardPlayer({
                       const karaokeStyle = captionState?.karaokeStyle || 'weight';
                       const animationEnabled = captionState?.animationId && captionState.animationId !== 'none';
                       
+                      // Professional caption styling - clean, modern, social-media ready
+                      const professionalTextShadow = '0 2px 4px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.4)';
+                      const glowShadow = '0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.8)';
+                      
                       return (
-                        <div className="flex flex-col items-center gap-3 px-4">
-                          {/* Caption Engine indicator */}
-                          {(karaokeEnabled || animationEnabled) && (
-                            <div 
-                              className="absolute top-4 right-4 flex items-center gap-2 px-2 py-1 rounded-full bg-black/50 text-xs"
-                              data-testid="indicator-caption-effects"
-                            >
-                              {karaokeEnabled && (
-                                <span className="text-pink-400 flex items-center gap-1">
-                                  <span className="animate-pulse">●</span> Karaoke
-                                </span>
-                              )}
-                              {animationEnabled && (
-                                <span className="text-blue-400">
-                                  {captionState?.animationId}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          
-                          {/* Accent shape background for grunge-tape pack */}
-                          {titlePack.accentShape?.type === 'tape' && (
-                            <div 
-                              className="absolute inset-x-8 rounded-sm -skew-y-1"
-                              style={{
-                                backgroundColor: titlePack.accentShape.color,
-                                opacity: titlePack.accentShape.opacity,
-                                top: '50%',
-                                transform: 'translateY(-50%) skewY(-1deg)',
-                                padding: '1rem 2rem',
-                                zIndex: -1,
-                              }}
-                            />
-                          )}
-                          
-                          {/* Headline with optional karaoke styling */}
+                        <div className="flex flex-col items-center gap-4 px-6 w-full">
+                          {/* Headline - professional styling with proper shadows */}
                           <p 
-                            className={`font-bold leading-snug max-w-full ${karaokeEnabled ? 'transition-all duration-300' : ''}`}
+                            className="font-bold leading-tight max-w-full text-center"
                             style={{
                               ...headlineStyles,
-                              // Add subtle karaoke preview effect
-                              ...(karaokeEnabled && karaokeStyle === 'glow' ? {
-                                textShadow: '0 0 20px rgba(255,255,255,0.8), 0 0 40px rgba(255,255,255,0.4)'
-                              } : {}),
+                              textShadow: karaokeEnabled && karaokeStyle === 'glow' ? glowShadow : professionalTextShadow,
+                              letterSpacing: '-0.01em',
                             }}
                             data-testid="text-headline"
                           >
                             {headline}
                           </p>
                           
-                          {/* Supporting text */}
+                          {/* Supporting text - cleaner, more readable */}
                           {supporting && supportingStyles && (
                             <p 
-                              className="leading-relaxed max-w-full"
-                              style={supportingStyles}
+                              className="leading-relaxed max-w-full text-center"
+                              style={{
+                                ...supportingStyles,
+                                textShadow: '0 1px 3px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.4)',
+                              }}
                               data-testid="text-supporting"
                             >
                               {supporting}
                             </p>
-                          )}
-                          
-                          {/* Underline accent for editorial-minimal pack */}
-                          {titlePack.accentShape?.type === 'underline' && (
-                            <div 
-                              className="w-16 h-0.5 mt-1"
-                              style={{
-                                backgroundColor: titlePack.accentShape.color,
-                                opacity: titlePack.accentShape.opacity,
-                              }}
-                            />
                           )}
                         </div>
                       );
