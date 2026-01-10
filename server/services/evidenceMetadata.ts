@@ -1,18 +1,26 @@
 import type { Request, Response } from 'express';
 
 export interface EvidenceMetadata {
+  nm_policy_version: string;
   nm_contract_version: string;
   nm_timestamp: string;
   nm_request_id: string;
+  nm_trace_id: string;
   nm_orbit_slug?: string;
   nm_response_time_ms?: number;
+  nm_fallback_used?: boolean;
   [key: string]: string | number | boolean | undefined;
 }
 
 const CONTRACT_VERSION = '1.0.0';
+const POLICY_VERSION = 'orbitBehaviourContract.v1';
 
 export function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+}
+
+export function generateTraceId(): string {
+  return `trace_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 }
 
 export function createEvidenceMetadata(
@@ -21,12 +29,22 @@ export function createEvidenceMetadata(
   additionalFields: Record<string, string | number | boolean | undefined> = {}
 ): EvidenceMetadata {
   return {
+    nm_policy_version: POLICY_VERSION,
     nm_contract_version: CONTRACT_VERSION,
     nm_timestamp: new Date().toISOString(),
     nm_request_id: requestId,
+    nm_trace_id: generateTraceId(),
     nm_response_time_ms: Date.now() - startTime,
     ...additionalFields,
   };
+}
+
+export function getPolicyVersion(): string {
+  return POLICY_VERSION;
+}
+
+export function getContractVersion(): string {
+  return CONTRACT_VERSION;
 }
 
 export function attachEvidenceMetadata<T extends object>(

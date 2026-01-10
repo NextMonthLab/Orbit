@@ -17,19 +17,27 @@ import {
   Search,
   Shield,
   Activity,
-  Layers
+  Layers,
+  TrendingUp,
+  ArrowUpCircle
 } from "lucide-react";
 
 interface CheckResult {
   itemId: string;
   status: 'pass' | 'fail' | 'warn' | 'pending';
+  effectiveSeverity: 'critical' | 'high' | 'medium' | 'low';
+  escalated: boolean;
   message: string;
   evidence?: Record<string, any>;
   checkedAt: string;
+  lastGreenAt?: string;
+  consecutiveNonGreen: number;
+  regressionSince?: string;
 }
 
 interface HealthReport {
   orbitSlug: string;
+  policyVersion: string;
   contractVersion: string;
   generatedAt: string;
   summary: {
@@ -38,6 +46,8 @@ interface HealthReport {
     failed: number;
     warnings: number;
     pending: number;
+    escalated: number;
+    regressions: number;
   };
   results: CheckResult[];
   overallStatus: 'healthy' | 'degraded' | 'unhealthy';
@@ -253,7 +263,7 @@ export default function OrbitHealthDashboard() {
                     value={(report.summary.passed / report.summary.total) * 100} 
                     className="h-2"
                   />
-                  <div className="grid grid-cols-4 gap-2 text-center text-sm">
+                  <div className="grid grid-cols-6 gap-2 text-center text-sm">
                     <div className="p-2 rounded bg-green-50 dark:bg-green-950">
                       <div className="font-bold text-green-600" data-testid="stat-passed">{report.summary.passed}</div>
                       <div className="text-xs text-muted-foreground">Passed</div>
@@ -270,6 +280,14 @@ export default function OrbitHealthDashboard() {
                       <div className="font-bold text-gray-600" data-testid="stat-pending">{report.summary.pending}</div>
                       <div className="text-xs text-muted-foreground">Pending</div>
                     </div>
+                    <div className="p-2 rounded bg-purple-50 dark:bg-purple-950">
+                      <div className="font-bold text-purple-600" data-testid="stat-escalated">{report.summary.escalated}</div>
+                      <div className="text-xs text-muted-foreground">Escalated</div>
+                    </div>
+                    <div className="p-2 rounded bg-pink-50 dark:bg-pink-950">
+                      <div className="font-bold text-pink-600" data-testid="stat-regressions">{report.summary.regressions}</div>
+                      <div className="text-xs text-muted-foreground">Regressions</div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -283,6 +301,12 @@ export default function OrbitHealthDashboard() {
               </TabsTrigger>
               <TabsTrigger value="issues" data-testid="tab-issues">
                 Issues ({report.summary.failed + report.summary.warnings})
+              </TabsTrigger>
+              <TabsTrigger value="escalations" data-testid="tab-escalations">
+                Escalations ({report.summary.escalated})
+              </TabsTrigger>
+              <TabsTrigger value="regressions" data-testid="tab-regressions">
+                Regressions ({report.summary.regressions})
               </TabsTrigger>
               <TabsTrigger value="categories" data-testid="tab-categories">
                 By Category
@@ -315,7 +339,19 @@ export default function OrbitHealthDashboard() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium">{item?.title || result.itemId}</span>
-                                {item && <SeverityBadge severity={item.severity} />}
+                                <SeverityBadge severity={result.effectiveSeverity} />
+                                {result.escalated && (
+                                  <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                    <ArrowUpCircle className="h-3 w-3 mr-1" />
+                                    Escalated
+                                  </Badge>
+                                )}
+                                {result.regressionSince && (
+                                  <Badge className="bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200">
+                                    <TrendingUp className="h-3 w-3 mr-1" />
+                                    Regression
+                                  </Badge>
+                                )}
                                 <Badge variant="outline" className="text-xs">
                                   {item?.category || 'unknown'}
                                 </Badge>
@@ -323,6 +359,16 @@ export default function OrbitHealthDashboard() {
                               <p className="text-sm text-muted-foreground mt-1">
                                 {result.message}
                               </p>
+                              {result.consecutiveNonGreen > 0 && (
+                                <p className="text-xs text-amber-600 mt-1">
+                                  {result.consecutiveNonGreen} consecutive non-green run{result.consecutiveNonGreen > 1 ? 's' : ''}
+                                </p>
+                              )}
+                              {result.regressionSince && (
+                                <p className="text-xs text-pink-600 mt-1">
+                                  Regression since: {new Date(result.regressionSince).toLocaleString()}
+                                </p>
+                              )}
                               {result.evidence && (
                                 <details className="mt-2">
                                   <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
@@ -386,6 +432,115 @@ export default function OrbitHealthDashboard() {
                         <div className="text-center py-8 text-muted-foreground">
                           <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-green-500" />
                           <p>No issues detected</p>
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="escalations">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-purple-600 flex items-center gap-2">
+                    <ArrowUpCircle className="h-5 w-5" />
+                    Escalated Checks
+                  </CardTitle>
+                  <CardDescription>
+                    Checks that have been escalated after 3+ consecutive non-green runs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[500px]">
+                    <div className="space-y-2">
+                      {report.results
+                        .filter(r => r.escalated)
+                        .map((result) => {
+                          const item = getContractItem(result.itemId);
+                          return (
+                            <div 
+                              key={result.itemId}
+                              className="flex items-start gap-3 p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/50"
+                              data-testid={`escalated-item-${result.itemId}`}
+                            >
+                              <StatusIcon status={result.status} />
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium">{item?.title || result.itemId}</span>
+                                  <SeverityBadge severity={result.effectiveSeverity} />
+                                  <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                    {result.consecutiveNonGreen} non-green runs
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {result.message}
+                                </p>
+                                {result.lastGreenAt && (
+                                  <p className="text-xs text-purple-600 mt-2">
+                                    Last green: {new Date(result.lastGreenAt).toLocaleString()}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      {report.summary.escalated === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-green-500" />
+                          <p>No escalated checks</p>
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="regressions">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-pink-600 flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Regressions
+                  </CardTitle>
+                  <CardDescription>
+                    Checks that were previously green but are now failing or warning
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[500px]">
+                    <div className="space-y-2">
+                      {report.results
+                        .filter(r => r.regressionSince)
+                        .map((result) => {
+                          const item = getContractItem(result.itemId);
+                          return (
+                            <div 
+                              key={result.itemId}
+                              className="flex items-start gap-3 p-3 rounded-lg border border-pink-200 dark:border-pink-800 bg-pink-50/50 dark:bg-pink-950/50"
+                              data-testid={`regression-item-${result.itemId}`}
+                            >
+                              <StatusIcon status={result.status} />
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium">{item?.title || result.itemId}</span>
+                                  <SeverityBadge severity={result.effectiveSeverity} />
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {result.message}
+                                </p>
+                                <p className="text-xs text-pink-600 mt-2">
+                                  Regressed since: {new Date(result.regressionSince!).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      {report.summary.regressions === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-green-500" />
+                          <p>No regressions detected</p>
                         </div>
                       )}
                     </div>
