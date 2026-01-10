@@ -52,10 +52,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 type AdminTab = 'overview' | 'users' | 'industry-orbits' | 'content';
 
 function AdminOverview() {
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, error } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: () => api.getAdminStats(),
   });
+
+  console.log("[AdminOverview] Stats query:", { stats, isLoading, error });
 
   if (isLoading) {
     return (

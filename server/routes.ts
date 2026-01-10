@@ -3370,11 +3370,13 @@ export async function registerRoutes(
   
   // Get platform-wide metrics for admin dashboard
   app.get("/api/admin/stats", requireAdmin, async (req, res) => {
+    console.log("[admin-stats] Fetching platform metrics for user:", (req.user as any)?.username);
     try {
       const metrics = await storage.getPlatformMetrics();
+      console.log("[admin-stats] Metrics result:", JSON.stringify(metrics));
       res.json(metrics);
     } catch (error) {
-      console.error("Error fetching platform metrics:", error);
+      console.error("[admin-stats] Error fetching platform metrics:", error);
       res.status(500).json({ message: "Error fetching platform metrics" });
     }
   });
