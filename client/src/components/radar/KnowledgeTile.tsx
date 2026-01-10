@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { FileText, User, Star, Video, Phone, Mail, Quote, Lightbulb, ExternalLink, Cloud, Sun, Calendar, MapPin, Globe, Briefcase, Award, MessageCircle, Zap, Book, TrendingUp, Shield, Heart, HelpCircle, Settings, Home, DollarSign, Clock, Users, Target, Sparkles, Rss, Twitter, Facebook, Instagram, Linkedin, Youtube, type LucideIcon } from "lucide-react";
 import type { AnyKnowledgeItem, Topic, Page, Person, Proof, Action, Blog, Social } from "@/lib/siteKnowledge";
+import { orbitTokens } from "@/lib/designTokens";
 
 interface KnowledgeTileProps {
   item: AnyKnowledgeItem;
@@ -29,22 +30,7 @@ const typeIcons: Record<string, LucideIcon> = {
   sponsored: Award,
 };
 
-const typeColors: Record<string, string> = {
-  topic: '#8b5cf6',
-  page: '#3b82f6',
-  person: '#22c55e',
-  proof: '#eab308',
-  action: '#ec4899',
-  blog: '#f97316',
-  social: '#06b6d4',
-  manufacturer: '#6366f1',
-  product: '#14b8a6',
-  concept: '#a855f7',
-  qa: '#f59e0b',
-  community: '#10b981',
-  cta: '#f43f5e',
-  sponsored: '#facc15',
-};
+const typeColors: Record<string, string> = orbitTokens.typeAccents;
 
 const socialIcons: Record<string, LucideIcon> = {
   twitter: Twitter,
