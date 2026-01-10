@@ -347,10 +347,14 @@ export default function OrbitView() {
         
         const data = await response.json();
         
-        // Update view engine state if a view was returned
+        // Update view engine state based on response
         if (data.view) {
           setActiveView(data.view);
           setViewFollowups(data.followups || []);
+        } else {
+          // Clear stale view when response has no view payload
+          setActiveView(null);
+          setViewFollowups([]);
         }
         
         // Handle disambiguation as chip options
