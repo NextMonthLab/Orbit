@@ -24,8 +24,19 @@ export function UrlIngestForm({
   
   const validateUrl = (input: string): boolean => {
     if (!input.trim()) return true;
+    
+    const trimmed = input.trim();
+    const urlToTest = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+    
     try {
-      new URL(input.startsWith('http') ? input : `https://${input}`);
+      const parsed = new URL(urlToTest);
+      // Must have a valid-looking hostname with at least one dot
+      const hostname = parsed.hostname;
+      if (!hostname || !hostname.includes('.')) return false;
+      // No spaces allowed anywhere
+      if (trimmed.includes(' ')) return false;
+      // Hostname should match a reasonable pattern (letters, numbers, dots, hyphens)
+      if (!/^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$/.test(hostname)) return false;
       return true;
     } catch {
       return false;
