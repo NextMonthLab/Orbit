@@ -368,6 +368,20 @@ class ApiClient {
     return this.request("/admin/industry-orbits");
   }
 
+  async getAdminAllOrbits(): Promise<Array<{
+    businessSlug: string;
+    businessName: string;
+    sourceUrl: string | null;
+    orbitType: string | null;
+    generationStatus: string | null;
+    planTier: string | null;
+    lastUpdated: string | null;
+    visits30d: number;
+    conversations30d: number;
+  }>> {
+    return this.request("/admin/all-orbits");
+  }
+
   // Orbit → ICE Flywheel
   async createIceDraftFromOrbit(orbitSlug: string, data: {
     sourceMessageId?: string;

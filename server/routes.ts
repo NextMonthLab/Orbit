@@ -3441,6 +3441,50 @@ export async function registerRoutes(
     }
   });
 
+  // Get all orbits for admin with basic stats
+  app.get("/api/admin/all-orbits", requireAdmin, async (req, res) => {
+    try {
+      const allOrbits = await db.query.orbitMeta.findMany({
+        orderBy: [desc(schema.orbitMeta.lastUpdated)],
+      });
+      
+      // Get analytics for each orbit
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const analyticsData = await db
+        .select({
+          businessSlug: schema.orbitAnalytics.businessSlug,
+          visits: sql<number>`COALESCE(SUM(visits), 0)`,
+          conversations: sql<number>`COALESCE(SUM(conversations), 0)`,
+        })
+        .from(schema.orbitAnalytics)
+        .where(gte(schema.orbitAnalytics.date, thirtyDaysAgo))
+        .groupBy(schema.orbitAnalytics.businessSlug);
+      
+      const analyticsMap = new Map(
+        analyticsData.map(a => [a.businessSlug, { visits: Number(a.visits), conversations: Number(a.conversations) }])
+      );
+      
+      const orbitsWithStats = allOrbits.map(o => ({
+        businessSlug: o.businessSlug,
+        businessName: o.customTitle || o.businessSlug,
+        sourceUrl: o.sourceUrl,
+        orbitType: o.orbitType,
+        generationStatus: o.generationStatus,
+        planTier: o.planTier,
+        lastUpdated: o.lastUpdated,
+        visits30d: analyticsMap.get(o.businessSlug)?.visits || 0,
+        conversations30d: analyticsMap.get(o.businessSlug)?.conversations || 0,
+      }));
+      
+      res.json(orbitsWithStats);
+    } catch (error) {
+      console.error("Error fetching all orbits:", error);
+      res.status(500).json({ message: "Error fetching all orbits" });
+    }
+  });
+
   // ============ ORBIT HEALTH DASHBOARD ROUTES ============
   
   app.get("/api/admin/orbits/health", requireAdmin, async (req, res) => {

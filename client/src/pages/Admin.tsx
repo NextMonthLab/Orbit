@@ -49,9 +49,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-type AdminTab = 'overview' | 'users' | 'industry-orbits' | 'content';
+type AdminTab = 'overview' | 'users' | 'industry-orbits' | 'all-orbits' | 'content';
 
-function AdminOverview() {
+function AdminOverview({ onNavigateToOrbits }: { onNavigateToOrbits?: () => void }) {
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: () => api.getAdminStats(),
@@ -84,7 +84,11 @@ function AdminOverview() {
           </CardContent>
         </Card>
         
-        <Card className="bg-card border-border">
+        <Card 
+          className="bg-card border-border cursor-pointer hover:border-purple-500/50 transition-colors"
+          onClick={onNavigateToOrbits}
+          data-testid="card-total-orbits"
+        >
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
@@ -161,6 +165,104 @@ function AdminOverview() {
             </div>
           </CardContent>
         </Card>
+      </div>
+    </div>
+  );
+}
+
+function AdminAllOrbits() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const { data: orbits, isLoading } = useQuery({
+    queryKey: ["admin-all-orbits"],
+    queryFn: () => api.getAdminAllOrbits(),
+  });
+
+  const filteredOrbits = orbits?.filter(orbit => 
+    orbit.businessSlug.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    orbit.businessName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <Input
+          placeholder="Search orbits..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+          data-testid="input-search-orbits"
+        />
+        <span className="text-sm text-muted-foreground">
+          {filteredOrbits?.length || 0} orbits
+        </span>
+      </div>
+
+      <div className="grid gap-3">
+        {filteredOrbits?.map((orbit) => (
+          <Card key={orbit.businessSlug} className="bg-card border-border hover:border-purple-500/30 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-medium text-foreground truncate">{orbit.businessName}</h3>
+                    {orbit.orbitType === 'industry' && (
+                      <span className="px-2 py-0.5 text-xs rounded bg-purple-500/20 text-purple-400">Industry</span>
+                    )}
+                    {orbit.generationStatus === 'ready' && (
+                      <span className="px-2 py-0.5 text-xs rounded bg-green-500/20 text-green-400">Ready</span>
+                    )}
+                    {orbit.generationStatus === 'generating' && (
+                      <span className="px-2 py-0.5 text-xs rounded bg-yellow-500/20 text-yellow-400">Generating</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground truncate">{orbit.businessSlug}</p>
+                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" />
+                      {orbit.visits30d} visits
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MessageCircle className="w-3 h-3" />
+                      {orbit.conversations30d} chats
+                    </span>
+                    {orbit.planTier && (
+                      <span className="capitalize">{orbit.planTier}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link href={`/orbit/${orbit.businessSlug}`}>
+                    <Button variant="outline" size="sm" className="gap-1" data-testid={`button-view-orbit-${orbit.businessSlug}`}>
+                      <Globe className="w-3 h-3" />
+                      View
+                    </Button>
+                  </Link>
+                  {orbit.sourceUrl && (
+                    <a href={orbit.sourceUrl} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="sm" className="gap-1" data-testid={`button-source-${orbit.businessSlug}`}>
+                        <ExternalLink className="w-3 h-3" />
+                      </Button>
+                    </a>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        
+        {filteredOrbits?.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            No orbits found matching your search.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -827,8 +929,12 @@ export default function Admin() {
                 <Users className="w-4 h-4 mr-2" />
                 Users
               </TabsTrigger>
-              <TabsTrigger value="industry-orbits" className="data-[state=active]:bg-muted text-sm px-3" data-testid="tab-industry">
+              <TabsTrigger value="all-orbits" className="data-[state=active]:bg-muted text-sm px-3" data-testid="tab-all-orbits">
                 <Globe className="w-4 h-4 mr-2" />
+                All Orbits
+              </TabsTrigger>
+              <TabsTrigger value="industry-orbits" className="data-[state=active]:bg-muted text-sm px-3" data-testid="tab-industry">
+                <Sparkles className="w-4 h-4 mr-2" />
                 Industry Orbits
               </TabsTrigger>
               <TabsTrigger value="content" className="data-[state=active]:bg-muted text-sm px-3" data-testid="tab-content">
@@ -839,11 +945,15 @@ export default function Admin() {
           </div>
           
           <TabsContent value="overview">
-            <AdminOverview />
+            <AdminOverview onNavigateToOrbits={() => setActiveTab('all-orbits')} />
           </TabsContent>
           
           <TabsContent value="users">
             <AdminUsers />
+          </TabsContent>
+          
+          <TabsContent value="all-orbits">
+            <AdminAllOrbits />
           </TabsContent>
           
           <TabsContent value="industry-orbits">
