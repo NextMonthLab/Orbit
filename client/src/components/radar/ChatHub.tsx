@@ -102,6 +102,28 @@ function renderMessageContent(
     return phonePattern.test(str);
   }
   
+  function parseMarkdown(text: string): React.ReactNode[] {
+    const boldPattern = /\*\*([^*]+)\*\*/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    let idx = 0;
+    
+    while ((match = boldPattern.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(<span key={`text-${idx++}`}>{text.slice(lastIndex, match.index)}</span>);
+      }
+      parts.push(<strong key={`bold-${idx++}`} className="font-semibold">{match[1]}</strong>);
+      lastIndex = match.index + match[0].length;
+    }
+    
+    if (lastIndex < text.length) {
+      parts.push(<span key={`text-${idx++}`}>{text.slice(lastIndex)}</span>);
+    }
+    
+    return parts.length > 0 ? parts : [<span key="plain">{text}</span>];
+  }
+  
   function renderLine(line: string, lineIdx: number, color: string): React.ReactNode[] {
     const urlParts = line.split(urlPattern);
     const result: React.ReactNode[] = [];
@@ -125,17 +147,17 @@ function renderMessageContent(
             </a>
           );
         } catch {
-          result.push(<span key={`${lineIdx}-url-${segIdx}`}>{segment}</span>);
+          result.push(<span key={`${lineIdx}-url-${segIdx}`}>{...parseMarkdown(segment)}</span>);
         }
       } else {
-        result.push(...renderEmailsAndPhones(segment, lineIdx, segIdx, color));
+        result.push(...renderEmailsAndPhonesWithMarkdown(segment, lineIdx, segIdx, color));
       }
     });
     
     return result;
   }
   
-  function renderEmailsAndPhones(text: string, lineIdx: number, segIdx: number, color: string): React.ReactNode[] {
+  function renderEmailsAndPhonesWithMarkdown(text: string, lineIdx: number, segIdx: number, color: string): React.ReactNode[] {
     const combinedPattern = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|\+?1?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/g;
     const parts = text.split(combinedPattern);
     const result: React.ReactNode[] = [];
@@ -169,7 +191,7 @@ function renderMessageContent(
           </a>
         );
       } else {
-        result.push(<span key={`${lineIdx}-${segIdx}-text-${partIdx}`}>{part}</span>);
+        result.push(<React.Fragment key={`${lineIdx}-${segIdx}-text-${partIdx}`}>{parseMarkdown(part)}</React.Fragment>);
       }
     });
     
@@ -376,7 +398,7 @@ export function ChatHub({
                     ? lightMode ? 'bg-gray-100 text-gray-900' : 'bg-white/10 text-white'
                     : lightMode ? 'text-gray-800' : 'text-white/90'
                 }`}
-                style={msg.role === 'assistant' ? { backgroundColor: `${accentColor}15` } : {}}
+                style={msg.role === 'assistant' ? { backgroundColor: lightMode ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)' } : {}}
               >
                 {msg.role === 'assistant' 
                   ? renderMessageContent(msg.content, accentColor, handleChipClick, lightMode)
@@ -443,7 +465,7 @@ export function ChatHub({
             <div className="flex justify-start">
               <div 
                 className="px-3 py-2 rounded-xl"
-                style={{ backgroundColor: `${accentColor}15` }}
+                style={{ backgroundColor: lightMode ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)' }}
               >
                 <Loader2 className={`w-4 h-4 animate-spin ${lightMode ? 'text-gray-500' : 'text-white/60'}`} />
               </div>
