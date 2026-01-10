@@ -1,0 +1,215 @@
+Absolutely. Here’s a Replit prompt you can paste straight into your build chat.
+
+⸻
+
+Replit Prompt: Orbit Website Ingestion v1 (Topic Tiles, Not Page Tiles)
+
+Context
+We are building the “Orbit URL Ingestion” feature. At MVP, we can only crawl a small number of pages (for cost and speed), but the UI must still feel rich and valuable. We will achieve this by generating Topic Tiles from the crawled pages, where tiles represent topics extracted from page content, not the pages themselves.
+
+Goal
+When a user enters a website URL, the Orbit should display a minimum of 12 tiles, even if only 3–5 pages were crawled. Tiles must be grounded in real website content, with clear citations and confidence labels to avoid hallucination.
+
+⸻
+
+1) Core Behaviour
+
+1.1 Input
+	•	User provides a url (root domain or full page URL).
+
+1.2 Crawl limits (MVP guardrail)
+	•	Crawl a maximum of 5 pages per URL ingestion.
+	•	Prioritise:
+	1.	Home page
+	2.	About
+	3.	Services / What we do
+	4.	Pricing (if exists)
+	5.	Contact
+	•	Only crawl pages on the same domain.
+	•	Hard timeout per ingestion: implement a reasonable limit so it cannot run indefinitely.
+
+1.3 Output
+
+Generate Topic Tiles from whatever content was successfully crawled.
+
+Minimum tiles shown in UI:
+	•	12 tiles minimum
+	•	Prefer 18 tiles if enough content exists
+
+If content is thin:
+	•	Still show at least 12 tiles, but some must be labelled as Draft insight with Low confidence.
+	•	Draft tiles must clearly say what is missing and how to improve results (e.g. “No pricing page detected yet”).
+
+⸻
+
+2) Tile Model
+
+Each tile is a “topic insight” derived from one or more page sections.
+
+2.1 Tile schema (TypeScript)
+
+Create a type like:
+	•	id: string
+	•	topicSlug: string
+	•	title: string (short, human)
+	•	summary: string (1–2 lines)
+	•	category: "Top Insights" | "Services & Offers" | "FAQs & Objections" | "Proof & Trust" | "Recommendations"
+	•	confidence: "high" | "medium" | "low"
+	•	status: "confirmed" | "draft"
+	•	freshness: { scannedAt: string }
+	•	sources: Array<{ url: string; title?: string; excerpt: string; selectorHint?: string }>
+	•	actions: Array<"Ask Orbit" | "Generate ICE" | "Save" | "Share">
+	•	missingSignals?: string[] (only for draft tiles, e.g. “No testimonials found”)
+
+2.2 Grounding rules (anti-hallucination)
+
+A tile is confirmed only if:
+	•	It references at least one specific noun phrase lifted from the site content (e.g. service name, industry, location, product).
+	•	It includes at least 1 source citation with a short excerpt.
+
+A tile must be draft if:
+	•	The system is inferring rather than reading (e.g. competitor alternatives, pricing not found, FAQs inferred).
+	•	Or it cannot cite a concrete excerpt.
+
+⸻
+
+3) Tile Generation Logic
+
+3.1 Extraction
+
+From each crawled page, extract:
+	•	Headings (H1–H3)
+	•	Bullet lists
+	•	Repeated nouns and noun phrases
+	•	Named entities (industries, places, products, people if present)
+	•	CTAs (“Book”, “Enquire”, “Get a quote”)
+	•	FAQs if present
+
+3.2 Topic clustering
+
+Cluster extracted phrases into topic groups such as:
+	•	Services and offers
+	•	Who it’s for (personas, industries)
+	•	Key promises / differentiators
+	•	Process / how it works
+	•	Locations served
+	•	Proof signals (logos, testimonials, case studies)
+	•	Objections and FAQs
+	•	Recommendations (clearly labelled as suggestions)
+
+3.3 Always-on buckets (guarantee tiles)
+
+Even with thin content, generate tiles in these buckets, but mark as draft when needed:
+	1.	What they do
+	2.	Who it’s for
+	3.	Key promises
+	4.	Process overview
+	5.	Pricing signals (draft if missing)
+	6.	Proof and trust (draft if missing)
+	7.	Locations served (draft if missing)
+	8.	FAQs (draft if missing)
+	9.	Calls to action
+	10.	Brand voice positioning (must cite language used)
+	11.	Competitor alternatives (always draft, clearly labelled)
+	12.	Quick wins / recommendations (always draft, clearly labelled)
+
+Enforce the “minimum 12 tiles” rule by filling gaps with draft tiles, never inventing facts.
+
+⸻
+
+4) UI Requirements
+
+4.1 Layout
+
+When an Orbit loads for a URL, display tiles in rows (Netflix-style):
+	•	Row 1: Top Insights (6 tiles)
+	•	Row 2: Services & Offers (6 tiles)
+	•	Row 3: FAQs & Objections (6 tiles)
+	•	Row 4: Recommendations (optional, only if relevant)
+
+If fewer than 6 exist in a row, fill using draft tiles.
+
+4.2 Tile card UI
+
+Each tile card shows:
+	•	Title
+	•	Summary
+	•	Confidence badge (High / Medium / Low)
+	•	Status badge for Draft insight if draft
+	•	“Scanned today” / “Scanned on DATE”
+	•	Click to expand showing:
+	•	Sources list with excerpts
+	•	Buttons: Ask Orbit, Generate ICE, Save, Share
+
+4.3 Trust cues
+	•	Always show citations when expanded.
+	•	Never show “AI guessed” language, instead use:
+	•	“Draft insight: we did not find X yet”
+	•	“To improve this, connect more pages or add text”
+
+⸻
+
+5) Backend and API
+
+5.1 Endpoints
+
+Implement:
+	•	POST /api/orbit/ingest-url
+	•	body: { url: string }
+	•	returns: { orbitId, tiles, crawlReport }
+	•	GET /api/orbit/:orbitId/tiles
+	•	returns stored tiles and metadata
+
+5.2 Storage
+
+Store:
+	•	Raw crawl results (page url, title, extracted text snippets, timestamp)
+	•	Tiles (as per schema)
+	•	Crawl report:
+	•	pages attempted vs pages succeeded
+	•	errors
+	•	scan timestamp
+	•	coverage score (simple: pagesSucceeded / pagesAttempted)
+
+If you do not have a DB, store JSON files in a simple local storage folder with unique orbitId keys.
+
+⸻
+
+6) Crawl Strategy (Practical)
+
+Use a lightweight approach suitable for MVP:
+	•	Fetch HTML
+	•	Strip scripts/styles
+	•	Extract main content using basic heuristics (prioritise <main>, <article>, or the largest text block)
+	•	Extract headings and lists
+	•	Avoid crawling huge pages or infinite loops
+
+Respect robots.txt if feasible for MVP, otherwise implement a basic domain-only and page limit guardrail.
+
+⸻
+
+7) Acceptance Criteria
+
+This feature is complete when:
+	1.	Entering any normal business URL produces at least 12 tiles.
+	2.	Every confirmed tile contains at least:
+	•	one excerpt citation
+	•	one specific phrase from the site
+	3.	Tiles that cannot be grounded are always labelled:
+	•	status: draft
+	•	confidence: low
+	•	and include a missingSignals explanation
+	4.	UI displays tiles in rows with expand-to-citations behaviour.
+	5.	Crawl is capped at 5 pages and cannot runaway.
+
+⸻
+
+8) Nice-to-have (if time)
+	•	“Rescan” button (re-ingest and refresh tiles)
+	•	Tile feedback (thumbs up/down) stored per tile
+	•	Share button generates a public link to the tile expanded view
+	•	Cache results so repeated ingests do not recrawl within 24 hours unless forced
+
+⸻
+
+If you want, I can also write a second Replit prompt that specifies the exact file structure (React components, services, types folder, storage helpers) so it lands cleanly in your codebase without Replit improvising.

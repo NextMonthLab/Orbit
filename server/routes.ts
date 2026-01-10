@@ -9363,7 +9363,7 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
               description: service,
               price: null,
               currency: 'GBP',
-              category: 'What We Do',
+              category: 'Services',
               imageUrl: null,
               sourceUrl: url,
               tags: [{ key: 'source', value: 'site-identity' }],
@@ -9661,6 +9661,9 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
           planTier: orbitMeta.planTier,
           customTitle: orbitMeta.customTitle,
           customDescription: orbitMeta.customDescription,
+          customLogo: orbitMeta.customLogo,
+          customAccent: orbitMeta.customAccent,
+          customTone: orbitMeta.customTone,
           lastUpdated: orbitMeta.lastUpdated,
           previewId: orbitMeta.previewId,
           orbitType: orbitMeta.orbitType || 'standard',
@@ -9681,6 +9684,9 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
             planTier: orbitMeta.planTier,
             customTitle: orbitMeta.customTitle,
             customDescription: orbitMeta.customDescription,
+            customLogo: orbitMeta.customLogo,
+            customAccent: orbitMeta.customAccent,
+            customTone: orbitMeta.customTone,
             lastUpdated: orbitMeta.lastUpdated,
             orbitType: orbitMeta.orbitType || 'standard',
             pack: packResult.pack,
@@ -9698,6 +9704,9 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
           planTier: orbitMeta.planTier,
           customTitle: orbitMeta.customTitle,
           customDescription: orbitMeta.customDescription,
+          customLogo: orbitMeta.customLogo,
+          customAccent: orbitMeta.customAccent,
+          customTone: orbitMeta.customTone,
           lastUpdated: orbitMeta.lastUpdated,
           orbitType: orbitMeta.orbitType || 'standard',
           boxes,
@@ -12751,11 +12760,14 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         return res.status(403).json({ message: "Upgrade to Grow to customize your brand" });
       }
       
-      const { customTitle, customDescription } = req.body;
+      const { customTitle, customDescription, customLogo, customAccent, customTone } = req.body;
       
       const updated = await storage.updateOrbitMeta(slug, {
         customTitle: customTitle !== undefined ? customTitle : orbitMeta.customTitle,
         customDescription: customDescription !== undefined ? customDescription : orbitMeta.customDescription,
+        customLogo: customLogo !== undefined ? customLogo : orbitMeta.customLogo,
+        customAccent: customAccent !== undefined ? customAccent : orbitMeta.customAccent,
+        customTone: customTone !== undefined ? customTone : orbitMeta.customTone,
       });
       
       res.json({ success: true, meta: updated });

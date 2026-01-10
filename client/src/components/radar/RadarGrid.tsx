@@ -250,7 +250,9 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
         if (hasWeatherKeywords) {
           message = `${itemName}\n\n${summary}\n\nTell me your location for specific information, or visit: ${page.url}`;
         } else {
-          message = `${itemName}\n\n${summary}\n\nVisit: ${page.url}`;
+          message = page.url && page.url !== '#' 
+            ? `${itemName}\n\n${summary}\n\nVisit: ${page.url}`
+            : `${itemName}\n\n${summary}`;
         }
         break;
       }

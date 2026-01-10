@@ -116,16 +116,16 @@ export default function GlobalNav({
           </Link>
 
           {showBreadcrumb && breadcrumbLabel && (
-            <div className="hidden sm:flex items-center gap-2 text-white/40">
+            <div className="hidden sm:flex items-center gap-2 text-muted-foreground/60">
               <span>/</span>
               {breadcrumbHref ? (
                 <Link href={breadcrumbHref}>
-                  <span className="text-sm text-white/60 hover:text-white transition-colors cursor-pointer">
+                  <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                     {breadcrumbLabel}
                   </span>
                 </Link>
               ) : (
-                <span className="text-sm text-white/60">{breadcrumbLabel}</span>
+                <span className="text-sm text-muted-foreground">{breadcrumbLabel}</span>
               )}
             </div>
           )}
@@ -142,8 +142,8 @@ export default function GlobalNav({
                       variant="ghost" 
                       size="sm"
                       className={cn(
-                        "text-white/60 hover:text-white hover:bg-white/10 gap-1.5 h-8 px-3 text-xs",
-                        isActive && "text-white bg-white/10"
+                        "text-foreground/60 hover:text-foreground hover:bg-muted gap-1.5 h-8 px-3 text-xs",
+                        isActive && "text-foreground bg-muted"
                       )}
                       data-testid={`global-nav-${link.context}`}
                     >

@@ -153,6 +153,9 @@ interface OrbitResponse {
   planTier?: 'free' | 'grow' | 'insight' | 'intelligence';
   customTitle?: string | null;
   customDescription?: string | null;
+  customLogo?: string | null;
+  customAccent?: string | null;
+  customTone?: string | null;
   lastUpdated?: string;
   previewId?: string | null;
   orbitType?: 'standard' | 'industry';
@@ -645,16 +648,62 @@ export default function OrbitView() {
     }
   }, [slug, orbitData?.status]);
 
+  // Hydrate brand preferences from saved orbit data
+  useEffect(() => {
+    if (orbitData && !brandPreferences) {
+      const savedPrefs: BrandPreferences = {
+        accentColor: orbitData.customAccent || '#3b82f6',
+        selectedLogo: orbitData.customLogo || null,
+        theme: 'dark',
+        selectedImages: [],
+      };
+      
+      // Parse customTone for theme and selectedImages
+      if (orbitData.customTone) {
+        try {
+          const toneData = JSON.parse(orbitData.customTone);
+          if (toneData.theme) savedPrefs.theme = toneData.theme;
+          if (toneData.selectedImages) savedPrefs.selectedImages = toneData.selectedImages;
+        } catch {
+          // customTone is not JSON, ignore
+        }
+      }
+      
+      // Only set if we have meaningful saved preferences
+      if (orbitData.customAccent || orbitData.customLogo || orbitData.customTone) {
+        setBrandPreferences(savedPrefs);
+      }
+    }
+  }, [orbitData, brandPreferences]);
+
   const handleClaimRequest = () => {
     if (!claimEmail) return;
     setClaimStatus('sending');
     requestClaimMutation.mutate(claimEmail);
   };
 
-  const handleCustomizationConfirm = (prefs: BrandPreferences, expType?: 'radar' | 'spatial' | 'classic') => {
+  const handleCustomizationConfirm = async (prefs: BrandPreferences, expType?: 'radar' | 'spatial' | 'classic') => {
     setBrandPreferences(prefs);
     if (expType) setExperienceType(expType);
     setShowCustomization(false);
+    
+    // Persist brand preferences to database if user is owner
+    if (slug && orbitData?.isOwner) {
+      try {
+        await fetch(`/api/orbit/${slug}/brand`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            customLogo: prefs.selectedLogo,
+            customAccent: prefs.accentColor,
+            customTone: JSON.stringify({ theme: prefs.theme, selectedImages: prefs.selectedImages }),
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to save brand preferences:', err);
+      }
+    }
   };
 
   const generateSiteKnowledge = (preview: PreviewInstance): SiteKnowledge => {
@@ -1002,8 +1051,8 @@ export default function OrbitView() {
       return {
         id: `cat_${i}`,
         title: cat,
-        url: '#',
-        summary: `Browse our ${cat} selection (${boxes.filter(b => b.category === cat).length} items)`,
+        url: boxes.find(b => b.category === cat)?.sourceUrl || undefined,
+        summary: `${boxes.filter(b => b.category === cat).length} ${cat.toLowerCase()} available`,
         keywords: [cat.toLowerCase(), 'category', 'menu'],
         type: 'page' as const,
         imageUrl: catImage,
