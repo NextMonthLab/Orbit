@@ -123,6 +123,7 @@ export interface Community extends KnowledgeItem {
   communityType: string | null;
   regionTags: string[];
   communityId: number;
+  notes?: string; // Rich context about what this community is and why it matters
 }
 
 export interface CTA extends KnowledgeItem {

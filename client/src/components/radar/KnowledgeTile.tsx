@@ -290,6 +290,7 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
       }
       case 'community': {
         const community = item as import('@/lib/siteKnowledge').Community;
+        if (community.notes) return community.notes;
         return community.communityType?.replace('_', ' ') || 'Community';
       }
       case 'cta': {

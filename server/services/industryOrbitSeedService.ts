@@ -1253,6 +1253,7 @@ export async function getOrbitKnowledge(orbitId: number, orbitName: string): Pro
     communityType: c.communityType,
     regionTags: (c.regionTags as string[]) || [],
     communityId: c.id,
+    notes: c.notes || undefined,
   }));
 
   return {
