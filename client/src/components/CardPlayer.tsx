@@ -533,9 +533,9 @@ export default function CardPlayer({
                       const professionalTextShadow = colorsAny.shadow || '0 2px 4px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.4)';
                       const glowShadow = '0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.8)';
                       
-                      // Adjust font size based on text length to fit within 1/3 screen
-                      const textLength = headline.length + (supporting?.length || 0);
-                      const fontScale = textLength > 100 ? 0.7 : textLength > 60 ? 0.85 : 1;
+                      // Adjust font size based on HEADLINE length only
+                      const textLength = headline.length;
+                      const fontScale = textLength > 110 ? 0.75 : textLength > 80 ? 0.85 : 1;
                       const adjustedFontSize = baseFontSize * fontScale;
                       
                       // Background styles based on treatment - using inline-block for single cohesive box
@@ -545,9 +545,9 @@ export default function CardPlayer({
                           maxWidth: '92%',
                           textAlign: 'center',
                           whiteSpace: 'normal',
-                          wordBreak: 'keep-all',
-                          overflowWrap: 'normal',
-                          hyphens: 'none',
+                          wordBreak: 'normal',
+                          overflowWrap: 'anywhere',
+                          hyphens: 'auto',
                         };
                         
                         switch (background.treatment) {
@@ -610,38 +610,46 @@ export default function CardPlayer({
                         letterSpacing: '0.01em',
                       };
                       
-                      // Limit headline to ~60 chars for compact display
-                      const truncatedHeadline = headline.length > 60 
-                        ? headline.substring(0, 57) + '...' 
-                        : headline;
+                      // Line clamping for headlines that exceed 3 lines
+                      const clampHeadline: React.CSSProperties = {
+                        display: '-webkit-box',
+                        WebkitBoxOrient: 'vertical' as any,
+                        WebkitLineClamp: 3,
+                        overflow: 'hidden',
+                      };
+                      
+                      // Line clamping for supporting text (2 lines max)
+                      const clampSupporting: React.CSSProperties = {
+                        display: '-webkit-box',
+                        WebkitBoxOrient: 'vertical' as any,
+                        WebkitLineClamp: 2,
+                        overflow: 'hidden',
+                      };
                       
                       return (
                         <div className="flex flex-col items-center w-full gap-2">
-                          {/* Caption panel - HEADLINE ONLY, compact */}
+                          {/* Caption panel - HEADLINE ONLY */}
                           <div 
-                            style={{
-                              ...bgStyles,
-                              padding: background.treatment !== 'none' ? '14px 20px' : undefined,
-                            }}
+                            style={bgStyles}
                             data-testid="caption-panel"
                           >
                             <p 
                               className="m-0"
-                              style={headlineStyles}
+                              style={{ ...headlineStyles, ...clampHeadline }}
                               data-testid="text-headline"
                             >
-                              {truncatedHeadline}
+                              {headline}
                             </p>
                           </div>
                           
-                          {/* Supporting text ALWAYS outside panel for cleaner look */}
+                          {/* Supporting text outside panel */}
                           {supporting && (
                             <p 
                               className="max-w-[85%] text-center mx-auto"
-                              style={supportingStyles}
+                              style={{ ...supportingStyles, ...clampSupporting }}
                               data-testid="text-supporting"
                             >
-                              {supporting.length > 80 ? supporting.substring(0, 77) + '...' : supporting}
+                              {supporting}
                             </p>
                           )}
                         </div>
