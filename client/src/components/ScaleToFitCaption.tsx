@@ -27,7 +27,7 @@ export function ScaleToFitCaption({
 
   const panelMaxWidthPercent = 92;
   const panelWidthPx = containerWidthPx * (panelMaxWidthPercent / 100);
-  const paddingPx = 18;
+  const paddingPx = 20;
   const availableWidth = panelWidthPx - paddingPx * 2;
   const availableHeight = maxHeightPx - paddingPx * 2;
 
@@ -59,56 +59,68 @@ export function ScaleToFitCaption({
     fontSize: `${fittedFontSizePx}px`,
     whiteSpace: "nowrap",
     margin: 0,
+    display: "block",
   };
 
   return (
     <div style={{ position: "relative" }}>
-      {/* Panel (the box) */}
+      {/* Panel: relative container with padding */}
       <div
         style={{
           ...panelStyle,
+          position: "relative",
           width: "100%",
           maxWidth: `${panelMaxWidthPercent}%`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: `${paddingPx}px 20px`,
+          minHeight: "80px",
+          padding: `${paddingPx}px`,
           boxSizing: "border-box",
-          minHeight: "60px",
           overflow: "hidden",
+          display: "block",
         }}
         data-testid="caption-panel"
       >
-        {/* Scale wrapper: THIS is what we scale */}
+        {/* Absolute anchor: dead center */}
         <div
           style={{
-            transform: `scale(${scale})`,
-            transformOrigin: "center center",
+            position: "absolute",
+            left: "50%",
+            top: "50%",
             width: "100%",
-            display: "flex",
-            justifyContent: "center",
+            pointerEvents: "none",
           }}
         >
-          {/* Text block: centred, constrained */}
+          {/* Scale wrapper: translate + scale from center */}
           <div
-            ref={textRef}
             style={{
+              transform: `translate(-50%, -50%) scale(${scale})`,
+              transformOrigin: "center center",
+              display: "inline-block",
               width: "100%",
-              maxWidth: "92%",
-              textAlign: "center",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              lineHeight: 1.12,
+              maxWidth: `calc(100% - ${paddingPx * 2}px)`,
             }}
-            data-testid="text-headline"
           >
-            {lines.map((line, i) => (
-              <div key={i} style={lineStyle}>
-                {line}
-              </div>
-            ))}
+            {/* Text block: centered, constrained */}
+            <div
+              ref={textRef}
+              style={{
+                width: "100%",
+                maxWidth: "92%",
+                margin: "0 auto",
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                lineHeight: 1.12,
+              }}
+              data-testid="text-headline"
+            >
+              {lines.map((line, i) => (
+                <div key={i} style={lineStyle}>
+                  {line}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
