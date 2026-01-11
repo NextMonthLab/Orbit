@@ -28,6 +28,9 @@ import { analyticsRateLimiter, activationRateLimiter, chatRateLimiter, getClient
 import { logAuthFailure, logAccessDenied, logTokenError, logAdminAction } from "./securityLogger";
 import { analyticsRequestValidator, chatRequestValidator, chatMessageValidator, analyticsMetadataValidator, analyticsTypeValidator, analyticsMetadataStringValidator, adminRequestValidator, adminReasonValidator } from "./requestValidation";
 import { canReadUniverse, canWriteUniverse, canReadIcePreview, canWriteIcePreview, canReadOrbit, canWriteOrbit, logAuditEvent, extractRequestInfo } from "./authPolicies";
+import { ingestUrlAndGenerateTiles, groupTilesByCategory } from "./services/topicTileGenerator";
+import { saveOrbitIngestion, loadOrbitIngestion, getOrbitTiles } from "./services/orbitTileStorage";
+import { generateHealthReport, getContract } from "./services/orbitHealthRunner";
 
 function getAppBaseUrl(req: any): string {
   if (process.env.PUBLIC_APP_URL) {
@@ -3370,11 +3373,13 @@ export async function registerRoutes(
   
   // Get platform-wide metrics for admin dashboard
   app.get("/api/admin/stats", requireAdmin, async (req, res) => {
+    console.log("[admin-stats] Fetching platform metrics for user:", (req.user as any)?.username);
     try {
       const metrics = await storage.getPlatformMetrics();
+      console.log("[admin-stats] Metrics result:", JSON.stringify(metrics));
       res.json(metrics);
     } catch (error) {
-      console.error("Error fetching platform metrics:", error);
+      console.error("[admin-stats] Error fetching platform metrics:", error);
       res.status(500).json({ message: "Error fetching platform metrics" });
     }
   });
@@ -3433,6 +3438,84 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching industry orbits:", error);
       res.status(500).json({ message: "Error fetching industry orbits" });
+    }
+  });
+
+  // Get all orbits for admin with basic stats
+  app.get("/api/admin/all-orbits", requireAdmin, async (req, res) => {
+    try {
+      const allOrbits = await db.query.orbitMeta.findMany({
+        orderBy: [desc(schema.orbitMeta.lastUpdated)],
+      });
+      
+      // Get analytics for each orbit
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const analyticsData = await db
+        .select({
+          businessSlug: schema.orbitAnalytics.businessSlug,
+          visits: sql<number>`COALESCE(SUM(visits), 0)`,
+          conversations: sql<number>`COALESCE(SUM(conversations), 0)`,
+        })
+        .from(schema.orbitAnalytics)
+        .where(gte(schema.orbitAnalytics.date, thirtyDaysAgo))
+        .groupBy(schema.orbitAnalytics.businessSlug);
+      
+      const analyticsMap = new Map(
+        analyticsData.map(a => [a.businessSlug, { visits: Number(a.visits), conversations: Number(a.conversations) }])
+      );
+      
+      const orbitsWithStats = allOrbits.map(o => ({
+        businessSlug: o.businessSlug,
+        businessName: o.customTitle || o.businessSlug,
+        sourceUrl: o.sourceUrl,
+        orbitType: o.orbitType,
+        generationStatus: o.generationStatus,
+        planTier: o.planTier,
+        lastUpdated: o.lastUpdated,
+        visits30d: analyticsMap.get(o.businessSlug)?.visits || 0,
+        conversations30d: analyticsMap.get(o.businessSlug)?.conversations || 0,
+      }));
+      
+      res.json(orbitsWithStats);
+    } catch (error) {
+      console.error("Error fetching all orbits:", error);
+      res.status(500).json({ message: "Error fetching all orbits" });
+    }
+  });
+
+  // ============ ORBIT HEALTH DASHBOARD ROUTES ============
+  
+  app.get("/api/admin/orbits/health", requireAdmin, async (req, res) => {
+    try {
+      const orbitSlug = req.query.slug as string | undefined;
+      const report = await generateHealthReport(orbitSlug);
+      res.json(report);
+    } catch (error: any) {
+      console.error("Error generating health report:", error);
+      res.status(500).json({ message: "Error generating health report", error: error.message });
+    }
+  });
+  
+  app.get("/api/admin/orbits/health/contract", requireAdmin, async (req, res) => {
+    try {
+      const contract = getContract();
+      res.json(contract);
+    } catch (error: any) {
+      console.error("Error fetching contract:", error);
+      res.status(500).json({ message: "Error fetching contract", error: error.message });
+    }
+  });
+  
+  app.get("/api/admin/orbits/health/:slug", requireAdmin, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const report = await generateHealthReport(slug);
+      res.json(report);
+    } catch (error: any) {
+      console.error("Error generating health report for orbit:", error);
+      res.status(500).json({ message: "Error generating health report", error: error.message });
     }
   });
 
@@ -5744,7 +5827,7 @@ Output only the narration paragraph, nothing else.`;
   // Anonymous endpoint for extracting content and generating card preview
   app.post("/api/ice/preview", async (req, res) => {
     try {
-      const { type, value } = req.body;
+      const { type, value, context } = req.body;
       
       if (!type || !value || typeof value !== "string") {
         return res.status(400).json({ message: "Type and value are required" });
@@ -5753,6 +5836,10 @@ Output only the narration paragraph, nothing else.`;
       if (!["url", "text"].includes(type)) {
         return res.status(400).json({ message: "Type must be 'url' or 'text'" });
       }
+      
+      const contentContext = context && ["story", "article", "business", "auto"].includes(context) 
+        ? context 
+        : "auto";
       
       // Rate limiting by IP
       const userIp = req.ip || req.socket.remoteAddress || "unknown";
@@ -5795,14 +5882,56 @@ Output only the narration paragraph, nothing else.`;
         return res.status(400).json({ message: "Not enough content to create an experience" });
       }
       
-      // Generate cards using AI
+      // Generate cards using AI with context-specific prompts
       const openai = getOpenAI();
+      
+      const contextPrompts: Record<string, { system: string; focus: string }> = {
+        story: {
+          system: `You are an expert at breaking NARRATIVE content into cinematic story cards. Extract 4-8 key dramatic moments and format them as story cards.`,
+          focus: `Guidelines:
+- Focus on the narrative arc and dramatic tension
+- Capture character moments and emotional beats
+- Use vivid, cinematic language
+- Build toward a climactic moment
+- Each card represents a scene or pivotal moment`
+        },
+        article: {
+          system: `You are an expert at breaking INFORMATIONAL content into engaging story cards. Extract 4-8 key insights or takeaways and format them as story cards.`,
+          focus: `Guidelines:
+- Focus on key insights and discoveries
+- Present facts in an engaging, digestible way
+- Each card should teach or reveal something new
+- Build understanding progressively
+- Use clear, accessible language`
+        },
+        business: {
+          system: `You are an expert at breaking BUSINESS content into compelling story cards. Extract 4-8 key features, benefits, or value propositions and format them as story cards.`,
+          focus: `Guidelines:
+- Focus on features, benefits, and value
+- Highlight what makes this business/product special
+- Use persuasive but authentic language
+- Address customer needs and pain points
+- Each card should reinforce the brand message`
+        },
+        auto: {
+          system: `You are an expert at breaking content into cinematic story cards. Given text content, extract 4-8 key moments/sections and format them as story cards.`,
+          focus: `Guidelines:
+- Keep cards concise and impactful
+- Each card should stand alone as a moment
+- Use vivid, engaging language
+- Focus on the narrative arc
+- Maximum 8 cards for a short preview`
+        }
+      };
+      
+      const selectedPrompt = contextPrompts[contentContext] || contextPrompts.auto;
+      
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: `You are an expert at breaking content into cinematic story cards. Given text content, extract 4-8 key moments/sections and format them as story cards.
+            content: `${selectedPrompt.system}
 
 Each card should have:
 - A short, evocative title (3-6 words)
@@ -5810,12 +5939,7 @@ Each card should have:
 
 Output as JSON array: [{"title": "...", "content": "..."}, ...]
 
-Guidelines:
-- Keep cards concise and impactful
-- Each card should stand alone as a moment
-- Use vivid, engaging language
-- Focus on the narrative arc
-- Maximum 8 cards for a short preview`
+${selectedPrompt.focus}`
           },
           {
             role: "user",
@@ -5955,6 +6079,7 @@ Stay engaging, reference story details, and help the audience understand the nar
         ownerUserId: req.user?.id || null,
         sourceType: type as any,
         sourceValue: type === "url" ? value : value.slice(0, 500),
+        contentContext: contentContext as any,
         title: sourceTitle,
         cards: previewCards,
         characters: storyCharacters,
@@ -6460,6 +6585,8 @@ Stay engaging, reference story details, and help the audience understand the nar
         musicEnabled: preview.musicEnabled,
         titlePackId: preview.titlePackId,
         narrationVolume: preview.narrationVolume,
+        // Caption Engine settings
+        captionSettings: preview.captionSettings,
         // Additional settings
         projectBible: preview.projectBible,
         previewAccessToken: preview.previewAccessToken,
@@ -7627,7 +7754,7 @@ Stay engaging, reference story details, and help the audience understand the nar
   app.put("/api/ice/preview/:previewId/settings", async (req, res) => {
     try {
       const { previewId } = req.params;
-      const { musicTrackUrl, musicVolume, musicEnabled, titlePackId, narrationVolume } = req.body;
+      const { musicTrackUrl, musicVolume, musicEnabled, titlePackId, narrationVolume, captionSettings } = req.body;
       
       const preview = await storage.getIcePreview(previewId);
       if (!preview) {
@@ -7641,6 +7768,7 @@ Stay engaging, reference story details, and help the audience understand the nar
       if (musicEnabled !== undefined) updateData.musicEnabled = musicEnabled;
       if (titlePackId !== undefined) updateData.titlePackId = titlePackId;
       if (narrationVolume !== undefined) updateData.narrationVolume = narrationVolume;
+      if (captionSettings !== undefined) updateData.captionSettings = captionSettings;
       
       await storage.updateIcePreview(previewId, updateData);
       
@@ -7657,7 +7785,7 @@ Stay engaging, reference story details, and help the audience understand the nar
   app.post("/api/ice/preview/:previewId/export", requireAuth, async (req, res) => {
     try {
       const { previewId } = req.params;
-      const { quality = "standard", includeNarration = true, includeMusic = true, titlePackId } = req.body;
+      const { quality = "standard", includeNarration = true, includeMusic = true, titlePackId, captionState, useCaptionEngine = false } = req.body;
       
       const preview = await storage.getIcePreview(previewId);
       if (!preview) {
@@ -7699,6 +7827,8 @@ Stay engaging, reference story details, and help the audience understand the nar
         musicTrackUrl: preview.musicTrackUrl || undefined,
         musicVolume: preview.musicVolume || 50,
         narrationVolume: preview.narrationVolume || 100,
+        captionState,
+        useCaptionEngine,
       });
       
       res.json({
@@ -9360,7 +9490,7 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
               description: service,
               price: null,
               currency: 'GBP',
-              category: 'What We Do',
+              category: 'Services',
               imageUrl: null,
               sourceUrl: url,
               tags: [{ key: 'source', value: 'site-identity' }],
@@ -9658,6 +9788,9 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
           planTier: orbitMeta.planTier,
           customTitle: orbitMeta.customTitle,
           customDescription: orbitMeta.customDescription,
+          customLogo: orbitMeta.customLogo,
+          customAccent: orbitMeta.customAccent,
+          customTone: orbitMeta.customTone,
           lastUpdated: orbitMeta.lastUpdated,
           previewId: orbitMeta.previewId,
           orbitType: orbitMeta.orbitType || 'standard',
@@ -9678,6 +9811,9 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
             planTier: orbitMeta.planTier,
             customTitle: orbitMeta.customTitle,
             customDescription: orbitMeta.customDescription,
+            customLogo: orbitMeta.customLogo,
+            customAccent: orbitMeta.customAccent,
+            customTone: orbitMeta.customTone,
             lastUpdated: orbitMeta.lastUpdated,
             orbitType: orbitMeta.orbitType || 'standard',
             pack: packResult.pack,
@@ -9695,6 +9831,9 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
           planTier: orbitMeta.planTier,
           customTitle: orbitMeta.customTitle,
           customDescription: orbitMeta.customDescription,
+          customLogo: orbitMeta.customLogo,
+          customAccent: orbitMeta.customAccent,
+          customTone: orbitMeta.customTone,
           lastUpdated: orbitMeta.lastUpdated,
           orbitType: orbitMeta.orbitType || 'standard',
           boxes,
@@ -9916,6 +10055,69 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
     } catch (error) {
       console.error("Error tracking orbit metric:", error);
       res.status(500).json({ message: "Error tracking metric" });
+    }
+  });
+
+  // Priority Setup Request - For businesses whose websites block automated access
+  app.post("/api/orbit/:slug/priority-setup", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { name, email, phone, notes } = req.body;
+      
+      // Validate required fields
+      if (!name || typeof name !== 'string' || name.trim().length < 2) {
+        return res.status(400).json({ message: "Name is required (minimum 2 characters)" });
+      }
+      if (!email || typeof email !== 'string' || !email.includes('@')) {
+        return res.status(400).json({ message: "Valid email is required" });
+      }
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      // Store the priority setup request as a lead
+      await storage.createOrbitLead({
+        businessSlug: slug,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone?.trim() || null,
+        message: `[Priority Setup Request]\n\n${notes?.trim() || 'No additional notes provided.'}\n\nSource URL: ${orbitMeta.sourceUrl}`,
+        source: 'priority_setup',
+      });
+      
+      // Send notification email to admin
+      try {
+        const { sendEmail } = await import("./services/email");
+        await sendEmail({
+          to: process.env.ADMIN_EMAIL || 'hello@nextmonth.io',
+          subject: `Priority Setup Request: ${slug}`,
+          html: `
+            <h2>New Priority Setup Request</h2>
+            <p><strong>Business:</strong> ${slug}</p>
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
+            <p><strong>Source URL:</strong> ${orbitMeta.sourceUrl}</p>
+            <h3>Notes:</h3>
+            <p>${notes || 'None provided'}</p>
+          `,
+        });
+      } catch (emailError) {
+        console.error("Failed to send priority setup notification:", emailError);
+        // Don't fail the request if email fails
+      }
+      
+      console.log(`[Priority Setup] Request received for ${slug} from ${email}`);
+      
+      res.json({ 
+        success: true, 
+        message: "Priority setup request received. We'll be in touch within 24 hours." 
+      });
+    } catch (error) {
+      console.error("Error processing priority setup request:", error);
+      res.status(500).json({ message: "Error submitting request" });
     }
   });
 
@@ -12751,11 +12953,14 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         return res.status(403).json({ message: "Upgrade to Grow to customize your brand" });
       }
       
-      const { customTitle, customDescription } = req.body;
+      const { customTitle, customDescription, customLogo, customAccent, customTone } = req.body;
       
       const updated = await storage.updateOrbitMeta(slug, {
         customTitle: customTitle !== undefined ? customTitle : orbitMeta.customTitle,
         customDescription: customDescription !== undefined ? customDescription : orbitMeta.customDescription,
+        customLogo: customLogo !== undefined ? customLogo : orbitMeta.customLogo,
+        customAccent: customAccent !== undefined ? customAccent : orbitMeta.customAccent,
+        customTone: customTone !== undefined ? customTone : orbitMeta.customTone,
       });
       
       res.json({ success: true, meta: updated });
@@ -15974,6 +16179,161 @@ Current category: ${categoryName}`;
     } catch (error) {
       console.error("[CPAC Diff] Error:", error);
       res.status(500).json({ message: "Failed to analyze CPAC diff" });
+    }
+  });
+
+  // ============ TOPIC TILES URL INGESTION ============
+  
+  // POST /api/orbit/:slug/ingest-url - Ingest a website URL and generate topic tiles for a specific Orbit
+  app.post("/api/orbit/:slug/ingest-url", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { url, forceRescan } = req.body;
+      
+      // Validate orbit exists
+      const orbit = await storage.getOrbitMeta(slug);
+      if (!orbit) {
+        return res.status(404).json({
+          success: false,
+          message: `Orbit '${slug}' not found`,
+        });
+      }
+      
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ 
+          success: false, 
+          message: "URL is required" 
+        });
+      }
+      
+      // Validate URL format
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(url.startsWith('http') ? url : `https://${url}`);
+      } catch {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Invalid URL format" 
+        });
+      }
+      
+      // Check cache for this specific orbit (unless forceRescan)
+      if (!forceRescan) {
+        const cached = await loadOrbitIngestion(slug);
+        if (cached) {
+          const cacheAge = Date.now() - new Date(cached.scannedAt).getTime();
+          const maxCacheAge = 24 * 60 * 60 * 1000; // 24 hours
+          if (cacheAge < maxCacheAge) {
+            console.log(`[IngestURL] Using cached result for orbit ${slug}`);
+            return res.json({
+              success: true,
+              orbitId: slug,
+              tiles: cached.tiles,
+              crawlReport: cached.crawlReport,
+              cached: true,
+              message: `Using cached results from ${cached.scannedAt}`,
+            });
+          }
+        }
+      }
+      
+      console.log(`[IngestURL] Starting fresh ingestion for ${url} (orbit: ${slug})`);
+      
+      // Perform ingestion with the orbit slug as the ID
+      const result = await ingestUrlAndGenerateTiles(parsedUrl.href, slug);
+      
+      // Save to storage under this orbit's slug
+      await saveOrbitIngestion({
+        ...result,
+        orbitId: slug, // Override with orbit slug
+      });
+      
+      res.json({
+        success: true,
+        orbitId: slug,
+        tiles: result.tiles,
+        crawlReport: result.crawlReport,
+        cached: false,
+        message: `Generated ${result.tiles.length} tiles from ${result.crawlReport.pagesSucceeded} pages`,
+      });
+      
+    } catch (error: any) {
+      console.error("[IngestURL] Error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || "Failed to ingest URL" 
+      });
+    }
+  });
+  
+  // GET /api/orbit/:orbitId/tiles - Get tiles for an orbit
+  app.get("/api/orbit-tiles/:orbitId", async (req, res) => {
+    try {
+      const { orbitId } = req.params;
+      
+      const result = await loadOrbitIngestion(orbitId);
+      if (!result) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Orbit not found" 
+        });
+      }
+      
+      const groupedTiles = groupTilesByCategory(result.tiles);
+      
+      res.json({
+        success: true,
+        orbitId: result.orbitId,
+        inputUrl: result.inputUrl,
+        scannedAt: result.scannedAt,
+        tiles: result.tiles,
+        groupedTiles,
+        crawlReport: result.crawlReport,
+      });
+      
+    } catch (error: any) {
+      console.error("[GetTiles] Error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || "Failed to get tiles" 
+      });
+    }
+  });
+  
+  // GET /api/orbit-tiles/:orbitId/grouped - Get tiles grouped by category (for Netflix layout)
+  app.get("/api/orbit-tiles/:orbitId/grouped", async (req, res) => {
+    try {
+      const { orbitId } = req.params;
+      
+      const tiles = await getOrbitTiles(orbitId);
+      if (!tiles) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Orbit not found" 
+        });
+      }
+      
+      const groupedTiles = groupTilesByCategory(tiles);
+      
+      res.json({
+        success: true,
+        orbitId,
+        groupedTiles,
+        rows: [
+          { title: 'Top Insights', tiles: groupedTiles['Top Insights'] },
+          { title: 'Services & Offers', tiles: groupedTiles['Services & Offers'] },
+          { title: 'FAQs & Objections', tiles: groupedTiles['FAQs & Objections'] },
+          { title: 'Proof & Trust', tiles: groupedTiles['Proof & Trust'] },
+          { title: 'Recommendations', tiles: groupedTiles['Recommendations'] },
+        ].filter(row => row.tiles.length > 0),
+      });
+      
+    } catch (error: any) {
+      console.error("[GetGroupedTiles] Error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || "Failed to get grouped tiles" 
+      });
     }
   });
 

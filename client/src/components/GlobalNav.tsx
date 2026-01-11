@@ -14,8 +14,12 @@ import {
   Film,
   GraduationCap,
   Compass,
+  Sun,
+  Moon,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import { useAuth } from "@/lib/auth";
 import {
   DropdownMenu,
@@ -27,7 +31,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-const LOGO_URL = "/logo.png";
+const LOGO_URL_LIGHT = "/logo.png";
+const LOGO_URL_DARK = "https://res.cloudinary.com/drl0fxrkq/image/upload/h_250,fl_preserve_transparency/v1746537994/0A6752C9-3498-4269-9627-A1BE7A36A800_dgqotr.jpg";
 
 type NavContext = 'marketing' | 'app' | 'orbit' | 'ice';
 
@@ -59,10 +64,15 @@ export default function GlobalNav({
 }: GlobalNavProps) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
+  };
+  
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   const getInitials = (name: string) => {
@@ -89,7 +99,7 @@ export default function GlobalNav({
         "sticky top-0 z-50 border-b",
         transparent 
           ? "bg-transparent border-transparent" 
-          : "bg-gradient-to-r from-black via-neutral-950 to-black border-white/5 backdrop-blur-md"
+          : "bg-background/95 dark:bg-gradient-to-r dark:from-black dark:via-neutral-950 dark:to-black border-border backdrop-blur-md"
       )}
     >
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -97,7 +107,7 @@ export default function GlobalNav({
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer" data-testid="link-global-logo">
               <img 
-                src={LOGO_URL} 
+                src={theme === 'light' ? LOGO_URL_DARK : LOGO_URL_LIGHT} 
                 alt="NextMonth" 
                 className="h-24 w-auto"
                 style={{ clipPath: 'inset(35% 0 35% 0)' }}
@@ -106,16 +116,16 @@ export default function GlobalNav({
           </Link>
 
           {showBreadcrumb && breadcrumbLabel && (
-            <div className="hidden sm:flex items-center gap-2 text-white/40">
+            <div className="hidden sm:flex items-center gap-2 text-muted-foreground/60">
               <span>/</span>
               {breadcrumbHref ? (
                 <Link href={breadcrumbHref}>
-                  <span className="text-sm text-white/60 hover:text-white transition-colors cursor-pointer">
+                  <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                     {breadcrumbLabel}
                   </span>
                 </Link>
               ) : (
-                <span className="text-sm text-white/60">{breadcrumbLabel}</span>
+                <span className="text-sm text-muted-foreground">{breadcrumbLabel}</span>
               )}
             </div>
           )}
@@ -132,8 +142,8 @@ export default function GlobalNav({
                       variant="ghost" 
                       size="sm"
                       className={cn(
-                        "text-white/60 hover:text-white hover:bg-white/10 gap-1.5 h-8 px-3 text-xs",
-                        isActive && "text-white bg-white/10"
+                        "text-foreground/60 hover:text-foreground hover:bg-muted gap-1.5 h-8 px-3 text-xs",
+                        isActive && "text-foreground bg-muted"
                       )}
                       data-testid={`global-nav-${link.context}`}
                     >
@@ -206,21 +216,21 @@ export default function GlobalNav({
                       <ChevronDown className="w-3.5 h-3.5 text-white/50 hidden sm:block" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 bg-neutral-900 border-white/10">
-                    <div className="px-2 py-1.5 border-b border-white/10">
-                      <p className="text-sm font-medium text-white">{user.username}</p>
+                  <DropdownMenuContent align="end" className="w-48 bg-popover border-border">
+                    <div className="px-2 py-1.5 border-b border-border">
+                      <p className="text-sm font-medium text-foreground">{user.username}</p>
                       {user.isAdmin && (
-                        <p className="text-[10px] text-white/50">Admin</p>
+                        <p className="text-[10px] text-muted-foreground">Admin</p>
                       )}
                     </div>
                     <DropdownMenuItem asChild>
-                      <Link href="/profile" className="cursor-pointer text-white/80 hover:text-white" data-testid="global-menu-profile">
+                      <Link href="/profile" className="cursor-pointer" data-testid="global-menu-profile">
                         <User className="w-4 h-4 mr-2" />
                         My Account
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/orbit/my" className="cursor-pointer text-white/80 hover:text-white" data-testid="global-menu-orbits">
+                      <Link href="/orbit/my" className="cursor-pointer" data-testid="global-menu-orbits">
                         <Orbit className="w-4 h-4 mr-2" />
                         My Orbits
                       </Link>
@@ -228,7 +238,7 @@ export default function GlobalNav({
                     {onStartTour && (
                       <DropdownMenuItem 
                         onClick={onStartTour} 
-                        className="cursor-pointer text-white/80 hover:text-white" 
+                        className="cursor-pointer" 
                         data-testid="global-menu-tour"
                       >
                         <Compass className="w-4 h-4 mr-2" />
@@ -237,13 +247,30 @@ export default function GlobalNav({
                     )}
                     {user.isAdmin && (
                       <DropdownMenuItem asChild>
-                        <Link href="/admin" className="cursor-pointer text-white/80 hover:text-white" data-testid="global-menu-admin">
+                        <Link href="/admin" className="cursor-pointer" data-testid="global-menu-admin">
                           <Sparkles className="w-4 h-4 mr-2" />
                           Admin Dashboard
                         </Link>
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuSeparator className="bg-white/10" />
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={toggleTheme} 
+                      className="cursor-pointer"
+                      data-testid="global-menu-theme"
+                    >
+                      {theme === 'dark' ? (
+                        <>
+                          <Sun className="w-4 h-4 mr-2" />
+                          Light Mode
+                        </>
+                      ) : (
+                        <>
+                          <Moon className="w-4 h-4 mr-2" />
+                          Dark Mode
+                        </>
+                      )}
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-400 hover:text-red-300" data-testid="global-menu-logout">
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign Out
@@ -255,7 +282,7 @@ export default function GlobalNav({
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="text-white/70 hover:text-white hover:bg-white/10 gap-1.5 h-8 px-3 text-xs" 
+                    className="text-foreground/70 hover:text-foreground hover:bg-muted gap-1.5 h-8 px-3 text-xs" 
                     data-testid="global-signin"
                   >
                     <LogIn className="w-3.5 h-3.5" />
@@ -265,7 +292,7 @@ export default function GlobalNav({
               )}
 
               <button 
-                className="md:hidden p-1.5 text-white/70 hover:text-white"
+                className="md:hidden p-1.5 text-foreground/70 hover:text-foreground"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 data-testid="global-mobile-menu"
               >
@@ -277,15 +304,15 @@ export default function GlobalNav({
       </div>
 
       {mobileMenuOpen && !minimal && (
-        <div className="md:hidden bg-black/95 border-t border-white/10 px-4 py-3 space-y-1">
+        <div className="md:hidden bg-background/95 dark:bg-black/95 border-t border-border px-4 py-3 space-y-1">
           {quickLinks.map((link) => {
             const isActive = context === link.context;
             return (
               <Link key={link.href} href={link.href}>
                 <div 
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 cursor-pointer",
-                    isActive && "text-white bg-white/10"
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer",
+                    isActive && "text-foreground bg-muted"
                   )}
                   onClick={() => setMobileMenuOpen(false)}
                   data-testid={`global-mobile-${link.context}`}
@@ -299,11 +326,11 @@ export default function GlobalNav({
           
           {context === 'marketing' && (
             <>
-              <div className="border-t border-white/10 my-2" />
+              <div className="border-t border-border my-2" />
               {audienceLinks.map((link) => (
                 <Link key={link.href} href={link.href}>
                   <div 
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 cursor-pointer"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
                     onClick={() => setMobileMenuOpen(false)}
                     data-testid={`global-mobile-${link.href.split('/').pop()}`}
                   >
@@ -313,6 +340,42 @@ export default function GlobalNav({
                 </Link>
               ))}
             </>
+          )}
+          
+          {user?.isAdmin && (
+            <>
+              <div className="border-t border-border my-2" />
+              <Link href="/admin">
+                <div 
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                  onClick={() => setMobileMenuOpen(false)}
+                  data-testid="global-mobile-admin"
+                >
+                  <Shield className="w-4 h-4" />
+                  Admin
+                </div>
+              </Link>
+            </>
+          )}
+          
+          {user && (
+            <div 
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+              onClick={toggleTheme}
+              data-testid="global-mobile-theme"
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-4 h-4" />
+                  Light Mode
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4" />
+                  Dark Mode
+                </>
+              )}
+            </div>
           )}
         </div>
       )}

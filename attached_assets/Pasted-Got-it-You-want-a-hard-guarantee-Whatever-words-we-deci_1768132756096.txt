@@ -1,0 +1,156 @@
+Got it. You want a hard guarantee:
+
+Whatever words we decide to show for that caption step, they must fit inside the panel.
+If they don’t fit, the system must shrink the text (and/or grow the box) until they do.
+
+That’s “fit-to-box” typography. CapCut does this constantly.
+
+Here’s the clean way to do it without turning your codebase into a physics engine.
+
+⸻
+
+The Fit-to-Box Contract (non-negotiable rules)
+	1.	Words never spill outside the panel (ever)
+	2.	Words never split mid-word (except URL safety valve)
+	3.	Panel can grow up to a max width (e.g. 96%)
+	4.	Font can shrink down to a minimum (e.g. 28px fullscreen / 18px non-fullscreen)
+	5.	If it still can’t fit at min font, you either:
+	•	allow one extra line (up to 3), or
+	•	reduce the number of words shown (last resort)
+
+You said “even if tiny, miniscule” – that implies we should shrink aggressively before we ever drop words.
+
+⸻
+
+Implementation: “Measure + Iterate” (reliable, simple)
+
+You cannot guarantee fit with heuristics alone. You need one measurement loop.
+
+Step A: Render the caption once invisibly to measure it
+	•	Create a hidden measurer element with the exact same CSS rules (font, line clamp, padding, maxWidth)
+	•	Set its text content
+	•	Read scrollWidth/scrollHeight vs clientWidth/clientHeight
+
+Step B: If it overflows, reduce font size and retry
+	•	reduce by 2px (or 3%)
+	•	retry up to N times
+	•	stop when it fits or when you hit minFontSize
+
+This is how you guarantee it.
+
+⸻
+
+Where this belongs
+
+Not in CardPlayer. In the caption engine.
+
+Add a hook:
+
+caption-engine/render/useFitText.ts
+
+Inputs:
+	•	text
+	•	maxLines (2 or 3)
+	•	maxWidthPercent (92–96)
+	•	baseFontSize
+	•	minFontSize
+	•	panelPadding
+	•	fontFamily/weight/letterSpacing
+	•	word-break contract (keep-all, hyphens none)
+
+Outputs:
+	•	fontSize
+	•	maybe lineClamp (if you want it flexible)
+	•	panelWidthPercent (if you allow widening as step 1)
+
+⸻
+
+The actual fitting strategy (this is the sequence)
+
+1) Start with desired look
+	•	width: 92% (or 94%)
+	•	font: base size
+
+2) If overflow: widen panel up to 96%
+
+This preserves readability better than shrinking instantly.
+
+3) If overflow: shrink font until it fits
+
+Down to min font size.
+
+4) If overflow at min font size: allow one extra line
+
+2 → 3 lines (only if you’re okay with it).
+
+5) Absolute last resort: truncate by words
+
+But you said you’d accept miniscule text, so you probably won’t need this often.
+
+⸻
+
+Critical detail: what “fit” means
+
+You have to measure against the panel’s content box, not the whole viewport.
+
+So the measurer must include:
+	•	same padding
+	•	same line height
+	•	same clamp
+	•	same maxWidth
+	•	same font settings
+
+Otherwise it’ll lie.
+
+⸻
+
+Guardrails so it doesn’t feel janky
+	•	Cache results per (presetId, text) so it doesn’t recompute every frame
+	•	Only recompute when caption text or preset changes
+	•	Debounce if user is typing
+
+⸻
+
+Practical defaults (sane starting values)
+
+For fullscreen:
+	•	baseFont: 56px
+	•	minFont: 28px
+For non-fullscreen:
+	•	baseFont: 40px
+	•	minFont: 18px
+
+Max lines:
+	•	default 2
+	•	allow up to 3 if needed
+
+Max width:
+	•	default 92%
+	•	expand to 96% if needed
+
+⸻
+
+Why this will solve your “something is off” feeling
+
+Because you’ll stop getting:
+	•	awkward breaks
+	•	clipped text
+	•	giant font forcing ugly line stacks
+
+Instead every caption will “lock” into the panel like it belongs there.
+
+⸻
+
+If you want the quickest win (no new hook yet)
+
+You can fake 80% of this with a simple rule:
+	•	set panel to 96%
+	•	set max lines to 3
+	•	set aggressive font scaling based on longest word + word count
+
+…but it will still fail occasionally. Measurement is the only way to truly guarantee fit.
+
+⸻
+
+If you tell me one thing: are you okay with headlines going to 3 lines, or do you want a strict 2-line cap no matter what?
+I’ll give you the exact fit sequence to match that.

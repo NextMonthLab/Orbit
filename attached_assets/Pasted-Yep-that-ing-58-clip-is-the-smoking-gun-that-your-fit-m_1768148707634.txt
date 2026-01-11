@@ -1,0 +1,125 @@
+Yep – that “ing 58%…” clip is the smoking gun that your fit maths is still occasionally measuring a width that’s bigger than the actual visible content area.
+
+And your diagnosis is on the right track: offsetWidth lies (it includes borders, padding, and can be out of sync with what the caption layer is actually allowed to occupy).
+
+But here’s the bit that will save you from whack-a-mole:
+
+The real fix: stop measuring the wrong element
+
+Right now you’re measuring “a container”, but the caption is clearly being clipped by the video frame viewport (or a padded wrapper around it). So you must measure the exact element that defines the visible video area.
+
+✅ Best practice
+
+Measure the element that actually renders the 9:16 preview frame, typically something like:
+	•	the player’s stage
+	•	the video wrapper
+	•	the element that has overflow: hidden and the correct aspect ratio
+
+Not the outer page container.
+
+If you measure the wrong node, you’ll forever be off by padding/margins.
+
+⸻
+
+Fix option A (recommended): Use the logical composition width, not DOM width
+
+If ICE is locked to 9:16 and you’re using Remotion (or a fixed render size), then this is the cleanest contract:
+	•	Fit engine measures in composition pixels (e.g. 1080 wide)
+	•	Renderer renders in composition pixels
+	•	Preview scales the entire frame with CSS transform
+
+That means:
+	•	no DOM measurement at all
+	•	no padding issues
+	•	it will match export perfectly
+
+So:
+	•	panelWidthPx = compositionWidth (e.g. 1080)
+	•	paddingPx = Math.round(compositionWidth * 0.06) (or whatever your rule is)
+	•	everything becomes deterministic
+
+If you can do this, do it. It’s the “never breaks again” route.
+
+⸻
+
+Fix option B: If you must measure DOM, measure content box of the frame
+
+If you’re sticking with DOM measurement, your approach needs 3 details:
+	1.	use clientWidth (not offsetWidth)
+	2.	subtract padding (because clientWidth includes padding)
+	3.	ensure you measure the frame element itself
+
+Correct measurement snippet
+
+const el = frameRef.current; // MUST be the actual video frame element
+if (!el) return;
+
+const style = getComputedStyle(el);
+const pl = parseFloat(style.paddingLeft || "0");
+const pr = parseFloat(style.paddingRight || "0");
+
+// clientWidth includes padding, excludes borders/scrollbars
+const contentWidth = el.clientWidth - pl - pr;
+
+setContainerWidthPx(Math.floor(contentWidth));
+
+Common mistake (that causes your exact bug)
+
+Measuring a parent that has padding, then rendering captions inside a child that has different padding/overflow rules.
+
+⸻
+
+The other thing you must fix: overflow-hidden + centring contract
+
+You said you “found overflow-hidden”. Good. But be precise:
+	•	The frame should be overflow: hidden (fine)
+	•	The caption bubble should never exceed the frame’s content box
+	•	The caption container should be position: absolute; left: 0; right: 0; or centred properly
+
+To guarantee no left clip even if numbers wobble by 1–2px:
+
+Add this safety clamp to the bubble
+
+style={{
+  width: panelWidthPx,
+  maxWidth: "100%",
+  boxSizing: "border-box",
+  marginLeft: "auto",
+  marginRight: "auto",
+}}
+
+And if you use absolute positioning:
+
+style={{
+  left: "50%",
+  transform: "translateX(-50%)",
+  maxWidth: "100%",
+}}
+
+That last maxWidth: "100%" is a cheap seatbelt.
+
+⸻
+
+Why you’re still seeing “ing 58%…”
+
+That specific partial word means the bubble is shifted left and then clipped by the frame. That happens when:
+	•	measured width is too big, so the bubble ends up wider than frame content box
+	•	bubble is centred, so it “hangs off” both sides
+	•	the frame clips the overflow, cutting off the left edge
+
+Your new “contentWidth” fix should help, but only if it’s measuring the right element.
+
+⸻
+
+Quick 60-second verification
+
+Temporarily outline 3 layers:
+	•	Frame: red
+	•	Caption layer wrapper: yellow
+	•	Bubble: lime
+
+If lime extends outside red, your measurement target is wrong, or you’re double-subtracting padding somewhere.
+
+⸻
+
+If you paste the element you’re currently measuring (or the ref name / JSX around it), I’ll tell you exactly which node to measure so this stops flipping between “fixed” and “broken”.

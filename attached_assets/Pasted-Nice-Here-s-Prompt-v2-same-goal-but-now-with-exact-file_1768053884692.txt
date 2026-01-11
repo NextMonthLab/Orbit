@@ -1,0 +1,271 @@
+Nice. Here’s Prompt v2: same goal, but now with exact files, folders, and responsibilities so Replit can’t freestyle it into a mess.
+
+⸻
+
+Replit Prompt v2: Implement Orbit URL Ingestion + Topic Tiles (Exact File Structure)
+
+Non-negotiable goal
+From a single URL input, crawl up to 5 pages, generate Topic Tiles (not page tiles), store results, and render a Netflix-style tile UI with 12 tiles minimum.
+
+⸻
+
+A) Create these folders/files
+
+A1) Types
+
+/src/orbit/types/orbitTiles.ts
+	•	Export:
+	•	TileCategory union
+	•	TileConfidence union
+	•	TileStatus union
+	•	OrbitTile type
+	•	OrbitCrawlPage type
+	•	OrbitCrawlReport type
+	•	OrbitIngestResponse type
+
+A2) Backend: ingestion + storage
+
+/src/server/orbit/ingestUrl.ts
+	•	Main orchestration:
+	1.	normalise URL
+	2.	derive candidate pages
+	3.	crawl (cap 5)
+	4.	extract content
+	5.	generate tiles
+	6.	enforce minimum tiles
+	7.	store JSON
+	8.	return response
+
+/src/server/orbit/crawler.ts
+	•	Responsible for:
+	•	Fetching HTML for a list of URLs
+	•	Enforcing same-domain constraint
+	•	Timeout + page count guardrails
+	•	Returning OrbitCrawlPage[]
+
+/src/server/orbit/extract.ts
+	•	Responsible for:
+	•	Removing scripts/styles/nav/footer where possible
+	•	Extracting:
+	•	title
+	•	headings (h1-h3)
+	•	lists
+	•	short excerpts
+	•	Return a structured object per page with snippets suitable for citations
+
+/src/server/orbit/topicCluster.ts
+	•	Responsible for:
+	•	Turning extracted headings/phrases into topic clusters
+	•	Output: intermediate “topic groups” that can become tiles
+
+/src/server/orbit/tileGenerator.ts
+	•	Responsible for:
+	•	Converting topic groups into OrbitTile[]
+	•	Enforce grounding rules:
+	•	confirmed tiles must have excerpt citations
+	•	draft tiles must include missingSignals
+	•	Always-on buckets logic to guarantee coverage
+
+/src/server/orbit/minTiles.ts
+	•	Responsible for:
+	•	Enforcing “12 tiles minimum”
+	•	If insufficient confirmed tiles:
+	•	add draft tiles from the always-on bucket list
+
+/src/server/orbit/storage.ts
+	•	File-based storage:
+	•	Save crawl + tiles JSON under /data/orbits/<orbitId>.json
+	•	Load by orbitId
+	•	Must be safe if folder doesn’t exist (create it)
+
+A3) Backend: API routes
+
+/src/server/routes/orbit.ts
+	•	Add routes:
+	•	POST /api/orbit/ingest-url
+	•	GET /api/orbit/:orbitId/tiles
+	•	Return types consistent with OrbitIngestResponse
+
+Integrate this router into your server entry (where other routes are registered).
+
+⸻
+
+B) Frontend UI (exact components)
+
+B1) API client
+
+/src/orbit/api/orbitApi.ts
+	•	Functions:
+	•	ingestUrl(url: string): Promise<OrbitIngestResponse>
+	•	getTiles(orbitId: string): Promise<OrbitIngestResponse>
+	•	Handle errors with user-friendly messages
+
+B2) Page
+
+/src/pages/orbit/OrbitUrlIngestPage.tsx
+	•	UI sections:
+	1.	URL input + submit
+	2.	Loading state + crawl progress summary
+	3.	Tile rows render
+
+If your routing differs, put this page wherever your app stores pages, but keep the name.
+
+B3) Components
+
+/src/orbit/components/UrlIngestForm.tsx
+	•	URL input, button, validation, disabled states
+
+/src/orbit/components/TileRow.tsx
+	•	Props: title, tiles: OrbitTile[]
+	•	Renders horizontal scroll row
+
+/src/orbit/components/TileCard.tsx
+	•	Compact card view (title, summary, badges)
+	•	Click opens TileDrawer
+
+/src/orbit/components/TileDrawer.tsx
+	•	Expanded view:
+	•	Sources list with excerpts
+	•	Actions: Ask Orbit, Generate ICE, Save, Share (buttons can be stubbed if not implemented elsewhere)
+	•	Draft tile shows missingSignals clearly
+
+/src/orbit/components/Badges.tsx
+	•	Reusable confidence + status badge components
+
+⸻
+
+C) Crawl logic details (keep it MVP-safe)
+
+C1) Candidate pages
+
+In ingestUrl.ts, generate candidate paths:
+	•	/
+	•	/about, /about-us
+	•	/services, /what-we-do
+	•	/pricing, /fees
+	•	/contact
+
+Try these URLs in order until you reach 5 successful pages or exhaust candidates.
+
+C2) Same-domain enforcement
+
+Only fetch URLs whose hostname matches the root domain hostname.
+
+C3) Timeouts and limits
+	•	Per page fetch timeout
+	•	Total crawl should not exceed a sensible overall time limit
+	•	Max HTML size (basic cap) to avoid massive pages
+
+⸻
+
+D) Extraction rules (avoid garbage)
+
+In extract.ts:
+	•	Strip:
+	•	<script>, <style>, <noscript>
+	•	Prefer content in:
+	•	main, article
+	•	Fall back to the largest text container if main/article not present.
+	•	Produce:
+	•	pageTitle
+	•	headings: string[]
+	•	bullets: string[]
+	•	keyPhrases: string[] (simple noun phrase heuristic ok)
+	•	excerpts: string[] (short 140–220 char snippets)
+
+Each excerpt must carry:
+	•	url
+	•	optional selectorHint (even if rough, like “main > section:nth-of-type(2)”)
+
+⸻
+
+E) Tile generation rules (this is the important bit)
+
+E1) Categories and row mapping
+
+Row layout must be:
+	•	Row 1: Top Insights (up to 6)
+	•	Row 2: Services & Offers (up to 6)
+	•	Row 3: FAQs & Objections (up to 6)
+	•	Row 4: Recommendations (optional)
+
+If a row has fewer than 6 tiles, fill with draft tiles.
+
+E2) Always-on tile templates (minimum 12)
+
+The always-on bucket list is:
+	1.	What they do
+	2.	Who it’s for
+	3.	Key promises / differentiators
+	4.	Process overview
+	5.	Pricing signals (draft if missing)
+	6.	Proof & trust (draft if missing)
+	7.	Locations served (draft if missing)
+	8.	FAQs (draft if missing)
+	9.	Calls to action
+	10.	Brand voice positioning (must cite wording)
+	11.	Competitor alternatives (always draft)
+	12.	Quick wins (always draft)
+
+E3) Grounding / anti-hallucination
+
+A tile is confirmed only if:
+	•	sources.length >= 1
+	•	at least one source.excerpt contains a concrete noun phrase pulled from the site
+	•	summary does not introduce new facts not present in the excerpt
+
+A tile is draft if:
+	•	It’s inferred (competitors, recommendations)
+	•	Or missing on site (pricing/testimonials not found)
+	•	Or can’t cite a meaningful excerpt
+
+Draft tiles must include:
+	•	missingSignals: string[]
+
+Example missingSignals:
+	•	“No pricing or fees page detected yet.”
+	•	“No testimonials or case studies found in scanned pages.”
+	•	“Only 2 pages scanned successfully, insights may be incomplete.”
+
+⸻
+
+F) Storage format
+
+/data/orbits/<orbitId>.json should store:
+	•	orbitId
+	•	inputUrl
+	•	scannedAt
+	•	pages: OrbitCrawlPage[]
+	•	tiles: OrbitTile[]
+	•	crawlReport: OrbitCrawlReport
+
+If no database exists, do file-based only. If DB exists already, keep it simple and still implement file storage as MVP.
+
+⸻
+
+G) Acceptance tests (must pass)
+	1.	Any URL ingestion returns >= 12 tiles
+	2.	Confirmed tiles always show at least 1 citation excerpt
+	3.	Draft tiles are clearly labelled and explain what’s missing
+	4.	UI shows rows and opens TileDrawer with sources
+	5.	Crawl never exceeds 5 pages and stays same-domain
+
+⸻
+
+H) Styling notes (keep it consistent)
+	•	Use existing design system/components if present
+	•	Horizontal scroll rows should feel “Orbit-like” and premium
+	•	Badges must be subtle, not noisy
+
+⸻
+
+Deliverables
+	•	Working endpoint(s)
+	•	Working ingestion workflow
+	•	Stored orbit JSON
+	•	Orbit URL page that renders the tile rows
+	•	Tile drawer with citations
+
+⸻
+
+If Replit implements this and it still feels thin, the next step is easy: add “Rescan”, “Thumbs up/down”, and “Cache within 24h”. But do not do those until the above is stable.

@@ -1,10 +1,13 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Card } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, ChevronUp, Share2, BookOpen, RotateCcw, Volume2, VolumeX, Film, Image, Play, Pause } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import MessageBoard from "@/components/MessageBoard";
+import type { CaptionState } from "@/caption-engine/schemas";
+import { resolveStyles } from "@/caption-engine/render/resolveStyles";
+import { ScaleToFitCaption } from "@/components/ScaleToFitCaption";
 
 function useIsTabletLandscape() {
   const [isTabletLandscape, setIsTabletLandscape] = useState(false);
@@ -62,9 +65,9 @@ interface CardPlayerProps {
   onPhaseChange?: (phase: "cinematic" | "context") => void;
   fullScreen?: boolean;
   brandPreferences?: BrandPreferences | null;
-  titlePackId?: string;
   narrationVolume?: number; // 0-100
   narrationMuted?: boolean;
+  captionState?: CaptionState; // Caption Engine state for presets/karaoke/animations
 }
 
 type Phase = "cinematic" | "context";
@@ -77,9 +80,9 @@ export default function CardPlayer({
   onPhaseChange,
   fullScreen = false,
   brandPreferences,
-  titlePackId = DEFAULT_TITLE_PACK_ID,
   narrationVolume = 100,
-  narrationMuted = false
+  narrationMuted = false,
+  captionState
 }: CardPlayerProps) {
   const [, setLocation] = useLocation();
   const [phase, setPhase] = useState<Phase>("cinematic");
@@ -94,7 +97,29 @@ export default function CardPlayer({
   const [debugOverlay, setDebugOverlay] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const captionRegionRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidthPx, setContainerWidthPx] = useState(375);
   const isTabletLandscape = useIsTabletLandscape();
+
+  useEffect(() => {
+    const el = captionRegionRef.current;
+    if (!el) return;
+
+    const updateWidth = () => {
+      // Use clientWidth and subtract padding to get actual content area
+      const style = getComputedStyle(el);
+      const paddingLeft = parseFloat(style.paddingLeft) || 0;
+      const paddingRight = parseFloat(style.paddingRight) || 0;
+      const contentWidth = el.clientWidth - paddingLeft - paddingRight;
+      setContainerWidthPx(contentWidth);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, []);
   
   const theme = brandPreferences?.theme || 'dark';
   const accentColor = brandPreferences?.accentColor || '#ffffff';

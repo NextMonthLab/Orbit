@@ -1,6 +1,7 @@
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
@@ -73,7 +74,10 @@ import TransformationDetailPage from "@/pages/admin/TransformationDetailPage";
 import CharacterCreatorPage from "@/pages/admin/CharacterCreatorPage";
 import BlogPublisherPage from "@/pages/admin/BlogPublisherPage";
 import IndustryOrbitAssets from "@/pages/admin/IndustryOrbitAssets";
+import OrbitHealthDashboard from "@/pages/admin/OrbitHealthDashboard";
 import GuestIceBuilderPage from "@/pages/GuestIceBuilderPage";
+import CaptionDemo from "@/pages/CaptionDemo";
+import CaptionComposerLab from "@/pages/caption-composer-lab";
 import IceCheckoutPage from "@/pages/IceCheckoutPage";
 import CheckoutSuccessPage from "@/pages/CheckoutSuccessPage";
 import AdminUniverseDetail from "@/pages/AdminUniverseDetail";
@@ -120,6 +124,7 @@ const ProtectedTransformationDetailPage = withAuth(TransformationDetailPage);
 const ProtectedCharacterCreatorPage = withAuth(CharacterCreatorPage);
 const ProtectedBlogPublisherPage = withAuth(BlogPublisherPage);
 const ProtectedIndustryOrbitAssets = withAuth(IndustryOrbitAssets);
+const ProtectedOrbitHealthDashboard = withAuth(OrbitHealthDashboard);
 const ProtectedAdminUniverseDetail = withAuth(AdminUniverseDetail);
 const ProtectedVisualBible = withAuth(VisualBible);
 const ProtectedExportPage = withAuth(ExportPage);
@@ -164,6 +169,8 @@ function Router() {
       <Route path="/icemaker/projects" component={Library} />
       <Route path="/icemaker/templates" component={IceMakerTemplates} />
       <Route path="/icemaker/settings" component={IceMakerSettings} />
+      <Route path="/icemaker/captions" component={CaptionDemo} />
+      <Route path="/icemaker/composer-lab" component={CaptionComposerLab} />
       
       <Route path="/orbit" component={OrbitHome} />
       <Route path="/orbit/my" component={MyOrbits} />
@@ -216,6 +223,7 @@ function Router() {
       <Route path="/admin/characters/new" component={ProtectedCharacterCreatorPage} />
       <Route path="/admin/blog" component={ProtectedBlogPublisherPage} />
       <Route path="/admin/industry-assets" component={ProtectedIndustryOrbitAssets} />
+      <Route path="/admin/orbits/health" component={ProtectedOrbitHealthDashboard} />
       <Route path="/admin/universes/:id" component={ProtectedAdminUniverseDetail} />
       <Route path="/admin/universes/:id/visual-bible" component={ProtectedVisualBible} />
       <Route path="/admin/universes/:id/export" component={ProtectedExportPage} />
@@ -227,15 +235,17 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppContextProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-            {import.meta.env.DEV && <DebugPanel />}
-          </TooltipProvider>
-        </AppContextProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContextProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+              {import.meta.env.DEV && <DebugPanel />}
+            </TooltipProvider>
+          </AppContextProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

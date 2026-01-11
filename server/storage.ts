@@ -344,6 +344,26 @@ export interface IStorage {
   expireOldKnowledgePrompts(): Promise<number>;
   getEligibleOrbitsForKnowledgeCoach(): Promise<schema.OrbitMeta[]>;
 
+  // Ingestion v2: Domain Risk & Throttling
+  getDomainRisk(hostname: string): Promise<schema.DomainRisk | undefined>;
+  upsertDomainRisk(data: schema.InsertDomainRisk): Promise<schema.DomainRisk>;
+  updateDomainRisk(hostname: string, data: Partial<schema.InsertDomainRisk>): Promise<schema.DomainRisk | undefined>;
+  recordDomainFriction(hostname: string, httpCode: number): Promise<schema.DomainRisk>;
+  recordDomainSuccess(hostname: string): Promise<schema.DomainRisk>;
+
+  // Ingestion v2: URL Fetch Cache
+  getUrlFetchCache(url: string): Promise<schema.UrlFetchCache | undefined>;
+  getValidUrlFetchCache(url: string): Promise<schema.UrlFetchCache | undefined>;
+  upsertUrlFetchCache(data: schema.InsertUrlFetchCache): Promise<schema.UrlFetchCache>;
+  cleanupExpiredUrlCache(): Promise<number>;
+
+  // Ingestion v2: Ingestion Run Logs
+  createIngestionRun(data: schema.InsertIngestionRun): Promise<schema.IngestionRun>;
+  getIngestionRun(id: number): Promise<schema.IngestionRun | undefined>;
+  getIngestionRunByTrace(traceId: string): Promise<schema.IngestionRun | undefined>;
+  getIngestionRuns(businessSlug: string, limit?: number): Promise<schema.IngestionRun[]>;
+  completeIngestionRun(id: number, data: Partial<schema.InsertIngestionRun>): Promise<schema.IngestionRun | undefined>;
+
   // Phase 4: Notifications
   createNotification(data: schema.InsertNotification): Promise<schema.Notification>;
   getNotifications(userId: number, limit?: number): Promise<schema.Notification[]>;
@@ -614,11 +634,11 @@ export class DatabaseStorage implements IStorage {
     // Count visits and conversations (30 days)
     const analytics = await db
       .select({
-        totalVisits: sql<number>`COALESCE(SUM(total_visits), 0)`,
-        totalConversations: sql<number>`COALESCE(SUM(total_conversations), 0)`,
+        totalVisits: sql<number>`COALESCE(SUM(visits), 0)`,
+        totalConversations: sql<number>`COALESCE(SUM(conversations), 0)`,
       })
       .from(schema.orbitAnalytics)
-      .where(gte(schema.orbitAnalytics.lastUpdated, thirtyDaysAgo));
+      .where(gte(schema.orbitAnalytics.date, thirtyDaysAgo));
     
     return {
       totalUsers,
@@ -2694,6 +2714,171 @@ export class DatabaseStorage implements IStorage {
     return db.query.orbitMeta.findMany({
       where: inArray(schema.orbitMeta.planTier, ['grow', 'intelligence']),
     });
+  }
+
+  // Ingestion v2: Domain Risk & Throttling
+  async getDomainRisk(hostname: string): Promise<schema.DomainRisk | undefined> {
+    return db.query.domainRisk.findFirst({
+      where: eq(schema.domainRisk.hostname, hostname),
+    });
+  }
+
+  async upsertDomainRisk(data: schema.InsertDomainRisk): Promise<schema.DomainRisk> {
+    const existing = await this.getDomainRisk(data.hostname);
+    if (existing) {
+      const [updated] = await db.update(schema.domainRisk)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(schema.domainRisk.hostname, data.hostname))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(schema.domainRisk).values(data).returning();
+    return created;
+  }
+
+  async updateDomainRisk(hostname: string, data: Partial<schema.InsertDomainRisk>): Promise<schema.DomainRisk | undefined> {
+    const [updated] = await db.update(schema.domainRisk)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.domainRisk.hostname, hostname))
+      .returning();
+    return updated;
+  }
+
+  async recordDomainFriction(hostname: string, httpCode: number): Promise<schema.DomainRisk> {
+    const existing = await this.getDomainRisk(hostname);
+    if (existing) {
+      const frictionCodes = existing.lastFrictionCodes || [];
+      frictionCodes.push(httpCode);
+      if (frictionCodes.length > 10) frictionCodes.shift();
+      
+      const [updated] = await db.update(schema.domainRisk)
+        .set({
+          frictionCount: existing.frictionCount + 1,
+          lastFrictionCodes: frictionCodes,
+          lastAttemptAt: new Date(),
+          recommendedDelayMs: Math.min(60000, existing.recommendedDelayMs * 2),
+          lastOutcome: 'blocked',
+          failureCount: existing.failureCount + 1,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.domainRisk.hostname, hostname))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(schema.domainRisk).values({
+      hostname,
+      frictionCount: 1,
+      lastFrictionCodes: [httpCode],
+      lastAttemptAt: new Date(),
+      recommendedDelayMs: 4000,
+      lastOutcome: 'blocked',
+      failureCount: 1,
+    }).returning();
+    return created;
+  }
+
+  async recordDomainSuccess(hostname: string): Promise<schema.DomainRisk> {
+    const existing = await this.getDomainRisk(hostname);
+    if (existing) {
+      const [updated] = await db.update(schema.domainRisk)
+        .set({
+          lastAttemptAt: new Date(),
+          lastSuccessAt: new Date(),
+          recommendedDelayMs: Math.max(1000, Math.floor(existing.recommendedDelayMs / 1.5)),
+          lastOutcome: 'success',
+          successCount: existing.successCount + 1,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.domainRisk.hostname, hostname))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(schema.domainRisk).values({
+      hostname,
+      lastAttemptAt: new Date(),
+      lastSuccessAt: new Date(),
+      recommendedDelayMs: 2000,
+      lastOutcome: 'success',
+      successCount: 1,
+    }).returning();
+    return created;
+  }
+
+  // Ingestion v2: URL Fetch Cache
+  async getUrlFetchCache(url: string): Promise<schema.UrlFetchCache | undefined> {
+    return db.query.urlFetchCache.findFirst({
+      where: eq(schema.urlFetchCache.url, url),
+    });
+  }
+
+  async getValidUrlFetchCache(url: string): Promise<schema.UrlFetchCache | undefined> {
+    return db.query.urlFetchCache.findFirst({
+      where: and(
+        eq(schema.urlFetchCache.url, url),
+        gte(schema.urlFetchCache.expiresAt, new Date())
+      ),
+    });
+  }
+
+  async upsertUrlFetchCache(data: schema.InsertUrlFetchCache): Promise<schema.UrlFetchCache> {
+    const existing = await this.getUrlFetchCache(data.url);
+    if (existing) {
+      const [updated] = await db.update(schema.urlFetchCache)
+        .set({
+          ...data,
+          fetchCount: existing.fetchCount + 1,
+          fetchedAt: new Date(),
+        })
+        .where(eq(schema.urlFetchCache.url, data.url))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(schema.urlFetchCache).values(data).returning();
+    return created;
+  }
+
+  async cleanupExpiredUrlCache(): Promise<number> {
+    const result = await db.delete(schema.urlFetchCache)
+      .where(lt(schema.urlFetchCache.expiresAt, new Date()))
+      .returning();
+    return result.length;
+  }
+
+  // Ingestion v2: Ingestion Run Logs
+  async createIngestionRun(data: schema.InsertIngestionRun): Promise<schema.IngestionRun> {
+    const [run] = await db.insert(schema.ingestionRuns).values(data).returning();
+    return run;
+  }
+
+  async getIngestionRun(id: number): Promise<schema.IngestionRun | undefined> {
+    return db.query.ingestionRuns.findFirst({
+      where: eq(schema.ingestionRuns.id, id),
+    });
+  }
+
+  async getIngestionRunByTrace(traceId: string): Promise<schema.IngestionRun | undefined> {
+    return db.query.ingestionRuns.findFirst({
+      where: eq(schema.ingestionRuns.traceId, traceId),
+    });
+  }
+
+  async getIngestionRuns(businessSlug: string, limit: number = 20): Promise<schema.IngestionRun[]> {
+    return db.query.ingestionRuns.findMany({
+      where: eq(schema.ingestionRuns.businessSlug, businessSlug),
+      orderBy: [desc(schema.ingestionRuns.startedAt)],
+      limit,
+    });
+  }
+
+  async completeIngestionRun(id: number, data: Partial<schema.InsertIngestionRun>): Promise<schema.IngestionRun | undefined> {
+    const [updated] = await db.update(schema.ingestionRuns)
+      .set({
+        ...data,
+        completedAt: new Date(),
+      })
+      .where(eq(schema.ingestionRuns.id, id))
+      .returning();
+    return updated;
   }
 
   // Phase 4: Notifications

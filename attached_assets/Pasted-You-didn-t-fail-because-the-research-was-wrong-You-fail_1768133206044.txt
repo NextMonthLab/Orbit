@@ -1,0 +1,94 @@
+You didn’t fail because the research was wrong. You failed because the research described what CapCut is doing, but the implementation path you followed was still “CSS heuristics inside a renderer”.
+
+It’s like reading a deep dive on how Netflix compresses video, then trying to replicate it by tweaking brightness and contrast. Same domain, wrong lever.
+
+Here’s what happened, plainly.
+
+Why the deep research looked right but didn’t translate
+
+1) The research assumed a measured layout loop
+
+CapCut-style captions depend on:
+	•	measure rendered text
+	•	adjust
+	•	measure again
+That is an engine behaviour. You tried to approximate it with heuristics (char count, word count). That always breaks.
+
+2) You kept the “browser decides line breaks” model
+
+The browser will happily produce:
+	•	As
+	•	generative
+	•	AI tools…
+
+CapCut doesn’t. CapCut chooses the breakpoints and then fits the box. That’s composition logic, not styling.
+
+3) Too much change was spread across too many moving parts
+
+Tokens, presets, title packs, CardPlayer refactors, resolver… loads of surface area. Every tweak created new interactions. You needed to lock one style + one engine first.
+
+So the research wasn’t wasted. It diagnosed the right destination. But you didn’t build the one missing piece: the layout engine.
+
+⸻
+
+The “no more circles” implementation plan (very specific)
+
+Step 1: Create a single component responsible for caption layout
+
+CaptionLayoutEngine.tsx (or hook + helper)
+
+It does only:
+	1.	choose line breaks (composer)
+	2.	fit-to-box (measurer loop)
+	3.	output final styles + rendered lines
+
+CardPlayer becomes a dumb renderer again.
+
+Step 2: Implement a real measurer loop (this is the key)
+	•	Hidden div (offscreen)
+	•	Same width/padding/font/shadow as the real panel
+	•	Apply line clamp
+	•	Set the text
+	•	Check overflow via scrollHeight > clientHeight (and width)
+	•	Shrink font until it fits or hits min
+
+This gives you the guarantee you asked for: words always inside the box.
+
+Step 3: Implement line-break composer (small but huge impact)
+
+For a headline:
+	•	Try 1 line, 2 lines, 3 lines (in that order)
+	•	For each option:
+	•	generate candidate breaks
+	•	score them (avoid single-word lines, balance lengths)
+	•	Pick the best scoring layout
+	•	Then pass that chosen layout into the fitter
+
+This stops the “As / generative / AI tools…” ugliness permanently.
+
+Step 4: Golden test pack (non-negotiable)
+
+Create caption-engine/fixtures/goldenCaptions.ts with ~30 headlines:
+	•	very short (“AI search”)
+	•	short (“AI search is…”)
+	•	medium (“As generative AI tools evolve…”)
+	•	long
+	•	one nasty long token (URL/hashtag)
+
+Add a dev page that renders all of them for the golden preset and visually check quickly.
+
+If it passes these, you’re at “CapCut stable”.
+
+⸻
+
+What you should ask Replit for (so they don’t drift again)
+
+Tell them to stop “tuning CSS” and build two functions:
+	1.	composeLines(text, maxLines) -> string[]
+	2.	fitText(lines, preset, box) -> { fontSize, lineClamp, panelStyle }
+
+And a rule: No caption ships unless it passes the golden fixture pack.
+
+⸻
+
+If you want, paste your current resolveStyles.ts signature (inputs/outputs) and I’ll rewrite it into the “engine boundary” so Replit can implement it without ambiguity.

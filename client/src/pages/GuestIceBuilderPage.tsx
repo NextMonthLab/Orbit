@@ -16,7 +16,6 @@ import { VisibilityBadge } from "@/components/VisibilityBadge";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import CardPlayer from "@/components/CardPlayer";
-import { TITLE_PACKS, DEFAULT_TITLE_PACK_ID, getTitlePackById } from "@shared/titlePacks";
 import type { Card } from "@/lib/mockData";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import previewCardBackground from "@assets/generated_images/minimal_sunset_with_top_silhouettes.png";
@@ -29,6 +28,10 @@ import { ContinuityPanel } from "@/components/ContinuityPanel";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { BookOpen } from "lucide-react";
 import type { ProjectBible } from "@shared/schema";
+import { CaptionStylePicker } from "@/components/ice-maker/CaptionStylePicker";
+import { createDefaultCaptionState, type CaptionState } from "@/caption-engine/schemas";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 
 const CREATION_STAGES = [
   { id: "fetch", label: "Fetching your content", duration: 1500 },
@@ -120,6 +123,7 @@ export default function GuestIceBuilderPage() {
   const isProfessionalMode = entitlements && entitlements.tier !== "free";
   const [urlValue, setUrlValue] = useState("");
   const [textValue, setTextValue] = useState("");
+  const [contentContext, setContentContext] = useState<"story" | "article" | "business" | "auto">("auto");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [cards, setCards] = useState<PreviewCard[]>([]);
@@ -132,7 +136,8 @@ export default function GuestIceBuilderPage() {
   const [interactivityNodes, setInteractivityNodes] = useState<InteractivityNodeData[]>([]);
   const [previewAccessToken, setPreviewAccessToken] = useState<string | undefined>();
   const [showWalkthrough, setShowWalkthrough] = useState(false);
-  const [titlePackId, setTitlePackId] = useState(DEFAULT_TITLE_PACK_ID);
+  const [captionState, setCaptionState] = useState<CaptionState>(() => createDefaultCaptionState());
+  const [showCaptionSettings, setShowCaptionSettings] = useState(false);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showBulkImageConfirm, setShowBulkImageConfirm] = useState(false);
@@ -291,8 +296,14 @@ export default function GuestIceBuilderPage() {
             musicTrackUrl,
             musicVolume,
             musicEnabled,
-            titlePackId,
             narrationVolume,
+            captionSettings: {
+              presetId: captionState.presetId,
+              animationId: captionState.animationId,
+              safeAreaProfileId: captionState.safeAreaProfileId,
+              karaokeEnabled: captionState.karaokeEnabled,
+              karaokeStyle: captionState.karaokeStyle,
+            },
           }),
         });
       } catch (error) {
@@ -305,7 +316,7 @@ export default function GuestIceBuilderPage() {
         clearTimeout(settingsSaveTimeoutRef.current);
       }
     };
-  }, [preview?.id, musicTrackUrl, musicVolume, musicEnabled, titlePackId, narrationVolume]);
+  }, [preview?.id, musicTrackUrl, musicVolume, musicEnabled, narrationVolume, captionState.presetId, captionState.animationId, captionState.karaokeEnabled, captionState.karaokeStyle, captionState.safeAreaProfileId]);
   
   const hasSeenWalkthrough = () => {
     if (typeof window === "undefined") return true;
@@ -384,13 +395,20 @@ export default function GuestIceBuilderPage() {
       if (existingPreview.musicEnabled !== undefined) {
         setMusicEnabled(existingPreview.musicEnabled);
       }
-      // Load title pack
-      if (existingPreview.titlePackId) {
-        setTitlePackId(existingPreview.titlePackId);
-      }
       // Load narration volume
       if (existingPreview.narrationVolume !== undefined) {
         setNarrationVolume(existingPreview.narrationVolume);
+      }
+      // Load caption settings from server
+      if (existingPreview.captionSettings) {
+        setCaptionState(prev => ({
+          ...prev,
+          presetId: existingPreview.captionSettings.presetId || prev.presetId,
+          animationId: existingPreview.captionSettings.animationId || prev.animationId,
+          safeAreaProfileId: existingPreview.captionSettings.safeAreaProfileId || prev.safeAreaProfileId,
+          karaokeEnabled: existingPreview.captionSettings.karaokeEnabled ?? prev.karaokeEnabled,
+          karaokeStyle: existingPreview.captionSettings.karaokeStyle || prev.karaokeStyle,
+        }));
       }
       if (!hasSeenWalkthrough()) {
         setShowWalkthrough(true);
@@ -438,7 +456,7 @@ export default function GuestIceBuilderPage() {
   };
 
   const createPreviewMutation = useMutation({
-    mutationFn: async (data: { type: string; value: string }) => {
+    mutationFn: async (data: { type: string; value: string; context?: string }) => {
       setCurrentStage(0); // Start the visual stages
       const res = await apiRequest("POST", "/api/ice/preview", data);
       return res.json();
@@ -508,7 +526,6 @@ export default function GuestIceBuilderPage() {
         quality: "standard",
         includeNarration: true,
         includeMusic: musicEnabled,
-        titlePackId,
       });
       return res.json();
     },
@@ -607,7 +624,11 @@ export default function GuestIceBuilderPage() {
       value = `https://${value}`;
     }
     
-    createPreviewMutation.mutate({ type: inputType, value });
+    createPreviewMutation.mutate({ 
+      type: inputType, 
+      value,
+      context: inputType === "url" ? contentContext : undefined 
+    });
   };
 
   // Use refs to track pending save operations and serialize mutations
@@ -909,8 +930,32 @@ export default function GuestIceBuilderPage() {
                       className="bg-white/5 border-white/10"
                       data-testid="input-url"
                     />
+                    <div className="flex flex-wrap gap-2">
+                      <span className="text-sm text-white/50 self-center mr-2">Content type:</span>
+                      {[
+                        { id: "auto", label: "Auto-detect", icon: Sparkles },
+                        { id: "story", label: "Story/Script", icon: Film },
+                        { id: "article", label: "Article/Blog", icon: FileText },
+                        { id: "business", label: "Business/Product", icon: Globe },
+                      ].map((ctx) => (
+                        <button
+                          key={ctx.id}
+                          type="button"
+                          onClick={() => setContentContext(ctx.id as typeof contentContext)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
+                            contentContext === ctx.id
+                              ? "bg-pink-500/20 border border-pink-500/50 text-pink-300"
+                              : "bg-white/5 border border-white/10 text-white/60 hover:bg-white/10"
+                          }`}
+                          data-testid={`context-${ctx.id}`}
+                        >
+                          <ctx.icon className="w-3.5 h-3.5" />
+                          {ctx.label}
+                        </button>
+                      ))}
+                    </div>
                     <p className="text-sm text-white/40">
-                      Enter a website URL and we'll extract the key content to create your story. No need to type https://
+                      Enter a website URL and we'll extract key content. Choose a content type for best results.
                     </p>
                   </div>
                 </TabsContent>
@@ -1258,32 +1303,9 @@ export default function GuestIceBuilderPage() {
               </div>
             )}
 
-            {/* Style & Music Panel */}
+            {/* Music Panel */}
             <div className="bg-white/[0.03] border border-white/10 rounded-lg p-4 mb-4">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                {/* Title Pack Selector */}
-                <div className="flex-1">
-                  <label className="text-xs text-white/60 mb-1.5 block">Style</label>
-                  <div className="flex items-center gap-2 bg-black/30 rounded-lg px-3 py-2">
-                    <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
-                    <select
-                      value={titlePackId}
-                      onChange={(e) => setTitlePackId(e.target.value)}
-                      className="flex-1 bg-transparent text-sm text-white border-none outline-none cursor-pointer"
-                      data-testid="select-title-pack-editor"
-                    >
-                      {TITLE_PACKS.map((pack) => (
-                        <option key={pack.id} value={pack.id} className="bg-slate-900 text-white">
-                          {pack.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <p className="text-[10px] text-white/40 mt-1">
-                    {TITLE_PACKS.find(p => p.id === titlePackId)?.description}
-                  </p>
-                </div>
-
                 {/* Music Selector */}
                 <div className="flex-1">
                   <label className="text-xs text-white/60 mb-1.5 block">Background Music</label>
@@ -1374,6 +1396,34 @@ export default function GuestIceBuilderPage() {
                 </div>
               </div>
             </div>
+
+            {/* Advanced Caption Settings */}
+            <Collapsible open={showCaptionSettings} onOpenChange={setShowCaptionSettings} className="mb-4">
+              <CollapsibleTrigger asChild>
+                <button 
+                  className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.03] border border-white/10 rounded-lg hover:bg-white/[0.05] transition-colors"
+                  data-testid="button-toggle-caption-settings"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-pink-400" />
+                    <span className="text-sm font-medium text-white">Advanced Caption Settings</span>
+                    <span className="text-xs text-white/50 ml-2">
+                      {captionState.karaokeEnabled ? "Karaoke On" : ""} 
+                      {captionState.animationId !== "none" ? ` • ${captionState.animationId}` : ""}
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${showCaptionSettings ? "rotate-180" : ""}`} />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <div className="bg-white/[0.03] border border-white/10 rounded-lg p-4">
+                  <CaptionStylePicker
+                    captionState={captionState}
+                    onStateChange={setCaptionState}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             {/* Professional ICE Editor cards */}
             <div className="space-y-3">
@@ -1622,7 +1672,7 @@ export default function GuestIceBuilderPage() {
                   }}
                   autoplay={true}
                   fullScreen={true}
-                  titlePackId={titlePackId}
+                  captionState={captionState}
                   narrationVolume={narrationVolume}
                   narrationMuted={narrationMuted}
                   onPhaseChange={(phase) => {

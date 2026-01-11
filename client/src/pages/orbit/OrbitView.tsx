@@ -1,6 +1,6 @@
 import { useRoute, useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Globe, ExternalLink, AlertCircle, CheckCircle, Mail, MessageCircle, LayoutDashboard, Share2 } from "lucide-react";
+import { Loader2, Globe, ExternalLink, AlertCircle, CheckCircle, Mail, MessageCircle, LayoutDashboard, Share2, FileText } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -153,6 +153,9 @@ interface OrbitResponse {
   planTier?: 'free' | 'grow' | 'insight' | 'intelligence';
   customTitle?: string | null;
   customDescription?: string | null;
+  customLogo?: string | null;
+  customAccent?: string | null;
+  customTone?: string | null;
   lastUpdated?: string;
   previewId?: string | null;
   orbitType?: 'standard' | 'industry';
@@ -660,16 +663,67 @@ export default function OrbitView() {
     }
   }, [slug, orbitData?.status]);
 
+  // Reset brand preferences when slug changes (navigating between orbits)
+  useEffect(() => {
+    setBrandPreferences(null);
+  }, [slug]);
+
+  // Hydrate brand preferences from saved orbit data
+  useEffect(() => {
+    if (orbitData && orbitData.businessSlug === slug && !brandPreferences) {
+      const savedPrefs: BrandPreferences = {
+        accentColor: orbitData.customAccent || '#3b82f6',
+        selectedLogo: orbitData.customLogo || null,
+        theme: 'dark',
+        selectedImages: [],
+      };
+      
+      // Parse customTone for theme and selectedImages
+      if (orbitData.customTone) {
+        try {
+          const toneData = JSON.parse(orbitData.customTone);
+          if (toneData.theme) savedPrefs.theme = toneData.theme;
+          if (toneData.selectedImages) savedPrefs.selectedImages = toneData.selectedImages;
+        } catch {
+          // customTone is not JSON, ignore
+        }
+      }
+      
+      // Only set if we have meaningful saved preferences
+      if (orbitData.customAccent || orbitData.customLogo || orbitData.customTone) {
+        setBrandPreferences(savedPrefs);
+      }
+    }
+  }, [orbitData, slug, brandPreferences]);
+
   const handleClaimRequest = () => {
     if (!claimEmail) return;
     setClaimStatus('sending');
     requestClaimMutation.mutate(claimEmail);
   };
 
-  const handleCustomizationConfirm = (prefs: BrandPreferences, expType?: 'radar' | 'spatial' | 'classic') => {
+  const handleCustomizationConfirm = async (prefs: BrandPreferences, expType?: 'radar' | 'spatial' | 'classic') => {
     setBrandPreferences(prefs);
     if (expType) setExperienceType(expType);
     setShowCustomization(false);
+    
+    // Persist brand preferences to database if user is owner
+    if (slug && orbitData?.isOwner) {
+      try {
+        await fetch(`/api/orbit/${slug}/brand`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            customLogo: prefs.selectedLogo,
+            customAccent: prefs.accentColor,
+            customTone: JSON.stringify({ theme: prefs.theme, selectedImages: prefs.selectedImages }),
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to save brand preferences:', err);
+      }
+    }
   };
 
   const generateSiteKnowledge = (preview: PreviewInstance): SiteKnowledge => {
@@ -1017,8 +1071,8 @@ export default function OrbitView() {
       return {
         id: `cat_${i}`,
         title: cat,
-        url: '#',
-        summary: `Browse our ${cat} selection (${boxes.filter(b => b.category === cat).length} items)`,
+        url: boxes.find(b => b.category === cat)?.sourceUrl || undefined,
+        summary: `${boxes.filter(b => b.category === cat).length} ${cat.toLowerCase()} available`,
         keywords: [cat.toLowerCase(), 'category', 'menu'],
         type: 'page' as const,
         imageUrl: catImage,
@@ -1573,7 +1627,162 @@ export default function OrbitView() {
     );
   }
   
+  const generationStatus = viewerContext?.generationStatus;
+  const isBlocked = generationStatus === 'blocked';
+  
+  // State for Priority Setup form
+  const [showPrioritySetup, setShowPrioritySetup] = useState(false);
+  const [priorityForm, setPriorityForm] = useState({ name: '', email: '', phone: '', notes: '' });
+  const [priorityStatus, setPriorityStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  
+  const submitPrioritySetup = useMutation({
+    mutationFn: async (data: { name: string; email: string; phone: string; notes: string }) => {
+      const response = await fetch(`/api/orbit/${slug}/priority-setup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Failed to submit');
+      return response.json();
+    },
+    onSuccess: () => setPriorityStatus('sent'),
+    onError: () => setPriorityStatus('error'),
+  });
+  
   if (!preview?.siteIdentity) {
+    // If the site was blocked (bot protection), show helpful options
+    if (isBlocked) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center px-4">
+          <div className="text-center space-y-6 max-w-md">
+            <div className="w-16 h-16 mx-auto rounded-full bg-amber-500/10 flex items-center justify-center">
+              <Globe className="h-8 w-8 text-amber-400" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-xl font-semibold text-zinc-100">Website Uses Bot Protection</h1>
+              <p className="text-zinc-400">
+                This website blocks automated access. Choose how you'd like to proceed:
+              </p>
+            </div>
+            
+            {!showPrioritySetup ? (
+              <div className="space-y-4 pt-4">
+                <Button 
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  onClick={() => window.location.href = `/orbit/${slug}/import`}
+                  data-testid="button-manual-import"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Add Content Myself
+                </Button>
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-zinc-700"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-black px-2 text-zinc-500">or</span>
+                  </div>
+                </div>
+                
+                <Button 
+                  variant="outline"
+                  className="w-full border-pink-500/50 text-pink-400 hover:bg-pink-500/10 hover:text-pink-300"
+                  onClick={() => setShowPrioritySetup(true)}
+                  data-testid="button-priority-setup"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  Priority Setup Service
+                </Button>
+                <p className="text-xs text-zinc-500">
+                  We'll set up your Orbit for you within 24 hours
+                </p>
+              </div>
+            ) : priorityStatus === 'sent' ? (
+              <div className="space-y-4 pt-4 text-center">
+                <div className="w-12 h-12 mx-auto rounded-full bg-green-500/10 flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-green-400" />
+                </div>
+                <h2 className="text-lg font-medium text-zinc-100">Request Received!</h2>
+                <p className="text-zinc-400 text-sm">
+                  We'll be in touch within 24 hours to set up your Orbit.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4 pt-4">
+                <h2 className="text-lg font-medium text-zinc-100 text-left">Priority Setup Request</h2>
+                <p className="text-sm text-zinc-400 text-left">
+                  Share your details and we'll build your Orbit for you.
+                </p>
+                <div className="space-y-3">
+                  <Input
+                    placeholder="Your name"
+                    value={priorityForm.name}
+                    onChange={(e) => setPriorityForm(f => ({ ...f, name: e.target.value }))}
+                    className="bg-zinc-900 border-zinc-700"
+                    data-testid="input-priority-name"
+                  />
+                  <Input
+                    placeholder="Email address"
+                    type="email"
+                    value={priorityForm.email}
+                    onChange={(e) => setPriorityForm(f => ({ ...f, email: e.target.value }))}
+                    className="bg-zinc-900 border-zinc-700"
+                    data-testid="input-priority-email"
+                  />
+                  <Input
+                    placeholder="Phone (optional)"
+                    type="tel"
+                    value={priorityForm.phone}
+                    onChange={(e) => setPriorityForm(f => ({ ...f, phone: e.target.value }))}
+                    className="bg-zinc-900 border-zinc-700"
+                    data-testid="input-priority-phone"
+                  />
+                  <textarea
+                    placeholder="Tell us about your business..."
+                    value={priorityForm.notes}
+                    onChange={(e) => setPriorityForm(f => ({ ...f, notes: e.target.value }))}
+                    className="w-full h-24 px-3 py-2 rounded-md bg-zinc-900 border border-zinc-700 text-zinc-100 placeholder:text-zinc-500 text-sm resize-none"
+                    data-testid="input-priority-notes"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    className="flex-1 text-zinc-400"
+                    onClick={() => setShowPrioritySetup(false)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    className="flex-1 bg-pink-600 hover:bg-pink-700"
+                    onClick={() => {
+                      setPriorityStatus('sending');
+                      submitPrioritySetup.mutate(priorityForm);
+                    }}
+                    disabled={!priorityForm.name || !priorityForm.email || priorityStatus === 'sending'}
+                    data-testid="button-submit-priority"
+                  >
+                    {priorityStatus === 'sending' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      'Request Setup'
+                    )}
+                  </Button>
+                </div>
+                {priorityStatus === 'error' && (
+                  <p className="text-sm text-red-400">Something went wrong. Please try again.</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center space-y-4">

@@ -1,0 +1,109 @@
+Rob, you’re not mad – this is one of those “looks simple, is annoyingly deep” problems.
+
+Why it’s taking ages (in plain English)
+
+Your fit engine is doing the hard maths (measure text, pick line breaks, shrink font until it fits). That part is fine.
+
+What’s currently breaking the CapCut feel is the CSS layout layer, specifically:
+	1.	transform: scale() doesn’t affect layout
+Flexbox (or normal layout) centres the element based on its unscaled size, then the transform scales it visually afterwards.
+Result: it can look off-centre, drift, and even clip at the edges.
+	2.	You’re seeing left-edge clipping (like “As…” missing the “A”)
+That’s nearly always a sign the scaled content is being centred wrongly or the “max width” / padding isn’t being respected by the thing that’s being scaled.
+
+So the rules aren’t being broken by the engine – they’re being broken by the rendering container contract.
+
+⸻
+
+The fix: stop trying to centre a transformed thing with flex
+
+CapCut-style title cards typically do this:
+	•	Put the panel as a relative container
+	•	Put the caption as an absolute child
+	•	Anchor it dead-centre with left: 50%, top: 50%
+	•	Use transform: translate(-50%, -50%) scale(x) so it always scales towards the centre, never the corner
+
+This avoids the “transform doesn’t affect layout” problem entirely.
+
+⸻
+
+What I want Replit to implement next (the actual contract)
+
+Non-negotiables
+	•	Title mode: max 3 lines and never more than 3 visible lines
+	•	Paragraph mode: max 5 lines
+	•	Never clip (no letters chopped)
+	•	Always centred (true centre, not “kinda”)
+	•	Scaling should be a last resort – fitTextToBox font-size should do 95% of the work
+
+Render structure (this is the key)
+
+Panel (relative)
+→ CenterAnchor (absolute 50/50)
+→ ScaleWrapper (transform translate(-50%,-50%) scale(s))
+→ TextBlock (maxWidth 92%, textAlign center)
+→ Line spans (nowrap)
+
+⸻
+
+Copy/paste Replit prompt (tell it exactly what to do)
+
+Use this as your next instruction to Replit in NextMonth 2.0:
+
+Prompt to Replit:
+
+We have a working fit-to-box engine (Milestone 6) and TitleComposer (Milestone 7). The engine is fine. The rendering is not CapCut-quality because transform: scale() is being centred using flex/layout rules, causing off-centre placement and occasional left-edge clipping.
+
+Implement a new renderer layout contract for ScaleToFitCaption so the transformed text always scales around the centre and never clips:
+
+Required DOM/CSS contract (must match exactly)
+	•	Panel: position: relative; overflow: hidden; display: block;
+	•	Add padding inside panel (eg 18px-24px depending on preset) so text can never touch edges.
+	•	Create an absolutely positioned anchor:
+	•	position: absolute; left: 50%; top: 50%;
+	•	Create a scale wrapper:
+	•	transform-origin: center center;
+	•	transform: translate(-50%, -50%) scale(SCALE);
+	•	display: inline-block;
+	•	Text block inside scale wrapper:
+	•	max-width: 92%;
+	•	text-align: center;
+	•	Each composed line renders as its own block/span with:
+	•	white-space: nowrap;
+	•	No CSS wrapping inside a line.
+
+Scaling rule
+	•	Prefer the fitted font size from fitTextToBox() (headlineFontSizePx).
+	•	Only apply SCALE < 1.0 as a safety net if the measured composed lines still exceed available width/height.
+	•	SCALE must be applied to the whole block via the scale wrapper (not the panel, not the line spans).
+
+Critical validation
+	•	Add ?captionDebug=1 overlays that show:
+	•	panel inner box (after padding)
+	•	the anchor point
+	•	the measured text bounding box pre-scale and post-scale
+	•	Confirm: no clipped letters at left/right on iPhone viewport.
+
+Deliverable:
+	•	Update client/src/components/ScaleToFitCaption.tsx to use this absolute-centre + translate + scale structure.
+	•	Do not modify Milestone 6 fit engine logic.
+	•	After change, test the two problematic captions shown in screenshots and confirm:
+	•	Perfect centring
+	•	No clipping
+	•	Title mode never exceeds 3 lines
+
+⸻
+
+What I think about your latest screenshots
+	•	The “long sentence in one line” look tells me you’ve effectively fallen back into paragraph behaviour inside a title bar, without the editorial rhythm (CapCut would split this into punchy lines, not a small paragraph).
+	•	The left edge clipping is the smoking gun: your centring/scaling wrapper is still wrong.
+
+So yes: this is still failing the practical “CapCut title card” standard even if the engine is technically “working”.
+
+⸻
+
+The honest takeaway
+
+You don’t need a new project now. You need one final render-layer correction: absolute-centre + translate + scale wrapper. That’s the missing piece that stops this whole thing being “maths correct, visually wrong”.
+
+If you want, paste me the current ScaleToFitCaption.tsx (just that file) and I’ll tell you exactly where the layout is going sideways and what to change line-by-line.
