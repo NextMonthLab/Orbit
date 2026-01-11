@@ -552,9 +552,9 @@ export default function CardPlayer({
             )}
             
 
-            {/* Caption region - uses geometry contract for consistent positioning */}
+            {/* Caption region - 5% padding each side ensures bubble never touches edges */}
             <div
-              className="absolute left-0 right-0 bottom-0 flex items-end justify-center pointer-events-none"
+              className="absolute left-0 right-0 bottom-0 flex items-end justify-center pointer-events-none px-[5%]"
               style={{
                 paddingBottom: `${captionGeometry.safeAreaBottom * captionGeometry.viewportScale}px`,
               }}
@@ -568,7 +568,7 @@ export default function CardPlayer({
                   transition={{ duration: 0.6, ease: "easeOut" }}
                   className="w-full"
                   style={{
-                    maxWidth: `${captionGeometry.viewportCaptionWidth}px`,
+                    maxWidth: "90%",
                   }}
                 >
                   {captionIndex < card.captions.length ? (

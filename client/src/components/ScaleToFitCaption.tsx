@@ -28,9 +28,7 @@ export function ScaleToFitCaption({
   showDebug = false,
   fitGeometry,
 }: ScaleToFitCaptionProps) {
-  // Use EXACT values from fit engine - no extra padding!
   const paddingPx = fitGeometry?.paddingPx ?? 16;
-  const panelWidthPx = fitGeometry?.panelWidthPx ?? (containerWidthPx * 0.92);
 
   const lineStyle: CSSProperties = {
     ...textStyle,
@@ -48,11 +46,11 @@ export function ScaleToFitCaption({
       display: "flex", 
       justifyContent: "center" 
     }}>
-      {/* Bubble: outer width = panelWidthPx, clamped to 100% to prevent overflow */}
+      {/* Bubble: 100% of parent width (parent is already capped at 90%) */}
       <div
         style={{
           ...panelStyle,
-          width: panelWidthPx,
+          width: "100%",
           maxWidth: "100%",
           paddingLeft: paddingPx,
           paddingRight: paddingPx,
@@ -104,7 +102,7 @@ export function ScaleToFitCaption({
             whiteSpace: "nowrap",
           }}
         >
-          {didFit ? "✓" : "✗"} {fittedFontSizePx}px | {lines.length}L | outer:{panelWidthPx}px pad:{paddingPx}
+          {didFit ? "✓" : "✗"} {fittedFontSizePx}px | {lines.length}L | pad:{paddingPx}
         </div>
       )}
     </div>
