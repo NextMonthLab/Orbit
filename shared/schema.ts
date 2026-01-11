@@ -1051,6 +1051,7 @@ export const icePreviews = pgTable("ice_previews", {
   contentType: text("content_type").$type<IceContentType>().default("unknown"), // script, article, document
   fidelityMode: text("fidelity_mode").$type<IceFidelityMode>().default("interpretive"), // script_exact or interpretive
   sceneMap: jsonb("scene_map").$type<IceSceneMap>(), // Full scene structure for scripts
+  contentContext: text("content_context").$type<IceContentContext>().default("auto"), // User-selected context for URL ingestion
   
   // Preview data
   title: text("title").notNull(),

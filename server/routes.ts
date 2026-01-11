@@ -5827,7 +5827,7 @@ Output only the narration paragraph, nothing else.`;
   // Anonymous endpoint for extracting content and generating card preview
   app.post("/api/ice/preview", async (req, res) => {
     try {
-      const { type, value } = req.body;
+      const { type, value, context } = req.body;
       
       if (!type || !value || typeof value !== "string") {
         return res.status(400).json({ message: "Type and value are required" });
@@ -5836,6 +5836,10 @@ Output only the narration paragraph, nothing else.`;
       if (!["url", "text"].includes(type)) {
         return res.status(400).json({ message: "Type must be 'url' or 'text'" });
       }
+      
+      const contentContext = context && ["story", "article", "business", "auto"].includes(context) 
+        ? context 
+        : "auto";
       
       // Rate limiting by IP
       const userIp = req.ip || req.socket.remoteAddress || "unknown";
@@ -5878,14 +5882,56 @@ Output only the narration paragraph, nothing else.`;
         return res.status(400).json({ message: "Not enough content to create an experience" });
       }
       
-      // Generate cards using AI
+      // Generate cards using AI with context-specific prompts
       const openai = getOpenAI();
+      
+      const contextPrompts: Record<string, { system: string; focus: string }> = {
+        story: {
+          system: `You are an expert at breaking NARRATIVE content into cinematic story cards. Extract 4-8 key dramatic moments and format them as story cards.`,
+          focus: `Guidelines:
+- Focus on the narrative arc and dramatic tension
+- Capture character moments and emotional beats
+- Use vivid, cinematic language
+- Build toward a climactic moment
+- Each card represents a scene or pivotal moment`
+        },
+        article: {
+          system: `You are an expert at breaking INFORMATIONAL content into engaging story cards. Extract 4-8 key insights or takeaways and format them as story cards.`,
+          focus: `Guidelines:
+- Focus on key insights and discoveries
+- Present facts in an engaging, digestible way
+- Each card should teach or reveal something new
+- Build understanding progressively
+- Use clear, accessible language`
+        },
+        business: {
+          system: `You are an expert at breaking BUSINESS content into compelling story cards. Extract 4-8 key features, benefits, or value propositions and format them as story cards.`,
+          focus: `Guidelines:
+- Focus on features, benefits, and value
+- Highlight what makes this business/product special
+- Use persuasive but authentic language
+- Address customer needs and pain points
+- Each card should reinforce the brand message`
+        },
+        auto: {
+          system: `You are an expert at breaking content into cinematic story cards. Given text content, extract 4-8 key moments/sections and format them as story cards.`,
+          focus: `Guidelines:
+- Keep cards concise and impactful
+- Each card should stand alone as a moment
+- Use vivid, engaging language
+- Focus on the narrative arc
+- Maximum 8 cards for a short preview`
+        }
+      };
+      
+      const selectedPrompt = contextPrompts[contentContext] || contextPrompts.auto;
+      
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: `You are an expert at breaking content into cinematic story cards. Given text content, extract 4-8 key moments/sections and format them as story cards.
+            content: `${selectedPrompt.system}
 
 Each card should have:
 - A short, evocative title (3-6 words)
@@ -5893,12 +5939,7 @@ Each card should have:
 
 Output as JSON array: [{"title": "...", "content": "..."}, ...]
 
-Guidelines:
-- Keep cards concise and impactful
-- Each card should stand alone as a moment
-- Use vivid, engaging language
-- Focus on the narrative arc
-- Maximum 8 cards for a short preview`
+${selectedPrompt.focus}`
           },
           {
             role: "user",
@@ -6038,6 +6079,7 @@ Stay engaging, reference story details, and help the audience understand the nar
         ownerUserId: req.user?.id || null,
         sourceType: type as any,
         sourceValue: type === "url" ? value : value.slice(0, 500),
+        contentContext: contentContext as any,
         title: sourceTitle,
         cards: previewCards,
         characters: storyCharacters,
