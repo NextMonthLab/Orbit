@@ -47,6 +47,15 @@ interface BrandPreferences {
   selectedImages: string[];
 }
 
+import {
+  getTitlePackById,
+  splitTextIntoHeadlineAndSupporting,
+  getLayerStylesWithText,
+  DEFAULT_TITLE_PACK_ID,
+  type TitlePack
+} from "@shared/titlePacks";
+import { calculateCaptionGeometry } from "@/caption-engine/geometry";
+import { CaptionDebugOverlay } from "./CaptionDebugOverlay";
 
 interface CardPlayerProps {
   card: Card;
@@ -85,6 +94,7 @@ export default function CardPlayer({
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [debugOverlay, setDebugOverlay] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const captionRegionRef = useRef<HTMLDivElement | null>(null);
@@ -117,6 +127,19 @@ export default function CardPlayer({
   const textColor = theme === 'dark' ? 'white' : '#1a1a1a';
   const mutedTextColor = theme === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)';
   
+  const titlePack = getTitlePackById(titlePackId) || getTitlePackById(DEFAULT_TITLE_PACK_ID)!;
+
+  // Calculate unified caption geometry contract
+  const captionGeometry = calculateCaptionGeometry({
+    compositionWidth: titlePack.canvas.width,
+    compositionHeight: titlePack.canvas.height,
+    safeZoneLeftPercent: titlePack.safeZone.left,
+    safeZoneRightPercent: titlePack.safeZone.right,
+    safeZoneTopPercent: titlePack.safeZone.top,
+    safeZoneBottomPercent: titlePack.safeZone.bottom,
+    viewportScale: fullScreen ? 0.5 : 0.4,
+  });
+
   const getActiveMedia = () => {
     if (card.mediaAssets?.length && card.selectedMediaAssetId) {
       const selected = card.mediaAssets.find(a => a.id === card.selectedMediaAssetId);
@@ -277,6 +300,17 @@ export default function CardPlayer({
         audioRef.current = null;
       }
     };
+  }, []);
+
+  // Debug overlay toggle (press 'D' key)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'd' || e.key === 'D') {
+        setDebugOverlay(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
 
   // Smart duration calculation: max(narration, text read time, minimum)
@@ -518,9 +552,14 @@ export default function CardPlayer({
             )}
             
 
-            <div 
-              ref={captionRegionRef}
-              className={`absolute inset-x-0 bottom-0 top-16 flex flex-col justify-end ${fullScreen ? 'p-8 pb-32' : 'p-4 pb-24'}`}
+            {/* Caption region - uses geometry contract for consistent positioning */}
+            <div
+              className="absolute left-0 right-0 bottom-0 flex items-end justify-center pointer-events-none"
+              style={{
+                paddingLeft: `${captionGeometry.viewportPadding}px`,
+                paddingRight: `${captionGeometry.viewportPadding}px`,
+                paddingBottom: `${captionGeometry.safeAreaBottom * captionGeometry.viewportScale}px`,
+              }}
             >
               <AnimatePresence mode="wait">
                 <motion.div
@@ -529,46 +568,85 @@ export default function CardPlayer({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
-                  className="flex flex-col items-center justify-end pb-6"
-                  style={{ transformOrigin: 'center center' }}
+                  className="w-full"
+                  style={{
+                    maxWidth: `${captionGeometry.viewportCaptionWidth}px`,
+                  }}
                 >
-                  <div style={{ maxHeight: '30vh', overflow: 'visible', width: '100%' }}>
-                    {captionIndex < card.captions.length ? (
-                      (() => {
-                        const captionText = card.captions[captionIndex];
-                        
-                        const styles = resolveStyles({
-                          presetId: captionState?.presetId || 'clean_white',
-                          fullScreen,
-                          karaokeEnabled: captionState?.karaokeEnabled,
-                          karaokeStyle: captionState?.karaokeStyle,
-                          headlineText: captionText,
-                          layoutMode: 'title',
-                          layout: { containerWidthPx },
-                        });
-                        
-                        const showCaptionDebug = new URLSearchParams(window.location.search).get('captionDebug') === '1';
-                        
-                        return (
-                          <div className="flex flex-col items-center w-full gap-2">
-                            <ScaleToFitCaption
-                              lines={styles.headlineLines}
-                              panelStyle={styles.panel}
-                              textStyle={styles.headline}
-                              containerWidthPx={containerWidthPx}
-                              fittedFontSizePx={styles.headlineFontSizePx}
-                              didFit={styles.headlineDidFit}
-                              showDebug={showCaptionDebug}
-                              fitGeometry={styles.fitGeometry}
+                  {captionIndex < card.captions.length ? (
+                    (() => {
+                      const captionText = card.captions[captionIndex];
+                      const { headline, supporting } = splitTextIntoHeadlineAndSupporting(captionText);
+                      const headlineStyles = getLayerStylesWithText(headline, titlePack.headline, titlePack, fullScreen, captionGeometry);
+                      const supportingStyles = titlePack.supporting && supporting
+                        ? getLayerStylesWithText(supporting, titlePack.supporting, titlePack, fullScreen, captionGeometry)
+                        : null;
+
+                      return (
+                        <div className="flex flex-col items-center gap-3 w-full" style={{ position: 'relative' }}>
+                          {/* Accent shape background for grunge-tape pack */}
+                          {titlePack.accentShape?.type === 'tape' && (
+                            <div 
+                              className="absolute inset-x-8 rounded-sm -skew-y-1"
+                              style={{
+                                backgroundColor: titlePack.accentShape.color,
+                                opacity: titlePack.accentShape.opacity,
+                                top: '50%',
+                                transform: 'translateY(-50%) skewY(-1deg)',
+                                padding: '1rem 2rem',
+                                zIndex: -1,
+                              }}
                             />
-                          </div>
-                        );
-                      })()
-                    ) : null}
-                  </div>
+                          )}
+                          
+                          {/* Headline */}
+                          <p
+                            className="font-bold leading-snug w-full"
+                            style={{
+                              ...headlineStyles,
+                              boxSizing: 'border-box',
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word',
+                            }}
+                            data-testid="text-headline"
+                          >
+                            {headline}
+                          </p>
+
+                          {/* Supporting text */}
+                          {supporting && supportingStyles && (
+                            <p
+                              className="leading-relaxed w-full"
+                              style={{
+                                ...supportingStyles,
+                                boxSizing: 'border-box',
+                                wordWrap: 'break-word',
+                                overflowWrap: 'break-word',
+                              }}
+                              data-testid="text-supporting"
+                            >
+                              {supporting}
+                            </p>
+                          )}
+                          
+                          {/* Underline accent for editorial-minimal pack */}
+                          {titlePack.accentShape?.type === 'underline' && (
+                            <div 
+                              className="w-16 h-0.5 mt-1"
+                              style={{
+                                backgroundColor: titlePack.accentShape.color,
+                                opacity: titlePack.accentShape.opacity,
+                              }}
+                            />
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : null}
                 </motion.div>
               </AnimatePresence>
             </div>
+            {/* End caption region */}
 
             {showSwipeHint && (
               <motion.div
@@ -686,6 +764,11 @@ export default function CardPlayer({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Debug overlay (toggle with 'D' key) */}
+      {phase === "cinematic" && (
+        <CaptionDebugOverlay geometry={captionGeometry} enabled={debugOverlay} />
+      )}
     </div>
   );
 }
