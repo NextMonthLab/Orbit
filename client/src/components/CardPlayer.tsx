@@ -505,49 +505,51 @@ export default function CardPlayer({
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
                   className="flex flex-col items-center justify-end px-4 pb-6"
-                  style={{ maxHeight: '30vh', overflow: 'hidden' }}
+                  style={{ transformOrigin: 'center center' }}
                 >
-                  {captionIndex < card.captions.length ? (
-                    (() => {
-                      const captionText = card.captions[captionIndex];
-                      const { headline, supporting } = splitTextIntoHeadlineAndSupporting(captionText);
-                      
-                      const styles = resolveStyles({
-                        presetId: captionState?.presetId || 'clean_white',
-                        fullScreen,
-                        karaokeEnabled: captionState?.karaokeEnabled,
-                        karaokeStyle: captionState?.karaokeStyle,
-                        textLength: headline.length,
-                      });
-                      
-                      return (
-                        <div className="flex flex-col items-center w-full gap-2">
-                          <div 
-                            style={styles.panel}
-                            data-testid="caption-panel"
-                          >
-                            <p 
-                              className="m-0"
-                              style={styles.headline}
-                              data-testid="text-headline"
+                  <div style={{ maxHeight: '30vh', overflow: 'hidden', width: '100%' }}>
+                    {captionIndex < card.captions.length ? (
+                      (() => {
+                        const captionText = card.captions[captionIndex];
+                        const { headline, supporting } = splitTextIntoHeadlineAndSupporting(captionText);
+                        
+                        const styles = resolveStyles({
+                          presetId: captionState?.presetId || 'clean_white',
+                          fullScreen,
+                          karaokeEnabled: captionState?.karaokeEnabled,
+                          karaokeStyle: captionState?.karaokeStyle,
+                          textLength: headline.length,
+                        });
+                        
+                        return (
+                          <div className="flex flex-col items-center w-full gap-2">
+                            <div 
+                              style={styles.panel}
+                              data-testid="caption-panel"
                             >
-                              {headline}
-                            </p>
+                              <p 
+                                className="m-0"
+                                style={styles.headline}
+                                data-testid="text-headline"
+                              >
+                                {headline}
+                              </p>
+                            </div>
+                            
+                            {supporting && (
+                              <p 
+                                className="max-w-[85%] text-center mx-auto"
+                                style={styles.supporting}
+                                data-testid="text-supporting"
+                              >
+                                {supporting}
+                              </p>
+                            )}
                           </div>
-                          
-                          {supporting && (
-                            <p 
-                              className="max-w-[85%] text-center mx-auto"
-                              style={styles.supporting}
-                              data-testid="text-supporting"
-                            >
-                              {supporting}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })()
-                  ) : null}
+                        );
+                      })()
+                    ) : null}
+                  </div>
                 </motion.div>
               </AnimatePresence>
             </div>
