@@ -7922,7 +7922,7 @@ Stay engaging, reference story details, and help the audience understand the nar
   // AI Prompt Enhancement - generate production-grade prompts for better AI outputs
   app.post("/api/ai/enhance-prompt", requireAuth, async (req, res) => {
     try {
-      const { cardTitle, cardContent, styleHints, mediaType } = req.body;
+      const { cardTitle, cardContent, styleHints, mediaType, targetAudience } = req.body;
       
       if (!cardContent && !cardTitle) {
         return res.status(400).json({ message: "Card title or content is required" });
@@ -7930,10 +7930,27 @@ Stay engaging, reference story details, and help the audience understand the nar
       
       const basePrompt = `${cardTitle || ''}. ${cardContent || ''}`.trim();
       
+      // Audience-specific style guidelines
+      const audienceGuidelines: Record<string, string> = {
+        general: "Balanced, universally appealing visuals suitable for all ages and backgrounds.",
+        children: "Bright, colorful, playful imagery with friendly characters. Warm lighting, rounded shapes, cheerful atmosphere. Avoid anything scary, violent, or complex.",
+        technical: "Clean, precise, professional visuals. Diagram-like clarity, muted professional colors, structured compositions. Focus on accuracy and clarity.",
+        entertainment: "Dynamic, vibrant, eye-catching visuals. Bold colors, dramatic lighting, cinematic flair. High energy and emotional impact.",
+        business: "Corporate, professional, trustworthy aesthetics. Clean lines, business-appropriate imagery, confident and polished. Subtle sophistication.",
+        educational: "Clear, informative, engaging visuals. Good visual hierarchy, illustrative style, approachable complexity. Learning-focused.",
+        luxury: "Premium, elegant, sophisticated imagery. Rich textures, refined color palettes, exclusive atmosphere. High-end production quality.",
+        youth: "Trendy, bold, social-media-ready visuals. Vibrant colors, modern aesthetics, culturally relevant. Fast-paced and authentic.",
+      };
+      
+      const audienceStyle = audienceGuidelines[targetAudience || 'general'] || audienceGuidelines.general;
+      
       // Construct the enhancement prompt
       const systemPrompt = `You are a professional visual director and cinematographer. Your job is to transform story descriptions into production-grade prompts for AI image/video generation.
 
 The output must be optimized for ${mediaType === 'video' ? 'AI video generation (Kling/Runway)' : 'AI image generation (DALL-E/GPT-Image)'}.
+
+TARGET AUDIENCE: ${targetAudience || 'general'}
+AUDIENCE STYLE GUIDELINES: ${audienceStyle}
 
 CRITICAL RULES:
 - NEVER include text, words, letters, titles, captions, watermarks, or typography in the output
@@ -7941,6 +7958,7 @@ CRITICAL RULES:
 - Include specific camera angles, lighting, mood, and cinematic techniques
 - Use 9:16 vertical aspect ratio framing
 - Keep descriptions visual and actionable
+- Ensure the visual style resonates with the target audience
 
 Style preferences: ${styleHints || 'cinematic, professional, high production value'}
 

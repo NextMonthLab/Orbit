@@ -154,6 +154,7 @@ export function IceCardEditor({
   const [enhanceLoading, setEnhanceLoading] = useState(false);
   const [enhancedVideoPrompt, setEnhancedVideoPrompt] = useState("");
   const [videoEnhanceLoading, setVideoEnhanceLoading] = useState(false);
+  const [targetAudience, setTargetAudience] = useState<string>("general");
   const [selectingAsset, setSelectingAsset] = useState(false);
   const [deletingAsset, setDeletingAsset] = useState<string | null>(null);
   
@@ -261,6 +262,7 @@ export function IceCardEditor({
           cardContent: card.content,
           styleHints: 'cinematic, professional, high production value',
           mediaType,
+          targetAudience,
         }),
       });
       
@@ -891,7 +893,30 @@ export function IceCardEditor({
                     </div>
                     
                     {enhancePromptEnabled && (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
+                        {/* Target Audience Selector */}
+                        <div className="space-y-2">
+                          <Label className="text-xs text-slate-400">Target Audience</Label>
+                          <select
+                            value={targetAudience}
+                            onChange={(e) => setTargetAudience(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-md px-3 py-2"
+                            data-testid="select-target-audience"
+                          >
+                            <option value="general">General Audience</option>
+                            <option value="children">Children (Family-Friendly)</option>
+                            <option value="technical">Technical / Professional</option>
+                            <option value="entertainment">Entertainment / Pop Culture</option>
+                            <option value="business">Business / Corporate</option>
+                            <option value="educational">Educational / Academic</option>
+                            <option value="luxury">Luxury / Premium</option>
+                            <option value="youth">Youth / Gen-Z</option>
+                          </select>
+                          <p className="text-[10px] text-slate-500">
+                            Tailors the visual style to resonate with your target viewers
+                          </p>
+                        </div>
+                        
                         <div className="flex items-center gap-2">
                           <Textarea
                             value={enhancedPrompt}
