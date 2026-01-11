@@ -3,6 +3,14 @@ import { randomUUID } from "crypto";
 import type { SiteIdentity } from "@shared/schema";
 import { isBadImageUrl } from "./utils/mediaFilter";
 import { siteIngestionCache, siteIdentityCache, generateCacheKey } from "./services/scrapeCache";
+import {
+  extractOrganizationName,
+  extractDescription,
+  extractLogo,
+  extractHeroImage,
+  extractHeadline,
+  type ExtractedValue,
+} from "./services/structuredDataPriority";
 
 // SSRF protection: validate URL safety
 export async function validateUrlSafety(url: string): Promise<{ safe: boolean; error?: string; domain?: string }> {
@@ -961,18 +969,30 @@ export async function extractSiteIdentity(url: string, html: string): Promise<Si
   
   // Extract testimonials
   const testimonials = extractTestimonials(html, url);
-  
-  // Use organization name from structured data if available
-  const orgName = structuredData.organization?.name;
-  
+
+  // Use structured data priority system for key fields
+  const orgNameExtracted = extractOrganizationName(html, structuredData);
+  const descriptionExtracted = extractDescription(html, structuredData);
+  const logoExtracted = extractLogo(html, url, structuredData);
+  const heroImageExtracted = extractHeroImage(html, url);
+  const headlineExtracted = extractHeadline(html, structuredData);
+
+  // Log extraction sources for debugging (if using high-confidence structured data)
+  if (orgNameExtracted && orgNameExtracted.confidence >= 0.90) {
+    console.log(`[StructuredData] Organization name from ${orgNameExtracted.source} (${orgNameExtracted.confidence})`);
+  }
+  if (logoExtracted && logoExtracted.confidence >= 0.90) {
+    console.log(`[StructuredData] Logo from ${logoExtracted.source} (${logoExtracted.confidence})`);
+  }
+
   return {
     sourceDomain: domain,
-    title: orgName || title,
-    heroHeadline: extractHeroHeadline(html),
-    heroDescription: structuredData.organization?.description || extractHeroDescription(html),
-    logoUrl: structuredData.organization?.logo || extractLogoUrl(html, url),
+    title: orgNameExtracted?.value || title,
+    heroHeadline: headlineExtracted?.value || extractHeroHeadline(html),
+    heroDescription: descriptionExtracted?.value || extractHeroDescription(html),
+    logoUrl: logoExtracted?.value || extractLogoUrl(html, url),
     faviconUrl: extractFaviconUrl(html, url),
-    heroImageUrl: extractHeroImageUrl(html, url),
+    heroImageUrl: heroImageExtracted?.value || extractHeroImageUrl(html, url),
     primaryColour: extractPrimaryColour(html),
     serviceHeadings: extractServiceHeadings(html),
     serviceBullets: extractServiceBullets(html),
@@ -982,6 +1002,15 @@ export async function extractSiteIdentity(url: string, html: string): Promise<Si
     structuredData,
     testimonials,
     enhancedFaqs: allEnhancedFaqs,
+    // Store extraction metadata for quality monitoring
+    extractionMetadata: {
+      titleSource: orgNameExtracted?.source || 'fallback',
+      titleConfidence: orgNameExtracted?.confidence || 0.5,
+      descriptionSource: descriptionExtracted?.source || 'fallback',
+      descriptionConfidence: descriptionExtracted?.confidence || 0.5,
+      logoSource: logoExtracted?.source || 'fallback',
+      logoConfidence: logoExtracted?.confidence || 0.5,
+    },
   };
 }
 

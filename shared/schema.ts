@@ -1477,6 +1477,15 @@ export const siteIdentitySchema = z.object({
   structuredData: structuredDataSchema.nullable().optional(),
   testimonials: z.array(testimonialSchema).default([]),
   enhancedFaqs: z.array(faqPairSchema).default([]),
+  // Extraction metadata for quality monitoring (optional for backward compatibility)
+  extractionMetadata: z.object({
+    titleSource: z.enum(['json-ld', 'opengraph', 'twitter', 'microdata', 'dom', 'ai', 'fallback']),
+    titleConfidence: z.number().min(0).max(1),
+    descriptionSource: z.enum(['json-ld', 'opengraph', 'twitter', 'microdata', 'dom', 'ai', 'fallback']),
+    descriptionConfidence: z.number().min(0).max(1),
+    logoSource: z.enum(['json-ld', 'opengraph', 'twitter', 'microdata', 'dom', 'ai', 'fallback']),
+    logoConfidence: z.number().min(0).max(1),
+  }).optional(),
 });
 
 export type SiteIdentity = z.infer<typeof siteIdentitySchema>;
