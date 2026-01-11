@@ -48,13 +48,12 @@ export function ScaleToFitCaption({
       display: "flex", 
       justifyContent: "center" 
     }}>
-      {/* Bubble: outer width = panelWidthPx, border-box means padding is included */}
+      {/* Bubble: outer width = panelWidthPx, clamped to 100% to prevent overflow */}
       <div
         style={{
           ...panelStyle,
           width: panelWidthPx,
-          maxWidth: panelWidthPx,
-          minWidth: panelWidthPx,
+          maxWidth: "100%",
           paddingLeft: paddingPx,
           paddingRight: paddingPx,
           paddingTop: paddingPx,
