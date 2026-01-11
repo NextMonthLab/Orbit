@@ -84,6 +84,20 @@ export const TitlePresetIdSchema = z.enum([
 ]);
 export type TitlePresetId = z.infer<typeof TitlePresetIdSchema>;
 
+export const CaptionPositionSchema = z.enum([
+  "top",
+  "middle", 
+  "bottom",
+]);
+export type CaptionPosition = z.infer<typeof CaptionPositionSchema>;
+
+export const CaptionFontSizeSchema = z.enum([
+  "small",
+  "medium",
+  "large",
+]);
+export type CaptionFontSize = z.infer<typeof CaptionFontSizeSchema>;
+
 export const CaptionOverridesSchema = z.object({
   fontSizeScale: z.number().min(0.8).max(1.2).optional(),
   verticalOffset: z.number().min(-50).max(50).optional(),
@@ -110,6 +124,9 @@ export const CaptionStateSchema = z.object({
   animationId: AnimationIdSchema.default("fade"),
   titlePresetId: TitlePresetIdSchema.optional(),
   safeAreaProfileId: SafeAreaProfileSchema.default("universal"),
+  
+  position: CaptionPositionSchema.default("bottom"),
+  fontSize: CaptionFontSizeSchema.default("medium"),
   
   karaokeRequested: z.boolean().default(false),
   karaokeEffective: z.boolean().default(false),
@@ -138,6 +155,8 @@ export function createDefaultCaptionState(): CaptionState {
     presetId: "clean_white",
     animationId: "fade",
     safeAreaProfileId: "universal",
+    position: "bottom",
+    fontSize: "medium",
     karaokeRequested: false,
     karaokeEffective: false,
     karaokeEnabled: false,

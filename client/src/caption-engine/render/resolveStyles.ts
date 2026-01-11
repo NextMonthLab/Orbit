@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { CaptionPresetId, SafeAreaProfile, KaraokeStyleId } from "../schemas";
+import type { CaptionPresetId, SafeAreaProfile, KaraokeStyleId, CaptionFontSize } from "../schemas";
 import { captionPresets } from "../presets";
 import { typographyTokens } from "../tokens/typography";
 import { colorTokens } from "../tokens/colors";
@@ -17,6 +17,7 @@ export interface ResolveStylesInput {
   textLength?: number;
   headlineText?: string;
   layoutMode?: CaptionLayoutMode;
+  fontSize?: CaptionFontSize;
   layout?: {
     containerWidthPx: number;
   };
@@ -52,8 +53,12 @@ export function resolveStyles(input: ResolveStylesInput): ResolvedCaptionStyles 
     karaokeStyle = "weight",
     headlineText = "",
     layoutMode = "title",
+    fontSize = "medium",
     layout,
   } = input;
+  
+  // Font size multipliers: small = 0.75x, medium = 1x, large = 1.25x
+  const fontSizeMultiplier = fontSize === 'small' ? 0.75 : fontSize === 'large' ? 1.25 : 1;
 
   const preset = captionPresets[presetId] || captionPresets.clean_white;
   const typography = typographyTokens[preset.typography] || typographyTokens.sans;
@@ -93,10 +98,12 @@ export function resolveStyles(input: ResolveStylesInput): ResolvedCaptionStyles 
 
   const isParagraphMode = layoutMode === 'paragraph';
   const baseTypographySize = fullScreen ? typography.fontSize : typography.fontSize * 0.7;
-  const baseFontSize = isParagraphMode ? baseTypographySize * 0.85 : baseTypographySize;
-  const minFontSize = isParagraphMode 
+  const baseFontSizeRaw = isParagraphMode ? baseTypographySize * 0.85 : baseTypographySize;
+  const baseFontSize = baseFontSizeRaw * fontSizeMultiplier;
+  const minFontSizeRaw = isParagraphMode 
     ? (fullScreen ? 18 : 12) 
     : (fullScreen ? 24 : 16);
+  const minFontSize = minFontSizeRaw * fontSizeMultiplier;
   const containerWidth = layout?.containerWidthPx || 375;
   const lineHeight = isParagraphMode ? 1.15 : 1.1;
   const maxLines = isParagraphMode ? 5 : 3;

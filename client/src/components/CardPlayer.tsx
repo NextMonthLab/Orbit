@@ -575,17 +575,41 @@ export default function CardPlayer({
                 
                 This architecture matches professional video systems (Remotion, CapCut, After Effects).
             ═══════════════════════════════════════════════════════════════════════ */}
+            {(() => {
+              // Position settings: top/middle/bottom third of screen
+              const position = captionState?.position || 'bottom';
+              const positionStyles: Record<string, React.CSSProperties> = {
+                top: {
+                  top: 0,
+                  bottom: 'auto',
+                  paddingTop: `${captionGeometry.safeAreaTop * captionGeometry.viewportScale}px`,
+                },
+                middle: {
+                  top: '50%',
+                  bottom: 'auto',
+                  transform: 'translateY(-50%)',
+                },
+                bottom: {
+                  bottom: 0,
+                  paddingBottom: `${captionGeometry.safeAreaBottom * captionGeometry.viewportScale}px`,
+                },
+              };
+              const alignItems = position === 'top' ? 'flex-start' : position === 'middle' ? 'center' : 'flex-end';
+              const transformOrigin = position === 'top' ? 'top center' : position === 'middle' ? 'center center' : 'bottom center';
+              
+              return (
             <div
-              className="absolute left-0 right-0 bottom-0 flex items-end justify-center pointer-events-none"
+              className="absolute left-0 right-0 flex justify-center pointer-events-none"
               style={{
-                paddingBottom: `${captionGeometry.safeAreaBottom * captionGeometry.viewportScale}px`,
+                ...positionStyles[position],
+                alignItems,
               }}
             >
               {/* Scale wrapper - scales the composition stage to viewport size */}
               <div
                 style={{
                   transform: `scale(${captionGeometry.viewportScale})`,
-                  transformOrigin: "bottom center",
+                  transformOrigin,
                 }}
               >
                 {/* COMPOSITION STAGE - exactly compositionWidth, no DOM constraints */}
@@ -624,6 +648,7 @@ export default function CardPlayer({
                             karaokeStyle: captionState?.karaokeStyle,
                             headlineText: captionText,
                             layoutMode: 'title',
+                            fontSize: captionState?.fontSize || 'medium',
                             layout: { containerWidthPx: captionGeometry.availableCaptionWidth },
                           });
                           
@@ -650,6 +675,8 @@ export default function CardPlayer({
                 </div>
               </div>
             </div>
+            );
+            })()}
             {/* End composition stage */}
 
             {showSwipeHint && (
