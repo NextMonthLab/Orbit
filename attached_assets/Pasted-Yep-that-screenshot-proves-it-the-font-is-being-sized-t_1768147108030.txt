@@ -1,0 +1,98 @@
+Yep, that screenshot proves it: the font is being sized to fit a wider space than the box is actually getting, so the text is wrapping earlier than expected and then getting chopped by the panel/overflow.
+
+Right now you’ve “aligned” the maths, but you’ve still got one last boss fight: the caption bubble/container isn’t actually using the width the fit engine thinks it has.
+
+Here’s the fix in plain English:
+
+What needs to change
+
+1) Make the caption bubble take (almost) the full safe width
+
+The bubble should be sized from the same geometry:
+	•	panelWidthPx = the visible caption area (usually full video width)
+	•	innerWidthPx = (panelWidthPx - 2*paddingPx) * 0.92
+	•	Bubble width should be innerWidthPx (or a % equivalent), not some “nice looking” fixed maxWidth.
+
+If you leave any maxWidth: 520 or similar anywhere, it will always look like your screenshot.
+
+2) The text container must match the bubble’s inner width
+
+If the bubble has padding, the text wrapper maxWidth must be:
+	•	textMaxWidth = bubbleWidth - (2 * bubblePadding)
+
+Otherwise the fit engine thinks it has more room than the renderer actually gives it.
+
+⸻
+
+The concrete patch (what to tell Claude / what to implement)
+
+A) Compute one value: innerWidthPx
+
+Do this once (where you already have fitGeometry):
+
+const innerWidthPx = Math.floor((panelWidthPx - 2 * paddingPx) * 0.92);
+
+B) Apply it to the bubble (this is the missing bit)
+
+Wherever you render the black rounded box, make it:
+	•	width: innerWidthPx
+	•	maxWidth: innerWidthPx (important: stop CSS shrinking it)
+	•	left/right centred with margin: 0 auto (or absolute centre transform)
+
+Example intent (not exact code style):
+	•	style={{ width: innerWidthPx, maxWidth: innerWidthPx, marginLeft: 'auto', marginRight: 'auto' }}
+
+If your caption layout is absolute positioned, use:
+	•	left: '50%'
+	•	transform: 'translateX(-50%)'
+	•	width: innerWidthPx
+
+C) Apply the same to the text wrapper
+
+Inside the bubble:
+	•	maxWidth: innerWidthPx - bubblePadding*2
+	•	width: innerWidthPx - bubblePadding*2
+
+And ensure wrapping is allowed:
+	•	whiteSpace: 'normal'
+	•	wordBreak: 'break-word'
+	•	overflowWrap: 'anywhere'
+
+D) Remove any legacy constraints
+
+Search and delete/override any of these on the caption bubble or its parents:
+	•	maxWidth: ??? (hardcoded)
+	•	width: 'fit-content' (can shrink the box)
+	•	alignSelf: 'center' (fine) combined with maxWidth (bad)
+	•	parent containers with overflow: hidden and a smaller width than expected
+
+⸻
+
+Why your screenshot looks like that
+
+The bubble is behaving like it has a fixed/narrow max width (or it’s inheriting one), so even though your fit engine thinks “cool, I’ve got loads of width”, the bubble says “nah mate, you get this tiny rectangle”, so the text wraps and clips.
+
+⸻
+
+A good default (so it always looks premium)
+
+If you want this to feel CapCut-level by default:
+	•	bubble width: 92% of (video width - 2*padding)
+	•	bubble padding: 22–28px horizontally (for big caption looks)
+	•	safe bottom margin: keep it off the UI chrome
+
+That gets you the “full, confident caption bar” look rather than a timid little pill.
+
+⸻
+
+Quick sanity check you can add (debug overlay)
+
+For 30 seconds, add a debug outline:
+	•	Bubble: outline: 2px solid lime
+	•	Text wrapper: outline: 2px solid cyan
+
+If cyan is smaller than your computed inner width, you’ve found the culprit instantly.
+
+⸻
+
+If you paste me the current ScaleToFitCaption render JSX (just the outer bubble div + the text wrapper), I’ll point to the exact lines that are still constraining the width. But even without that: make the bubble width = innerWidthPx and delete any fixed maxWidth and this clipping dies on the spot.

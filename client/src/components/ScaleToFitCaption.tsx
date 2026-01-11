@@ -28,14 +28,16 @@ export function ScaleToFitCaption({
   showDebug = false,
   fitGeometry,
 }: ScaleToFitCaptionProps) {
-  // Use EXACT values from fit engine if provided, otherwise use matching defaults
+  // Use EXACT values from fit engine
   const padding = fitGeometry?.paddingPx ?? 16;
-  const panelMaxWidthPercent = fitGeometry?.panelMaxWidthPercent ?? 92;
-  const panelWidthPx = fitGeometry?.panelWidthPx ?? (containerWidthPx * panelMaxWidthPercent / 100);
+  const panelWidthPx = fitGeometry?.panelWidthPx ?? (containerWidthPx * 0.92);
   
-  // Apply same 8% safety margin as fit engine
+  // Same calculation as fit engine: (panelWidth - 2*padding) * 0.92
   const safetyMargin = 0.08;
-  const innerWidth = (panelWidthPx - (padding * 2)) * (1 - safetyMargin);
+  const innerWidthPx = Math.floor((panelWidthPx - (padding * 2)) * (1 - safetyMargin));
+  
+  // Bubble padding (visual)
+  const bubblePadding = 24;
 
   const lineStyle: CSSProperties = {
     ...textStyle,
@@ -47,24 +49,34 @@ export function ScaleToFitCaption({
   };
 
   return (
-    <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
-      {/* Panel: exact width from fit engine, centered */}
+    <div style={{ 
+      position: "relative", 
+      width: "100%", 
+      display: "flex", 
+      justifyContent: "center" 
+    }}>
+      {/* Bubble: exact width from fit engine, centered */}
       <div
         style={{
           ...panelStyle,
-          width: `${panelWidthPx}px`,
-          padding: `${padding}px`,
+          width: `${innerWidthPx}px`,
+          maxWidth: `${innerWidthPx}px`,
+          minWidth: `${innerWidthPx}px`,
+          padding: `${bubblePadding}px`,
           boxSizing: "border-box",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          marginLeft: "auto",
+          marginRight: "auto",
         }}
         data-testid="caption-panel"
       >
-        {/* Text container: exact inner width matching fit engine */}
+        {/* Text wrapper: fills bubble minus padding */}
         <div
           style={{
-            width: `${innerWidth}px`,
+            width: "100%",
+            maxWidth: `${innerWidthPx - (bubblePadding * 2)}px`,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -96,7 +108,7 @@ export function ScaleToFitCaption({
             whiteSpace: "nowrap",
           }}
         >
-          {didFit ? "✓" : "✗"} {fittedFontSizePx}px | {lines.length}L | p{padding} inner:{Math.round(innerWidth)}w
+          {didFit ? "✓" : "✗"} {fittedFontSizePx}px | {lines.length}L | bubble:{innerWidthPx}px
         </div>
       )}
     </div>
