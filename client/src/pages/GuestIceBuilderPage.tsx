@@ -123,6 +123,7 @@ export default function GuestIceBuilderPage() {
   const isProfessionalMode = entitlements && entitlements.tier !== "free";
   const [urlValue, setUrlValue] = useState("");
   const [textValue, setTextValue] = useState("");
+  const [contentContext, setContentContext] = useState<"story" | "article" | "business" | "auto">("auto");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [cards, setCards] = useState<PreviewCard[]>([]);
@@ -455,7 +456,7 @@ export default function GuestIceBuilderPage() {
   };
 
   const createPreviewMutation = useMutation({
-    mutationFn: async (data: { type: string; value: string }) => {
+    mutationFn: async (data: { type: string; value: string; context?: string }) => {
       setCurrentStage(0); // Start the visual stages
       const res = await apiRequest("POST", "/api/ice/preview", data);
       return res.json();
@@ -623,7 +624,11 @@ export default function GuestIceBuilderPage() {
       value = `https://${value}`;
     }
     
-    createPreviewMutation.mutate({ type: inputType, value });
+    createPreviewMutation.mutate({ 
+      type: inputType, 
+      value,
+      context: inputType === "url" ? contentContext : undefined 
+    });
   };
 
   // Use refs to track pending save operations and serialize mutations
@@ -925,8 +930,32 @@ export default function GuestIceBuilderPage() {
                       className="bg-white/5 border-white/10"
                       data-testid="input-url"
                     />
+                    <div className="flex flex-wrap gap-2">
+                      <span className="text-sm text-white/50 self-center mr-2">Content type:</span>
+                      {[
+                        { id: "auto", label: "Auto-detect", icon: Sparkles },
+                        { id: "story", label: "Story/Script", icon: Film },
+                        { id: "article", label: "Article/Blog", icon: FileText },
+                        { id: "business", label: "Business/Product", icon: Globe },
+                      ].map((ctx) => (
+                        <button
+                          key={ctx.id}
+                          type="button"
+                          onClick={() => setContentContext(ctx.id as typeof contentContext)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
+                            contentContext === ctx.id
+                              ? "bg-pink-500/20 border border-pink-500/50 text-pink-300"
+                              : "bg-white/5 border border-white/10 text-white/60 hover:bg-white/10"
+                          }`}
+                          data-testid={`context-${ctx.id}`}
+                        >
+                          <ctx.icon className="w-3.5 h-3.5" />
+                          {ctx.label}
+                        </button>
+                      ))}
+                    </div>
                     <p className="text-sm text-white/40">
-                      Enter a website URL and we'll extract the key content to create your story. No need to type https://
+                      Enter a website URL and we'll extract key content. Choose a content type for best results.
                     </p>
                   </div>
                 </TabsContent>

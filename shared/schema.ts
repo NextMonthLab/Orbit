@@ -846,6 +846,7 @@ export type IcePreviewSourceType = 'url' | 'text' | 'file';
 export type IcePreviewTier = 'short' | 'medium' | 'long';
 export type IceContentType = 'script' | 'article' | 'document' | 'unknown';
 export type IceFidelityMode = 'script_exact' | 'interpretive';
+export type IceContentContext = 'story' | 'article' | 'business' | 'auto';
 
 // Scene map for structural ingest (scripts only)
 export const iceSceneSchema = z.object({
