@@ -6,10 +6,7 @@ import { MessageSquare, ChevronUp, Share2, BookOpen, RotateCcw, Volume2, VolumeX
 import { Link, useLocation } from "wouter";
 import MessageBoard from "@/components/MessageBoard";
 import type { CaptionState } from "@/caption-engine/schemas";
-import { captionPresets } from "@/caption-engine/presets/captionPresets";
-import { typographyTokens } from "@/caption-engine/tokens/typography";
-import { colorTokens } from "@/caption-engine/tokens/colors";
-import { backgroundTokens } from "@/caption-engine/tokens/backgrounds";
+import { resolveStyles } from "@/caption-engine/render/resolveStyles";
 
 function useIsTabletLandscape() {
   const [isTabletLandscape, setIsTabletLandscape] = useState(false);
@@ -515,138 +512,33 @@ export default function CardPlayer({
                       const captionText = card.captions[captionIndex];
                       const { headline, supporting } = splitTextIntoHeadlineAndSupporting(captionText);
                       
-                      // Caption Engine: resolve preset styling
-                      const presetId = captionState?.presetId || 'clean_white';
-                      const preset = captionPresets[presetId] || captionPresets.clean_white;
-                      const typography = typographyTokens[preset.typography] || typographyTokens.sans;
-                      const colors = colorTokens[preset.colors] || colorTokens.shadowWhite;
-                      const background = backgroundTokens[preset.background] || backgroundTokens.none;
-                      
-                      // Karaoke settings
-                      const karaokeEnabled = captionState?.karaokeEnabled;
-                      const karaokeStyle = captionState?.karaokeStyle || preset.karaokeStyle || 'weight';
-                      
-                      // Build professional caption styles from tokens
-                      const baseFontSize = fullScreen ? typography.fontSize : typography.fontSize * 0.7;
-                      const colorsAny = colors as any;
-                      const typographyAny = typography as any;
-                      const professionalTextShadow = colorsAny.shadow || '0 2px 4px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.4)';
-                      const glowShadow = '0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.8)';
-                      
-                      // Adjust font size based on HEADLINE length only
-                      const textLength = headline.length;
-                      const fontScale = textLength > 110 ? 0.75 : textLength > 80 ? 0.85 : 1;
-                      const adjustedFontSize = baseFontSize * fontScale;
-                      
-                      // Background styles based on treatment - using inline-block for single cohesive box
-                      const getBackgroundStyles = (): React.CSSProperties => {
-                        const baseContainerStyles: React.CSSProperties = {
-                          display: 'inline-block',
-                          maxWidth: '92%',
-                          textAlign: 'center',
-                          whiteSpace: 'normal',
-                          wordBreak: 'normal',
-                          overflowWrap: 'anywhere',
-                          hyphens: 'auto',
-                        };
-                        
-                        switch (background.treatment) {
-                          case 'panel':
-                            return {
-                              ...baseContainerStyles,
-                              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                              padding: '20px 28px',
-                              borderRadius: '16px',
-                            };
-                          case 'pill':
-                            return {
-                              ...baseContainerStyles,
-                              backgroundColor: colorsAny.background || 'rgba(255, 220, 0, 0.9)',
-                              padding: '14px 24px',
-                              borderRadius: '999px',
-                            };
-                          case 'blur':
-                            return {
-                              ...baseContainerStyles,
-                              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                              backdropFilter: 'blur(12px)',
-                              WebkitBackdropFilter: 'blur(12px)',
-                              padding: '18px 26px',
-                              borderRadius: '16px',
-                            };
-                          case 'gradient':
-                            return {
-                              ...baseContainerStyles,
-                              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.85), rgba(59, 130, 246, 0.85))',
-                              padding: '18px 26px',
-                              borderRadius: '16px',
-                            };
-                          default:
-                            return {};
-                        }
-                      };
-                      
-                      const bgStyles = getBackgroundStyles();
-                      
-                      const headlineStyles: React.CSSProperties = {
-                        fontFamily: typography.fontFamily,
-                        fontSize: `${adjustedFontSize}px`,
-                        fontWeight: 800,
-                        lineHeight: 1.1,
-                        letterSpacing: '-0.02em',
-                        textTransform: typographyAny.textTransform || 'none',
-                        color: colors.text,
-                        textShadow: karaokeEnabled && karaokeStyle === 'glow' ? glowShadow : professionalTextShadow,
-                        WebkitTextStroke: colorsAny.stroke ? `${colorsAny.strokeWidth || 1}px ${colorsAny.stroke}` : undefined,
-                      };
-                      
-                      const supportingStyles: React.CSSProperties = {
-                        fontFamily: typography.fontFamily,
-                        fontSize: `${adjustedFontSize * 0.5}px`,
-                        fontWeight: 400,
-                        lineHeight: 1.3,
-                        color: 'rgba(255,255,255,0.75)',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                        letterSpacing: '0.01em',
-                      };
-                      
-                      // Line clamping for headlines that exceed 3 lines
-                      const clampHeadline: React.CSSProperties = {
-                        display: '-webkit-box',
-                        WebkitBoxOrient: 'vertical' as any,
-                        WebkitLineClamp: 3,
-                        overflow: 'hidden',
-                      };
-                      
-                      // Line clamping for supporting text (2 lines max)
-                      const clampSupporting: React.CSSProperties = {
-                        display: '-webkit-box',
-                        WebkitBoxOrient: 'vertical' as any,
-                        WebkitLineClamp: 2,
-                        overflow: 'hidden',
-                      };
+                      const styles = resolveStyles({
+                        presetId: captionState?.presetId || 'clean_white',
+                        fullScreen,
+                        karaokeEnabled: captionState?.karaokeEnabled,
+                        karaokeStyle: captionState?.karaokeStyle,
+                        textLength: headline.length,
+                      });
                       
                       return (
                         <div className="flex flex-col items-center w-full gap-2">
-                          {/* Caption panel - HEADLINE ONLY */}
                           <div 
-                            style={bgStyles}
+                            style={styles.panel}
                             data-testid="caption-panel"
                           >
                             <p 
                               className="m-0"
-                              style={{ ...headlineStyles, ...clampHeadline }}
+                              style={styles.headline}
                               data-testid="text-headline"
                             >
                               {headline}
                             </p>
                           </div>
                           
-                          {/* Supporting text outside panel */}
                           {supporting && (
                             <p 
                               className="max-w-[85%] text-center mx-auto"
-                              style={{ ...supportingStyles, ...clampSupporting }}
+                              style={styles.supporting}
                               data-testid="text-supporting"
                             >
                               {supporting}

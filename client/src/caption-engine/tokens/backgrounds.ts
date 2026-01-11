@@ -46,7 +46,7 @@ export type BackgroundTokenId = keyof typeof backgroundTokens;
 
 import type { CSSProperties } from "react";
 
-export function getBackgroundCSS(tokenId: BackgroundTokenId): CSSProperties {
+export function getBackgroundCSS(tokenId: BackgroundTokenId, options?: { pillColor?: string }): CSSProperties {
   const baseContainerStyles: CSSProperties = {
     display: "inline-block",
     maxWidth: "92%",
@@ -68,7 +68,7 @@ export function getBackgroundCSS(tokenId: BackgroundTokenId): CSSProperties {
     case "pill":
       return {
         ...baseContainerStyles,
-        backgroundColor: "rgba(255, 220, 0, 0.9)",
+        backgroundColor: options?.pillColor || "rgba(255, 220, 0, 0.9)",
         padding: "14px 24px",
         borderRadius: "999px",
       };

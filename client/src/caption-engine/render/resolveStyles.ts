@@ -48,7 +48,9 @@ export function resolveStyles(input: ResolveStylesInput): ResolvedCaptionStyles 
   const professionalTextShadow = colorsAny.shadow || "0 2px 4px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.4)";
   const glowShadow = "0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.8)";
 
-  const panelStyles = getBackgroundCSS(preset.background);
+  const panelStyles = getBackgroundCSS(preset.background, {
+    pillColor: colorsAny.background,
+  });
 
   const container: CSSProperties = {
     maxHeight: "30vh",
