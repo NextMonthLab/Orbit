@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Card } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, ChevronUp, Share2, BookOpen, RotateCcw, Volume2, VolumeX, Film, Image, Play, Pause } from "lucide-react";
@@ -87,7 +87,24 @@ export default function CardPlayer({
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const captionRegionRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidthPx, setContainerWidthPx] = useState(375);
   const isTabletLandscape = useIsTabletLandscape();
+
+  useEffect(() => {
+    const el = captionRegionRef.current;
+    if (!el) return;
+
+    const updateWidth = () => {
+      setContainerWidthPx(el.offsetWidth);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, []);
   
   const theme = brandPreferences?.theme || 'dark';
   const accentColor = brandPreferences?.accentColor || '#ffffff';
@@ -496,7 +513,10 @@ export default function CardPlayer({
             )}
             
 
-            <div className={`absolute inset-x-0 bottom-0 top-16 flex flex-col justify-end ${fullScreen ? 'p-8 pb-32' : 'p-4 pb-24'}`}>
+            <div 
+              ref={captionRegionRef}
+              className={`absolute inset-x-0 bottom-0 top-16 flex flex-col justify-end ${fullScreen ? 'p-8 pb-32' : 'p-4 pb-24'}`}
+            >
               <AnimatePresence mode="wait">
                 <motion.div
                   key={captionIndex}
@@ -518,8 +538,8 @@ export default function CardPlayer({
                           fullScreen,
                           karaokeEnabled: captionState?.karaokeEnabled,
                           karaokeStyle: captionState?.karaokeStyle,
-                          textLength: headline.length,
                           headlineText: headline,
+                          layout: { containerWidthPx },
                         });
                         
                         return (
@@ -533,7 +553,12 @@ export default function CardPlayer({
                                 style={styles.headline}
                                 data-testid="text-headline"
                               >
-                                {headline}
+                                {styles.headlineLines.map((line, i) => (
+                                  <React.Fragment key={i}>
+                                    {line}
+                                    {i < styles.headlineLines.length - 1 && <br />}
+                                  </React.Fragment>
+                                ))}
                               </p>
                             </div>
                             
