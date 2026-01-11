@@ -106,6 +106,10 @@ export default function GuestIceBuilderPage() {
   const params = useParams<{ id?: string }>();
   const previewIdFromUrl = params.id;
   const { toast } = useToast();
+  
+  // Check for view mode from URL query parameter
+  const searchParams = new URLSearchParams(window.location.search);
+  const isViewMode = searchParams.get("view") === "true";
   const { user } = useAuth();
   const [inputType, setInputType] = useState<"url" | "text" | "file">("url");
   
@@ -410,11 +414,14 @@ export default function GuestIceBuilderPage() {
           karaokeStyle: existingPreview.captionSettings.karaokeStyle || prev.karaokeStyle,
         }));
       }
-      if (!hasSeenWalkthrough()) {
+      // If in view mode, automatically open the preview modal
+      if (isViewMode) {
+        setShowPreviewModal(true);
+      } else if (!hasSeenWalkthrough()) {
         setShowWalkthrough(true);
       }
     }
-  }, [existingPreview]);
+  }, [existingPreview, isViewMode]);
 
   const handleGenerateBible = async () => {
     if (!preview?.id || !user) return;
