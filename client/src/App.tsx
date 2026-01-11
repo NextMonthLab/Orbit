@@ -77,6 +77,7 @@ import IndustryOrbitAssets from "@/pages/admin/IndustryOrbitAssets";
 import OrbitHealthDashboard from "@/pages/admin/OrbitHealthDashboard";
 import GuestIceBuilderPage from "@/pages/GuestIceBuilderPage";
 import CaptionDemo from "@/pages/CaptionDemo";
+import CaptionComposerLab from "@/pages/caption-composer-lab";
 import IceCheckoutPage from "@/pages/IceCheckoutPage";
 import CheckoutSuccessPage from "@/pages/CheckoutSuccessPage";
 import AdminUniverseDetail from "@/pages/AdminUniverseDetail";
@@ -169,6 +170,7 @@ function Router() {
       <Route path="/icemaker/templates" component={IceMakerTemplates} />
       <Route path="/icemaker/settings" component={IceMakerSettings} />
       <Route path="/icemaker/captions" component={CaptionDemo} />
+      <Route path="/icemaker/composer-lab" component={CaptionComposerLab} />
       
       <Route path="/orbit" component={OrbitHome} />
       <Route path="/orbit/my" component={MyOrbits} />

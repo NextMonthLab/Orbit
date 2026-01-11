@@ -6,6 +6,7 @@ import { colorTokens } from "../tokens/colors";
 import { backgroundTokens, getBackgroundCSS } from "../tokens/backgrounds";
 import { getSafeAreaConfig } from "../safe-area";
 import { fitTextToBox, type FitResult, type FitSettings } from "../layout/fit";
+import { composeTitleLines } from "../layout/title";
 
 export interface ResolveStylesInput {
   presetId: CaptionPresetId;
@@ -79,7 +80,10 @@ export function resolveStyles(input: ResolveStylesInput): ResolvedCaptionStyles 
 
   let fitResult: FitResult;
   if (headlineText && headlineText.trim()) {
-    fitResult = fitTextToBox(headlineText, containerWidth, fitSettings);
+    const composedLines = composeTitleLines(headlineText, { maxLines: 3 });
+    const composedText = composedLines.join('\n');
+    fitResult = fitTextToBox(composedText, containerWidth, fitSettings);
+    fitResult.lines = composedLines;
   } else {
     fitResult = {
       lines: [''],
