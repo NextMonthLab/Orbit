@@ -25,12 +25,18 @@ export function ScaleToFitCaption({
   const textRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
+  // Safe inset constants - explicit padding for inner safe area
+  const padX = 24;
+  const padY = 20;
+  const measurementFudge = 8; // Extra safety margin to prevent edge clipping
+  
   const panelMaxWidthPercent = 92;
   const panelWidthPx = containerWidthPx * (panelMaxWidthPercent / 100);
-  const paddingPx = 20;
-  const panelMinHeight = 100;
-  const availableWidth = panelWidthPx - paddingPx * 2;
-  const availableHeight = panelMinHeight - paddingPx * 2;
+  const panelMinHeight = 120;
+  
+  // Fit to INNER rectangle (panel minus padding minus fudge)
+  const innerWidth = panelWidthPx - (padX * 2) - measurementFudge;
+  const innerHeight = panelMinHeight - (padY * 2);
 
   useEffect(() => {
     const el = textRef.current;
@@ -45,15 +51,15 @@ export function ScaleToFitCaption({
         return;
       }
 
-      const scaleX = availableWidth / scrollW;
-      const scaleY = availableHeight / scrollH;
+      const scaleX = innerWidth / scrollW;
+      const scaleY = innerHeight / scrollH;
       const newScale = Math.min(scaleX, scaleY, 1);
 
-      setScale(Math.max(newScale, 0.3));
+      setScale(Math.max(newScale, 0.25));
     };
 
     requestAnimationFrame(measure);
-  }, [lines, availableWidth, availableHeight, fittedFontSizePx]);
+  }, [lines, innerWidth, innerHeight, fittedFontSizePx]);
 
   const lineStyle: CSSProperties = {
     ...textStyle,
@@ -64,57 +70,67 @@ export function ScaleToFitCaption({
   };
 
   return (
-    <div style={{ position: "relative", width: "100%" }}>
-      {/* Panel: FIXED SIZE container with background - NEVER SCALED */}
+    <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
+      {/* OuterPanel: rounded, overflow hidden, fixed size */}
       <div
         style={{
           ...panelStyle,
           position: "relative",
           width: `${panelMaxWidthPercent}%`,
           minHeight: `${panelMinHeight}px`,
-          padding: `${paddingPx}px`,
           boxSizing: "border-box",
           overflow: "hidden",
-          margin: "0 auto",
         }}
         data-testid="caption-panel"
       >
-        {/* Anchor: absolute center point */}
+        {/* InnerSafeArea: uses explicit padding */}
         <div
           style={{
             position: "absolute",
-            left: "50%",
-            top: "50%",
-            width: `calc(100% - ${paddingPx * 2}px)`,
+            top: padY,
+            left: padX,
+            right: padX,
+            bottom: padY,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          {/* ScaleWrap: ONLY this scales - no background here */}
+          {/* CentreAnchor: 50/50 positioning */}
           <div
             style={{
-              transform: `translate(-50%, -50%) scale(${scale})`,
-              transformOrigin: "center center",
-              width: "100%",
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              maxWidth: "100%",
             }}
           >
-            {/* TextBlock: centered text content */}
+            {/* TransformWrapper: translate + scale */}
             <div
-              ref={textRef}
               style={{
-                width: "100%",
-                textAlign: "center",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1.15,
+                transform: `translate(-50%, -50%) scale(${scale})`,
+                transformOrigin: "center center",
               }}
-              data-testid="text-headline"
             >
-              {lines.map((line, i) => (
-                <div key={i} style={lineStyle}>
-                  {line}
-                </div>
-              ))}
+              {/* TextBlock: centered text content */}
+              <div
+                ref={textRef}
+                style={{
+                  textAlign: "center",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  lineHeight: 1.15,
+                }}
+                data-testid="text-headline"
+              >
+                {lines.map((line, i) => (
+                  <div key={i} style={lineStyle}>
+                    {line}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -135,7 +151,7 @@ export function ScaleToFitCaption({
             whiteSpace: "nowrap",
           }}
         >
-          {didFit ? "✓" : "✗"} {fittedFontSizePx}px × {(scale * 100).toFixed(0)}% | {lines.length}L | {Math.round(panelWidthPx)}w
+          {didFit ? "✓" : "✗"} {fittedFontSizePx}px × {(scale * 100).toFixed(0)}% | {lines.length}L | inner:{Math.round(innerWidth)}w
         </div>
       )}
     </div>
