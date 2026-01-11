@@ -28,16 +28,9 @@ export function ScaleToFitCaption({
   showDebug = false,
   fitGeometry,
 }: ScaleToFitCaptionProps) {
-  // Use EXACT values from fit engine
-  const padding = fitGeometry?.paddingPx ?? 16;
+  // Use EXACT values from fit engine - no extra padding!
+  const paddingPx = fitGeometry?.paddingPx ?? 16;
   const panelWidthPx = fitGeometry?.panelWidthPx ?? (containerWidthPx * 0.92);
-  
-  // Same calculation as fit engine: (panelWidth - 2*padding) * 0.92
-  const safetyMargin = 0.08;
-  const innerWidthPx = Math.floor((panelWidthPx - (padding * 2)) * (1 - safetyMargin));
-  
-  // Bubble padding (visual)
-  const bubblePadding = 24;
 
   const lineStyle: CSSProperties = {
     ...textStyle,
@@ -55,28 +48,32 @@ export function ScaleToFitCaption({
       display: "flex", 
       justifyContent: "center" 
     }}>
-      {/* Bubble: exact width from fit engine, centered */}
+      {/* Bubble: outer width = panelWidthPx, border-box means padding is included */}
       <div
         style={{
           ...panelStyle,
-          width: `${innerWidthPx}px`,
-          maxWidth: `${innerWidthPx}px`,
-          minWidth: `${innerWidthPx}px`,
-          padding: `${bubblePadding}px`,
+          width: panelWidthPx,
+          maxWidth: panelWidthPx,
+          minWidth: panelWidthPx,
+          paddingLeft: paddingPx,
+          paddingRight: paddingPx,
+          paddingTop: paddingPx,
+          paddingBottom: paddingPx,
           boxSizing: "border-box",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           marginLeft: "auto",
           marginRight: "auto",
+          overflow: "visible",
         }}
         data-testid="caption-panel"
       >
-        {/* Text wrapper: fills bubble minus padding */}
+        {/* Text wrapper: 100% fills remaining space after padding = panelWidthPx - 2*paddingPx */}
         <div
           style={{
             width: "100%",
-            maxWidth: `${innerWidthPx - (bubblePadding * 2)}px`,
+            boxSizing: "border-box",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -108,7 +105,7 @@ export function ScaleToFitCaption({
             whiteSpace: "nowrap",
           }}
         >
-          {didFit ? "✓" : "✗"} {fittedFontSizePx}px | {lines.length}L | bubble:{innerWidthPx}px
+          {didFit ? "✓" : "✗"} {fittedFontSizePx}px | {lines.length}L | outer:{panelWidthPx}px pad:{paddingPx}
         </div>
       )}
     </div>
