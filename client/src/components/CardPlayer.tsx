@@ -552,8 +552,29 @@ export default function CardPlayer({
             )}
             
 
-            {/* COMPOSITION STAGE - Fixed 1080px width, scaled via transform */}
-            {/* The stage wrapper positions and scales. Interior is pure composition-space. */}
+            {/* ═══════════════════════════════════════════════════════════════════════
+                COMPOSITION STAGE - Caption Rendering Architecture
+                
+                CRITICAL: Captions MUST be measured and rendered in composition space (1080px).
+                DO NOT reintroduce DOM-width fitting or viewport-based calculations.
+                
+                How it works:
+                1. Composition stage is exactly compositionWidth (1080px)
+                2. Safe area padding applied inside the stage (54px each side)
+                3. Text fitting uses availableCaptionWidth (972px) in composition space
+                4. The ENTIRE stage is scaled via CSS transform: scale(viewportScale)
+                5. Layout happens first at full size, then paint scales uniformly
+                
+                If fit width = render width in the same coordinate system, clipping is IMPOSSIBLE.
+                
+                DO NOT:
+                - Use clientWidth, offsetWidth, or ResizeObserver for caption fitting
+                - Apply max-width: 90% or similar viewport-relative constraints
+                - Add scale() transforms to inner caption elements
+                - Reference containerWidthPx from DOM measurements
+                
+                This architecture matches professional video systems (Remotion, CapCut, After Effects).
+            ═══════════════════════════════════════════════════════════════════════ */}
             <div
               className="absolute left-0 right-0 bottom-0 flex items-end justify-center pointer-events-none"
               style={{
