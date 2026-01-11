@@ -507,8 +507,8 @@ export default function CardPlayer({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
-                  className="flex flex-col items-center justify-end px-4 pb-8"
-                  style={{ maxHeight: '35%' }}
+                  className="flex flex-col items-center justify-end px-4 pb-6"
+                  style={{ maxHeight: '30vh', overflow: 'hidden' }}
                 >
                   {captionIndex < card.captions.length ? (
                     (() => {
@@ -609,46 +609,38 @@ export default function CardPlayer({
                         letterSpacing: '0.01em',
                       };
                       
+                      // Limit headline to ~60 chars for compact display
+                      const truncatedHeadline = headline.length > 60 
+                        ? headline.substring(0, 57) + '...' 
+                        : headline;
+                      
                       return (
-                        <div className="flex flex-col items-center w-full">
-                          {/* Caption panel - single cohesive box wrapper */}
+                        <div className="flex flex-col items-center w-full gap-2">
+                          {/* Caption panel - HEADLINE ONLY, compact */}
                           <div 
-                            style={bgStyles}
+                            style={{
+                              ...bgStyles,
+                              padding: background.treatment !== 'none' ? '14px 20px' : undefined,
+                            }}
                             data-testid="caption-panel"
                           >
                             <p 
                               className="m-0"
-                              style={{
-                                ...headlineStyles,
-                                lineHeight: 1.15,
-                              }}
+                              style={headlineStyles}
                               data-testid="text-headline"
                             >
-                              {headline}
+                              {truncatedHeadline}
                             </p>
-                            {/* Supporting text inside panel if boxed */}
-                            {supporting && background.treatment !== 'none' && (
-                              <p 
-                                className="m-0 mt-3"
-                                style={{
-                                  ...supportingStyles,
-                                  marginTop: '12px',
-                                }}
-                                data-testid="text-supporting"
-                              >
-                                {supporting}
-                              </p>
-                            )}
                           </div>
                           
-                          {/* Supporting text outside panel if no background */}
-                          {supporting && background.treatment === 'none' && (
+                          {/* Supporting text ALWAYS outside panel for cleaner look */}
+                          {supporting && (
                             <p 
-                              className="max-w-[85%] text-center mx-auto mt-4"
+                              className="max-w-[85%] text-center mx-auto"
                               style={supportingStyles}
                               data-testid="text-supporting"
                             >
-                              {supporting}
+                              {supporting.length > 80 ? supporting.substring(0, 77) + '...' : supporting}
                             </p>
                           )}
                         </div>
