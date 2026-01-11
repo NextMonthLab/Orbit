@@ -219,7 +219,8 @@ export function IceCardEditor({
           onCardUpdate(card.id, { 
             generatedVideoUrl: data.videoUrl, 
             videoGenerationStatus: "completed",
-            videoGenerated: true 
+            videoGenerated: true,
+            preferredMediaType: 'video'
           });
           toast({ title: "Video ready!", description: "Your AI video has been generated." });
         } else if (data.status === "failed") {
@@ -448,7 +449,8 @@ export function IceCardEditor({
         onCardUpdate(card.id, { 
           generatedVideoUrl: data.videoUrl, 
           videoGenerationStatus: "completed",
-          videoGenerated: true 
+          videoGenerated: true,
+          preferredMediaType: 'video'
         });
         toast({ title: "Video ready!", description: "AI video has been generated." });
       } else {
@@ -604,12 +606,14 @@ export function IceCardEditor({
         onCardUpdate(card.id, { 
           generatedVideoUrl: mediaUrl, 
           videoGenerationStatus: "completed",
-          videoGenerated: true 
+          videoGenerated: true,
+          preferredMediaType: 'video'
         });
         onCardSave(card.id, { 
           generatedVideoUrl: mediaUrl, 
           videoGenerationStatus: "completed",
-          videoGenerated: true 
+          videoGenerated: true,
+          preferredMediaType: 'video'
         });
         toast({ title: "Video uploaded!", description: "Your video has been added to the card." });
       }
