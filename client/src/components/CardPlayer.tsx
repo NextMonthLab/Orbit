@@ -638,12 +638,60 @@ export default function CardPlayer({
                   }}
                 >
                   <AnimatePresence mode="wait">
+                    {(() => {
+                      // Animation variants based on captionState.animationId
+                      const animationId = captionState?.animationId || 'fade';
+                      
+                      // Get animation props based on selected animation
+                      const getAnimationProps = () => {
+                        switch (animationId) {
+                          case 'none':
+                            return {
+                              initial: { opacity: 1 },
+                              animate: { opacity: 1 },
+                              exit: { opacity: 1 },
+                              transition: { duration: 0 },
+                            };
+                          case 'slide_up':
+                            return {
+                              initial: { opacity: 0, y: 40 },
+                              animate: { opacity: 1, y: 0 },
+                              exit: { opacity: 0, y: -30 },
+                              transition: { duration: 0.5, ease: "easeOut" as const },
+                            };
+                          case 'pop':
+                            return {
+                              initial: { opacity: 0, scale: 0.8 },
+                              animate: { opacity: 1, scale: 1 },
+                              exit: { opacity: 0, scale: 0.9 },
+                              transition: { duration: 0.4, type: "spring", stiffness: 400, damping: 15 },
+                            };
+                          case 'typewriter':
+                            return {
+                              initial: { opacity: 0, x: -20 },
+                              animate: { opacity: 1, x: 0 },
+                              exit: { opacity: 0, x: 20 },
+                              transition: { duration: 0.4, ease: "easeOut" as const },
+                            };
+                          case 'fade':
+                          default:
+                            return {
+                              initial: { opacity: 0 },
+                              animate: { opacity: 1 },
+                              exit: { opacity: 0 },
+                              transition: { duration: 0.5, ease: "easeOut" as const },
+                            };
+                        }
+                      };
+                      const animProps = getAnimationProps();
+                      
+                      return (
                     <motion.div
                       key={captionIndex}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.6, ease: "easeOut" }}
+                      initial={animProps.initial}
+                      animate={animProps.animate}
+                      exit={animProps.exit}
+                      transition={animProps.transition}
                       style={{
                         width: "100%",
                         maxWidth: captionGeometry.availableCaptionWidth,
@@ -686,6 +734,8 @@ export default function CardPlayer({
                         })()
                       ) : null}
                     </motion.div>
+                      );
+                    })()}
                   </AnimatePresence>
                 </div>
               </div>
