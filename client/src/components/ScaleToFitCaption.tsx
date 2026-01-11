@@ -7,6 +7,7 @@ interface ScaleToFitCaptionProps {
   textStyle: CSSProperties;
   containerWidthPx: number;
   maxHeightPx?: number;
+  fittedFontSizePx: number;
 }
 
 export function ScaleToFitCaption({
@@ -15,11 +16,13 @@ export function ScaleToFitCaption({
   textStyle,
   containerWidthPx,
   maxHeightPx = 200,
+  fittedFontSizePx,
 }: ScaleToFitCaptionProps) {
   const textRef = useRef<HTMLParagraphElement>(null);
   const [scale, setScale] = useState(1);
 
-  const panelWidthPx = containerWidthPx * 0.92;
+  const panelMaxWidthPercent = 92;
+  const panelWidthPx = containerWidthPx * (panelMaxWidthPercent / 100);
   const paddingPx = 16;
   const availableWidth = panelWidthPx - paddingPx * 2;
   const availableHeight = maxHeightPx - paddingPx * 2;
@@ -41,15 +44,15 @@ export function ScaleToFitCaption({
       const scaleY = availableHeight / scrollH;
       const newScale = Math.min(scaleX, scaleY, 1);
 
-      setScale(Math.max(newScale, 0.4));
+      setScale(Math.max(newScale, 0.2));
     };
 
     requestAnimationFrame(measure);
-  }, [lines, availableWidth, availableHeight]);
+  }, [lines, availableWidth, availableHeight, fittedFontSizePx]);
 
   const baseTextStyle: CSSProperties = {
     ...textStyle,
-    fontSize: "48px",
+    fontSize: `${fittedFontSizePx}px`,
     display: "block",
     overflow: "visible",
     textOverflow: "clip",
@@ -65,7 +68,7 @@ export function ScaleToFitCaption({
     <div
       style={{
         ...panelStyle,
-        maxWidth: `${92}%`,
+        maxWidth: `${panelMaxWidthPercent}%`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

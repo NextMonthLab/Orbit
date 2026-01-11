@@ -551,6 +551,7 @@ export default function CardPlayer({
                               textStyle={styles.headline}
                               containerWidthPx={containerWidthPx}
                               maxHeightPx={fullScreen ? 200 : 150}
+                              fittedFontSizePx={styles.headlineFontSizePx}
                             />
                             
                             {supporting && (
