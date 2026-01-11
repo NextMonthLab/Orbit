@@ -7,6 +7,7 @@ import { Link, useLocation } from "wouter";
 import MessageBoard from "@/components/MessageBoard";
 import type { CaptionState } from "@/caption-engine/schemas";
 import { resolveStyles } from "@/caption-engine/render/resolveStyles";
+import { ScaleToFitCaption } from "@/components/ScaleToFitCaption";
 
 function useIsTabletLandscape() {
   const [isTabletLandscape, setIsTabletLandscape] = useState(false);
@@ -544,23 +545,13 @@ export default function CardPlayer({
                         
                         return (
                           <div className="flex flex-col items-center w-full gap-2">
-                            <div 
-                              style={styles.panel}
-                              data-testid="caption-panel"
-                            >
-                              <p 
-                                className="m-0"
-                                style={styles.headline}
-                                data-testid="text-headline"
-                              >
-                                {styles.headlineLines.map((line, i) => (
-                                  <React.Fragment key={i}>
-                                    {line}
-                                    {i < styles.headlineLines.length - 1 && <br />}
-                                  </React.Fragment>
-                                ))}
-                              </p>
-                            </div>
+                            <ScaleToFitCaption
+                              lines={styles.headlineLines}
+                              panelStyle={styles.panel}
+                              textStyle={styles.headline}
+                              containerWidthPx={containerWidthPx}
+                              maxHeightPx={fullScreen ? 200 : 150}
+                            />
                             
                             {supporting && (
                               <p 
