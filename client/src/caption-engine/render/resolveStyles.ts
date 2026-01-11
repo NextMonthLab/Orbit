@@ -47,21 +47,35 @@ export function resolveStyles(input: ResolveStylesInput): ResolvedCaptionStyles 
   const words = headlineText.trim().split(/\s+/).filter(w => w.length > 0);
   const wordCount = words.length || Math.ceil(textLength / 6); // fallback estimate
   const longestWord = words.length > 0 ? Math.max(...words.map(w => w.length)) : 10;
+  const totalChars = headlineText.length || textLength;
 
-  // Font scaling based on content structure (not just total length)
-  const baseFontSize = fullScreen ? typography.fontSize : typography.fontSize * 0.7;
+  // Fit-to-box typography: aggressive font scaling to guarantee fit
+  const baseFont = fullScreen ? typography.fontSize : typography.fontSize * 0.7;
+  const minFont = fullScreen ? 28 : 18;
+
+  // Multi-factor scaling: consider word count, longest word, and total chars
   let fontScale = 1;
-  if (longestWord >= 16) fontScale = 0.82;
-  else if (longestWord >= 12) fontScale = 0.9;
-  else if (textLength > 110) fontScale = 0.75;
-  else if (textLength > 80) fontScale = 0.85;
-  const adjustedFontSize = baseFontSize * fontScale;
+  
+  // Long words need smaller text to fit
+  if (longestWord >= 14) fontScale = Math.min(fontScale, 0.78);
+  else if (longestWord >= 11) fontScale = Math.min(fontScale, 0.88);
+  
+  // Many words need smaller text
+  if (wordCount >= 8) fontScale = Math.min(fontScale, 0.72);
+  else if (wordCount >= 6) fontScale = Math.min(fontScale, 0.82);
+  
+  // Total character count as safety net
+  if (totalChars > 80) fontScale = Math.min(fontScale, 0.75);
+  else if (totalChars > 50) fontScale = Math.min(fontScale, 0.85);
+  
+  const adjustedFontSize = Math.max(baseFont * fontScale, minFont);
 
-  // Line clamp based on word count
-  const lineClamp = wordCount > 6 ? 3 : 2;
+  // Line clamp: start with 2, allow 3 for longer content
+  let lineClamp = 2;
+  if (wordCount > 5 || totalChars > 40) lineClamp = 3;
 
-  // Panel width: wider for shorter headlines to prevent word breaks
-  const panelMaxWidth = wordCount <= 6 ? "96%" : "92%";
+  // Panel width: always start wide (96%) to give words room
+  const panelMaxWidth = "96%";
 
   // Word break policy: only allow break-word for genuinely long tokens (URLs, hashtags)
   const allowWordBreak = longestWord >= 18;
