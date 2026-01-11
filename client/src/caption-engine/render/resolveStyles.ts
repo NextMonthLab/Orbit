@@ -81,6 +81,10 @@ export function resolveStyles(input: ResolveStylesInput): ResolvedCaptionStyles 
     WebkitBoxOrient: "vertical" as any,
     WebkitLineClamp: 3,
     overflow: "hidden",
+    whiteSpace: "normal",
+    wordBreak: "normal",
+    overflowWrap: "break-word",
+    hyphens: "none",
   };
 
   const supporting: CSSProperties = {
@@ -96,6 +100,10 @@ export function resolveStyles(input: ResolveStylesInput): ResolvedCaptionStyles 
     WebkitBoxOrient: "vertical" as any,
     WebkitLineClamp: 2,
     overflow: "hidden",
+    whiteSpace: "normal",
+    wordBreak: "normal",
+    overflowWrap: "break-word",
+    hyphens: "none",
   };
 
   return {
