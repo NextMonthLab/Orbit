@@ -2,9 +2,18 @@ import { useState, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Sparkles, Link2, ClipboardPaste, Upload, Check, ArrowRight, FileText, X, AlertCircle } from "lucide-react";
+import { Loader2, Sparkles, Link2, ClipboardPaste, Upload, Check, ArrowRight, FileText, X, AlertCircle, Film, Globe } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+
+type ContentContext = 'auto' | 'story' | 'article' | 'business';
+
+const contentContextOptions = [
+  { id: 'auto' as const, label: 'Auto-detect', icon: Sparkles },
+  { id: 'story' as const, label: 'Story', icon: Film },
+  { id: 'article' as const, label: 'Article', icon: FileText },
+  { id: 'business' as const, label: 'Business', icon: Globe },
+];
 
 interface Insight {
   id: string;
@@ -77,6 +86,7 @@ export function NewIceModal({
   const [urlInput, setUrlInput] = useState("");
   const [pasteInput, setPasteInput] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [contentContext, setContentContext] = useState<ContentContext>('auto');
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -108,7 +118,7 @@ export function NewIceModal({
   });
 
   const generatePreviewMutation = useMutation({
-    mutationFn: async (data: { type: 'url' | 'text'; value: string }) => {
+    mutationFn: async (data: { type: 'url' | 'text'; value: string; context?: ContentContext }) => {
       const response = await fetch('/api/ice/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -153,7 +163,7 @@ export function NewIceModal({
         setError("Please enter a valid URL");
         return;
       }
-      generatePreviewMutation.mutate({ type: 'url', value: urlInput.trim() });
+      generatePreviewMutation.mutate({ type: 'url', value: urlInput.trim(), context: contentContext });
     } else if (mode === 'paste') {
       if (!pasteInput.trim()) {
         setError("Please paste some content");
@@ -313,7 +323,7 @@ export function NewIceModal({
             )}
 
             {mode === 'url' && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-sm text-muted-foreground">Enter a webpage URL to import</label>
                 <Input
                   placeholder="https://example.com/article"
@@ -325,6 +335,28 @@ export function NewIceModal({
                   className="bg-muted/50 border-border"
                   data-testid="input-url"
                 />
+                <div className="flex flex-wrap gap-1.5">
+                  {contentContextOptions.map((ctx) => {
+                    const Icon = ctx.icon;
+                    const isActive = contentContext === ctx.id;
+                    return (
+                      <button
+                        key={ctx.id}
+                        type="button"
+                        onClick={() => setContentContext(ctx.id)}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs transition-colors ${
+                          isActive
+                            ? 'bg-blue-500/20 border border-blue-500/50 text-blue-300'
+                            : 'bg-muted/30 border border-border text-muted-foreground hover:bg-muted/50'
+                        }`}
+                        data-testid={`context-${ctx.id}`}
+                      >
+                        <Icon className="w-3 h-3" />
+                        {ctx.label}
+                      </button>
+                    );
+                  })}
+                </div>
                 <p className="text-xs text-muted-foreground/50">We'll extract the content and generate your ICE</p>
               </div>
             )}
