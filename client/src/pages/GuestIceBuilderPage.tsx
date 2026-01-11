@@ -181,69 +181,109 @@ function PreviewChatPanel({
   };
   
   return (
-    <>
-      <div ref={scrollRef} className="flex-1 bg-white/5 rounded-xl border border-white/10 p-4 mb-4 overflow-y-auto space-y-4">
+    <div className="flex flex-col h-full max-h-[100dvh] pb-safe">
+      {/* Character header */}
+      <div className="flex items-center gap-3 mb-4 pb-3 border-b border-white/10">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500/50 to-pink-500/50 flex items-center justify-center ring-2 ring-purple-400/30">
+          <MessageCircle className="w-6 h-6 text-white" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-white">{characterName}</h3>
+          <p className="text-xs text-white/50">AI Character</p>
+        </div>
+        <button
+          onClick={onContinue}
+          className="text-xs text-white/40 hover:text-white/70 transition-colors px-3 py-1.5 rounded-full border border-white/10 hover:border-white/30"
+          data-testid="button-skip-chat"
+        >
+          Skip
+        </button>
+      </div>
+      
+      {/* Messages area - scrollable */}
+      <div 
+        ref={scrollRef} 
+        className="flex-1 overflow-y-auto space-y-4 min-h-0 pb-4 scroll-smooth"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         {messages.map((msg, idx) => (
-          <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-            <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
-              msg.role === "user" ? "bg-blue-500/30" : "bg-purple-500/30"
+          <div 
+            key={idx} 
+            className={`flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+            style={{ animationDelay: `${idx * 50}ms` }}
+          >
+            <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center shadow-lg ${
+              msg.role === "user" 
+                ? "bg-gradient-to-br from-blue-500 to-blue-600" 
+                : "bg-gradient-to-br from-purple-500 to-pink-500"
             }`}>
               {msg.role === "user" ? (
-                <span className="text-xs text-blue-300">You</span>
+                <span className="text-xs font-medium text-white">You</span>
               ) : (
-                <MessageCircle className="w-4 h-4 text-purple-300" />
+                <MessageCircle className="w-4 h-4 text-white" />
               )}
             </div>
-            <div className={`flex-1 ${msg.role === "user" ? "text-right" : ""}`}>
-              <p className={`text-sm inline-block px-3 py-2 rounded-lg ${
-                msg.role === "user" ? "bg-blue-500/20 text-blue-100" : "text-white/80"
+            <div className={`flex-1 max-w-[80%] ${msg.role === "user" ? "text-right" : ""}`}>
+              <div className={`inline-block px-4 py-3 rounded-2xl shadow-md ${
+                msg.role === "user" 
+                  ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-md" 
+                  : "bg-white/10 backdrop-blur-sm text-white/90 rounded-bl-md border border-white/5"
               }`}>
-                {msg.content}
-              </p>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+              </div>
             </div>
           </div>
         ))}
         {isLoading && (
-          <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-purple-500/30 flex-shrink-0 flex items-center justify-center">
-              <Loader2 className="w-4 h-4 text-purple-300 animate-spin" />
+          <div className="flex gap-3 animate-in fade-in duration-200">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex-shrink-0 flex items-center justify-center shadow-lg">
+              <Loader2 className="w-4 h-4 text-white animate-spin" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-white/50">Thinking...</p>
+              <div className="inline-block px-4 py-3 rounded-2xl rounded-bl-md bg-white/10 backdrop-blur-sm border border-white/5">
+                <div className="flex gap-1">
+                  <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
             </div>
           </div>
         )}
       </div>
       
-      <div className="flex gap-2 mb-4">
-        <Input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
-          placeholder={isReady ? "Type a message..." : "Loading..."}
-          className="flex-1 bg-white/5 border-white/20 text-white placeholder:text-white/40"
-          disabled={isLoading || !isReady}
-        />
-        <Button
-          onClick={sendMessage}
-          disabled={isLoading || !input.trim() || !isReady}
-          variant="outline"
-          size="icon"
-          className="border-white/20"
+      {/* Input area - fixed at bottom */}
+      <div className="flex-shrink-0 pt-3 border-t border-white/10 bg-black/20 backdrop-blur-sm -mx-4 px-4 pb-2">
+        <div className="flex gap-2 items-center">
+          <Input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
+            placeholder={isReady ? "Ask me anything..." : "Loading..."}
+            className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 rounded-full px-4 h-11 focus:ring-2 focus:ring-purple-500/50"
+            disabled={isLoading || !isReady}
+          />
+          <Button
+            onClick={sendMessage}
+            disabled={isLoading || !input.trim() || !isReady}
+            size="icon"
+            className="h-11 w-11 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-lg disabled:opacity-50"
+          >
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-white" /> : <Send className="w-5 h-5 text-white" />}
+          </Button>
+        </div>
+        
+        {/* Continue button - subtle, secondary action */}
+        <button
+          onClick={onContinue}
+          className="w-full mt-3 py-2 text-sm text-white/50 hover:text-white/80 transition-colors flex items-center justify-center gap-1"
+          data-testid="button-continue-from-interactivity"
         >
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-        </Button>
+          Continue to next card
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
-      
-      <Button
-        onClick={onContinue}
-        className="w-full bg-purple-600 hover:bg-purple-700"
-        data-testid="button-continue-from-interactivity"
-      >
-        Continue
-        <ChevronRight className="w-4 h-4 ml-2" />
-      </Button>
-    </>
+    </div>
   );
 }
 
@@ -1860,21 +1900,10 @@ export default function GuestIceBuilderPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 z-[65] bg-black/90 backdrop-blur-sm flex flex-col"
+                  className="absolute inset-0 z-[65] bg-gradient-to-b from-black/95 via-black/90 to-purple-950/90 backdrop-blur-md flex flex-col"
                 >
-                  <div className="flex-1 flex flex-col max-w-lg mx-auto w-full p-4 pt-16">
-                    <div className="text-center mb-4">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 mx-auto mb-3 flex items-center justify-center">
-                        <MessageCircle className="w-8 h-8 text-white" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-white">
-                        {character?.name || "Story Character"}
-                      </h3>
-                      {character?.role && (
-                        <p className="text-sm text-white/60">{character.role}</p>
-                      )}
-                    </div>
-                    
+                  {/* Safe area padding for mobile */}
+                  <div className="flex-1 flex flex-col max-w-lg mx-auto w-full px-4 pt-12 pb-4 h-full overflow-hidden">
                     <PreviewChatPanel
                       previewId={preview?.id || ""}
                       previewAccessToken={previewAccessToken}
