@@ -120,7 +120,13 @@ export function resolveStyles(input: ResolveStylesInput): ResolvedCaptionStyles 
     WebkitTextStroke: colorsAny.stroke ? `${colorsAny.strokeWidth || 1}px ${colorsAny.stroke}` : undefined,
     margin: 0,
     textAlign: "center",
-    whiteSpace: "nowrap",
+    display: "block",
+    overflow: "visible",
+    textOverflow: "clip",
+    whiteSpace: "pre-line",
+    wordBreak: "keep-all" as any,
+    overflowWrap: "normal" as any,
+    hyphens: "none",
   };
 
   const supporting: CSSProperties = {

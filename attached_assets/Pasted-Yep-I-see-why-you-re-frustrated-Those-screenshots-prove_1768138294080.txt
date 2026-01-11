@@ -1,0 +1,114 @@
+Yep, I see why you’re frustrated. Those screenshots prove the integration is still fighting the browser, not controlling it.
+
+What the screenshots are actually telling us
+	•	“generativ” is not “wrapping”, it’s character-level truncation.
+	•	“AI too…” is ellipsis from line clamp / text-overflow / overflow hidden somewhere in the headline styles.
+	•	In other words: the new fitter can be perfect, but the renderer is still applying a “clip and dot dot dot” rule on top.
+
+So we’re not miles away because the fitter is bad. We’re miles away because the final render is still clamped.
+
+⸻
+
+The immediate fix (stop the bleeding)
+
+In whatever ends up styling the headline <p>, we need to guarantee these are NOT applied:
+	•	-webkit-line-clamp
+	•	display: -webkit-box
+	•	text-overflow: ellipsis
+	•	overflow: hidden on the <p> (panel can be hidden, the <p> should not)
+	•	any lineClamp tailwind class
+
+What the headline element should be forced to
+
+Make Replit hard-set this on the headline <p> style:
+	•	display: block
+	•	overflow: visible
+	•	textOverflow: 'clip'
+	•	whiteSpace: 'pre-line' (or pre-wrap)
+	•	wordBreak: 'keep-all'
+	•	overflowWrap: 'normal'
+	•	hyphens: 'none'
+
+If you are rendering headlineLines with <br/>, then line clamp must be deleted. Clamp and deterministic lines are mutually exclusive.
+
+⸻
+
+The “CapCut” approach you actually want (radically more reliable)
+
+Even better than fighting line breaks: render the caption normally, then scale the whole block down until it fits the panel.
+
+This is how you get “always fits” without endless heuristics.
+
+Scale-to-fit algorithm (simple and brutal)
+	1.	Render headline inside an inner wrapper at your preferred font size.
+	2.	Measure inner.scrollWidth/scrollHeight.
+	3.	Compute:
+
+	•	scale = min(availableW / scrollW, availableH / scrollH, 1)
+
+	4.	Apply:
+
+	•	transform: scale(scale)
+	•	transformOrigin: 'center center'
+
+This guarantees:
+	•	no word splitting
+	•	no truncation
+	•	always inside the panel
+	•	looks like a proper editor behaviour
+
+You can still keep your fitter for nicer line breaks, but scale-to-fit becomes the unbreakable safety net.
+
+⸻
+
+The one question that matters (and you can answer in 10 seconds)
+
+In DevTools on the broken caption, click the headline <p> and check computed styles:
+
+If you see any of:
+	•	-webkit-line-clamp: 2 (or 3)
+	•	text-overflow: ellipsis
+	•	display: -webkit-box
+
+That’s the culprit. Kill it.
+
+⸻
+
+Send this to Replit (NextMonth 2.0) right now
+
+Copy paste:
+
+We are still seeing character truncation and ellipsis in the headline (“generativ”, “AI too…”).
+This means the headline element is still being clamped or ellipsised in the final render.
+
+Task A (mandatory): remove all headline truncation rules
+- Search for WebkitLineClamp, lineClamp, -webkit-box, textOverflow: ellipsis, overflow:hidden on the headline <p>.
+- Delete those behaviours for headlines when using the fit engine.
+- Force headline <p> to:
+  display:block
+  overflow:visible
+  textOverflow:clip
+  whiteSpace:pre-line (or pre-wrap)
+  wordBreak:keep-all
+  overflowWrap:normal
+  hyphens:none
+
+Task B (CapCut safety net): add scale-to-fit wrapper
+- Wrap the headline text in an inner div inside the panel.
+- Measure inner scrollWidth/scrollHeight vs available panel width/height (px).
+- Compute scale = min(availW/scrollW, availH/scrollH, 1)
+- Apply transform: scale(scale) and transformOrigin:center.
+- This must run on caption change and on ResizeObserver events.
+
+Acceptance:
+- “As generative AI tools…” must render fully with no ellipsis and no chopped word.
+- Even if tiny, all words must stay inside the panel.
+
+
+⸻
+
+My honest view
+
+You don’t need a new project again. You need one ruthless rule: no ellipsis, ever, and a scale-to-fit safety net so it can’t fail.
+
+If you paste back the computed styles you see on the broken <p> (just the few lines mentioning clamp, overflow, text-overflow, display), I can tell you exactly which rule is still active and where it’s likely coming from.

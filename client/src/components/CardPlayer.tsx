@@ -527,7 +527,7 @@ export default function CardPlayer({
                   className="flex flex-col items-center justify-end px-4 pb-6"
                   style={{ transformOrigin: 'center center' }}
                 >
-                  <div style={{ maxHeight: '30vh', overflow: 'hidden', width: '100%' }}>
+                  <div style={{ maxHeight: '30vh', overflow: 'visible', width: '100%' }}>
                     {captionIndex < card.captions.length ? (
                       (() => {
                         const captionText = card.captions[captionIndex];
