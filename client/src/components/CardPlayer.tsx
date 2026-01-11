@@ -507,7 +507,8 @@ export default function CardPlayer({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
-                  className="flex flex-col items-center justify-center px-4 pb-8"
+                  className="flex flex-col items-center justify-end px-4 pb-8"
+                  style={{ maxHeight: '35%' }}
                 >
                   {captionIndex < card.captions.length ? (
                     (() => {
@@ -532,11 +533,16 @@ export default function CardPlayer({
                       const professionalTextShadow = colorsAny.shadow || '0 2px 4px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.4)';
                       const glowShadow = '0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.8)';
                       
+                      // Adjust font size based on text length to fit within 1/3 screen
+                      const textLength = headline.length + (supporting?.length || 0);
+                      const fontScale = textLength > 100 ? 0.7 : textLength > 60 ? 0.85 : 1;
+                      const adjustedFontSize = baseFontSize * fontScale;
+                      
                       // Background styles based on treatment - using inline-block for single cohesive box
                       const getBackgroundStyles = (): React.CSSProperties => {
                         const baseContainerStyles: React.CSSProperties = {
                           display: 'inline-block',
-                          maxWidth: '85%',
+                          maxWidth: '90%',
                           textAlign: 'center',
                           whiteSpace: 'normal',
                           wordBreak: 'break-word',
@@ -583,7 +589,7 @@ export default function CardPlayer({
                       
                       const headlineStyles: React.CSSProperties = {
                         fontFamily: typography.fontFamily,
-                        fontSize: `${baseFontSize}px`,
+                        fontSize: `${adjustedFontSize}px`,
                         fontWeight: 800,
                         lineHeight: 1.1,
                         letterSpacing: '-0.02em',
@@ -595,12 +601,12 @@ export default function CardPlayer({
                       
                       const supportingStyles: React.CSSProperties = {
                         fontFamily: typography.fontFamily,
-                        fontSize: `${baseFontSize * 0.45}px`,
+                        fontSize: `${adjustedFontSize * 0.5}px`,
                         fontWeight: 400,
-                        lineHeight: 1.4,
-                        color: 'rgba(255,255,255,0.7)',
+                        lineHeight: 1.3,
+                        color: 'rgba(255,255,255,0.75)',
                         textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                        letterSpacing: '0.02em',
+                        letterSpacing: '0.01em',
                       };
                       
                       return (
