@@ -9,6 +9,7 @@ import type { CaptionState } from "@/caption-engine/schemas";
 import { captionPresets } from "@/caption-engine/presets/captionPresets";
 import { typographyTokens } from "@/caption-engine/tokens/typography";
 import { colorTokens } from "@/caption-engine/tokens/colors";
+import { backgroundTokens } from "@/caption-engine/tokens/backgrounds";
 
 function useIsTabletLandscape() {
   const [isTabletLandscape, setIsTabletLandscape] = useState(false);
@@ -518,6 +519,7 @@ export default function CardPlayer({
                       const preset = captionPresets[presetId] || captionPresets.clean_white;
                       const typography = typographyTokens[preset.typography] || typographyTokens.sans;
                       const colors = colorTokens[preset.colors] || colorTokens.shadowWhite;
+                      const background = backgroundTokens[preset.background] || backgroundTokens.none;
                       
                       // Karaoke settings
                       const karaokeEnabled = captionState?.karaokeEnabled;
@@ -525,8 +527,46 @@ export default function CardPlayer({
                       
                       // Build professional caption styles from tokens
                       const baseFontSize = fullScreen ? typography.fontSize : typography.fontSize * 0.7;
-                      const professionalTextShadow = colors.shadow || '0 2px 4px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.4)';
+                      const colorsAny = colors as any;
+                      const typographyAny = typography as any;
+                      const professionalTextShadow = colorsAny.shadow || '0 2px 4px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.4)';
                       const glowShadow = '0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.8)';
+                      
+                      // Background styles based on treatment
+                      const getBackgroundStyles = (): React.CSSProperties => {
+                        switch (background.treatment) {
+                          case 'panel':
+                            return {
+                              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                              padding: `${background.paddingY}px ${background.paddingX}px`,
+                              borderRadius: `${background.borderRadius}px`,
+                            };
+                          case 'pill':
+                            return {
+                              backgroundColor: colorsAny.background || 'rgba(255, 220, 0, 0.9)',
+                              padding: `${background.paddingY}px ${background.paddingX}px`,
+                              borderRadius: `${background.borderRadius}px`,
+                            };
+                          case 'blur':
+                            return {
+                              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                              backdropFilter: `blur(${background.blurAmount || 10}px)`,
+                              WebkitBackdropFilter: `blur(${background.blurAmount || 10}px)`,
+                              padding: `${background.paddingY}px ${background.paddingX}px`,
+                              borderRadius: `${background.borderRadius}px`,
+                            };
+                          case 'gradient':
+                            return {
+                              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(59, 130, 246, 0.8))',
+                              padding: `${background.paddingY}px ${background.paddingX}px`,
+                              borderRadius: `${background.borderRadius}px`,
+                            };
+                          default:
+                            return {};
+                        }
+                      };
+                      
+                      const bgStyles = getBackgroundStyles();
                       
                       const headlineStyles: React.CSSProperties = {
                         fontFamily: typography.fontFamily,
@@ -534,10 +574,10 @@ export default function CardPlayer({
                         fontWeight: typography.fontWeight,
                         lineHeight: typography.lineHeight,
                         letterSpacing: `${typography.letterSpacing}px`,
-                        textTransform: typography.textTransform || 'none',
+                        textTransform: typographyAny.textTransform || 'none',
                         color: colors.text,
                         textShadow: karaokeEnabled && karaokeStyle === 'glow' ? glowShadow : professionalTextShadow,
-                        WebkitTextStroke: colors.stroke ? `${colors.strokeWidth || 1}px ${colors.stroke}` : undefined,
+                        WebkitTextStroke: colorsAny.stroke ? `${colorsAny.strokeWidth || 1}px ${colorsAny.stroke}` : undefined,
                       };
                       
                       const supportingStyles: React.CSSProperties = {
@@ -545,21 +585,26 @@ export default function CardPlayer({
                         fontSize: `${baseFontSize * 0.65}px`,
                         fontWeight: 500,
                         lineHeight: 1.4,
-                        color: colors.textSecondary || colors.text,
+                        color: colorsAny.textSecondary || colors.text,
                         textShadow: '0 1px 3px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.4)',
                         opacity: 0.9,
                       };
                       
                       return (
                         <div className="flex flex-col items-center gap-4 px-6 w-full">
-                          {/* Headline - Caption Engine styling */}
-                          <p 
-                            className="leading-tight max-w-full text-center"
-                            style={headlineStyles}
-                            data-testid="text-headline"
+                          {/* Headline - Caption Engine styling with background */}
+                          <div 
+                            className="max-w-full"
+                            style={bgStyles}
                           >
-                            {headline}
-                          </p>
+                            <p 
+                              className="leading-tight text-center"
+                              style={headlineStyles}
+                              data-testid="text-headline"
+                            >
+                              {headline}
+                            </p>
+                          </div>
                           
                           {/* Supporting text */}
                           {supporting && (
