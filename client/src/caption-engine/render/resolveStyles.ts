@@ -18,6 +18,7 @@ export interface ResolveStylesInput {
   headlineText?: string;
   layoutMode?: CaptionLayoutMode;
   fontSize?: CaptionFontSize;
+  globalScaleFactor?: number;
   layout?: {
     containerWidthPx: number;
   };
@@ -54,10 +55,12 @@ export function resolveStyles(input: ResolveStylesInput): ResolvedCaptionStyles 
     headlineText = "",
     layoutMode = "title",
     fontSize = "medium",
+    globalScaleFactor = 1,
     layout,
   } = input;
   
   // Font size multipliers: small = 0.75x, medium = 1x, large = 1.25x
+  // globalScaleFactor ensures consistency across all captions in a deck
   const fontSizeMultiplier = fontSize === 'small' ? 0.75 : fontSize === 'large' ? 1.25 : 1;
 
   const preset = captionPresets[presetId] || captionPresets.clean_white;
@@ -99,11 +102,13 @@ export function resolveStyles(input: ResolveStylesInput): ResolvedCaptionStyles 
   const isParagraphMode = layoutMode === 'paragraph';
   const baseTypographySize = fullScreen ? typography.fontSize : typography.fontSize * 0.7;
   const baseFontSizeRaw = isParagraphMode ? baseTypographySize * 0.85 : baseTypographySize;
-  const baseFontSize = baseFontSizeRaw * fontSizeMultiplier;
+  // Apply font size multiplier and global scale factor for deck-level consistency
+  const baseFontSize = baseFontSizeRaw * fontSizeMultiplier * globalScaleFactor;
   const minFontSizeRaw = isParagraphMode 
     ? (fullScreen ? 18 : 12) 
     : (fullScreen ? 24 : 16);
-  const minFontSize = minFontSizeRaw * fontSizeMultiplier;
+  // Min font also scales with both multipliers to maintain proportional relationship
+  const minFontSize = minFontSizeRaw * fontSizeMultiplier * globalScaleFactor;
   const containerWidth = layout?.containerWidthPx || 375;
   const lineHeight = isParagraphMode ? 1.15 : 1.1;
   const maxLines = isParagraphMode ? 5 : 3;

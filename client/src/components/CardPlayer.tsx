@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Card } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, ChevronUp, Share2, BookOpen, RotateCcw, Volume2, VolumeX, Film, Image, Play, Pause } from "lucide-react";
@@ -8,6 +8,7 @@ import MessageBoard from "@/components/MessageBoard";
 import type { CaptionState } from "@/caption-engine/schemas";
 import { resolveStyles } from "@/caption-engine/render/resolveStyles";
 import { ScaleToFitCaption } from "@/components/ScaleToFitCaption";
+import { measureCaptionSet } from "@/caption-engine/layout/fit";
 
 function useIsTabletLandscape() {
   const [isTabletLandscape, setIsTabletLandscape] = useState(false);
@@ -139,6 +140,28 @@ export default function CardPlayer({
     safeZoneBottomPercent: titlePack.safeZone.bottom,
     viewportScale: fullScreen ? 0.5 : 0.4,
   });
+  
+  // Deck-level caption measurement for consistent sizing across all captions
+  // Computes the global scale factor based on the longest caption
+  const deckMeasurement = useMemo(() => {
+    const fontSize = captionState?.fontSize || 'medium';
+    const fontSizeMultiplier = fontSize === 'small' ? 0.75 : fontSize === 'large' ? 1.25 : 1;
+    const baseFontSize = (fullScreen ? 48 : 48 * 0.7) * fontSizeMultiplier;
+    const minFontSize = (fullScreen ? 24 : 16) * fontSizeMultiplier;
+    
+    return measureCaptionSet({
+      captions: card.captions || [],
+      containerWidthPx: captionGeometry.availableCaptionWidth,
+      baseFontSize,
+      minFontSize,
+      maxLines: 3,
+      padding: 16,
+      lineHeight: 1.1,
+      fontFamily: 'Inter, sans-serif',
+      fontWeight: 700,
+      layoutMode: 'title',
+    });
+  }, [card.captions, captionGeometry.availableCaptionWidth, captionState?.fontSize, fullScreen]);
 
   const getActiveMedia = () => {
     if (card.mediaAssets?.length && card.selectedMediaAssetId) {
@@ -631,6 +654,7 @@ export default function CardPlayer({
                           const captionText = card.captions[captionIndex];
                           
                           // CRITICAL: Fit in COMPOSITION space (972px), not viewport space
+                          // Uses deck-level globalScaleFactor for consistent sizing across all captions
                           const styles = resolveStyles({
                             presetId: captionState?.presetId || 'clean_white',
                             fullScreen,
@@ -639,6 +663,7 @@ export default function CardPlayer({
                             headlineText: captionText,
                             layoutMode: 'title',
                             fontSize: captionState?.fontSize || 'medium',
+                            globalScaleFactor: deckMeasurement.globalScaleFactor,
                             layout: { containerWidthPx: captionGeometry.availableCaptionWidth },
                           });
                           
