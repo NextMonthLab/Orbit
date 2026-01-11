@@ -664,7 +664,7 @@ export default function CardPlayer({
                               initial: { opacity: 0, scale: 0.8 },
                               animate: { opacity: 1, scale: 1 },
                               exit: { opacity: 0, scale: 0.9 },
-                              transition: { duration: 0.4, type: "spring", stiffness: 400, damping: 15 },
+                              transition: { duration: 0.4, type: "spring" as const, stiffness: 400, damping: 15 },
                             };
                           case 'typewriter':
                             return {
