@@ -1,0 +1,155 @@
+Yes – this is exactly the right move. What you want Replit to give you is structured, complete slices of the caption engine, not vibes, not snippets.
+
+Below is a ready-to-send series of data requests you can paste into Replit (or send one by one). They’re written to be unambiguous, ordered, and to prevent partial answers or “creative interpretation”.
+
+You can copy these verbatim.
+
+⸻
+
+📌 Message 0 – Ground rules (send this first)
+
+We are debugging the Caption Engine.
+
+Please respond only with the requested files, in full, with no analysis, no summaries, and no omissions.
+
+Each file must be returned exactly as it exists in the codebase.
+
+Do not optimise, refactor, or explain.
+
+Wait for the next request before continuing.
+
+⸻
+
+📌 Request 1 – Caption state schema (foundation)
+
+Request 1: Caption State Schema
+
+Please return the full contents of the following files:
+
+client/src/caption-engine/schemas/captionState.ts
+client/src/caption-engine/schemas/index.ts
+
+Return files in full, unedited.
+
+⸻
+
+📌 Request 2 – Text grouping & parsing logic
+
+Request 2: Caption grouping and parsing
+
+Please return the full contents of all files in:
+
+client/src/caption-engine/grouping/
+
+This includes (but is not limited to):
+	•	groupingAlgorithm.ts
+	•	parsers.ts
+	•	types.ts
+
+Return all files in full.
+
+⸻
+
+📌 Request 3 – Caption presets (intent layer)
+
+Request 3: Caption presets
+
+Please return the full contents of:
+
+client/src/caption-engine/presets/captionPresets.ts
+client/src/caption-engine/presets/index.ts
+
+No modifications or commentary.
+
+⸻
+
+📌 Request 4 – Design tokens (render contract)
+
+Request 4: Caption design tokens
+
+Please return the full contents of all files in:
+
+client/src/caption-engine/tokens/
+
+Including but not limited to:
+	•	typography.ts
+	•	colors.ts
+	•	backgrounds.ts
+	•	animation.ts
+	•	index.ts
+
+Return every file in full.
+
+⸻
+
+📌 Request 5 – Karaoke system (highlighting + spans)
+
+Request 5: Karaoke caption system
+
+Please return the full contents of all files in:
+
+client/src/caption-engine/karaoke/
+
+Including:
+	•	useKaraokeHighlight.ts
+	•	styles.ts
+	•	types.ts
+	•	index.ts
+
+Return files exactly as written.
+
+⸻
+
+📌 Request 6 – Safe area logic (layout constraints)
+
+Request 6: Caption safe-area logic
+
+Please return the full contents of all files in:
+
+client/src/caption-engine/safe-area/
+
+Including profiles.ts and index.ts.
+
+⸻
+
+📌 Request 7 – Caption engine entry point
+
+Request 7: Caption engine exports
+
+Please return the full contents of:
+
+client/src/caption-engine/index.ts
+
+No changes or explanations.
+
+⸻
+
+📌 Request 8 – Caption rendering component (final step)
+
+Request 8: Caption rendering implementation
+
+Please return the full contents of the component responsible for rendering captions, including all imports.
+
+This is expected to be one of the following (or equivalent):
+
+client/src/components/CardPlayer.tsx
+
+or the component where caption rendering logic is implemented.
+
+Return the complete file.
+
+⸻
+
+Why this works (quick reassurance)
+	•	This sequence mirrors how the system actually thinks
+	•	It prevents Replit from skipping “boring” but critical files
+	•	It gives me everything needed to:
+	•	validate the architecture
+	•	identify rule conflicts
+	•	stop layout bugs recurring
+
+Once you’ve got those responses, you can paste them here in the same order, and I’ll do a proper end-to-end validation instead of whack-a-mole fixes.
+
+If you want, next I can also:
+	•	turn this into a single Replit task checklist, or
+	•	help you define a Caption Rendering Contract to lock this down permanently.
