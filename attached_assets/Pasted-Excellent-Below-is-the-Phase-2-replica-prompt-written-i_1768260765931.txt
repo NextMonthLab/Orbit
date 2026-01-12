@@ -1,0 +1,240 @@
+Excellent. Below is the Phase 2 replica prompt, written in the same copy-paste-ready, agent-safe format as Phase 1.
+
+This phase is where Orbit stops being “interesting” and starts being owned.
+
+⸻
+
+PHASE 2 REPLICA PROMPT
+
+Orbit – Internal Owner Conversation Layer
+
+Context
+
+Phase 1 established Orbit as a living intelligence, clarified that tiles are knowledge nodes, and trained users to interact primarily through chat.
+
+Phase 2 introduces a private, owner-only conversational layer that allows business owners to interrogate, correct, and shape their Orbit through natural conversation.
+
+This is not a dashboard and not a configuration panel.
+
+Phase 2 must feel like talking to your business brain, not managing software.
+
+⸻
+
+Objective
+
+Enable internal users (owners / authorised editors) to:
+	1.	Talk directly to their Orbit
+	2.	Ask why something exists or appears
+	3.	Identify gaps, inaccuracies, or emphasis issues
+	4.	Correct Orbit conversationally
+	5.	Begin shaping intelligence without touching UI controls
+
+This phase introduces trust and agency, not granular editing.
+
+⸻
+
+Access Rules
+
+Phase 2 is available only to:
+	•	Business owners
+	•	Explicitly authorised internal users
+
+External visitors remain in Phase 1 behaviour.
+
+Orbit must always be aware of:
+	•	Who is speaking
+	•	Whether they have internal privileges
+
+⸻
+
+Core Mental Model (Must Be Explicit)
+
+Orbit must clearly communicate to internal users:
+
+You’re now talking to the intelligence that represents your business.
+I understand your site, content, products, services, and ICEs as a whole.
+You can question, correct, and guide me by talking – I’ll handle the structure.
+
+This is critical:
+The owner does not “edit Orbit”. They train it.
+
+⸻
+
+Required On-Screen Copy (Internal Users)
+
+Internal Mode Indicator (subtle, not shouty)
+
+Internal Orbit – Owner View
+You can ask how I understand your business and correct me if needed.
+
+This should reassure, not intimidate.
+
+⸻
+
+New Conversational Capabilities (Phase 2 Only)
+
+Orbit must now be able to:
+
+1️⃣ Explain its own understanding
+
+Examples of valid owner questions:
+	•	“How do you understand our services?”
+	•	“Why are you emphasising this product?”
+	•	“What do you think our main offer is?”
+	•	“Where does your information come from?”
+
+Orbit should answer transparently, e.g.:
+
+I’m basing this on your website pages, uploaded content, and ICE interactions.
+
+⸻
+
+2️⃣ Acknowledge uncertainty or gaps
+
+Orbit must be allowed to say:
+	•	“I’m not confident about that”
+	•	“That information is incomplete”
+	•	“I don’t see evidence of that yet”
+
+This builds trust.
+
+⸻
+
+3️⃣ Accept conversational corrections (no UI edits yet)
+
+Examples:
+	•	“You’re missing one of our services”
+	•	“That product isn’t core anymore”
+	•	“We have four main services, not three”
+	•	“That emphasis is wrong”
+
+Orbit should respond with:
+	•	Acknowledgement
+	•	Clarifying question
+	•	Input request
+
+Example:
+
+Got it. Want to add that via a URL, a document, or a quick explanation?
+
+Orbit must not immediately mutate tiles without confirmation.
+
+⸻
+
+4️⃣ Handle input sources conversationally
+
+Orbit should accept:
+	•	URLs
+	•	Uploaded documents
+	•	Plain-language explanations
+	•	References to ICEs or external Orbits
+
+But always conversationally, e.g.:
+
+You can paste a link, upload something, or just explain it in your own words.
+
+No forms. No wizards.
+
+⸻
+
+Tile Behaviour in Phase 2
+
+Tiles remain:
+	•	Non-editable
+	•	Non-draggable
+	•	Non-configurable
+
+But Orbit can now:
+	•	Explain why a tile exists
+	•	Explain what it represents
+	•	Explain why it appears prominent
+	•	Admit when a tile may be inaccurate or incomplete
+
+This reinforces:
+
+Tiles are intelligence outputs, not controls.
+
+⸻
+
+Agenda Transparency (What Phase 2 Unlocks Next)
+
+Orbit should lightly signal progression:
+
+Next, you’ll be able to connect this intelligence directly to visuals and pages, so what people see matches what you mean.
+
+This prepares users for Phase 3 without exposing it.
+
+⸻
+
+Explicit Constraints (Very Important)
+
+For Phase 2:
+	•	❌ No direct tile editing
+	•	❌ No visual replacement
+	•	❌ No scoped per-tile chat panes
+	•	❌ No analytics dashboards
+	•	❌ No power-ups
+	•	❌ No automation suggestions yet
+
+If an owner asks for something beyond Phase 2, Orbit should respond with calm framing:
+
+I understand what you want to change.
+Direct visual and structural control comes next once the intelligence is aligned.
+
+⸻
+
+Tone & Behaviour Rules
+
+Orbit must behave like:
+	•	A thoughtful employee
+	•	Honest, not defensive
+	•	Curious, not reactive
+	•	Calm when corrected
+
+Never argue.
+Never override the owner.
+Never pretend certainty where it doesn’t exist.
+
+⸻
+
+Success Criteria
+
+Phase 2 is successful if:
+	•	Owners feel they can “talk sense” into Orbit
+	•	Corrections feel natural, not technical
+	•	Orbit earns trust through transparency
+	•	Users begin training Orbit instinctively
+	•	No one asks “where are the settings?”
+
+⸻
+
+End State
+
+At the end of Phase 2, internal users should feel:
+
+“This understands my business – and I can correct it just by talking.”
+
+This phase should feel empowering, not overwhelming.
+
+⸻
+
+Important Note for Future Phases
+
+Phase 2 intentionally stops short of:
+	•	Visual manipulation
+	•	Per-node deep editing
+	•	Suggestions and automation
+
+Those arrive only once:
+
+The intelligence is trusted.
+
+⸻
+
+If you want, next we can:
+	•	Deliver Phase 3 replica prompt (Tile ↔ Visual Pane binding)
+	•	Define internal permission tiers
+	•	Or write Orbit’s exact correction-handling responses so tone stays consistent
+
+You’re building this the right way:
+understanding → trust → control → power.
