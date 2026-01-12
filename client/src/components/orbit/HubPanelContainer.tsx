@@ -3,7 +3,6 @@ import { HubGridPanel } from "./HubGridPanel";
 import { HubBrandPanel } from "./HubBrandPanel";
 import { HubConversationsPanel } from "./HubConversationsPanel";
 import { HubLeadsPanel } from "./HubLeadsPanel";
-import { HubIcePanel } from "./HubIcePanel";
 import { HubNotificationsPanel } from "./HubNotificationsPanel";
 import { HubDataSourcesPanel } from "./HubDataSourcesPanel";
 import { HubCubesPanel } from "./HubCubesPanel";
@@ -39,9 +38,6 @@ export function HubPanelContainer({
     
     case 'grid':
       return <HubGridPanel businessSlug={businessSlug} planTier={planTier} />;
-    
-    case 'ice':
-      return <HubIcePanel businessSlug={businessSlug} planTier={planTier} />;
     
     case 'brand':
       return (

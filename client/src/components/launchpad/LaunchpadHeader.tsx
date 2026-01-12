@@ -1,4 +1,4 @@
-import { ChevronDown, Zap, Library, Plus, ExternalLink, Share2, Settings, LayoutDashboard } from "lucide-react";
+import { ChevronDown, Zap, ExternalLink, Share2, Settings, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,14 +23,12 @@ interface LaunchpadHeaderProps {
   orbits: OrbitSummary[];
   selectedOrbit: OrbitSummary | null;
   onOrbitSelect: (orbit: OrbitSummary) => void;
-  onCreateIce: () => void;
 }
 
 export function LaunchpadHeader({
   orbits,
   selectedOrbit,
   onOrbitSelect,
-  onCreateIce,
 }: LaunchpadHeaderProps) {
   const isPowered = selectedOrbit?.status === "powered";
   const [showShareModal, setShowShareModal] = useState(false);
@@ -138,25 +136,6 @@ export function LaunchpadHeader({
             </Link>
           </>
         )}
-        <Link href="/icemaker/projects" className="hidden md:block">
-          <Button
-            variant="ghost"
-            className="text-muted-foreground hover:text-foreground hover:bg-muted"
-            data-testid="link-library"
-          >
-            <Library className="w-4 h-4 mr-2" />
-            Library
-          </Button>
-        </Link>
-        <Button
-          onClick={onCreateIce}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-sm md:text-base px-3 md:px-4"
-          data-testid="button-new-ice"
-          aria-label="New Ice"
-        >
-          <Plus className="w-4 h-4 md:mr-2" />
-          <span className="hidden md:inline">New Ice</span>
-        </Button>
       </div>
 
       {selectedOrbit && (

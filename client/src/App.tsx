@@ -35,12 +35,6 @@ import OrbitSettings from "@/pages/orbit/OrbitSettings";
 import OrbitClaim from "@/pages/orbit/OrbitClaim";
 import CatalogueImport from "@/pages/orbit/CatalogueImport";
 import SocialProofLibrary from "@/pages/orbit/SocialProofLibrary";
-import IceMakerHome from "@/pages/icemaker/IceMakerHome";
-import IceMakerCreate from "@/pages/icemaker/IceMakerCreate";
-import IceMakerProjects from "@/pages/icemaker/IceMakerProjects";
-import IceMakerTemplates from "@/pages/icemaker/IceMakerTemplates";
-import IceMakerSettings from "@/pages/icemaker/IceMakerSettings";
-import Library from "@/pages/Library";
 import { useSearch } from "wouter";
 
 function OrbitRouter() {
@@ -75,10 +69,6 @@ import CharacterCreatorPage from "@/pages/admin/CharacterCreatorPage";
 import BlogPublisherPage from "@/pages/admin/BlogPublisherPage";
 import IndustryOrbitAssets from "@/pages/admin/IndustryOrbitAssets";
 import OrbitHealthDashboard from "@/pages/admin/OrbitHealthDashboard";
-import GuestIceBuilderPage from "@/pages/GuestIceBuilderPage";
-import CaptionDemo from "@/pages/CaptionDemo";
-import CaptionComposerLab from "@/pages/caption-composer-lab";
-import IceCheckoutPage from "@/pages/IceCheckoutPage";
 import CheckoutSuccessPage from "@/pages/CheckoutSuccessPage";
 import AdminUniverseDetail from "@/pages/AdminUniverseDetail";
 import VisualBible from "@/pages/VisualBible";
@@ -163,14 +153,6 @@ function Router() {
       <Route path="/security" component={Security} />
       <Route path="/preview/:id" component={PreviewRedirect} />
       
-      <Route path="/library" component={Library} />
-      <Route path="/icemaker" component={Library} />
-      <Route path="/icemaker/create" component={IceMakerCreate} />
-      <Route path="/icemaker/projects" component={Library} />
-      <Route path="/icemaker/templates" component={IceMakerTemplates} />
-      <Route path="/icemaker/settings" component={IceMakerSettings} />
-      <Route path="/icemaker/captions" component={CaptionDemo} />
-      <Route path="/icemaker/composer-lab" component={CaptionComposerLab} />
       
       <Route path="/orbit" component={OrbitHome} />
       <Route path="/orbit/my" component={MyOrbits} />
@@ -190,12 +172,7 @@ function Router() {
       <Route path="/orbit/:slug/settings" component={OrbitSettings} />
       <Route path="/orbit/:slug/import" component={CatalogueImport} />
       <Route path="/orbit/:slug/proof" component={SocialProofLibrary} />
-      <Route path="/ice/new" component={TransformationsPage} />
-      <Route path="/try" component={GuestIceBuilderPage} />
-      <Route path="/ice/preview/:id" component={GuestIceBuilderPage} />
-      <Route path="/ice/preview/:id/checkout" component={IceCheckoutPage} />
       <Route path="/checkout/success" component={CheckoutSuccessPage} />
-      <Route path="/checkout/cancel">{() => { window.location.href = "/icemaker"; return null; }}</Route>
       <Route path="/app" component={ProtectedLaunchpad} />
       <Route path="/launchpad" component={ProtectedLaunchpad} />
       <Route path="/stories" component={ProtectedHome} />

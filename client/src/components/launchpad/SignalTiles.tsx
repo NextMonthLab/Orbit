@@ -1,16 +1,14 @@
-import { Eye, MessageCircle, Film, UserPlus } from "lucide-react";
+import { Eye, MessageCircle, UserPlus } from "lucide-react";
 
 interface SignalTilesProps {
   visits: number;
   conversations: number;
-  iceViews: number;
   leads: number;
 }
 
 export function SignalTiles({
   visits,
   conversations,
-  iceViews,
   leads,
 }: SignalTilesProps) {
   const tiles = [
@@ -29,13 +27,6 @@ export function SignalTiles({
       bgColor: "bg-green-500/10",
     },
     {
-      label: "Ice views",
-      value: iceViews,
-      icon: Film,
-      color: "text-purple-400",
-      bgColor: "bg-purple-500/10",
-    },
-    {
       label: "Leads",
       value: leads,
       icon: UserPlus,
@@ -45,7 +36,7 @@ export function SignalTiles({
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4" data-testid="signal-tiles">
+    <div className="grid grid-cols-3 gap-3 md:gap-4" data-testid="signal-tiles">
       {tiles.map((tile) => (
         <div
           key={tile.label}

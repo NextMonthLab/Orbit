@@ -1,4 +1,4 @@
-import { User, Universe, IcePreview, OrbitMeta, ContentVisibility, InsertAuditLog } from "@shared/schema";
+import { User, Universe, OrbitMeta, ContentVisibility, InsertAuditLog } from "@shared/schema";
 import { storage } from "./storage";
 
 type AuthUser = User | undefined;
@@ -81,39 +81,6 @@ export function canWriteUniverse(user: AuthUser, universe: Universe): PolicyResu
   return canWriteByOwnership(user, universe.ownerUserId, "Universe");
 }
 
-export function canReadIcePreview(user: AuthUser, preview: IcePreview): PolicyResult {
-  return canReadByVisibility(
-    user,
-    preview.ownerUserId,
-    (preview.visibility as ContentVisibility) || "unlisted",
-    "Preview"
-  );
-}
-
-export function canWriteIcePreview(
-  user: AuthUser, 
-  preview: IcePreview,
-  claimToken?: string
-): PolicyResult {
-  if (!user) {
-    return deny(401, "Authentication required");
-  }
-  
-  if (user.isAdmin || user.role === "admin") {
-    return ALLOWED;
-  }
-  
-  if (preview.ownerUserId && user.id === preview.ownerUserId) {
-    return ALLOWED;
-  }
-  
-  if (!preview.ownerUserId && preview.ownerIp) {
-    return deny(403, "This preview must be claimed first");
-  }
-  
-  return deny(403, "Not authorized to modify this preview");
-}
-
 export function canReadOrbit(user: AuthUser, orbit: OrbitMeta): PolicyResult {
   return canReadByVisibility(
     user,
@@ -125,29 +92,6 @@ export function canReadOrbit(user: AuthUser, orbit: OrbitMeta): PolicyResult {
 
 export function canWriteOrbit(user: AuthUser, orbit: OrbitMeta): PolicyResult {
   return canWriteByOwnership(user, orbit.ownerId, "Orbit");
-}
-
-export function canClaimIcePreview(
-  user: AuthUser,
-  preview: IcePreview,
-  claimToken?: string
-): PolicyResult {
-  if (!user) {
-    return deny(401, "Authentication required to claim preview");
-  }
-  
-  if (preview.ownerUserId) {
-    if (preview.ownerUserId === user.id) {
-      return ALLOWED;
-    }
-    return deny(403, "Preview already claimed by another user");
-  }
-  
-  if (preview.claimTokenHash && preview.claimTokenUsedAt) {
-    return deny(403, "Claim token already used");
-  }
-  
-  return ALLOWED;
 }
 
 export async function logAuditEvent(

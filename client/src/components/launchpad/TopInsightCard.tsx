@@ -1,11 +1,9 @@
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import type { Insight } from "./InsightCard";
 
 interface TopInsightCardProps {
   insight: Insight | null;
-  onMakeIce: (insight: Insight) => void;
 }
 
 const confidenceColors = {
@@ -14,7 +12,7 @@ const confidenceColors = {
   low: "bg-slate-500/20 text-slate-400 border-slate-500/30",
 };
 
-export function TopInsightCard({ insight, onMakeIce }: TopInsightCardProps) {
+export function TopInsightCard({ insight }: TopInsightCardProps) {
   if (!insight) {
     return (
       <div className="p-6 rounded-xl bg-muted/50 border border-border">
@@ -56,29 +54,17 @@ export function TopInsightCard({ insight, onMakeIce }: TopInsightCardProps) {
         <h4 className="text-lg font-medium text-foreground mb-2">{insight.title}</h4>
         <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{insight.meaning}</p>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
-            {insight.topicTags.slice(0, 2).map((tag) => (
-              <Badge
-                key={tag}
-                variant="outline"
-                className="border-border text-muted-foreground text-xs"
-              >
-                {tag}
-              </Badge>
-            ))}
-            <span className="text-xs text-muted-foreground/60">{insight.source}</span>
-          </div>
-          <Button
-            onClick={() => onMakeIce(insight)}
-            size="sm"
-            variant="outline"
-            className="border-blue-500/50 text-blue-500 hover:bg-blue-500/10 hover:border-blue-500"
-            data-testid="button-make-ice-top"
-          >
-            <Sparkles className="w-3 h-3 mr-1.5" />
-            Make Ice
-          </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {insight.topicTags.slice(0, 2).map((tag) => (
+            <Badge
+              key={tag}
+              variant="outline"
+              className="border-border text-muted-foreground text-xs"
+            >
+              {tag}
+            </Badge>
+          ))}
+          <span className="text-xs text-muted-foreground/60">{insight.source}</span>
         </div>
       </div>
     </div>

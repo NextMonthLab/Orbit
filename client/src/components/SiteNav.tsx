@@ -50,7 +50,6 @@ const marketingLinks = [
 const appLinks = [
   { href: '/launchpad', label: 'Launchpad', icon: Home },
   { href: '/orbit', label: 'Orbits', icon: Orbit },
-  { href: '/library', label: 'Library', icon: Sparkles },
 ];
 
 export default function SiteNav({ variant: explicitVariant, onStartTour }: SiteNavProps) {

@@ -48,7 +48,6 @@ interface OrbitBox {
   imageUrl: string | null;
   sortOrder: number;
   isVisible: boolean;
-  iceId: number | null;
   price: number | null;
   currency: string | null;
   category: string | null;
@@ -69,7 +68,6 @@ const boxTypeIcons = {
   text: FileText,
   testimonial: Quote,
   pdf: FileIcon,
-  ice: Sparkles,
   product: Package,
   menu_item: UtensilsCrossed,
 };
@@ -79,7 +77,6 @@ const boxTypeLabels = {
   text: 'Text',
   testimonial: 'Testimonial',
   pdf: 'PDF',
-  ice: 'ICE Experience',
   product: 'Product',
   menu_item: 'Menu Item',
 };

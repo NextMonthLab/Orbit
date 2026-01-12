@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type HubPanel = 'overview' | 'grid' | 'ice' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications' | 'data-sources' | 'cubes' | 'ai-discovery' | 'knowledge-coach';
+export type HubPanel = 'overview' | 'grid' | 'brand' | 'settings' | 'conversations' | 'leads' | 'notifications' | 'data-sources' | 'cubes' | 'ai-discovery' | 'knowledge-coach';
 
 interface BusinessHubSidebarProps {
   isOwner: boolean;
@@ -115,14 +115,6 @@ export function BusinessHubSidebar({
       label: 'Grid', 
       icon: Grid3X3,
       description: 'Curate your content',
-      available: isPaidTier,
-      tierRequired: 'grow',
-    },
-    { 
-      id: 'ice' as HubPanel, 
-      label: 'ICE Maker', 
-      icon: Sparkles,
-      description: 'Create experiences',
       available: isPaidTier,
       tierRequired: 'grow',
     },

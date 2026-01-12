@@ -8,7 +8,6 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { SourceGuardrails } from "@shared/schema";
 import { ExperienceInsightsPanel } from "@/components/experience/ExperienceInsightsPanel";
-import { ActiveIcePanel } from "@/components/experience/ActiveIcePanel";
 import { VisibilityBadge } from "@/components/VisibilityBadge";
 
 export default function AdminUniverseDetail() {
@@ -157,12 +156,6 @@ export default function AdminUniverseDetail() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Hosting Status Section */}
-        <ActiveIcePanel 
-          universeId={universeId}
-          universeSlug={universe.slug}
-        />
 
         {/* Insights Section */}
         <Card data-testid="insights-section">

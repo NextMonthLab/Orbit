@@ -92,11 +92,7 @@ export default function CheckoutSuccessPage() {
   }, [sessionId]);
 
   const handleContinue = () => {
-    if (result?.pendingAction?.previewId) {
-      navigate(`/ice/preview/${result.pendingAction.previewId}?upgraded=true`);
-    } else {
-      navigate("/icemaker");
-    }
+    navigate("/launchpad");
   };
 
   useEffect(() => {
@@ -175,14 +171,10 @@ export default function CheckoutSuccessPage() {
                 <CardContent className="p-8">
                   <Film className="h-16 w-16 text-primary mx-auto mb-6" />
                   <h2 className="text-2xl font-cinzel text-white mb-4">
-                    {result.pendingAction?.previewId 
-                      ? "Returning to Your Story" 
-                      : "Opening Professional Editor"}
+                    Subscription Activated
                   </h2>
                   <p className="text-gray-400 mb-6">
-                    {result.pendingAction?.previewId 
-                      ? "Your preview is exactly where you left it. Now you can generate full media, add AI interactivity, and publish your experience."
-                      : "You now have access to all professional features. Create your next cinematic experience."}
+                    You now have access to all professional features. Head to your launchpad to explore your upgraded capabilities.
                   </p>
                   <div className="flex items-center justify-center gap-2 text-gray-500">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -210,10 +202,10 @@ export default function CheckoutSuccessPage() {
                   <div className="flex gap-3 justify-center">
                     <Button 
                       variant="outline" 
-                      onClick={() => navigate("/icemaker")}
+                      onClick={() => navigate("/launchpad")}
                       data-testid="button-go-home"
                     >
-                      Go to IceMaker
+                      Go to Launchpad
                     </Button>
                     <Button 
                       onClick={() => window.location.reload()}

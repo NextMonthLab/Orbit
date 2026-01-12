@@ -321,7 +321,7 @@ export function predictNextQuestions(
         predictions.push('What makes this a good choice?');
       }
       if (mentionedItems.length >= 2) {
-        predictions.push('What's the difference between these options?');
+        predictions.push("What's the difference between these options?");
       }
       break;
 

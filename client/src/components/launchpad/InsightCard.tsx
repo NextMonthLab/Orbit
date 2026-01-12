@@ -1,6 +1,5 @@
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, BarChart3, MessageSquare, Database } from "lucide-react";
+import { Sparkles, BarChart3, Database } from "lucide-react";
 
 export type InsightKind = "signal" | "content_ready" | "ops";
 
@@ -34,7 +33,6 @@ interface InsightCardProps {
   insight: Insight;
   isSelected?: boolean;
   isHighlighted?: boolean;
-  onMakeIce: (insight: Insight) => void;
 }
 
 const confidenceColors = {
@@ -65,7 +63,6 @@ export function InsightCard({
   insight,
   isSelected,
   isHighlighted,
-  onMakeIce,
 }: InsightCardProps) {
   const kindConfig = insightKindConfig[insight.insightKind || "signal"];
   const KindIcon = kindConfig.icon;
@@ -73,7 +70,7 @@ export function InsightCard({
   
   return (
     <div
-      className={`p-4 rounded-lg border transition-all cursor-pointer ${
+      className={`p-4 rounded-lg border transition-all ${
         isHighlighted
           ? "bg-blue-500/10 border-blue-500 ring-2 ring-blue-500/50 animate-pulse"
           : isSelected
@@ -123,34 +120,6 @@ export function InsightCard({
             <span className="text-xs text-muted-foreground/60">{insight.source}</span>
           </div>
         </div>
-        {isContentReady ? (
-          <Button
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMakeIce(insight);
-            }}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shrink-0"
-            data-testid={`button-make-ice-${insight.id}`}
-          >
-            <Sparkles className="w-3 h-3 mr-1" />
-            Create Story
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMakeIce(insight);
-            }}
-            className="text-white/40 hover:text-white/60 shrink-0"
-            data-testid={`button-make-ice-${insight.id}`}
-          >
-            <MessageSquare className="w-3 h-3 mr-1" />
-            View
-          </Button>
-        )}
       </div>
     </div>
   );

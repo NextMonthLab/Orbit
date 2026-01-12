@@ -8,9 +8,7 @@ import { Link } from "wouter";
 
 interface InsightFeedProps {
   insights: Insight[];
-  selectedInsightId?: string;
   highlightedInsightId?: string | null;
-  onMakeIce: (insight: Insight) => void;
   isLoading?: boolean;
   locked?: boolean;
   upgradeMessage?: string;
@@ -27,14 +25,9 @@ const tabConfig: Record<InsightTab, { label: string; icon: typeof Sparkles; desc
   ops: { label: "Ops", icon: Database, description: "Data status" },
 };
 
-const filterOptions = ["All", "High confidence", "Analytics", "Chat"];
-const sortOptions = ["Latest", "Impact"];
-
 export function InsightFeed({
   insights,
-  selectedInsightId,
   highlightedInsightId,
-  onMakeIce,
   isLoading,
   locked,
   upgradeMessage,
@@ -44,17 +37,14 @@ export function InsightFeed({
   const [activeTab, setActiveTab] = useState<InsightTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Count insights by kind
   const contentReadyCount = insights.filter(i => i.insightKind === "content_ready").length;
   const signalCount = insights.filter(i => i.insightKind === "signal").length;
   const opsCount = insights.filter(i => i.insightKind === "ops").length;
 
   const filteredInsights = insights.filter((insight) => {
-    // Search filter
     if (searchQuery && !insight.title.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
-    // Tab filter
     if (activeTab === "all") return true;
     if (activeTab === "content_ready") return insight.insightKind === "content_ready";
     if (activeTab === "signals") return insight.insightKind === "signal";
@@ -71,7 +61,6 @@ export function InsightFeed({
         </div>
       </div>
       
-      {/* Insight kind tabs */}
       <div className="flex gap-1 p-1 bg-muted/30 rounded-lg border border-border">
         {(["all", "content_ready", "signals", "ops"] as InsightTab[]).map((tab) => {
           const config = tabConfig[tab];
@@ -165,9 +154,7 @@ export function InsightFeed({
           <InsightCard
             key={insight.id}
             insight={insight}
-            isSelected={insight.id === selectedInsightId}
             isHighlighted={insight.id === highlightedInsightId}
-            onMakeIce={onMakeIce}
           />
         ))}
         {filteredInsights.length === 0 && (
@@ -176,7 +163,6 @@ export function InsightFeed({
           </p>
         )}
         
-        {/* Upgrade banner - reframed as reward */}
         {locked && upgradeMessage && remainingInsights && remainingInsights > 0 && (
           <div className="p-4 rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mt-2">
             <div className="flex items-center gap-2 mb-2">

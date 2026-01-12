@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   Globe,
-  Sparkles,
   Rocket,
   ArrowRight,
   X,
@@ -20,7 +19,7 @@ import { apiRequest } from "@/lib/queryClient";
 interface FirstRunOnboardingProps {
   open: boolean;
   onClose: () => void;
-  onStartTour: (path: "orbit-first" | "ice-first") => void;
+  onStartTour: (path: "orbit-first") => void;
 }
 
 const pathOptions = [
@@ -33,16 +32,6 @@ const pathOptions = [
     gradient: "from-blue-500 to-cyan-500",
     bgColor: "bg-blue-500/10",
     steps: ["Enter your URL", "Watch it extract knowledge", "Go live instantly"],
-  },
-  {
-    id: "ice-first" as const,
-    icon: Sparkles,
-    title: "Create an ICE",
-    subtitle: "Build an Interactive Cinematic Experience",
-    description: "Transform any content into an immersive story with AI-generated visuals, narration, and character interaction.",
-    gradient: "from-purple-500 to-pink-500",
-    bgColor: "bg-purple-500/10",
-    steps: ["Drop in any content", "AI builds the story", "Share everywhere"],
   },
 ];
 
@@ -65,7 +54,7 @@ export function FirstRunOnboarding({
   });
 
   const selectPathMutation = useMutation({
-    mutationFn: async (path: "orbit-first" | "ice-first") => {
+    mutationFn: async (path: "orbit-first") => {
       return apiRequest("PATCH", "/api/me/onboarding/tour", { onboardingPath: path });
     },
     onSuccess: (_, path) => {
@@ -82,7 +71,7 @@ export function FirstRunOnboarding({
     onClose();
   };
 
-  const handleSelectPath = (path: "orbit-first" | "ice-first") => {
+  const handleSelectPath = (path: "orbit-first") => {
     selectPathMutation.mutate(path);
   };
 
@@ -112,7 +101,7 @@ export function FirstRunOnboarding({
               Welcome to NextMonth
             </h2>
             <p className="text-zinc-400">
-              Choose how you'd like to get started
+              Get started by claiming your Orbit
             </p>
           </div>
 

@@ -255,7 +255,6 @@ export class WebhookHandlers {
           eventType: 'payment_verified',
           checkoutSessionId,
           paymentIntentId: paymentIntentId || undefined,
-          priceId: transaction.priceId || undefined,
           expectedAmountCents: transaction.amountCents || undefined,
           stripeAmountCents: amountTotal,
           discountAmountCents: totalDiscount || undefined,

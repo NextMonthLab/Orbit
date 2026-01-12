@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 const LOGO_URL_LIGHT = "/logo.png";
 const LOGO_URL_DARK = "https://res.cloudinary.com/drl0fxrkq/image/upload/h_250,fl_preserve_transparency/v1746537994/0A6752C9-3498-4269-9627-A1BE7A36A800_dgqotr.jpg";
 
-type NavContext = 'marketing' | 'app' | 'orbit' | 'ice';
+type NavContext = 'marketing' | 'app' | 'orbit';
 
 interface GlobalNavProps {
   context?: NavContext;
@@ -50,7 +50,6 @@ const contextLabels: Record<NavContext, { label: string; icon: React.ComponentTy
   marketing: { label: 'Home', icon: Home, href: '/' },
   app: { label: 'Stories', icon: Home, href: '/app' },
   orbit: { label: 'Orbit', icon: Orbit, href: '/orbit' },
-  ice: { label: 'IceMaker', icon: Sparkles, href: '/icemaker' },
 };
 
 export default function GlobalNav({ 
@@ -82,7 +81,6 @@ export default function GlobalNav({
   const quickLinks = [
     { href: '/launchpad', label: 'Launchpad', icon: Home, context: 'app' as NavContext },
     { href: '/orbit', label: 'Orbits', icon: Orbit, context: 'orbit' as NavContext },
-    { href: '/library', label: 'Library', icon: Sparkles, context: 'ice' as NavContext },
   ];
 
   const audienceLinks = [
