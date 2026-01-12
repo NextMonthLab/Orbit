@@ -1,0 +1,173 @@
+Great. Below is a clean, copy-paste-ready Phase 1 replica prompt you can give directly to Replit / Claude / any build agent.
+
+This prompt is deliberately tight, explicit, and non-clever. Its job is to lock the mental model, not add features.
+
+⸻
+
+PHASE 1 REPLICA PROMPT
+
+Orbit – Mental Model & Orientation Layer
+
+Context
+
+Orbit is not a website, dashboard, or navigation system.
+It is a living intelligence layer that understands a business and allows users to explore it through conversation.
+
+Phase 1 is about orientation and trust, not control or editing.
+
+Do not add new capabilities beyond explanation, framing, and behavioural guidance.
+
+⸻
+
+Objective
+
+Implement Phase 1 of Orbit by ensuring that any user (including non-technical users) immediately understands:
+	1.	What Orbit is
+	2.	What the tiles represent
+	3.	Why tiles move and reorder
+	4.	How they should interact with Orbit
+	5.	What Orbit will evolve into later
+
+If this phase succeeds, users should instinctively start chatting rather than trying to navigate.
+
+⸻
+
+Core Mental Model (Must Be Explicit)
+
+Orbit must clearly communicate the following truths:
+	•	Orbit is not a menu
+	•	Orbit is not traditional navigation
+	•	Orbit is not a static website
+
+Instead:
+	•	Orbit is a conversational intelligence
+	•	Each tile represents a knowledge node related to the business
+	•	As the user chats, Orbit reorders and surfaces nodes to improve relevance and accuracy
+
+This explanation must appear before the user is asked to take action.
+
+⸻
+
+Required On-Screen Copy (Desktop + Mobile)
+
+Primary Orientation Message (shown on first load)
+
+This is not a menu.
+
+Orbit is a living intelligence that understands this business.
+Each tile represents a knowledge node about products, services, pages, or ideas.
+
+As you talk to me, I’ll bring the most relevant knowledge closer together so I can respond accurately.
+
+You don’t need to find the right page. Just ask.
+
+⸻
+
+Behavioural Instruction (single, unambiguous CTA)
+
+Replace any version of:
+	•	“Click a tile or start chatting”
+	•	“Explore the tiles”
+	•	“Choose where to begin”
+
+With:
+
+Ask me anything about this business.
+
+Chat must be framed as the primary interaction, not an alternative.
+
+⸻
+
+Tile Behaviour Explanation (lightweight, non-technical)
+
+Orbit must make it clear that:
+	•	Tile movement is intentional
+	•	Reordering reflects conversational relevance
+	•	Tiles are not broken or competing navigation elements
+
+Suggested supporting microcopy (optional but encouraged):
+
+Tiles move to reflect what we’re talking about, not to guide you through pages.
+
+⸻
+
+Agenda Transparency (What’s Coming Next)
+
+Orbit must lightly signal that it evolves in stages.
+
+This is not a feature list and not interactive yet.
+
+Suggested wording:
+
+Orbit evolves over time:
+– First, understanding the business
+– Then, letting owners shape the intelligence
+– Then, connecting knowledge to visuals
+– And eventually, suggesting improvements automatically
+
+Do not expose controls for these future stages yet.
+
+This is expectation-setting only.
+
+⸻
+
+Explicit Constraints (Very Important)
+
+For Phase 1:
+	•	❌ No internal owner editing
+	•	❌ No tile manipulation
+	•	❌ No visual replacement
+	•	❌ No scoped chats
+	•	❌ No power-ups
+	•	❌ No analytics surfacing
+
+Phase 1 is orientation only.
+
+If a user attempts to edit or control something, Orbit should respond with calm deferral, e.g.:
+
+I can explain how this works for now.
+Owner controls come later once the intelligence is established.
+
+⸻
+
+Success Criteria
+
+Phase 1 is successful if:
+	•	Users immediately start chatting
+	•	Tiles are no longer perceived as navigation
+	•	Tile movement is interpreted as intelligence, not chaos
+	•	Non-technical users feel confident, not overwhelmed
+	•	Users understand that Orbit will become more powerful over time
+
+⸻
+
+Tone & Style Requirements
+	•	Calm
+	•	Clear
+	•	Non-technical
+	•	Confident but not salesy
+	•	No jargon
+	•	No “AI hype” language
+
+Orbit should feel like:
+
+A knowledgeable guide, not a clever interface.
+
+⸻
+
+End State
+
+At the end of Phase 1, Orbit should feel like:
+
+“I understand what this is.
+I don’t need to learn it.
+I can just talk.”
+
+⸻
+
+If you want, next we can produce:
+	•	Phase 2 replica prompt (Internal Orbit chat for owners)
+	•	A Phase 1 implementation checklist for dev
+	•	Or the exact fallback responses Orbit should give when users try to edit too early
+
+But Phase 1 as written above is the foundation stone.
