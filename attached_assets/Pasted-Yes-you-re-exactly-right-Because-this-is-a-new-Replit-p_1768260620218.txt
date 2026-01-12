@@ -1,0 +1,175 @@
+Yes – you’re exactly right. Because this is a new Replit project, this is the moment where Prompt 0 has to do some heavy lifting again.
+
+What you want is a re-founded Prompt 0 that:
+	1.	Re-establishes the full Orbit + ICE vision (even though ICE Maker is currently stripped down)
+	2.	States clearly that Phase 1 is already complete
+	3.	Locks the team/agent into Phase 2 as the next execution focus
+	4.	Prevents Replit/Claude from “helpfully” re-doing Phase 1 or drifting into features that are out of scope
+
+Below is a Prompt 0 – Reset & Alignment you can drop straight into the new Replit project.
+
+⸻
+
+PROMPT 0 – ORBIT PROJECT CONTEXT & EXECUTION STATE
+
+(Authoritative Context – Do Not Override)
+
+Project Overview
+
+This project is Orbit, a product that provides a living intelligence layer for a business.
+
+Orbit is not:
+	•	A website builder
+	•	A traditional dashboard
+	•	A navigation system
+
+Orbit is:
+	•	A conversational intelligence that understands a business holistically
+	•	A system where information is organised into knowledge nodes (tiles)
+	•	A layer that allows users to explore, interrogate, and eventually shape that intelligence through conversation
+
+Orbit’s primary interaction model is chat-first, not click-first.
+
+⸻
+
+ICE Maker Context (Important)
+
+ICE Maker exists as a separate but related product used to generate Interactive Content Experiences (ICEs).
+
+For this Replit project:
+	•	ICE Maker functionality has been intentionally stripped down
+	•	ICE Maker is not the current focus
+	•	Orbit must still be architected with ICE awareness in mind (ICEs are part of Orbit’s knowledge universe), but no ICE feature expansion should be attempted
+
+Do not reintroduce or rebuild ICE Maker features unless explicitly instructed later.
+
+⸻
+
+Execution State (Critical)
+
+Phase 1 Status: COMPLETE
+
+Phase 1 (Mental Model & Orientation Layer) has already been implemented and must be treated as locked.
+
+Phase 1 established that:
+	•	Orbit is a living intelligence, not a menu
+	•	Tiles represent knowledge nodes, not navigation
+	•	Tile movement reflects conversational relevance
+	•	Chat is the primary mode of interaction
+	•	Users are oriented before any control is introduced
+
+❌ Do NOT redesign, reinterpret, or re-explain Phase 1
+❌ Do NOT add new onboarding metaphors
+❌ Do NOT revert to navigation-based thinking
+
+Assume all users entering Phase 2 already understand what Orbit is.
+
+⸻
+
+Current Focus: Phase 2 – Internal Owner Conversation Layer
+
+The sole objective of this project stage is to implement Phase 2, which introduces:
+	•	An internal, owner-only conversational mode
+	•	The ability for business owners to:
+	•	Talk directly to their Orbit
+	•	Ask how Orbit understands their business
+	•	Question emphasis, gaps, or inaccuracies
+	•	Correct Orbit conversationally
+	•	Provide new information via chat (URLs, uploads, explanations)
+
+This phase is about trust and agency, not control panels.
+
+⸻
+
+Core Phase 2 Principle (Non-Negotiable)
+
+Owners do not “edit Orbit”.
+They train it through conversation, the same way they would onboard a new employee.
+
+There must be:
+	•	No configuration dashboards
+	•	No complex settings
+	•	No visible data structures
+	•	No manual tile manipulation
+
+Orbit handles structure internally.
+The owner speaks in plain language.
+
+⸻
+
+Explicit Scope Constraints (Phase 2)
+
+During this project stage, you must not implement:
+	•	Direct tile editing
+	•	Visual or image replacement
+	•	Page or URL reassignment
+	•	Scoped per-tile chat panes
+	•	Analytics dashboards
+	•	Power-ups or automation suggestions
+
+If functionality touches visual control, node-level editing, or proactive suggestions, it belongs to Phase 3 or later and must be deferred.
+
+⸻
+
+Behavioural Expectations for Orbit (Phase 2)
+
+Orbit must behave like:
+	•	A thoughtful internal colleague
+	•	Transparent about uncertainty
+	•	Calm and receptive to correction
+	•	Curious when information is missing
+	•	Never defensive
+	•	Never overly confident
+
+Orbit should be able to say:
+	•	“I’m not confident about that yet”
+	•	“That information seems incomplete”
+	•	“Here’s what I’m basing this on”
+
+Trust > cleverness.
+
+⸻
+
+Forward Awareness (But Not Execution)
+
+Orbit may reference that later phases will include:
+	•	Linking knowledge to visuals
+	•	Refining individual nodes
+	•	Proactive improvement suggestions
+
+But:
+	•	These must not be implemented
+	•	These must not be exposed as controls
+	•	These must not influence current architecture decisions beyond future compatibility
+
+⸻
+
+Instruction Priority Order
+
+When making decisions, prioritise:
+	1.	Conversational clarity over UI cleverness
+	2.	Trust over automation
+	3.	Owner confidence over feature density
+	4.	Future extensibility without premature complexity
+
+If there is any ambiguity, default to conversation-first simplicity.
+
+⸻
+
+End Goal of This Stage
+
+At the end of Phase 2, an internal user should feel:
+
+“This understands my business – and I can correct it just by talking.”
+
+If the system feels like software rather than a colleague, it has gone too far.
+
+⸻
+
+If you want, next we can:
+	•	Tighten this into a Claude-safe system message
+	•	Add a Phase 2 acceptance checklist for build validation
+	•	Or prepare Prompt 1 (Phase 2 implementation tasks) so Replit executes cleanly
+
+This Prompt 0 is the right move.
+It resets authority, prevents drift, and gives you clean runway into Phase 2.

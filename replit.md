@@ -1,63 +1,138 @@
-# NextMonth – Claude Code Operating Context
+# Orbit – Project Operating Context
 
-## Overview
-NextMonth is a Meaning-to-Experience Engine for brand storytelling, creative narratives, and knowledge transfer. It transforms diverse content into interactive, cinematic story cards using AI-generated visuals, guardrailed AI character interaction, a Visual Bible system, TTS narration, and a Daily Drop Engine. The platform aims to evolve from basic analytics to strategic advice driven by pattern intelligence and behavioral sequences, supporting role-based access and a tiered subscription model.
+## Project Overview
+
+Orbit is a **conversational intelligence layer** for businesses.
+
+**Orbit is NOT:**
+- A website builder
+- A traditional dashboard
+- A navigation system
+
+**Orbit IS:**
+- A conversational intelligence that understands a business holistically
+- A system where information is organised into knowledge nodes (tiles)
+- A layer that allows users to explore, interrogate, and shape intelligence through conversation
+
+**Primary interaction model: Chat-first, not click-first.**
+
+## Execution State
+
+### Phase 1: Mental Model & Orientation Layer — COMPLETE ✓
+
+Phase 1 established:
+- Orbit is a living intelligence, not a menu
+- Tiles represent knowledge nodes, not navigation
+- Tile movement reflects conversational relevance
+- Chat is the primary mode of interaction
+- Users are oriented before any control is introduced
+
+**Phase 1 is LOCKED. Do not redesign, reinterpret, or add new onboarding metaphors.**
+
+### Phase 2: Internal Owner Conversation Layer — CURRENT FOCUS
+
+The sole objective is implementing owner-only conversational mode:
+- Business owners can talk directly to their Orbit
+- Ask how Orbit understands their business
+- Question emphasis, gaps, or inaccuracies
+- Correct Orbit conversationally
+- Provide new information via chat (URLs, uploads, explanations)
+
+**Core Principle (Non-Negotiable):**
+Owners do not "edit Orbit". They **train it through conversation**, the same way they would onboard a new employee.
+
+**Phase 2 must NOT include:**
+- Configuration dashboards
+- Complex settings
+- Visible data structures
+- Manual tile manipulation
+- Direct tile editing
+- Visual or image replacement
+- Page or URL reassignment
+- Scoped per-tile chat panes
+- Analytics dashboards
+- Power-ups or automation suggestions
+
+Orbit handles structure internally. The owner speaks in plain language.
+
+### Behavioural Expectations for Orbit (Phase 2)
+
+Orbit must behave like a thoughtful internal colleague:
+- Transparent about uncertainty
+- Calm and receptive to correction
+- Curious when information is missing
+- Never defensive
+- Never overly confident
+
+Orbit should say things like:
+- "I'm not confident about that yet"
+- "That information seems incomplete"
+- "Here's what I'm basing this on"
+
+**Trust > Cleverness**
 
 ## User Preferences
-I prefer simple language and clear, concise explanations. I value iterative development and prefer to be asked before major changes are made to the codebase. Please provide detailed explanations when new features or significant modifications are implemented. Do not make changes to the `shared/schema.ts` file without explicit approval, as it is the single source of truth for data models. Ensure that any AI-generated content adheres to the established visual bible system and character profiles for consistency.
+
+- Prefer simple language and clear, concise explanations
+- Value iterative development; ask before major changes
+- Do not modify `shared/schema.ts` without explicit approval (single source of truth)
+- Default to conversation-first simplicity when ambiguous
+
+## ICE Maker Context
+
+ICE Maker (Interactive Content Experiences) exists as a separate but related product.
+
+**For this project:**
+- ICE Maker functionality has been intentionally stripped down
+- ICE Maker is NOT the current focus
+- Orbit must still be architected with ICE awareness (ICEs are part of Orbit's knowledge universe)
+- Do NOT reintroduce or rebuild ICE Maker features unless explicitly instructed
 
 ## System Architecture
-NextMonth utilizes a multi-stage content pipeline: Input Normalization, Theme Extraction, Character/Location Extraction, Card Planning, Card Content Drafting, and QA/Validation. The frontend uses React 18, Vite, TailwindCSS (shadcn/ui), Wouter, and TanStack Query. The backend is built with Node.js, Express, Drizzle ORM, Neon-backed PostgreSQL, and Passport.js for authentication.
 
-Key architectural decisions and features include:
--   **Schema-First Development**: `shared/schema.ts` defines all data models.
--   **Storage Abstraction**: Database operations are managed via an `IStorage` interface.
--   **Three-Layer Chat Prompt Composition**: AI prompts are constructed from Universe Policy, Character Profile, and Card Overrides.
--   **Visual Bible System**: Ensures visual consistency through a Design Guide, Reference Assets, and Prompt Builder.
--   **Lens-Based User Experience**: Onboarding is customized by user-selected "lens" (Brand, Creative, Knowledge).
--   **Tiered Capability Model**: Features are gated by "Orbit" subscription tiers (Free, Grow, Understand, Intelligence).
--   **Pattern Intelligence Focus**: Analytics are designed for pattern recognition on session journeys, event ordering, object interaction, and outcome linkage.
--   **UI/UX**: Cinematic dark theme with specific fonts and a pink-purple-blue gradient, utilizing a three-tier navigation system.
--   **Data Sources Integration**: Supports ingestion of external read-only GET APIs with SSRF protection.
--   **Orbit Device System**: Enables Orbit display on thin clients with kiosk mode and voice interaction.
--   **Orbit Signal Schema**: Machine-readable JSON endpoint at `/.well-known/orbit.json` for AI systems.
--   **Guest ICE Builder**: Allows anonymous users to create time-limited ICE previews with server-persisted data and rate limiting.
--   **Experience Analytics System**: Client-side tracking for experience and card views.
--   **Multi-Tenant Security**: Implemented with HMAC-SHA256 signed access tokens and per-IP rate limiting.
--   **Stripe Subscription System**: Full subscription billing with webhook synchronization.
--   **Email & Notifications System**: Transactional emails via Resend and in-app notifications.
--   **Interactivity Nodes**: Supports conversational AI character interaction between cards in live previews.
--   **Story Fidelity Modes**: Content uploads trigger Script-Exact Mode for script parsing or Interpretive Mode for content summarization.
--   **Guest-First Conversion Model**: Users experience value before identity or payment.
--   **Website Extraction System**: Automatically detects and extracts product/menu data from business websites using Site Detection, Multi-Page Crawling, Quality Validation, and Image Filtering, including Site Fingerprinting and DOM Extraction Strategies.
--   **Orbit System**: Extracts product/menu catalogues (50-200+ items) from diverse business websites, utilizing Site Fingerprinting, Multi-Page Crawling, AI-Based Extraction (GPT-4o-mini), Quality Validation, and Image Filtering. Supports `catalogue`, `menu`, `service`, and `hybrid` business types.
--   **High-Signal Business Data Extraction**: Captures richer business context beyond products/menus, including `faq`, `team_member`, `business_profile`, `contact`, `opening_hours`, `testimonial`, and `trust_signal` as new box types, with an on-demand enrichment API.
--   **Launchpad Hub**: A unified command center (`/launchpad`) combining Orbit metrics with IceMaker content creation.
--   **Title Packs System**: Provides professional typography presets for ICE card captions, including Neon Impact, Cinematic Subtitles, Grunge Tape, Editorial Minimal, and Hyper Cut.
--   **Video Export System**: Server-side FFmpeg-based video export for ICE previews, creating downloadable MP4 videos with Title Pack caption overlays, TTS, and optional background music.
--   **Auto-Testimonial Capture System**: Automatically detects customer praise in Orbit chat conversations using AI-powered sentiment analysis, includes classification, quote cleaning, consent management, and export formatting.
--   **Business-Type-Aware Chat System**: Orbit chat automatically detects business type to adjust system prompts and language.
--   **Shared Orbit Chat Service**: Consolidated chat logic in `server/services/orbitChatService.ts` providing `buildOrbitContext`, `buildSystemPrompt`, `generateChatResponse`, and `processEchoResponse`.
--   **Hero Posts System**: Allows Orbit owners to add best-performing social media posts for AI-powered pattern analysis and AI-generated follow-up suggestions.
--   **Tone of Voice System**: Analyzes hero posts to generate brand voice profiles, extracting `brandVoiceSummary`, `voiceTraits`, `audienceNotes`, and `toneGuidance`.
--   **Knowledge Coach System**: Proactively generates weekly AI-powered questions to help business owners fill knowledge gaps in their Orbit based on gap detection and impact scoring.
--   **Orbit Settings System**: Full settings page at `/orbit/:slug/settings` with database persistence for Business Name, Website URL, AI Discovery Settings, and Notification Preferences.
--   **Category Discovery Pages**: Educational category pages with SEO-friendly content, interactive audits, Q&A libraries, and sponsored content, starting with Smart Glasses (`/smartglasses`).
--   **Orbit Type Doctrine**: Architectural distinction between 'industry' and 'standard' orbits. Industry Orbits are pre-seeded, continuously updated, cannot be claimed or owned by users, and participation never grants editorial control. Standard Orbits may be claimed, grant ownership, and intelligence emerges through user interaction.
--   **Orbit Seed Pack v1.0.0 (FROZEN)**: JSON format for seeding Industry Orbits with products, entities, communities, and tiles. Formerly known as CPAC (Canonical Pulse And Content). See `docs/CPAC-v1-specification.md` for full schema, enum values, quality scoring rules, and severity doctrine. Key fields: products should include `releaseDate` (announcement date), `summary` (rich description with target audience), and communities should include `notes` (context explaining what the community is and why it matters). Future changes must be additive only (v1.x) or require v2.0.0.
--   **Orbit CPAC Admin Panel**: Admin interface at `/admin/cpac` for managing Industry Orbit knowledge packs. Features: (1) Download pre-populated CPAC JSON with all current orbit data, (2) Generate Claude Extension Prompts with current stats and expansion rules, (3) Upload and analyze CPAC diffs with duplicate detection and merge preview. The workflow enables iterative knowledge expansion: export → generate prompt → extend via Claude → analyze diff → review before applying.
--   **Orbit → ICE Flywheel**: Enables admins and influencers to convert Orbit insights, chat responses, and View Engine outputs (compare, shortlist, checklist, pulse) into shareable ICE content drafts. Features: (1) "Turn into ICE" buttons in ViewWindscreen and ChatHub for privileged users, (2) Role-based permissions (admin/influencer only), (3) Unified iceDrafts table with source discriminator ('launchpad' | 'orbit'), (4) Template type mapping (compare→compare_ice, shortlist→shortlist_ice, etc.), (5) API endpoint at POST /api/orbit/:slug/ice-drafts. Supports deep linking back to Orbit context.
--   **Caption Engine (Milestones 1-6 Complete)**: Remotion-based caption system for ICE content. Features: (1) Token-driven design system with typography, colors, backgrounds, and animations, (2) 12 caption presets (clean_white, boxed_black, neon_blue, etc.), (3) Safe area profiles for TikTok/Reels/Shorts to avoid platform UI overlays, (4) Phrase grouping algorithm with configurable line breaks (max 32 chars/line, 2 lines/group), (5) SRT/VTT/JSON transcript parsers, (6) Karaoke highlighting with 6 styles (weight, brightness, underline, color, scale, glow), (7) Word-level timing with smooth transitions and highlightAhead easing, (8) Multiline caption preservation during karaoke mode, (9) Milestone 4: CaptionStylePicker UI with three-tab interface (Styles/Effects/Layout), visual preset previews organized by category, karaoke toggle with highlight style selector, animation picker, and demo page at /icemaker/captions, (10) Milestone 5: Export pipeline integration with ASS subtitle generation supporting preset styling, safe area margins, karaoke effects (\k/\kf tags), and animations; FFmpeg ass filter for caption burning when useCaptionEngine=true; API accepts captionState and useCaptionEngine parameters with legacy fallback, (11) Milestone 6: Fit-to-Box Layout Engine with CapCut-style scale-to-fit rendering. Features: canvas-based text measurement (`client/src/caption-engine/layout/fit/`), deterministic line break composer with scoring (penalizes orphans, balances line lengths), ScaleToFitCaption component that renders text at 48px then scales the block to fit the panel, guarantees no mid-word breaks, no truncation, no ellipsis. Contract: words NEVER split, text shrinks until all words fit inside the rounded panel. Key files: `client/src/caption-engine/layout/fit/`, `client/src/components/ScaleToFitCaption.tsx`, `client/src/caption-engine/render/resolveStyles.ts`.
--   **Caption Engine Composition Stage Architecture (LOCKED)**: ICE preview captions use a fixed-width composition stage (1080px) that is scaled via CSS transform. This ensures fit width = render width in the same coordinate system, making clipping impossible. The architecture: (1) Composition stage is exactly 1080px wide, (2) Safe area padding applied inside (54px each side = 5%), (3) Text fitting uses availableCaptionWidth (972px) in composition space, (4) Entire stage scaled via `transform: scale(viewportScale)`, (5) Layout happens first at full size, then paint scales uniformly. DO NOT reintroduce DOM-width fitting, clientWidth/offsetWidth measurements, or viewport-relative constraints for caption sizing. This matches professional video systems (Remotion, CapCut, After Effects). Key file: `client/src/components/CardPlayer.tsx` (see COMPOSITION STAGE comment block).
--   **Orbit Behaviour Health Dashboard**: Admin-only dashboard at `/admin/orbits/health` for monitoring Orbit system health with contract-first verification. Features: (1) 51-item versioned contract (v1.2.0) at `config/orbitBehaviourContract.v1.json` defining expected behaviours, (2) Deterministic checks runner for routes, components, orbit validation, tile storage, and caching, (3) Evidence protocol with `nm_*` metadata for server responses and client render events, (4) Green/Amber/Red overall status indicators, (5) Summary stats with pass/fail/warning/pending counts, (6) Category-grouped results view, (7) Issues-only filter tab, (8) JSON export for evidence packs, (9) Orbit-specific health checks by slug, (10) Categories include: chat_core, view_engine, tile_system, orbit_navigation, theme_system, data_persistence, security, performance, ingestion_v2, compliance, ice_preview, ice_navigation. Key files: `server/services/orbitHealthRunner.ts`, `server/services/evidenceMetadata.ts`, `client/src/lib/evidenceLogger.ts`, `client/src/pages/admin/OrbitHealthDashboard.tsx`.
--   **TitlePackSelector Component**: Reusable component for selecting title packs in ICE builder. Features: (1) Visual thumbnails showing each pack's styling, (2) Compact popover mode for inline usage, (3) Full grid mode for expanded view, (4) Shows pack name, description, and visual preview, (5) Instant apply and persistence. Key file: `client/src/components/ice-maker/TitlePackSelector.tsx`.
--   **Website Intelligence Integration**: URL ingestion integrated into `/orbit/:slug/import` as "Website Intelligence" tab. Crawls up to 5 pages, generates 12+ topic tiles with categories, confidence levels, and grounding rules. Tiles stored per orbit slug in `/data/orbits/<slug>.json` with 24hr caching. Tiles marked "confirmed" only with specific citations; "draft" status for inferred content.
+**Frontend:** React 18, Vite, TailwindCSS (shadcn/ui), Wouter, TanStack Query  
+**Backend:** Node.js, Express, Drizzle ORM, Neon-backed PostgreSQL, Passport.js  
+**AI:** OpenAI API (gpt-4o-mini) via Replit AI Integrations  
+**Payments:** Stripe via Replit connector  
+**Email:** Resend via Replit connector  
+**Storage:** Replit Object Storage (R2/S3-compatible)
 
-## External Dependencies
--   **OpenAI API**: For chat completions (gpt-4o-mini) and Text-to-Speech (TTS).
--   **Kling AI API**: For video generation.
--   **Replicate API**: For alternative video generation models.
--   **Stripe**: For subscription billing and payment processing.
--   **Resend**: For transactional email delivery.
--   **Replit Object Storage (R2/S3-compatible)**: For file storage.
--   **Neon (PostgreSQL)**: Managed PostgreSQL database service.
+### Key Architectural Patterns
+
+- **Schema-First Development**: `shared/schema.ts` defines all data models
+- **Storage Abstraction**: Database operations via `IStorage` interface
+- **Three-Layer Chat Prompt Composition**: Universe Policy + Character Profile + Card Overrides
+- **Multi-Tenant Security**: HMAC-SHA256 signed access tokens, per-IP rate limiting
+- **Business-Type-Aware Chat**: Orbit chat adjusts prompts based on business type
+- **Shared Orbit Chat Service**: Consolidated in `server/services/orbitChatService.ts`
+
+### Orbit Core Features (Preserved)
+
+- **Website Intelligence Integration**: URL ingestion, crawls up to 5 pages, generates topic tiles
+- **Knowledge Coach System**: Weekly AI-powered questions to fill knowledge gaps
+- **Tone of Voice System**: Analyzes content to generate brand voice profiles
+- **Auto-Testimonial Capture**: AI-powered sentiment analysis on chat conversations
+- **Orbit Settings**: `/orbit/:slug/settings` with business configuration
+- **Orbit Type Doctrine**: 'industry' vs 'standard' orbits with different ownership models
+
+### Subscription & Payments
+
+- **Stripe Subscription System**: Full billing with webhook sync
+- **Tiered Capability Model**: Free, Grow, Understand, Intelligence tiers
+- **Guest-First Conversion**: Users experience value before identity/payment
+
+## Decision Priority Order
+
+When making decisions, prioritise:
+1. Conversational clarity over UI cleverness
+2. Trust over automation
+3. Owner confidence over feature density
+4. Future extensibility without premature complexity
+
+## End Goal (Phase 2)
+
+At the end of Phase 2, an internal user should feel:
+
+> "This understands my business – and I can correct it just by talking."
+
+If the system feels like software rather than a colleague, it has gone too far.
