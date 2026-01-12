@@ -2181,6 +2181,92 @@ export const insertOrbitMessageSchema = createInsertSchema(orbitMessages).omit({
 export type InsertOrbitMessage = z.infer<typeof insertOrbitMessageSchema>;
 export type OrbitMessage = typeof orbitMessages.$inferSelect;
 
+// ============ PHASE 2: OWNER CONVERSATION LAYER ============
+
+// Owner Conversations - private training dialogues between owner and their Orbit
+export const orbitOwnerConversations = pgTable("orbit_owner_conversations", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug).notNull(),
+  ownerId: integer("owner_id").references(() => users.id).notNull(),
+  
+  // Conversation metadata
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  lastMessageAt: timestamp("last_message_at").defaultNow().notNull(),
+  messageCount: integer("message_count").default(0).notNull(),
+  
+  // Summary of corrections/training in this conversation
+  correctionsCount: integer("corrections_count").default(0).notNull(),
+  newInfoCount: integer("new_info_count").default(0).notNull(),
+});
+
+export const insertOrbitOwnerConversationSchema = createInsertSchema(orbitOwnerConversations).omit({ id: true, startedAt: true, lastMessageAt: true });
+export type InsertOrbitOwnerConversation = z.infer<typeof insertOrbitOwnerConversationSchema>;
+export type OrbitOwnerConversation = typeof orbitOwnerConversations.$inferSelect;
+
+// Owner Messages - individual messages in owner training conversations
+export const orbitOwnerMessages = pgTable("orbit_owner_messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").references(() => orbitOwnerConversations.id, { onDelete: "cascade" }).notNull(),
+  
+  role: text("role").notNull(), // 'owner' | 'orbit'
+  content: text("content").notNull(),
+  
+  // Metadata for special message types
+  messageType: text("message_type").$type<'chat' | 'correction' | 'new_info' | 'question'>().default('chat').notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertOrbitOwnerMessageSchema = createInsertSchema(orbitOwnerMessages).omit({ id: true, createdAt: true });
+export type InsertOrbitOwnerMessage = z.infer<typeof insertOrbitOwnerMessageSchema>;
+export type OrbitOwnerMessage = typeof orbitOwnerMessages.$inferSelect;
+
+// Owner Corrections - persistent training data from owner conversations
+export type OwnerCorrectionType = 
+  | 'factual_correction'    // "That's not right, it's actually X"
+  | 'emphasis_change'       // "We should emphasise X more"
+  | 'gap_fill'             // "We're missing information about X"
+  | 'new_information'      // "Here's something new: X"
+  | 'removal_request';     // "We no longer do X"
+
+export type OwnerCorrectionStatus = 
+  | 'pending'              // Orbit acknowledged but not yet applied
+  | 'applied'              // Correction reflected in Orbit's understanding
+  | 'clarification_needed' // Orbit needs more info from owner
+  | 'superseded';          // Replaced by a newer correction
+
+export const orbitOwnerCorrections = pgTable("orbit_owner_corrections", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug).notNull(),
+  ownerId: integer("owner_id").references(() => users.id).notNull(),
+  conversationId: integer("conversation_id").references(() => orbitOwnerConversations.id),
+  messageId: integer("message_id").references(() => orbitOwnerMessages.id),
+  
+  // Correction details
+  correctionType: text("correction_type").$type<OwnerCorrectionType>().notNull(),
+  status: text("status").$type<OwnerCorrectionStatus>().default('pending').notNull(),
+  
+  // What Orbit thought vs what owner said
+  originalUnderstanding: text("original_understanding"),
+  correctedInformation: text("corrected_information").notNull(),
+  
+  // Optional references to affected knowledge
+  affectedBoxIds: integer("affected_box_ids").array(),
+  affectedTopics: text("affected_topics").array(),
+  
+  // Source provided by owner (URL, document reference, etc.)
+  sourceUrl: text("source_url"),
+  sourceType: text("source_type").$type<'url' | 'document' | 'explanation' | 'other'>(),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  appliedAt: timestamp("applied_at"),
+});
+
+export const insertOrbitOwnerCorrectionSchema = createInsertSchema(orbitOwnerCorrections).omit({ id: true, createdAt: true });
+export type InsertOrbitOwnerCorrection = z.infer<typeof insertOrbitOwnerCorrectionSchema>;
+export type OrbitOwnerCorrection = typeof orbitOwnerCorrections.$inferSelect;
+
 // Orbit Insights Summary - aggregated analytics for Insight tier (per orbit, per period)
 export const orbitInsightsSummary = pgTable("orbit_insights_summary", {
   id: serial("id").primaryKey(),
