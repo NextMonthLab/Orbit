@@ -1,0 +1,209 @@
+Absolutely. Here is the revised, final Replit prompt, with the current location at /app clearly and explicitly referenced, and written so there is zero ambiguity for implementation.
+
+You can paste this straight into Replit.
+
+⸻
+
+Replit Prompt: IceMaker Library at /app stays clean, add per-Experience Insights, Orbit as optional advanced layer
+
+Context
+
+The IceMaker application currently lives at the route:
+
+/app
+
+This route renders the IceMaker Library view showing a cinematic list of experiences under the heading “Choose Your Story” (example cards: Failsafe, Progress Accountants).
+
+This library experience is already working well and must remain visually clean, focused, and uncluttered.
+
+We need to introduce analytics for views and conversations, and provide access to the Orbit Business Hub, without polluting or altering the /app library experience.
+
+⸻
+
+Non-negotiables
+	1.	The existing /app library UI must remain visually unchanged.
+	2.	Do NOT add Orbit concepts, analytics widgets, or metrics to the /app library screen.
+	3.	Do NOT add badges, numbers, charts, or Orbit links to library cards.
+	4.	Orbit must only appear as an optional advanced destination from within an individual experience.
+	5.	IceMaker must feel creative and cinematic. Orbit must feel like a deeper control room, not a competing product.
+	6.	Avoid long dash characters in copy. Use simple punctuation only.
+
+⸻
+
+Goal
+
+Implement a three-level navigation and responsibility structure, starting from /app.
+
+⸻
+
+Level 1: Library (existing, at /app)
+	•	Route: /app
+	•	Purpose: Experience selection only.
+	•	Behaviour:
+	•	Display existing experience cards exactly as they do now.
+	•	Tapping a card opens that specific experience.
+	•	Restrictions:
+	•	No analytics
+	•	No Orbit references
+	•	No admin language
+
+This screen is browsing mode, not management mode.
+
+⸻
+
+Level 2: Experience Context (per experience)
+
+When a user taps an experience from /app, they enter that experience’s context.
+
+This may already exist or may need light restructuring, but it should include:
+	•	Experience title
+	•	Primary actions such as:
+	•	Play or Preview
+	•	Edit
+	•	Share
+	•	A new option or tab: Insights
+
+This page must still feel IceMaker-native, not like a business dashboard.
+
+⸻
+
+Level 3: Insights (IceMaker-native analytics)
+
+Inside the experience context, implement an Insights view specific to that experience.
+
+This view shows lightweight, high-signal metrics only:
+
+Metrics to display
+	•	Views:
+	•	Total
+	•	Last 7 days
+	•	Conversations started:
+	•	Total
+	•	Last 7 days
+	•	Completion indicator:
+	•	Percentage reaching the final card, or a reasonable proxy
+	•	Top questions:
+	•	Top 3 to 10 user questions if chat exists
+	•	Optional:
+	•	Top card (most viewed card)
+
+Orbit escalation
+
+At the bottom of the Insights view, include a subtle escalation:
+
+Button:
+View in Orbit Dashboard
+
+Supporting copy:
+“Advanced audience journeys, sources, and intelligence for this experience.”
+
+Orbit must never appear anywhere else in IceMaker.
+
+⸻
+
+Tracking and analytics model
+
+Track the following events:
+	1.	Experience view
+	2.	Card view (optional but recommended)
+	3.	Chat events:
+	•	Conversation started
+	•	Message sent
+	•	Question asked
+
+Minimum event payload
+	•	experienceId
+	•	eventType (experience_view, conversation_start, etc.)
+	•	timestamp
+	•	sessionId (anonymous for guests)
+	•	userId (if logged in)
+	•	optional: referrer, UTM parameters, embed source
+
+Guests must be tracked anonymously using sessionId.
+
+If a guest later logs in, we should be able to associate previous session analytics where possible.
+
+⸻
+
+API endpoints (suggested)
+	•	POST /api/public/analytics/event
+	•	Accepts guest and authenticated events
+	•	Rate-limited
+	•	GET /api/analytics/experience/:experienceId/summary
+	•	Auth required
+	•	Used by the IceMaker Insights view
+	•	GET /api/analytics/experience/:experienceId/questions
+	•	Auth required
+	•	Returns top questions
+
+Avoid expensive recomputation on page load. Cache summaries where appropriate.
+
+⸻
+
+Orbit integration behaviour
+
+Orbit is a separate advanced hub and must not be embedded inside IceMaker.
+
+Integration is via deep linking only.
+
+Examples:
+	•	/orbit?experienceId=XYZ
+	•	/orbit/experience/XYZ
+
+Behaviour:
+	•	Clicking “View in Orbit Dashboard”:
+	•	If logged in, open Orbit filtered to that experience.
+	•	If not logged in, prompt for login, then redirect back to Orbit for that experience.
+
+⸻
+
+Guest vs authenticated behaviour
+
+Recommended MVP behaviour:
+	•	Anyone can view experiences.
+	•	Only logged-in users can access Insights.
+	•	Orbit always requires authentication.
+
+If gating Insights:
+	•	Gate within the experience context, not at /app.
+
+⸻
+
+UI rules summary
+	•	/app:
+	•	No changes to design or information density.
+	•	Experience context:
+	•	Add Insights access.
+	•	Keep creative tone.
+	•	Insights:
+	•	Minimal, premium, non-technical.
+	•	Single Orbit CTA at the bottom.
+
+⸻
+
+Acceptance criteria
+	1.	/app library remains visually unchanged.
+	2.	Experiences open into an experience context view.
+	3.	Each experience has an Insights view with analytics.
+	4.	Orbit is only accessible from within Insights.
+	5.	Analytics events are being recorded correctly.
+	6.	Guests can generate analytics events.
+	7.	Logged-in users can view Insights and open Orbit for that experience.
+
+⸻
+
+Final implementation note
+
+Treat IceMaker and Orbit as two surfaces over the same data, not two separate systems.
+
+IceMaker surfaces meaning.
+Orbit surfaces intelligence.
+
+Do not blur those responsibilities.
+
+⸻
+
+If you want next, I can:
+	•	Write the exact UI copy for Insights tiles
+	•	Define which metrics belong only in Orbit
+	•	Or help you brief pricing and tier visibility cleanly

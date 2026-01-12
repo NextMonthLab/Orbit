@@ -1,0 +1,91 @@
+Yes. And the screenshots actually tell us exactly what’s still wrong.
+
+What’s happening
+
+In the “bad” screenshot, the left side of the caption is chopped off even though you’ve “matched widths”.
+
+That almost always means one of these is still true:
+	1.	The bubble width is being set, but padding is making it wider than you think
+	•	Default CSS is box-sizing: content-box, which means:
+	•	width = innerWidthPx plus left/right padding
+	•	So your bubble becomes innerWidthPx + (padding*2) and it spills off-screen and gets clipped.
+	2.	The text layer isn’t actually constrained by the bubble (text wrapper width isn’t enforced), so it renders wider and gets clipped by the video frame.
+
+The fact your “good” screenshot works for a shorter sentence but the long one breaks is classic “padding/box-sizing/outerWidth” drift.
+
+⸻
+
+The fix (do this, and it stops dead)
+
+✅ Rule: bubble width must be OUTER width, and bubble must be border-box
+
+If your fit engine produces innerWidthPx (usable text width), then:
+	•	outerWidthPx = innerWidthPx + (bubblePaddingPx * 2)
+
+And the bubble must have:
+	•	boxSizing: 'border-box'
+
+Drop-in pattern (React/Remotion style)
+
+const bubblePaddingPx = 24; // whatever you use
+const innerWidthPx = fitGeometry.innerWidthPx; // the exact width you measured against
+const outerWidthPx = innerWidthPx + bubblePaddingPx * 2;
+
+return (
+  <div
+    style={{
+      width: outerWidthPx,
+      maxWidth: outerWidthPx,
+      minWidth: outerWidthPx,
+      paddingLeft: bubblePaddingPx,
+      paddingRight: bubblePaddingPx,
+      boxSizing: "border-box", // <- THIS is the big fix
+      marginLeft: "auto",
+      marginRight: "auto",
+      borderRadius: 24,
+      overflow: "visible", // bubble should NOT clip its own text
+    }}
+  >
+    <div
+      style={{
+        width: innerWidthPx,
+        maxWidth: innerWidthPx,
+        boxSizing: "border-box",
+        whiteSpace: "normal",
+        overflowWrap: "anywhere",
+        wordBreak: "break-word",
+      }}
+    >
+      {text}
+    </div>
+  </div>
+);
+
+Also do this check (it catches the “text isn’t constrained” bug)
+
+Make sure the text wrapper is not position: absolute, and doesn’t have its own left/right rules fighting the width.
+
+⸻
+
+30-second debug to confirm
+
+Temporarily add outlines:
+
+outline: "2px solid lime"   // bubble
+outline: "2px solid cyan"   // text wrapper
+
+If the lime box hangs off the left edge in the bad case, it’s 100% the box-sizing/padding outer-width issue.
+
+⸻
+
+The punchline
+
+Right now you’ve likely set:
+	•	bubble width = innerWidthPx
+	•	bubble padding = 24px
+
+…which means your bubble is 48px wider than the fit maths, so it gets clipped.
+
+Fixing border-box + outerWidthPx will make the long sentence behave exactly like the short one.
+
+If you paste the current ScaleToFitCaption bubble + text wrapper styles, I’ll point to the exact property that’s still sabotaging it.

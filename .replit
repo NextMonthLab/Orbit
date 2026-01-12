@@ -4,15 +4,11 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["zip"]
+packages = ["zip", "chromium", "ffmpeg"]
 
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5001
-externalPort = 3002
 
 [env]
 PORT = "5000"
@@ -46,4 +42,9 @@ waitForPort = 5000
 
 [agent]
 mockupState = "FULLSTACK"
-integrations = ["javascript_openai:1.0.0", "javascript_openai_ai_integrations:2.0.0", "stripe:2.0.0", "javascript_object_storage:2.0.0"]
+integrations = ["javascript_openai:1.0.0", "javascript_openai_ai_integrations:2.0.0", "stripe:2.0.0", "javascript_object_storage:2.0.0", "resend:1.0.0"]
+
+[userenv]
+
+[userenv.development]
+ORBIT_SCHEMA_ALLOW_UNCLAIMED = "true"

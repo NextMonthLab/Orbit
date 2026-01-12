@@ -4,9 +4,10 @@ import { api } from "@/lib/api";
 import CardPlayer from "@/components/CardPlayer";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, ChevronLeft, ChevronRight, User } from "lucide-react";
-import { useState, useMemo, useCallback } from "react";
+import { Loader2, ChevronLeft, ChevronRight, User, PauseCircle } from "lucide-react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { trackExperienceView, trackCardView, setPublicAccessToken } from "@/lib/analytics";
 
 export default function Experience() {
   const { slug } = useParams<{ slug: string }>();
@@ -16,16 +17,27 @@ export default function Experience() {
   const startCard = params.get("card") ? parseInt(params.get("card")!) : undefined;
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  const { data: storyData, isLoading } = useQuery({
+  const { data: storyData, isLoading, error } = useQuery({
     queryKey: ["story-by-slug", slug],
     queryFn: () => api.getStoryBySlug(slug!),
     enabled: !!slug,
+    retry: false,
   });
+  
+  const isPaused = error?.message?.includes("paused");
 
   const universe = storyData?.universe;
   const availableCards = storyData?.cards || [];
   const allCharacters = storyData?.characters || [];
   const creator = storyData?.creator;
+  const publicAccessToken = storyData?.publicAccessToken;
+
+  // Store the token for analytics when story loads
+  useEffect(() => {
+    if (universe?.id && publicAccessToken) {
+      setPublicAccessToken(universe.id, publicAccessToken);
+    }
+  }, [universe?.id, publicAccessToken]);
 
   const cardIndex = useMemo(() => {
     if (selectedIndex !== null) return selectedIndex;
@@ -37,6 +49,18 @@ export default function Experience() {
   }, [selectedIndex, startCard, availableCards]);
 
   const currentCard = availableCards[cardIndex];
+
+  useEffect(() => {
+    if (universe?.id && publicAccessToken) {
+      trackExperienceView(universe.id, publicAccessToken);
+    }
+  }, [universe?.id, publicAccessToken]);
+
+  useEffect(() => {
+    if (universe?.id && currentCard?.id && publicAccessToken) {
+      trackCardView(universe.id, currentCard.id, publicAccessToken);
+    }
+  }, [universe?.id, currentCard?.id, publicAccessToken]);
 
   const { data: cardCharacters } = useQuery({
     queryKey: ["card-characters", currentCard?.id],
@@ -60,10 +84,37 @@ export default function Experience() {
     );
   }
 
+  if (isPaused) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex flex-col items-center justify-center text-center p-4" data-testid="experience-paused">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md"
+        >
+          <PauseCircle className="w-16 h-16 text-yellow-500/60 mx-auto mb-6" />
+          <h1 className="text-3xl font-display font-bold text-white mb-3 tracking-wide">Experience Paused</h1>
+          <p className="text-white/70 mb-6 max-w-sm leading-relaxed">
+            This interactive experience is currently paused. 
+            The creator may be updating content or making improvements.
+          </p>
+          <p className="text-white/50 text-sm">
+            Check back soon or explore other experiences.
+          </p>
+          <Link href="/">
+            <Button variant="outline" className="mt-6" data-testid="button-home">
+              Explore More
+            </Button>
+          </Link>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!universe) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-center p-4">
-        <h1 className="text-2xl font-bold text-white mb-2">Story Not Found</h1>
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex flex-col items-center justify-center text-center p-4">
+        <h1 className="text-3xl font-display font-bold text-white mb-3 tracking-wide">Story Not Found</h1>
         <p className="text-white/60">This experience doesn't exist or has been removed.</p>
       </div>
     );
@@ -71,8 +122,8 @@ export default function Experience() {
 
   if (availableCards.length === 0) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-center p-4">
-        <h1 className="text-2xl font-bold text-white mb-2">{universe.name}</h1>
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex flex-col items-center justify-center text-center p-4">
+        <h1 className="text-3xl font-display font-bold text-white mb-3 tracking-wide">{universe.name}</h1>
         <p className="text-white/60">This story is coming soon.</p>
       </div>
     );
@@ -145,7 +196,7 @@ export default function Experience() {
       
       {embedMode && (
         <div className="fixed bottom-2 right-2 text-xs text-white/50 bg-black/50 px-2 py-1 rounded z-50">
-          Powered by NextScene
+          Powered by NextMonth
         </div>
       )}
       

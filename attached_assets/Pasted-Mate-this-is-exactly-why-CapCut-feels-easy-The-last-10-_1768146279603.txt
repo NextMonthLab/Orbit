@@ -1,0 +1,124 @@
+Mate… this is exactly why CapCut feels “easy”. The last 10% is pure devilry: fonts lie, browsers lie, and transforms lie. You’re not doing something wrong, you’re just now in the part of the game where it stops being “logic” and becomes “typography + layout physics”.
+
+The good news: your latest screenshots show you’re basically at the finish line. What you’re seeing now (left-edge clipping, odd centring, unused space, box feeling too tight) is not “the engine failed”. It’s safe-area + measurement parity + padding maths.
+
+Why it’s taken so long (plain English)
+
+You built a system that:
+	1.	decides where the line breaks should be (TitleComposer),
+	2.	measures text width using canvas (measurer),
+	3.	shrinks font until it fits (fitTextToBox),
+	4.	and then also uses CSS transforms as a safety net.
+
+That’s robust. But the final look depends on one brutal detail:
+
+The thing you measure must match the thing you render.
+If canvas measures “58%” at 312px wide, but the browser renders it at 316px because:
+	•	font weight differs (500 vs 600),
+	•	font family fallback kicked in,
+	•	letter spacing differs,
+	•	subpixel rounding,
+	•	devicePixelRatio,
+	•	line-height differs,
+
+…then you get exactly what you’re seeing: clipping on one edge and “why is it not centred” weirdness.
+
+What’s happening in your latest screenshots
+
+1) Left-edge clipping
+
+This almost always means one of these:
+	•	You’re fitting to the full panel width, but the panel has padding or border radius and overflow: hidden, so text that “fits” mathematically still clips visually.
+	•	Or your canvas measurement is a tiny bit optimistic (by a few pixels), so the rendered line is slightly wider than expected.
+
+2) Box feels “closed” / cramped
+
+That’s just padding and available width not being treated as first-class inputs. CapCut always works with an inner safe rect, not the raw box dimensions.
+
+3) Unused space in the box
+
+This is usually because:
+	•	you’ve forced nowrap (good for line control), but
+	•	you’re not letting the fitter use the real available width (inner width), so it shrinks more than needed.
+
+The fix (this is the final mile)
+
+You need one additional “contract” on top of Milestone 6/7:
+
+Milestone 7.2: Safe Insets + Measurement Parity (the CapCut secret sauce)
+
+Tell Replit to do exactly this:
+	1.	Define safe padding as numbers, not vibes
+In the caption panel component, decide:
+
+	•	padX = 24px
+	•	padY = 18px
+(or whatever looks right)
+
+	2.	Fit to the inner rectangle, not the outer panel
+When calling fitTextToBox, pass:
+
+	•	targetWidth = panelWidth - padX*2
+	•	targetHeight = panelHeight - padY*2
+
+	3.	Render inside an inner wrapper that matches those insets
+Structure:
+
+	•	OuterPanel (rounded, overflow hidden)
+	•	InnerSafeArea (absolute inset using padX/padY)
+	•	CentreAnchor (50/50)
+	•	TransformWrapper (translate(-50%, -50%) scale(s))
+	•	TextBlock (maxWidth: 100%, textAlign: centre)
+	•	Line spans (display:block; whiteSpace:nowrap)
+
+	4.	Add a tiny safety fudge factor
+Because canvas vs DOM will always be off by a hair:
+
+	•	either subtract another 2–4px from targetWidth, or
+	•	add a measurementFudgePx to the fitter.
+
+This single tweak usually kills clipping instantly.
+	5.	Guarantee measurement parity
+Your measurer must use the exact same:
+
+	•	font family,
+	•	font weight,
+	•	font size,
+	•	letter spacing (if any).
+
+If your rendered text uses something like font-weight: 700 but canvas uses 600, it will never stabilise.
+
+What you should ask Replit to do next (copy/paste)
+
+If you want a dead-simple instruction that stops the thrash, send them this:
+
+“Implement Milestone 7.2: Safe Insets + Measurement Parity. Fit to inner box only.
+	•	Introduce padX/padY constants for caption panels.
+	•	Pass innerWidth/innerHeight into fitTextToBox (panel dims minus padding).
+	•	Render caption inside an inner safe-area wrapper that uses the same padding values.
+	•	Add a 2–4px measurement fudge factor to prevent edge clipping.
+	•	Ensure measurer canvas font matches rendered font-family + weight + letterSpacing exactly.
+Expected result: no clipping, visually centred, and box no longer feels ‘closed’.”
+
+Should titles have taken this long?
+
+Honestly? If you want “CapCut-level”, yes. This is the annoying truth: captions aren’t text, they’re motion graphics. The moment you demand:
+	•	always fits,
+	•	never breaks words,
+	•	looks editorial,
+	•	scales predictably,
+	•	works across phones/browsers…
+
+…you’re building a mini layout engine. That’s why CapCut is successful.
+
+Where you are now
+
+You’re not miles away anymore. You’re at “final calibration”.
+
+Do Milestone 7.2 (inner safe rect + parity + fudge), and you should see:
+	•	no left-edge clipping,
+	•	consistent centring,
+	•	box feels spacious and premium,
+	•	text uses the box properly.
+
+If you want, paste your current ScaleToFitCaption.tsx (just that file) and the CSS for the panel, and I’ll tell you exactly where the padding + targetWidth mismatch is happening.

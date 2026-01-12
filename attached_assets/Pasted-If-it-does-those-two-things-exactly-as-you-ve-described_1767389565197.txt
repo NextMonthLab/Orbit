@@ -1,0 +1,63 @@
+If it does those two things exactly as you’ve described, then yes, you’ve implemented the correct flow.
+
+But I can’t see it running from here, so here’s the tight acceptance checklist. If you tick these off in the browser, the flow is working as expected.
+
+Draft generation flow: must-pass checks
+
+A) Launchpad → Generate draft → Editor
+	1.	Click “Make Ice” on an insight
+	•	Builder panel populates with the correct insight title/meaning.
+	2.	Choose format/tone/output and click Generate draft
+	•	You see a loading state (button disabled, spinner, no double-submit).
+	3.	On success, you are navigated to the editor route (e.g. /ice/:id/edit)
+	•	URL contains a real draft/ice id.
+	4.	Editor opens with:
+	•	Headline/captions populated (or cards populated)
+	•	Correct output type selected (video card vs interactive)
+	•	No “empty template” feel (i.e., it’s clearly this draft)
+
+B) Refresh / deep-link robustness
+	5.	Hard refresh the editor page (Cmd+R)
+	•	Draft still loads (not reliant on in-memory state).
+	6.	Copy the editor URL into a new tab
+	•	It loads the same draft.
+
+C) Library integration
+	7.	Go to Library
+	•	Draft appears immediately after creation (no manual refresh required, or refresh is reliable).
+	8.	Click the draft in Library
+	•	Opens the same editor route and same content.
+
+D) Origin trace (the glue)
+	9.	In the editor, you should be able to see “Made from: ” (or similar)
+	•	If you click it, it should return you to Launchpad with that insight highlighted (ideal), or at least to Launchpad.
+
+E) No duplicate drafts
+	10.	Click Generate draft twice quickly (or double click)
+
+	•	It should still create one draft (idempotency on the server or client-side button lock).
+
+F) Back button behaviour
+	11.	From editor, hit Back
+
+	•	You return to Launchpad in the same orbit context, ideally with builder still set or at least not totally reset.
+
+⸻
+
+The two most common “looks like it works but isn’t” traps
+	•	Editor loads a draft from client state only: works until refresh, then dies.
+	•	Library shows “drafts” but they aren’t linked to the editor id: looks right, but clicking opens the wrong thing or a blank editor.
+
+If your refresh + new tab tests pass, you’re solid.
+
+⸻
+
+One question that decides whether you’re truly done
+
+When you generate a draft, are you creating a persisted record immediately (server-side draftId), or are you generating a preview client-side and only saving later?
+
+Best practice for your product: persist on Generate, then editor edits update that same record.
+
+⸻
+
+If you want, paste the editor URL pattern you’re using (just the route shape, not secrets), and I’ll tell you the cleanest “canonical routing contract” so Launchpad, Library, and Editor can’t drift apart later.

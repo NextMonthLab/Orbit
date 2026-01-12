@@ -3,6 +3,11 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { enforceProductionSecurity } from "./startup";
+import { WebhookHandlers } from "./webhookHandlers";
+
+// Run security checks on startup (will exit in production if critical vars missing)
+enforceProductionSecurity();
 
 const app = express();
 const httpServer = createServer(app);
@@ -13,6 +18,99 @@ declare module "http" {
   }
 }
 
+function hasReplitConnector(): boolean {
+  return !!(
+    process.env.REPLIT_CONNECTORS_HOSTNAME &&
+    (process.env.REPL_IDENTITY || process.env.WEB_REPL_RENEWAL)
+  );
+}
+
+async function initStripe() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    console.log('[stripe] DATABASE_URL not set, skipping Stripe initialization');
+    return;
+  }
+
+  try {
+    const { getStripeSync } = await import('./stripeClient');
+
+    if (hasReplitConnector()) {
+      const { runMigrations } = await import('stripe-replit-sync');
+      console.log('[stripe] Initializing Stripe schema (Replit mode)...');
+      await runMigrations({ databaseUrl });
+      console.log('[stripe] Stripe schema ready');
+
+      const stripeSync = await getStripeSync();
+
+      const domains = process.env.REPLIT_DOMAINS?.split(',');
+      if (domains && domains.length > 0) {
+        const webhookBaseUrl = `https://${domains[0]}`;
+        console.log('[stripe] Setting up managed webhook...');
+        try {
+          const webhook = await stripeSync.findOrCreateManagedWebhook(
+            `${webhookBaseUrl}/api/stripe/webhook`
+          );
+          console.log(`[stripe] Webhook configured: ${webhook?.url || 'unknown'}`);
+        } catch (webhookError: any) {
+          console.error('[stripe] Webhook setup error:', webhookError.message);
+        }
+      }
+
+      console.log('[stripe] Starting background data sync...');
+      stripeSync.syncBackfill()
+        .then(() => console.log('[stripe] Data sync complete'))
+        .catch((err: Error) => console.error('[stripe] Data sync error:', err.message));
+    } else {
+      console.log('[stripe] Running in standard mode (Render/other)');
+      console.log('[stripe] Webhook URL must be configured in Stripe Dashboard');
+      console.log('[stripe] Required: POST /api/stripe/webhook');
+      
+      if (!process.env.STRIPE_SECRET_KEY) {
+        console.warn('[stripe] STRIPE_SECRET_KEY not set - Stripe will not work');
+        return;
+      }
+      
+      if (!process.env.STRIPE_WEBHOOK_SECRET) {
+        console.warn('[stripe] STRIPE_WEBHOOK_SECRET not set - webhook signature verification may fail');
+      }
+      
+      console.log('[stripe] Stripe initialized with environment variables');
+    }
+  } catch (error: any) {
+    console.error('[stripe] Initialization error:', error.message);
+  }
+}
+
+// CRITICAL: Stripe webhook route MUST be registered BEFORE express.json()
+// This route needs the raw Buffer body, not parsed JSON
+app.post(
+  '/api/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    const signature = req.headers['stripe-signature'];
+    if (!signature) {
+      return res.status(400).json({ error: 'Missing stripe-signature header' });
+    }
+
+    try {
+      const sig = Array.isArray(signature) ? signature[0] : signature;
+      
+      if (!Buffer.isBuffer(req.body)) {
+        console.error('[stripe-webhook] req.body is not a Buffer - middleware order issue');
+        return res.status(500).json({ error: 'Webhook processing error' });
+      }
+
+      await WebhookHandlers.processWebhook(req.body, sig);
+      res.status(200).json({ received: true });
+    } catch (error: any) {
+      console.error('[stripe-webhook] Error:', error.message);
+      res.status(400).json({ error: 'Webhook processing error' });
+    }
+  }
+);
+
+// Now apply JSON middleware for all other routes
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -22,6 +120,9 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// Add text parser for CSV uploads
+app.use(express.text({ type: 'text/csv' }));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -61,6 +162,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize Stripe (schema, webhook, data sync)
+  await initStripe();
+  
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

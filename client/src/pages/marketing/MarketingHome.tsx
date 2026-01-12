@@ -1,19 +1,24 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Sparkles, Building2, Film, GraduationCap, Upload, Wand2, MessageCircle, Share2, Shield, Eye, Lock, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Play, Sparkles, Building2, Film, GraduationCap, Upload, Wand2, MessageCircle, Share2, Shield, Eye, Lock, CheckCircle2, Radio, Clock, DollarSign, Zap, BookOpen, Megaphone, Lightbulb } from "lucide-react";
+import ScenarioCarousel from "@/components/ScenarioCarousel";
 import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
-const LOGO_URL = "/nextscene-logo.png";
+import MarketingHeader from "@/components/MarketingHeader";
 
 const useCases = [
   {
     id: "brands",
     title: "For Brands & Businesses",
-    description: "Turn your website into a story that sells itself.",
+    description: "Orbit is a Business-to-AI interface that helps you control how your brand is represented in AI-powered discovery.",
     icon: Building2,
     href: "/for/brands",
-    color: "from-pink-500 to-purple-500",
+    color: "from-blue-500 to-purple-500",
+    microCta: "Claim your business Orbit",
+    intent: "brands",
+    secondaryLink: "/ai-discovery-control",
+    secondaryCta: "Why this matters",
   },
   {
     id: "creators",
@@ -21,7 +26,9 @@ const useCases = [
     description: "Bring scripts and ideas to life, one moment at a time.",
     icon: Film,
     href: "/for/creators",
-    color: "from-purple-500 to-blue-500",
+    color: "from-blue-600 to-purple-600",
+    microCta: "Bring my script to life",
+    intent: "creators",
   },
   {
     id: "knowledge",
@@ -30,6 +37,8 @@ const useCases = [
     icon: GraduationCap,
     href: "/for/knowledge",
     color: "from-blue-500 to-indigo-500",
+    microCta: "Transform my material",
+    intent: "knowledge",
   },
 ];
 
@@ -43,7 +52,7 @@ const pipelineSteps = [
   {
     step: 2,
     title: "Extract meaning",
-    description: "Themes, boundaries, and structure",
+    description: "Themes and structure, not just summaries",
     icon: Wand2,
   },
   {
@@ -55,13 +64,13 @@ const pipelineSteps = [
   {
     step: 4,
     title: "Enable interaction",
-    description: "Characters can be spoken to safely",
+    description: "Source-grounded chat audiences can trust",
     icon: MessageCircle,
   },
   {
     step: 5,
     title: "Share everywhere",
-    description: "Embed, export, or share directly",
+    description: "Link, embed, or export as an asset",
     icon: Share2,
   },
 ];
@@ -108,6 +117,60 @@ const trustFeatures = [
   },
 ];
 
+const valueComparison = [
+  {
+    path: "Traditional Agency",
+    time: "2-4 weeks",
+    cost: "$5,000+",
+    timeLabel: "Weeks of waiting",
+    costLabel: "Thousands spent",
+    highlight: false,
+  },
+  {
+    path: "DIY Tools",
+    time: "30+ hours",
+    cost: "$100+/mo",
+    timeLabel: "Hours of learning",
+    costLabel: "Multiple subscriptions",
+    highlight: false,
+  },
+  {
+    path: "NextMonth",
+    time: "Under 1 hour",
+    cost: "From $9.99",
+    timeLabel: "Minutes to create",
+    costLabel: "Pay per experience",
+    highlight: true,
+  },
+];
+
+const iceUseCases = [
+  {
+    title: "Marketing & Sales",
+    description: "Interactive landing pages, product explainers, and pitch experiences that convert.",
+    icon: Megaphone,
+    color: "from-blue-500 to-purple-500",
+  },
+  {
+    title: "Content & Publishing",
+    description: "Turn articles, blogs, or scripts into interactive stories people actually finish.",
+    icon: BookOpen,
+    color: "from-blue-600 to-purple-600",
+  },
+  {
+    title: "Training & Knowledge",
+    description: "Onboarding, education, and internal explainers that stick in memory.",
+    icon: GraduationCap,
+    color: "from-blue-500 to-cyan-500",
+  },
+  {
+    title: "Creative & Storytelling",
+    description: "Narrative prototypes, interactive films, and character-driven experiences.",
+    icon: Lightbulb,
+    color: "from-blue-400 to-purple-500",
+  },
+];
+
 export default function MarketingHome() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -124,30 +187,7 @@ export default function MarketingHome() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black via-black/90 to-transparent">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          <Link href="/">
-            <img 
-              src={LOGO_URL} 
-              alt="NextScene" 
-              className="h-[75px] cursor-pointer" 
-              data-testid="link-logo"
-            />
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10" data-testid="button-login">
-                Sign In
-              </Button>
-            </Link>
-            <a href="#how-it-works">
-              <Button className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 hover:from-pink-400 hover:via-purple-400 hover:to-blue-400 text-white border-0 shadow-lg shadow-purple-500/20" data-testid="button-signup">
-                Get Started
-              </Button>
-            </a>
-          </div>
-        </div>
-      </header>
+      <MarketingHeader />
 
       <main>
         {/* Hero Section - reduced ambient gradients */}
@@ -159,41 +199,46 @@ export default function MarketingHome() {
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
           }} />
 
-          <div className="max-w-5xl mx-auto px-6 text-center relative z-10 pt-32">
+          <div className="max-w-5xl mx-auto px-6 text-center relative z-10 pt-28">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-white/5 border border-white/10 rounded-full backdrop-blur-sm">
-                <Sparkles className="w-4 h-4 text-pink-400" />
+              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-sm">
+                <Sparkles className="w-4 h-4 text-blue-400" />
                 <span className="text-white/80">This is how stories are experienced now</span>
               </div>
               
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-semibold tracking-tight mb-8 leading-[0.9]" data-testid="text-hero-title">
-                <span className="block text-white">Turn any content into an</span>
-                <span className="block bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
-                  interactive cinematic experience
-                </span>
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[0.95]" data-testid="text-hero-title">
+                Turn anything into an{' '}
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">interactive experience</span>
               </h1>
               
-              <p className="text-xl md:text-2xl text-white/60 max-w-3xl mx-auto mb-12 leading-relaxed" data-testid="text-hero-description">
-                NextScene transforms scripts, documents, and websites into visual story cards 
-                your audience can explore, feel, and interact with.
+              <p className="text-xl md:text-2xl text-white/60 max-w-3xl mx-auto mb-6 leading-relaxed" data-testid="text-hero-description">
+                Transform documents, decks, and web pages into cinematic journeys people can explore, feel, and remember.
+              </p>
+              
+              <p className="text-base text-white/50 max-w-2xl mx-auto mb-10">
+                Built for brands, creators, and educators who want people to engage, not just scroll.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/login?signup=true">
-                  <Button size="lg" className="h-14 px-8 text-lg bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 hover:from-pink-400 hover:via-purple-400 hover:to-blue-400 text-white border-0 shadow-lg shadow-purple-500/20 gap-3" data-testid="button-hero-cta">
-                    Create a NextScene
+                <Link href="/try">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3 rounded-xl" data-testid="button-hero-cta">
+                    Launch Experience Builder
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 </Link>
-                <Button size="lg" variant="outline" className="h-14 px-8 text-lg bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 gap-3" data-testid="button-hero-demo">
+                <Button size="lg" variant="outline" className="h-14 px-8 text-lg bg-transparent border-white/30 text-white hover:bg-white/10 hover:border-white/50 gap-3 rounded-xl" data-testid="button-hero-demo">
                   <Play className="w-5 h-5 fill-current" />
                   See how it works
                 </Button>
               </div>
+              
+              <p className="text-sm text-white/40 mt-6">
+                No code required. Share as a link or embed on your site.
+              </p>
             </motion.div>
             
             <motion.div
@@ -206,10 +251,10 @@ export default function MarketingHome() {
               <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-xl">
                 <div className="aspect-video bg-neutral-900 flex items-center justify-center">
                   <div className="text-center">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/20 cursor-pointer hover:from-pink-400 hover:via-purple-400 hover:to-blue-400 transition-all">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-blue-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/20 cursor-pointer hover:from-blue-400 hover:via-purple-400 hover:to-blue-400 transition-all">
                       <Play className="w-8 h-8 text-white ml-1 fill-white" />
                     </div>
-                    <p className="text-white/40 text-sm">See NextScene in action</p>
+                    <p className="text-white/40 text-sm">See NextMonth in action</p>
                   </div>
                 </div>
               </div>
@@ -219,13 +264,240 @@ export default function MarketingHome() {
           <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
         </section>
 
-        {/* What is NextScene - Pipeline Visualization */}
+        {/* Value Framing Section - Time Comparison */}
+        <section className="py-20 px-6 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
+          <div className="max-w-5xl mx-auto relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-value-title">
+                <span className="text-white/80">Weeks</span>{' '}
+                <span className="text-white/40">→</span>{' '}
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">Minutes</span>
+              </h2>
+              <p className="text-white/50 text-lg max-w-xl mx-auto">
+                Creating interactive experiences used to take forever. Not anymore.
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              {valueComparison.map((item, index) => (
+                <motion.div
+                  key={item.path}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className={`p-6 rounded-2xl border transition-all ${
+                    item.highlight 
+                      ? 'bg-gradient-to-b from-purple-900/30 to-pink-900/20 border-purple-500/50 shadow-lg shadow-purple-500/10' 
+                      : 'bg-white/5 border-white/10'
+                  }`}
+                  data-testid={`card-comparison-${index}`}
+                >
+                  <p className={`text-sm font-medium mb-4 ${item.highlight ? 'text-purple-400' : 'text-white/40'}`}>
+                    {item.path}
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        item.highlight ? 'bg-purple-500/20' : 'bg-white/10'
+                      }`}>
+                        <Clock className={`w-5 h-5 ${item.highlight ? 'text-purple-400' : 'text-white/40'}`} />
+                      </div>
+                      <div>
+                        <p className={`text-2xl font-bold ${item.highlight ? 'text-white' : 'text-white/70'}`}>
+                          {item.time}
+                        </p>
+                        <p className="text-xs text-white/40">{item.timeLabel}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        item.highlight ? 'bg-blue-500/20' : 'bg-white/10'
+                      }`}>
+                        <DollarSign className={`w-5 h-5 ${item.highlight ? 'text-blue-400' : 'text-white/40'}`} />
+                      </div>
+                      <div>
+                        <p className={`text-2xl font-bold ${item.highlight ? 'text-white' : 'text-white/70'}`}>
+                          {item.cost}
+                        </p>
+                        <p className="text-xs text-white/40">{item.costLabel}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {item.highlight && (
+                    <div className="mt-6 pt-4 border-t border-purple-500/20">
+                      <Link href="/try">
+                        <Button size="sm" className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-blue-500 text-white border-0" data-testid="button-comparison-cta">
+                          Try it now <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ICE Use Cases Section */}
+        <section className="py-20 px-6 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-neutral-950 via-black to-neutral-950" />
+          <div className="max-w-5xl mx-auto relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-usecases-title">
+                What people use{' '}
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">ICE</span>{' '}
+                for
+              </h2>
+              <p className="text-white/50 text-lg max-w-xl mx-auto">
+                Interactive Cinematic Experiences for every storytelling need
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              {iceUseCases.map((useCase, index) => (
+                <motion.div
+                  key={useCase.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-all group"
+                  data-testid={`card-iceuse-${index}`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${useCase.color} flex items-center justify-center flex-shrink-0 shadow-lg`}>
+                      <useCase.icon className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">
+                        {useCase.title}
+                      </h3>
+                      <p className="text-white/50 text-sm leading-relaxed">
+                        {useCase.description}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="mt-10 text-center"
+            >
+              <Link href="/try">
+                <Button size="lg" className="h-12 px-8 bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-2" data-testid="button-usecases-cta">
+                  Start building your experience
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              </Link>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Scenario Case Studies Section */}
+        <section className="py-20 px-6 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
+          <div className="max-w-5xl mx-auto relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-scenarios-title">
+                See how{' '}
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">real people</span>{' '}
+                use ICE
+              </h2>
+              <p className="text-white/50 text-lg max-w-xl mx-auto">
+                From technical documents to creative stories, these scenarios show what's possible
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <ScenarioCarousel filter="all" />
+            </motion.div>
+          </div>
+        </section>
+
+        {/* AI Discovery Shift Section */}
+        <section className="py-20 px-6 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
+          <div className="max-w-4xl mx-auto relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 text-sm font-medium bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-sm">
+                <Radio className="w-4 h-4 text-blue-400" />
+                <span className="text-blue-300">AI Discovery</span>
+              </div>
+              
+              <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-ai-discovery-title">
+                Discovery has changed.{' '}
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">AI now answers.</span>
+              </h2>
+              
+              <p className="text-lg md:text-xl text-white/60 max-w-3xl mx-auto mb-10 leading-relaxed">
+                People no longer find businesses only through search results.
+                They ask AI systems like ChatGPT and Gemini and trust the answers.
+                Orbit helps you control how your business is understood, described, and recommended.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/ai-discovery-control">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-ai-discovery-learn">
+                    Learn about AI discovery
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <Link href="/for/brands">
+                  <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/20 text-white hover:bg-white/10 gap-3" data-testid="button-ai-discovery-claim">
+                    Claim your business Orbit
+                  </Button>
+                </Link>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* What is NextMonth - Pipeline Visualization */}
         <section id="how-it-works" className="py-24 px-6 relative scroll-mt-24">
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-pipeline-title">
-                What is <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextScene?</span>
+                What is <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextMonth?</span>
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
                 From content to cinematic experience in five steps
@@ -261,14 +533,14 @@ export default function MarketingHome() {
           </div>
         </section>
 
-        {/* Three Ways to Use NextScene */}
+        {/* Three Ways to Use NextMonth */}
         <section className="py-24 px-6 relative overflow-hidden">
           <div className="absolute inset-0 bg-neutral-950" />
           
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-usecases-title">
-                Three ways to use <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextScene</span>
+                Three ways to use <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextMonth</span>
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
                 One engine, built for every storyteller
@@ -284,39 +556,54 @@ export default function MarketingHome() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Link href={useCase.href}>
-                    <div 
-                      className="group p-8 rounded-2xl bg-gradient-to-b from-white/5 to-transparent border border-white/10 hover:border-purple-500/50 cursor-pointer transition-all duration-300 hover:bg-white/5 h-full"
-                      data-testid={`card-usecase-${useCase.id}`}
-                    >
-                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${useCase.color} flex items-center justify-center mb-6 shadow-lg`}>
-                        <useCase.icon className="w-7 h-7 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold mb-3 group-hover:text-purple-400 transition-colors">
-                        {useCase.title}
-                      </h3>
-                      <p className="text-white/50 leading-relaxed mb-4">
-                        {useCase.description}
-                      </p>
-                      <div className="flex items-center gap-2 text-purple-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                        Learn more <ArrowRight className="w-4 h-4" />
-                      </div>
+                  <div 
+                    className="group p-8 rounded-2xl bg-gradient-to-b from-white/5 to-transparent border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:bg-white/5 h-full flex flex-col"
+                    data-testid={`card-usecase-${useCase.id}`}
+                  >
+                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${useCase.color} flex items-center justify-center mb-6 shadow-lg`}>
+                      <useCase.icon className="w-7 h-7 text-white" />
                     </div>
-                  </Link>
+                    <h3 className="text-xl font-bold mb-3 group-hover:text-purple-400 transition-colors">
+                      {useCase.title}
+                    </h3>
+                    <p className="text-white/50 leading-relaxed mb-4 flex-grow">
+                      {useCase.description}
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <Link href={useCase.href}>
+                        <button 
+                          className="flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors cursor-pointer"
+                          data-testid={`button-microcta-${useCase.id}`}
+                        >
+                          {useCase.microCta} <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </Link>
+                      {useCase.secondaryLink && (
+                        <Link href={useCase.secondaryLink}>
+                          <span className="text-white/40 hover:text-white/60 text-sm transition-colors cursor-pointer">
+                            {useCase.secondaryCta}
+                          </span>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Why NextScene is Different */}
+        {/* Why NextMonth is Different */}
         <section className="py-24 px-6 relative">
           <div className="absolute inset-0 bg-black" />
           <div className="max-w-5xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-different-title">
-                Why NextScene is <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">different</span>
+                Why NextMonth is <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">different</span>
               </h2>
+              <p className="text-white/50 text-lg max-w-xl mx-auto">
+                Replace flat links with guided journeys. Great for pitches, onboarding, learning, and sales.
+              </p>
             </div>
             
             <div className="grid md:grid-cols-2 gap-4">
@@ -352,7 +639,7 @@ export default function MarketingHome() {
                 Trust & Control
               </h2>
               <p className="text-white/50 text-lg max-w-xl mx-auto">
-                Credibility matters. NextScene gives you full control.
+                Credibility matters. NextMonth gives you full control.
               </p>
             </div>
             
@@ -377,6 +664,36 @@ export default function MarketingHome() {
           </div>
         </section>
 
+        {/* Website Experience Section */}
+        <section className="py-32 px-6 relative overflow-hidden">
+          <div className="absolute inset-0 bg-black" />
+          <div className="max-w-4xl mx-auto text-center relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="text-4xl md:text-6xl font-bold mb-6" data-testid="text-website-title">
+                Turn your website into an<br />
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">interactive experience</span>
+              </h2>
+              <p className="text-xl text-white/60 mb-10 max-w-2xl mx-auto leading-relaxed">
+                Close the gap between where visitors land and where your best information lives. Guide them through what matters instead of hoping they find it.
+              </p>
+              <Link href="/try">
+                <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3 rounded-xl" data-testid="button-website-cta">
+                  Launch Experience Builder
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              </Link>
+              <p className="text-sm text-white/40 mt-4">
+                Start with a URL. Publish in minutes.
+              </p>
+            </motion.div>
+          </div>
+        </section>
+
         {/* Final CTA */}
         <section className="py-32 px-6 relative overflow-hidden">
           <div className="absolute inset-0 bg-neutral-950" />
@@ -389,16 +706,16 @@ export default function MarketingHome() {
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <h2 className="text-4xl md:text-6xl font-display font-bold mb-6" data-testid="text-cta-title">
-                Ready to create your first<br />
-                <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextScene?</span>
+              <h2 className="text-4xl md:text-6xl font-bold mb-6" data-testid="text-cta-title">
+                Stop sending links.<br />
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">Start guiding people.</span>
               </h2>
               <p className="text-xl text-white/50 mb-10 max-w-xl mx-auto">
-                Transform your content into cinematic experiences your audience will never forget
+                Turn your content into an interactive journey that people actually finish.
               </p>
-              <Link href="/login?signup=true">
-                <Button size="lg" className="h-16 px-12 text-lg bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 hover:from-pink-400 hover:via-purple-400 hover:to-blue-400 text-white border-0 shadow-lg shadow-purple-500/20 gap-3" data-testid="button-footer-cta">
-                  Create a NextScene
+              <Link href="/try">
+                <Button size="lg" className="h-16 px-12 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-footer-cta">
+                  Launch Experience Builder
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
@@ -406,14 +723,26 @@ export default function MarketingHome() {
           </div>
         </section>
 
+        {/* Proof Strip */}
+        <Link href="/ai-discovery-control">
+          <section className="py-8 px-6 relative cursor-pointer group" data-testid="section-proof-strip">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-blue-500/5 group-hover:from-blue-500/10 group-hover:via-purple-500/10 group-hover:to-blue-500/10 transition-all" />
+            <div className="max-w-4xl mx-auto relative z-10 text-center">
+              <p className="text-lg md:text-xl text-white/60 group-hover:text-white/80 transition-colors">
+                Stop being interpreted by default. Give AI a source it can trust.
+              </p>
+            </div>
+          </section>
+        </Link>
+
         {/* Footer */}
         <footer className="py-12 px-6 border-t border-white/10 bg-black">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
               <img 
-                src={LOGO_URL} 
-                alt="NextScene" 
-                className="h-[60px]"
+                src="/logo.png" 
+                alt="NextMonth" 
+                className="h-[48px]"
               />
               <div className="flex items-center gap-8">
                 <Link href="/for/brands" className="text-white/50 hover:text-white text-sm transition-colors">Brands</Link>
@@ -426,6 +755,7 @@ export default function MarketingHome() {
                 <Link href="/privacy" className="text-white/40 hover:text-white/70 text-xs transition-colors">Privacy Policy</Link>
                 <Link href="/terms" className="text-white/40 hover:text-white/70 text-xs transition-colors">Terms of Service</Link>
                 <Link href="/cookies" className="text-white/40 hover:text-white/70 text-xs transition-colors">Cookie Policy</Link>
+                <Link href="/security" className="text-white/40 hover:text-white/70 text-xs transition-colors">Security</Link>
               </div>
               <p className="text-white/30 text-xs">
                 © {new Date().getFullYear()} NextMonth Ltd. All rights reserved.

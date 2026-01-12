@@ -1,0 +1,106 @@
+Good. That’s the right kind of Phase 1: tight, boring, and protective. And the “story vs preview” token split was the key catch. If you hadn’t done that, you’d have left a weird cross-resource gap.
+
+Now, I’m going to be the annoying architect for 2 minutes and tell you what to verify so you can be truly confident this is solid, not just “working”.
+
+What you’ve done well
+	•	Signed tokens bound to resource type + id: this kills the analytics poisoning and preview chat abuse.
+	•	Rate limits on the correct surfaces: analytics, activation/pause, chat.
+	•	Public story hardening: only serves active experiences and issues tokens from the server.
+
+That’s a proper safety net.
+
+The 7 checks I want you to run (quick, definitive)
+
+These are the “prove it” tests. If all pass, Phase 1 is genuinely locked.
+
+1) Token mismatch should fail
+	•	Load Story A, capture storyTokenA.
+	•	Attempt to POST analytics for Story B using storyTokenA.
+Expected: 403 (or explicit invalid token response), and nothing stored.
+
+2) Resource-type confusion should fail
+	•	Use a preview token on a story analytics endpoint.
+Expected: 403.
+	•	Use a story token on a preview chat endpoint.
+Expected: 403.
+
+3) Expired token behaviour is correct
+	•	Set token expiry short in dev (eg 10 seconds) and confirm:
+Expected: after expiry, calls fail cleanly and client re-fetches a fresh token via reload or a defined refresh path.
+
+4) Token secret stability in production
+
+You already noted this, but make it explicit:
+	•	If PUBLIC_TOKEN_SECRET is not set, tokens will rotate on restart and break active sessions.
+Expected: in Render, PUBLIC_TOKEN_SECRET is set and stable.
+
+5) Preview chat endpoint cannot be used without token
+	•	Call preview chat endpoint without token from Postman/curl.
+Expected: 403.
+
+6) Rate limits behave as intended and do not DOS real users
+	•	Burst test each endpoint:
+	•	analytics: 101+ calls/min from one IP should throttle
+	•	activation/pause: 11+ calls/min should throttle
+	•	chat: 31+ calls/min should throttle
+Expected: 429 with a clear message, and app UI handles it gracefully.
+
+7) No bypass via alternate endpoints
+
+Search for any other analytics/chat ingestion endpoints that still accept universeId or previewId without token.
+Expected: everything is covered.
+
+If even one of those is uncovered, it becomes the attacker’s new front door.
+
+Two small improvements I’d add immediately (low effort, high value)
+
+A) Include aud and ver in token payload
+	•	aud: “analytics” or “chat”
+	•	ver: 1
+This gives you safe future changes without breaking everything, and prevents accidental reuse across surfaces.
+
+B) Add replay-resistant fingerprinting (optional, but nice)
+
+For high-risk endpoints, you can optionally include:
+	•	ipHash or uaHash (very lightweight)
+This reduces token sharing abuse. Only do this if it doesn’t break legitimate shared environments. It’s a later hardening move, not essential.
+
+What Phase 1 does not solve (and that’s fine)
+
+You’re still single-tenant in the structural sense. Phase 1 just prevents the obvious abuse while you migrate.
+
+Phase 2 remains:
+	•	tenants table
+	•	tenant_id columns
+	•	enforcement middleware
+	•	billing mapped to tenant
+
+But you’ve now bought yourself the right to do that migration safely.
+
+Replit prompt to lock Phase 1 as “verified”
+
+If you want to formalise this in the repo, here’s a prompt you can drop into Replit to add automated tests:
+
+Replit Prompt: Add Phase 1 Security Verification Tests (token binding + rate limiting)
+
+Goal
+Add automated tests (integration or request-level) that prove:
+1) storyToken cannot be used for preview endpoints
+2) previewToken cannot be used for story endpoints
+3) token for one resourceId cannot be used for another resourceId
+4) requests without token are rejected
+5) rate limits return 429 beyond thresholds
+
+Requirements
+- Add tests for:
+  - POST /api/public/analytics/event
+  - POST /api/chat/:universeId/message (or equivalent)
+  - preview chat endpoint
+- Include negative tests for token mismatch and resource-type mismatch
+- Include a simple burst test that asserts 429 responses
+- Ensure tests run in CI/dev without external services
+
+Deliverable
+Return the test files added/changed and instructions to run them locally.
+
+If you tell me what test framework you’re using (Vitest, Jest, Playwright, Supertest), I’ll tailor that prompt so Replit produces the right code first time.

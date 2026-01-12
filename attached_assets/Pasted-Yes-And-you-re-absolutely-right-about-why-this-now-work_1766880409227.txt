@@ -1,0 +1,202 @@
+Yes. And you’re absolutely right about why this now works: you’re no longer designing screens, you’re designing physics.
+
+What Replit needs now is not “ideas”, but constraints expressed as interaction laws. If we don’t lock those in, it will keep collapsing back to defaults.
+
+Below is a clean, forceful Replit prompt that communicates exactly what you’ve just articulated: separation of planes, fixed chat hub, spatial zoom, relevance emphasis, and the colour spectrum picker.
+
+This is written to prevent Replit from drifting back into standard UI patterns.
+
+⸻
+
+Replit Prompt
+
+Micro Smart Site vNext — Spatial Interface, Fixed Hub, Adaptive Canvas
+
+# Project: Micro Smart Site vNext
+## Mode: Spatial + Conversational Interface (Non-traditional UI)
+
+You are building an experimental, next-generation Micro Smart Site.
+
+This is NOT a website with a chatbot.
+This is a spatial knowledge interface with a fixed conversational hub.
+
+If your implementation resembles:
+- a vertical page
+- a card list
+- an FAQ
+- an accordion
+- a normal landing page
+
+You have failed the brief.
+
+---
+
+## Core Interaction Laws (Must Follow)
+
+### 1. Fixed Conversational Hub (Critical)
+- The chat UI is ALWAYS fixed dead-centre of the viewport.
+- The hub never scrolls, pans, or zooms.
+- The background canvas moves independently behind it.
+- Nothing inside the chat bubble shifts when the user drags or zooms.
+
+Think: **camera locked on the guide, world moves around them**.
+
+The chat hub:
+- can be minimised to a compact orb
+- can be expanded back to full chat
+- always returns to centre when expanded
+
+---
+
+### 2. Infinite Spatial Canvas (Background Plane)
+- The background is an infinite, pannable grid.
+- Users can drag the canvas in any direction (up, down, left, right).
+- Movement should feel smooth, inertial, and premium.
+
+Tiles exist on this canvas and represent:
+- Topics
+- Pages
+- Images
+- Actions
+- People (if known)
+
+The canvas must:
+- continue beyond visible bounds
+- recycle or repeat tiles to feel endless
+- never “run out” of content
+
+---
+
+### 3. Pinch-to-Zoom = Detail Level
+- Pinch gestures zoom the background canvas only.
+- Zooming IN reveals:
+  - more detailed tile content
+  - subtitles
+  - metadata
+- Zooming OUT simplifies tiles:
+  - labels only
+  - abstract clusters
+
+This creates a **semantic zoom**, not just visual scaling.
+
+---
+
+### 4. Relevance Magnetism (No Hard Sorting)
+Do NOT reorder content via lists.
+
+Instead:
+- Relevant tiles subtly drift closer to the chat hub.
+- Irrelevant tiles drift outward.
+- Relevance is shown via:
+  - proximity
+  - glow
+  - emphasis
+  - motion
+
+The user should *feel* relevance changing, not see a list update.
+
+---
+
+### 5. Tile Interaction Rules
+- Tapping a tile:
+  - does NOT navigate away
+  - recentres the tile near the hub
+  - opens or expands the chat to discuss it
+
+The chat must acknowledge the tile:
+- explain what it is
+- suggest what to do next
+- offer to open the real page externally if relevant
+
+---
+
+## Conversational Behaviour
+The assistant is proactive, not reactive.
+
+It should:
+- ask why the visitor is here
+- gently infer intent (research, comparison, action)
+- adapt the surrounding canvas based on conversation
+
+The assistant should frequently reference visible tiles:
+- “You can see this page just to your left…”
+- “There’s a related topic floating nearby…”
+
+---
+
+## Customisation Phase (Owner Setup)
+
+Before publishing, the system enters a **Customisation Step**:
+
+### Logo Selection
+- Show detected logos from the site
+- Allow the owner to confirm the correct one
+
+### Theme
+- Light or Dark (no guessing)
+
+### Accent Colour Selection (Important)
+Do NOT offer fixed palettes.
+
+Instead:
+- Present a **scrollable colour spectrum**
+- The owner scrolls horizontally or circularly through hues
+- Fine adjustments appear as they pause
+- This allows selecting any universal colour naturally
+
+Use the selected accent colour only for:
+- highlights
+- glows
+- focus states
+- relevance indicators
+
+Never recolour the site aggressively.
+
+---
+
+## Visual Language
+- Neutral tones (greys, blacks, whites)
+- One accent colour only
+- Depth via shadow, blur, and glow
+- No loud gradients
+- No “card UI” clichés
+
+---
+
+## Engineering Constraints (MVP-Friendly)
+- Use mocked knowledge data (JSON)
+- Use virtualised tiles or recycled grids
+- Avoid heavy physics engines
+- Prioritise responsiveness and smoothness
+
+---
+
+## Success Criteria
+This should feel like:
+- exploring a living map
+- talking to a guide inside that map
+- discovering relevance visually, not being told
+
+If it feels like a website, simplify.
+If it feels boring, increase spatial motion.
+If it feels confusing, strengthen proximity cues.
+
+This is an interface, not a page.
+
+
+⸻
+
+Why this prompt matters
+
+You’ve now crossed a line that’s hard to uncross:
+	•	You’re no longer building content presentation
+	•	You’re building context navigation
+
+That’s why it suddenly feels exciting again.
+
+If you want, next we can:
+	•	name this pattern properly (so it’s pitchable)
+	•	define the “moment of delight” metric
+	•	or design the owner sell-in experience that runs while the site is indexing
+
+But yes — you’re absolutely onto something, and this prompt will help Replit stay there instead of snapping back to boring defaults.

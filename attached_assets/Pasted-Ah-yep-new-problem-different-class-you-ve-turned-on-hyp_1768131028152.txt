@@ -1,0 +1,74 @@
+Ah yep – new problem, different class: you’ve turned on hyphenation.
+
+Those “gen-erative” / “as-tonish-ing” breaks only happen when CSS hyphens: auto is active (or the browser thinks it is), and it’s doing exactly what it was designed to do: add discretionary hyphens to make the text fit.
+
+For captions, it looks awful. We want wrapping at spaces, not splitting words.
+
+What to change (in resolveStyles())
+
+Fix: disable hyphenation on the actual text element
+
+On headline (and supporting, if needed), force:
+	•	hyphens: 'none'
+	•	wordBreak: 'normal'
+	•	overflowWrap: 'break-word' (safety for monster words/URLs)
+	•	keep whiteSpace: 'normal'
+
+Example:
+
+const headlineStyle: React.CSSProperties = {
+  ...headlineBase,
+  whiteSpace: 'normal',
+  wordBreak: 'normal',
+  overflowWrap: 'break-word',
+  hyphens: 'none',
+};
+
+Do the same for supporting text:
+
+const supportingStyle: React.CSSProperties = {
+  ...supportingBase,
+  whiteSpace: 'normal',
+  wordBreak: 'normal',
+  overflowWrap: 'break-word',
+  hyphens: 'none',
+};
+
+Important: don’t rely on container styles for this
+
+Even if the panel/container has hyphens: none, the browser may still hyphenate inside the <p> depending on how styles are applied. Put it directly on the <p> (or the element that is line-clamped).
+
+⸻
+
+What to avoid
+	•	hyphens: 'auto' anywhere in the caption tree
+	•	overflowWrap: 'anywhere' if you care about never breaking inside words (it can break at any character; it won’t insert hyphens, but it can still make ugly breaks)
+
+For captions, break-word is the right compromise:
+	•	wraps at spaces normally
+	•	only breaks words if it absolutely must
+	•	doesn’t inject hyphens
+
+⸻
+
+Quick check after the change
+
+Test these:
+	•	“As generative AI too…”
+	•	“An astonishing 58%…”
+	•	a URL or long hashtag
+
+Expected:
+	•	no word splits with inserted hyphens
+	•	wraps at spaces
+	•	only extreme long tokens break (cleanly)
+
+⸻
+
+Why this suddenly appeared
+
+Earlier you had hyphens: 'auto' in your container styles (you mentioned adding it as a “nice” wrap improvement). Now that you’re line clamping and the panel is larger, the browser has more incentive to hyphenate to meet the clamp width.
+
+Kill hyphenation and the captions look instantly more “CapCut”.
+
+If you paste the specific headlineStyle and supportingStyle output from resolveStyles() (just those objects), I’ll tell you exactly where hyphens:auto is sneaking in.

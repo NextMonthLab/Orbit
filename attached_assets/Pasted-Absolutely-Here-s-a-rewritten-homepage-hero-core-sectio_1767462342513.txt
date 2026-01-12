@@ -1,0 +1,157 @@
+Absolutely. Here’s a rewritten homepage hero + core sections that positions NextMonth properly as Orbit → Launchpad → ICE, keeps your ICE promise, and makes the CTAs clean and consistent. UK spelling, UK pricing, no goofy long dashes.
+
+⸻
+
+Hero (Above the fold)
+
+Stop sending links. Start guiding people.
+Turn websites, PDFs and decks into Interactive Cinematic Experiences people can explore, feel, and remember.
+
+NextMonth is the engine that turns your business knowledge into trusted AI discovery and interactive experiences, without a production team.
+
+Launch Experience Builder
+See how it works
+
+No code required. Share as a link or embed on your site.
+Built for brands, creators, and educators who want people to engage, not just scroll.
+
+⸻
+
+One clear workflow (Orbit → Launchpad → ICE)
+
+From knowledge to discovery to experience
+
+NextMonth works as a simple pipeline:
+
+1) Orbit
+Create a source AI can trust. Control how your business is described, recommended, and understood.
+
+2) Launchpad
+See what people ask. Spot gaps, objections, and opportunities, then turn them into content.
+
+3) ICE
+Publish insights as cinematic, interactive journeys. Audiences can explore and ask questions, grounded in your source.
+
+Claim your Orbit
+Launch Experience Builder
+
+⸻
+
+The “why now” section (AI Discovery)
+
+Discovery has changed. AI now answers.
+
+People don’t only search and browse. They ask ChatGPT and Gemini and trust the response. If you are not providing a clear source, you get interpreted by default.
+
+Orbit helps you become the source.
+So customers, prospects, and partners get consistent answers, backed by your content.
+
+Learn about AI discovery
+Claim your Orbit
+
+⸻
+
+“Weeks to minutes” comparison (keep it, tighten it)
+
+Weeks → Minutes
+
+Creating interactive experiences used to take forever. Not anymore.
+
+Traditional Agency
+2 to 4 weeks
+Weeks of waiting
+£4,000+
+Thousands spent
+
+DIY Tools
+30+ hours
+Hours of learning
+£79+/month
+Multiple subscriptions
+
+NextMonth
+Under 1 hour
+Minutes to create
+From £9.99 per experience
+Pay per experience
+
+Try it now
+
+⸻
+
+What people use ICE for (your categories, improved)
+
+Interactive Cinematic Experiences for every storytelling need
+
+Marketing & Sales
+Interactive landing pages, product explainers, pitch journeys, and proposals that convert.
+
+Content & Publishing
+Turn articles, blogs, or scripts into guided stories people actually finish.
+
+Training & Knowledge
+Onboarding, education, and internal explainers that stick.
+
+Creative & Storytelling
+Narrative prototypes, interactive films, and character-led journeys.
+
+Start building your experience
+
+⸻
+
+“See how real people use ICE” scenarios (format + one example rewritten)
+
+See how real people use ICE
+
+From technical documents to creative stories, these scenarios show what’s possible.
+
+Innovative Manufacturer
+They have: Dense technical documentation, CAD specs, and engineering white papers that overwhelm prospects and slow sales cycles.
+They use ICE to: Turn product specs into a guided experience where an AI engineer walks prospects through key features, answers questions in real time, and shows use cases visually.
+The outcome: Prospects self-educate, sales cycles shorten, and complexity becomes a competitive advantage instead of a barrier.
+
+See NextMonth in action
+
+⸻
+
+Trust and control (keep your points, sharper)
+
+Built for trust, not hallucinations
+
+Credibility matters. NextMonth gives you control.
+	•	Creator-editable prompts so the experience sounds like you
+	•	Explicit guardrails to prevent drift from source
+	•	Source-grounded chat so characters only know what you provide
+	•	Human review before publishing where required
+
+⸻
+
+Dedicated “Turn your website into an interactive experience” block
+
+Turn your website into an interactive experience
+
+Close the gap between where visitors land and where your best information lives. Guide them through what matters instead of hoping they find it.
+
+Start with a URL. Publish in minutes.
+
+Launch Experience Builder
+
+⸻
+
+Final close (your line, tightened)
+
+Stop being interpreted by default. Give AI a source it can trust.
+Turn your content into an interactive journey people actually finish.
+
+Launch Experience Builder
+Claim your Orbit
+
+⸻
+
+Quick notes (so you can implement cleanly)
+	•	Keep one primary CTA throughout: Launch Experience Builder
+	•	Keep one secondary CTA: Claim your Orbit
+	•	“ICE” should be defined once near the top: “ICE = Interactive Cinematic Experiences”
+	•	Orbit and Launchpad should feel like steps in the same engine, not separate products you happen to own
+
+If you paste your current section order (or the actual NextMonth Home page component structure), I can adapt this into the exact blocks you need for Replit with headings, button IDs, and where each CTA should route.

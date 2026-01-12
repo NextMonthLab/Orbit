@@ -1,0 +1,138 @@
+Got it. What you’re describing is the right operational loop: export current state → generate an “extend it” prompt → Claude adds meaningful depth → re-import with review. That’s how you avoid “starting from zero” and actually compound knowledge over time.
+
+I’ll lay this out as a clean spec you can hand to RAPTOR.
+
+First, one naming point
+
+You previously moved toward “Orbit Seed Pack”, but you now want the admin panel terminology to be Orbit CPAC.
+
+You can do that, but just be aware CPAC is an overloaded acronym in the real world. If you still want it, fine. I’d add a tiny tooltip in the UI like: “Orbit CPAC = Orbit knowledge pack export” so it doesn’t confuse future users/admins.
+
+What needs to change
+
+1) Admin panel terminology
+	•	Rename all “Seed Pack” references to Orbit CPAC
+	•	Buttons and labels:
+	•	“Download Orbit CPAC”
+	•	“Upload Orbit CPAC”
+	•	“Generate Claude Prompt”
+	•	“Export current Orbit CPAC” (optional wording)
+
+2) Download must be pre-populated
+
+Rule:
+	•	If the industry Orbit has existing data, download must include all current data, not a blank template.
+
+Implementation behaviour:
+	•	“Download Orbit CPAC” should:
+	•	Look up the Orbit by slug (eg smart-glasses)
+	•	Export the full current dataset (entities, nodes, edges, sources, media, tags, notes, whatever the CPAC schema contains)
+	•	Include metadata: orbitSlug, exportedAt, schemaVersion, counts
+
+Edge case:
+	•	If truly no data exists, then export a valid empty CPAC with schemaVersion and minimal scaffolding, not an undefined mess.
+
+3) Add “Claude Extension Prompt” UI
+
+You want a UI section that generates a ready-to-copy prompt based on the exported CPAC.
+
+It should:
+	•	Summarise what’s already inside the CPAC (counts and coverage)
+	•	State non-negotiable rules (no duplicates, justify additions, status tags, confidence)
+	•	Ask for “meaningful extension” with specific buckets (enterprise, optics suppliers, regional players, accessories, discontinued but influential, etc.)
+	•	Output as:
+	•	Copy-to-clipboard
+	•	Download as claude_prompt.txt (or JSON with prompt field)
+
+4) Create the actual workflow loop in the admin
+
+To make this compound properly, you need one more step beyond your ask: a review/diff on import.
+
+Recommended flow:
+	1.	Admin clicks Download Orbit CPAC (pre-populated)
+	2.	Admin clicks Generate Claude Prompt
+	3.	Admin pastes prompt + uploads CPAC into Claude
+	4.	Claude returns an extended CPAC JSON
+	5.	Admin uploads it back into Orbit
+	6.	System shows diff:
+	•	New manufacturers/products/sources
+	•	Changes to existing entries
+	•	Duplicate detection warnings
+	7.	Admin approves merge
+
+Without the diff/merge step, you’ll eventually corrupt the dataset with duplicates and conflicting entries.
+
+⸻
+
+RAPTOR prompt you can paste
+
+Task: Implement “Orbit CPAC export, prompt generation, and pre-populated download” in the Admin Panel.
+
+A) Rename terminology
+	•	Replace all “Seed Pack” text with Orbit CPAC in the Admin UI and any related labels/help text.
+	•	Keep internal variable names as-is if needed, but UI must say Orbit CPAC.
+
+B) Pre-populated CPAC download
+
+Add/modify an export endpoint and UI action:
+	•	Button: Download Orbit CPAC
+	•	Behaviour:
+	•	If Orbit slug exists and has data in DB, export a fully populated CPAC JSON.
+	•	If no data, export an empty but schema-valid CPAC JSON template.
+	•	CPAC JSON must include:
+	•	schemaVersion
+	•	orbitSlug
+	•	exportedAt
+	•	data with all current Orbit content (entities, nodes, edges, sources, media, tags, etc.)
+	•	counts summary (optional)
+
+C) Claude prompt generator UI
+
+Add a UI panel on the Orbit CPAC admin page:
+	•	Title: Claude Extension Prompt
+	•	Button: Generate Prompt
+	•	Output: a text area with copy button and download button.
+
+Prompt content must:
+	•	Treat the CPAC as baseline, do not repeat existing entries.
+	•	Require meaningful new additions only.
+	•	Force justification, status tags, confidence score, and sources for key claims.
+	•	Use bucket-based expansion:
+	•	Enterprise/industrial
+	•	Optics/display suppliers
+	•	Audio-first
+	•	Regional players
+	•	Accessories/ecosystem
+	•	Discontinued but influential (clearly marked)
+	•	Include strict dedupe instruction: merge aliases, avoid duplicates.
+
+D) Optional but strongly recommended: import diff and merge
+
+When uploading an Orbit CPAC:
+	•	Validate schema (Zod/JSON schema)
+	•	Compute diff against existing DB
+	•	Show preview of:
+	•	additions
+	•	updates
+	•	deletions (if any)
+	•	duplicates detected
+	•	Require admin confirmation before applying changes.
+
+E) Acceptance criteria
+	•	Downloading Orbit CPAC for an existing Orbit never returns a blank file.
+	•	Claude prompt is generated in one click and is ready to paste into Claude.
+	•	Upload validates and prevents obvious duplication (at minimum warns, ideally blocks until merged).
+
+⸻
+
+One thing I’d change in your instruction (to make it even better)
+
+You said: “download Orbit CPAC with a prompt”.
+
+Do it as two downloads:
+	•	orbit_cpac.json
+	•	claude_prompt.txt
+
+Because it keeps Claude’s input clean, and you can version prompts separately.
+
+If you want, I can write the exact Claude prompt text template (with placeholders auto-filled from the exported CPAC counts) so it’s consistent every time and doesn’t rely on you hand-tweaking it.

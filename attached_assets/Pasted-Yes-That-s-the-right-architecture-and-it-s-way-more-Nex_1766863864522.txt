@@ -1,0 +1,153 @@
+Yes. That’s the right architecture, and it’s way more “NextScene” than bolting a new Story Mode on top.
+
+What you’re describing is basically:
+
+Cinematic = the transition layer
+Interactive = the destination layer
+…and every interaction triggers a new transition.
+
+Like a film: scene change → moment → scene change → moment.
+
+Replit tried to invent a new UI because it didn’t understand it should reuse the existing transformation renderer.
+
+So the fix is to explicitly instruct:
+	•	Do not create a new story system
+	•	Import the existing transformation pipeline and use it verbatim
+	•	Wrap it in a TransitionOrchestrator that alternates between:
+	1.	cinematic “card reveal” sequence
+	2.	interactive micro-site panel
+
+Below is a Replit prompt that forces exactly that.
+
+⸻
+
+Replit Prompt: Borrow the existing transformation renderer and add Cinematic Transitions
+
+Paste this:
+
+You are Rapplet inside the NextScene repo.
+
+Context
+We already have a primary transformation function that converts a URL/content into a NextScene cinematic card sequence. That architecture already exists and works. The current /preview/:id Story Mode implementation incorrectly creates a new slider/banner UI from scratch.
+
+Mission
+Do NOT build a new cinematic system.
+Reuse the existing transformation renderer exactly as it is.
+Wrap the Smart Site preview in a cinematic-to-interactive orchestrator:
+
+- Cinematic sequence plays (existing NextScene card reveal)
+- Then it drops into an interactive micro-site element (chat, section detail, FAQ, service detail)
+- When the user clicks/taps a different area of the interactive micro-site, we play a short cinematic transition sequence again, then drop into the next interactive element.
+
+Think: Scene transition -> Interactive moment -> Scene transition -> Interactive moment.
+
+Non negotiables
+1) No new carousel/slider/banner UI. No arrows/dots navigation.
+2) No re-implementing “Story Mode”. Must borrow existing card reveal code verbatim.
+3) All data should come from the existing transformation output. Avoid re-scraping.
+4) Chat remains secondary and contextual.
+5) Keep SSRF, caps, TTL, and rate limits intact.
+6) UK English spelling. Avoid long dashes in copy.
+
+What to build
+A) Identify and reuse existing cinematic renderer
+- Locate the code responsible for the primary transformation card reveal (components, renderer, route, data shape).
+- Import and render it inside /preview/:id without rewriting it.
+- If it expects a certain data structure, adapt the preview data to that structure with a thin adapter, not a rewrite.
+
+B) Create a Preview Orchestrator component
+Create a component, eg:
+- PreviewExperienceOrchestrator.tsx
+
+State machine:
+- mode: "cinematic" | "interactive"
+- currentTarget: the interactive element to reveal next (eg "overview", "service:{id}", "faq:{id}", "lead", etc)
+- lastCinematicContext: what the cinematic sequence is currently about
+
+Flow rules:
+1) On initial page load:
+   - mode = cinematic
+   - play the existing cinematic sequence derived from the transformed site
+   - after it completes (or user taps “Continue”), switch to interactive mode showing Overview.
+
+2) In interactive mode:
+   - render the existing mini-site scaffold (or the new interactive panel for the selected target)
+   - every clickable region (service card, FAQ, section tile, “why choose us”, etc) must trigger:
+     a) set currentTarget = clicked target
+     b) switch mode to cinematic
+     c) play a SHORT cinematic transition (2 to 3 cards) relevant to that target
+     d) then switch back to interactive mode showing the chosen target content
+
+C) Cinematic transition sequences
+Do NOT invent visuals from scratch.
+Use the existing card reveal output, but filter it down to a short sequence:
+
+Example:
+- If target is a service:
+  show 1 card for identity, 1 card for the service heading, 1 card for the value/benefit
+- If target is FAQ:
+  show 1 card setting context, 1 card showing the question, 1 card teasing the answer
+- If target is “Get started”:
+  show 1 card on trust, 1 card on next step, 1 card on activation
+
+Implementation approach:
+- Add a helper that selects a subset of existing transformed cards based on tags/sections/headings.
+- If tagging does not exist, implement lightweight tagging based on the extracted headings already present.
+
+D) Interactive destinations
+Interactive mode must feel like a micro-site, not just chat:
+- Overview section (hero + short copy)
+- Services list with tappable items
+- FAQ list with tappable items
+- Optional lead capture CTA (not necessarily functional now)
+
+Chat overlay:
+- Opens contextual to the destination
+- Prefills a question based on currentTarget
+
+E) Files and diffs
+- Keep diffs minimal
+- Prefer adding an orchestrator and an adapter layer rather than rewriting PreviewPage
+- If PreviewPage currently renders story/scaffold directly, refactor it to:
+  <PreviewExperienceOrchestrator preview={...} />
+
+Deliverables
+1) Implement the orchestrator and adapter
+2) Replace the current banner/slider Story Mode with the existing cinematic renderer
+3) Ensure interactive clicks trigger cinematic transitions then land on the chosen content
+4) Provide a summary of files changed and how to test
+
+Acceptance criteria
+- The preview no longer resembles a typical website slider.
+- It uses the same cinematic card reveal architecture as the primary transformation function.
+- The experience alternates: cinematic -> interactive -> cinematic -> interactive.
+- Clicking a section feels like changing scenes.
+- No re-scraping loops, no performance regression.
+- Existing safety and cost controls remain intact.
+
+Now do the work:
+- First, locate the existing cinematic transformation renderer and its data shape.
+- Then implement the adapter + orchestrator.
+- Commit changes with a clear message and include test steps.
+
+
+⸻
+
+One small extra that will make it feel insanely premium
+
+Add a “Scene change” micro-transition:
+	•	250ms fade to black
+	•	then cinematic cards appear
+	•	then fade back into the interactive panel
+
+That’s the film language that makes it feel proprietary.
+
+⸻
+
+If you paste that prompt into Replit, it will stop trying to invent UI and instead snap to your existing core engine, which is exactly what you want.
+
+When it comes back, send me:
+	•	what file it claims is the “primary transformation renderer”
+	•	and a quick screen recording
+
+…and I’ll tell you immediately whether it truly reused it or accidentally rebuilt a new one again.

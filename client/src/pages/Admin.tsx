@@ -1,10 +1,17 @@
-import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, ImageIcon, CheckCircle, Trash2, Settings, Image as PhotoIcon, Clapperboard, ExternalLink, Music, Wand2, User, MoreHorizontal } from "lucide-react";
+import { BarChart3, Calendar, Plus, Users, Video, Upload, ChevronDown, PenSquare, Loader2, Eye, ImageIcon, CheckCircle, Trash2, Settings, Image as PhotoIcon, Clapperboard, ExternalLink, Music, Wand2, User, MoreHorizontal, Globe, MessageCircle, TrendingUp, Layers, ArrowLeft, Shield, Crown, Sparkles } from "lucide-react";
+import GlobalNav from "@/components/GlobalNav";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,11 +47,491 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+type AdminTab = 'overview' | 'users' | 'industry-orbits' | 'all-orbits' | 'content';
+
+function AdminOverview({ onNavigateToOrbits }: { onNavigateToOrbits?: () => void }) {
+  const { data: stats, isLoading, error } = useQuery({
+    queryKey: ["admin-stats"],
+    queryFn: () => api.getAdminStats(),
+  });
+
+  console.log("[AdminOverview] Stats query:", { stats, isLoading, error });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-card border-border">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats?.totalUsers || 0}</p>
+                <p className="text-xs text-muted-foreground">Total Users</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card 
+          className="bg-card border-border cursor-pointer hover:border-purple-500/50 transition-colors"
+          onClick={onNavigateToOrbits}
+          data-testid="card-total-orbits"
+        >
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <Globe className="w-5 h-5 text-purple-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats?.totalOrbits || 0}</p>
+                <p className="text-xs text-muted-foreground">Total Orbits</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-card border-border">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-green-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats?.totalVisits30d || 0}</p>
+                <p className="text-xs text-muted-foreground">Visits (30d)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-card border-border">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-pink-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats?.totalConversations30d || 0}</p>
+                <p className="text-xs text-muted-foreground">Conversations (30d)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-foreground text-sm font-medium">Users by Role</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {stats?.usersByRole?.map(({ role, count }) => (
+                <div key={role} className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground capitalize">{role}</span>
+                  <span className="text-sm font-medium text-foreground">{count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-foreground text-sm font-medium">Orbit Types</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Industry Orbits</span>
+                <span className="text-sm font-medium text-foreground">{stats?.industryOrbits || 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Business Orbits</span>
+                <span className="text-sm font-medium text-foreground">{stats?.standardOrbits || 0}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function AdminAllOrbits() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const { data: orbits, isLoading } = useQuery({
+    queryKey: ["admin-all-orbits"],
+    queryFn: () => api.getAdminAllOrbits(),
+  });
+
+  const filteredOrbits = orbits?.filter(orbit => 
+    orbit.businessSlug.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    orbit.businessName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <Input
+          placeholder="Search orbits..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+          data-testid="input-search-orbits"
+        />
+        <span className="text-sm text-muted-foreground">
+          {filteredOrbits?.length || 0} orbits
+        </span>
+      </div>
+
+      <div className="grid gap-3">
+        {filteredOrbits?.map((orbit) => (
+          <Card key={orbit.businessSlug} className="bg-card border-border hover:border-purple-500/30 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h3 className="font-medium text-foreground">{orbit.businessName}</h3>
+                    {orbit.orbitType === 'industry' && (
+                      <span className="px-2 py-0.5 text-xs rounded bg-purple-500/20 text-purple-400">Industry</span>
+                    )}
+                    {orbit.generationStatus === 'ready' && (
+                      <span className="px-2 py-0.5 text-xs rounded bg-green-500/20 text-green-400">Ready</span>
+                    )}
+                    {orbit.generationStatus === 'generating' && (
+                      <span className="px-2 py-0.5 text-xs rounded bg-yellow-500/20 text-yellow-400">Generating</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">{orbit.businessSlug}</p>
+                  <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" />
+                      {orbit.visits30d} visits
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MessageCircle className="w-3 h-3" />
+                      {orbit.conversations30d} chats
+                    </span>
+                    {orbit.planTier && (
+                      <span className="capitalize">{orbit.planTier}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
+                  <Link href={`/orbit/${orbit.businessSlug}`}>
+                    <Button variant="outline" size="sm" className="gap-1" data-testid={`button-view-orbit-${orbit.businessSlug}`}>
+                      <Globe className="w-3 h-3" />
+                      View
+                    </Button>
+                  </Link>
+                  {orbit.sourceUrl && (
+                    <a href={orbit.sourceUrl} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="sm" className="gap-1" data-testid={`button-source-${orbit.businessSlug}`}>
+                        <ExternalLink className="w-3 h-3" />
+                      </Button>
+                    </a>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        
+        {filteredOrbits?.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            No orbits found matching your search.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AdminUsers() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const { data: users, isLoading } = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: () => api.getAdminUsers(),
+  });
+
+  const filteredUsers = users?.filter(user => 
+    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="bg-card border-border">
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-blue-500" />
+              <div>
+                <p className="text-lg font-semibold text-foreground">{users?.length || 0}</p>
+                <p className="text-xs text-muted-foreground">Total Users</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border">
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-red-500" />
+              <div>
+                <p className="text-lg font-semibold text-foreground">{users?.filter(u => u.isAdmin).length || 0}</p>
+                <p className="text-xs text-muted-foreground">Admins</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border">
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-center gap-2">
+              <Crown className="w-4 h-4 text-purple-500" />
+              <div>
+                <p className="text-lg font-semibold text-foreground">{users?.filter(u => u.role === 'creator' || u.role === 'influencer').length || 0}</p>
+                <p className="text-xs text-muted-foreground">Creators</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border">
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-green-500" />
+              <div>
+                <p className="text-lg font-semibold text-foreground">{users?.reduce((sum, u) => sum + u.iceCount, 0) || 0}</p>
+                <p className="text-xs text-muted-foreground">Total ICEs</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Search */}
+      <div className="flex items-center gap-3">
+        <Input
+          placeholder="Search by username or email..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm bg-card border-border"
+          data-testid="input-user-search"
+        />
+        <span className="text-sm text-muted-foreground">{filteredUsers?.length || 0} users</span>
+      </div>
+      
+      {/* User Table - Desktop */}
+      <Card className="bg-card border-border hidden md:block">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">User</th>
+                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Role</th>
+                  <th className="text-center py-3 px-4 text-muted-foreground font-medium">Orbits</th>
+                  <th className="text-center py-3 px-4 text-muted-foreground font-medium">ICEs</th>
+                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers?.map(user => (
+                  <tr key={user.id} className="border-b border-border/50 hover:bg-muted/30" data-testid={`row-user-${user.id}`}>
+                    <td className="py-3 px-4">
+                      <div>
+                        <p className="text-foreground font-medium">{user.username}</p>
+                        <p className="text-xs text-muted-foreground">{user.email || 'No email'}</p>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        user.isAdmin ? 'bg-red-500/10 text-red-500' :
+                        user.role === 'creator' ? 'bg-purple-500/10 text-purple-500' :
+                        user.role === 'influencer' ? 'bg-blue-500/10 text-blue-500' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        {user.isAdmin ? 'Admin' : user.role || 'Viewer'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {user.orbitCount > 0 ? (
+                        <span className="text-foreground font-medium">{user.orbitCount}</span>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {user.iceCount > 0 ? (
+                        <span className="text-foreground font-medium">{user.iceCount}</span>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-muted-foreground text-xs">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* User List - Mobile */}
+      <div className="md:hidden space-y-2">
+        {filteredUsers?.map(user => (
+          <Card key={user.id} className="bg-card border-border" data-testid={`card-user-${user.id}`}>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-foreground font-medium truncate">{user.username}</p>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
+                      user.isAdmin ? 'bg-red-500/10 text-red-500' :
+                      user.role === 'creator' ? 'bg-purple-500/10 text-purple-500' :
+                      user.role === 'influencer' ? 'bg-blue-500/10 text-blue-500' :
+                      'bg-muted text-muted-foreground'
+                    }`}>
+                      {user.isAdmin ? 'Admin' : user.role || 'Viewer'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{user.email || 'No email'}</p>
+                </div>
+                <div className="flex items-center gap-3 text-center shrink-0">
+                  <div>
+                    <p className="text-foreground text-sm font-medium">{user.orbitCount || '—'}</p>
+                    <p className="text-[10px] text-muted-foreground/50">Orbits</p>
+                  </div>
+                  <div>
+                    <p className="text-foreground text-sm font-medium">{user.iceCount || '—'}</p>
+                    <p className="text-[10px] text-muted-foreground/50">ICEs</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdminIndustryOrbits() {
+  const { data: orbits, isLoading } = useQuery({
+    queryKey: ["admin-industry-orbits"],
+    queryFn: () => api.getAdminIndustryOrbits(),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!orbits || orbits.length === 0) {
+    return (
+      <Card className="bg-card border-border">
+        <CardContent className="py-12 text-center">
+          <Layers className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+          <p className="text-muted-foreground">No industry orbits found</p>
+          <Link href="/admin/cpac">
+            <Button className="mt-4" variant="outline">
+              Create Industry Orbit
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-foreground">Industry Orbits</h3>
+        <Link href="/admin/cpac">
+          <Button variant="outline" size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Manage CPAC
+          </Button>
+        </Link>
+      </div>
+      
+      <div className="grid gap-4">
+        {orbits.map(orbit => (
+          <Card key={orbit.id} className="bg-card border-border">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                    <Globe className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-foreground">{orbit.businessSlug}</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {orbit.generationStatus === 'ready' ? 'Active' : orbit.generationStatus}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link href={`/orbit/${orbit.businessSlug}`}>
+                    <Button variant="ghost" size="sm">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      View
+                    </Button>
+                  </Link>
+                  <Link href="/admin/industry-assets">
+                    <Button variant="outline" size="sm">
+                      Assets
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Admin() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   
   const [selectedUniverseId, setSelectedUniverseId] = useState<number | null>(null);
   const [showNewUniverseDialog, setShowNewUniverseDialog] = useState(false);
@@ -63,6 +550,8 @@ export default function Admin() {
   const [editTimezone, setEditTimezone] = useState("UTC");
   const [generatingAllImages, setGeneratingAllImages] = useState(false);
   const [generatingAllVideos, setGeneratingAllVideos] = useState(false);
+  const [showBulkImageConfirmDialog, setShowBulkImageConfirmDialog] = useState(false);
+  const [showBulkVideoConfirmDialog, setShowBulkVideoConfirmDialog] = useState(false);
   const [editAudioMode, setEditAudioMode] = useState<string>("off");
   const [editDefaultTrackId, setEditDefaultTrackId] = useState<number | null>(null);
   const [editFadeInMs, setEditFadeInMs] = useState(500);
@@ -214,15 +703,22 @@ export default function Admin() {
     },
   });
 
-  const handleGenerateAllImages = async () => {
+  // Get pending cards for image generation
+  const pendingImageCards = cards?.filter(c => {
+    const hasPrompt = !!(c.sceneDescription || c.imageGeneration?.prompt);
+    return hasPrompt && !c.imageGenerated;
+  }) || [];
+
+  // Get pending cards for video generation
+  const pendingVideoCards = cards?.filter(c => {
+    const hasImage = !!(c.generatedImageUrl || c.imagePath);
+    return hasImage && !c.videoGenerated;
+  }) || [];
+
+  const handleGenerateAllImages = () => {
     if (!cards || !selectedUniverse) return;
     
-    const pendingCards = cards.filter(c => {
-      const hasPrompt = !!(c.sceneDescription || c.imageGeneration?.prompt);
-      return hasPrompt && !c.imageGenerated;
-    });
-    
-    if (pendingCards.length === 0) {
+    if (pendingImageCards.length === 0) {
       toast({
         title: "No images to generate",
         description: "All cards with prompts already have images.",
@@ -230,11 +726,19 @@ export default function Admin() {
       return;
     }
     
+    // Show confirmation dialog with prompts
+    setShowBulkImageConfirmDialog(true);
+  };
+
+  const handleConfirmGenerateAllImages = async () => {
+    if (!selectedUniverse) return;
+    
+    setShowBulkImageConfirmDialog(false);
     setGeneratingAllImages(true);
     let successCount = 0;
     let errorCount = 0;
     
-    for (const card of pendingCards) {
+    for (const card of pendingImageCards) {
       try {
         await api.generateCardImage(card.id);
         successCount++;
@@ -252,15 +756,10 @@ export default function Admin() {
     });
   };
 
-  const handleGenerateAllVideos = async () => {
+  const handleGenerateAllVideos = () => {
     if (!cards || !selectedUniverse) return;
     
-    const pendingCards = cards.filter(c => {
-      const hasImage = !!(c.generatedImageUrl || c.imagePath);
-      return hasImage && !c.videoGenerated;
-    });
-    
-    if (pendingCards.length === 0) {
+    if (pendingVideoCards.length === 0) {
       toast({
         title: "No videos to generate",
         description: "All cards with images already have videos, or no images are available.",
@@ -268,11 +767,19 @@ export default function Admin() {
       return;
     }
     
+    // Show confirmation dialog
+    setShowBulkVideoConfirmDialog(true);
+  };
+
+  const handleConfirmGenerateAllVideos = async () => {
+    if (!selectedUniverse) return;
+    
+    setShowBulkVideoConfirmDialog(false);
     setGeneratingAllVideos(true);
     let successCount = 0;
     let errorCount = 0;
     
-    for (const card of pendingCards) {
+    for (const card of pendingVideoCards) {
       try {
         await api.generateCardVideo(card.id);
         successCount++;
@@ -364,9 +871,10 @@ export default function Admin() {
 
   if (!isCreatorOrAdmin) {
     return (
-      <Layout>
+      <div className="min-h-screen bg-background">
+        <GlobalNav context="app" />
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
-          <h2 className="text-2xl font-display font-bold mb-4">Creator Access Required</h2>
+          <h2 className="text-2xl font-semibold mb-4 text-foreground">Creator Access Required</h2>
           <p className="text-muted-foreground mb-6">
             Become a creator to start building your own stories and universes.
           </p>
@@ -376,27 +884,84 @@ export default function Admin() {
             </Button>
           </Link>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (universesLoading) {
     return (
-      <Layout>
+      <div className="min-h-screen bg-background">
+        <GlobalNav context="app" />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in">
+    <div className="min-h-screen bg-background">
+      <GlobalNav context="app" />
+      <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in pb-24">
         
-        {/* Header Section - Mobile Optimized */}
-        <div className="space-y-4">
-            <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">Showrunner Dashboard</h1>
+        {/* Admin Command Center Header */}
+        <div className="flex items-center gap-4">
+          <Link href="/launchpad">
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">Admin Command Center</h1>
+            <p className="text-sm text-muted-foreground">Platform management and oversight</p>
+          </div>
+        </div>
+        
+        {/* Tab Navigation - scrollable on mobile */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminTab)} className="space-y-6">
+          <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="bg-card border border-border p-1 inline-flex min-w-max">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-muted text-sm px-3" data-testid="tab-overview">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="users" className="data-[state=active]:bg-muted text-sm px-3" data-testid="tab-users">
+                <Users className="w-4 h-4 mr-2" />
+                Users
+              </TabsTrigger>
+              <TabsTrigger value="all-orbits" className="data-[state=active]:bg-muted text-sm px-3" data-testid="tab-all-orbits">
+                <Globe className="w-4 h-4 mr-2" />
+                All Orbits
+              </TabsTrigger>
+              <TabsTrigger value="industry-orbits" className="data-[state=active]:bg-muted text-sm px-3" data-testid="tab-industry">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Industry Orbits
+              </TabsTrigger>
+              <TabsTrigger value="content" className="data-[state=active]:bg-muted text-sm px-3" data-testid="tab-content">
+                <Layers className="w-4 h-4 mr-2" />
+                Content
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <TabsContent value="overview">
+            <AdminOverview onNavigateToOrbits={() => setActiveTab('all-orbits')} />
+          </TabsContent>
+          
+          <TabsContent value="users">
+            <AdminUsers />
+          </TabsContent>
+          
+          <TabsContent value="all-orbits">
+            <AdminAllOrbits />
+          </TabsContent>
+          
+          <TabsContent value="industry-orbits">
+            <AdminIndustryOrbits />
+          </TabsContent>
+          
+          <TabsContent value="content">
+            {/* Original Showrunner Dashboard content */}
             
             {/* Universe Selector */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -468,7 +1033,6 @@ export default function Admin() {
                     </Button>
                 </Link>
             </div>
-        </div>
         
         {!selectedUniverse ? (
           <Card className="border-2 border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-blue-500/5">
@@ -476,7 +1040,7 @@ export default function Admin() {
               <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center mb-4">
                 <Wand2 className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Welcome to NextScene</h3>
+              <h3 className="text-xl font-bold mb-2">Welcome to NextMonth</h3>
               <p className="text-muted-foreground mb-6 max-w-md">
                 Transform your script, story, or ideas into an interactive narrative experience. 
                 Upload any text and our AI will create characters, scenes, and daily story drops.
@@ -1162,7 +1726,103 @@ export default function Admin() {
           </DialogContent>
         </Dialog>
 
+        {/* Bulk Image Generation Confirmation Dialog */}
+        <Dialog open={showBulkImageConfirmDialog} onOpenChange={setShowBulkImageConfirmDialog}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <PhotoIcon className="w-5 h-5 text-purple-500" />
+                Confirm Bulk Image Generation
+              </DialogTitle>
+              <DialogDescription>
+                Review the prompts for {pendingImageCards.length} cards before generating images.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto space-y-3 py-4">
+              {pendingImageCards.map((card, index) => (
+                <div key={card.id} className="border border-border rounded-lg p-3 bg-muted/20">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
+                      #{index + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{card.title}</p>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                        {card.sceneDescription || card.imageGeneration?.prompt || 'No prompt set'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <DialogFooter className="border-t pt-4">
+              <Button variant="outline" onClick={() => setShowBulkImageConfirmDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConfirmGenerateAllImages}
+                className="bg-purple-600 hover:bg-purple-700"
+                data-testid="button-confirm-generate-images"
+              >
+                <PhotoIcon className="w-4 h-4 mr-2" />
+                Generate {pendingImageCards.length} Images
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Video Generation Confirmation Dialog */}
+        <Dialog open={showBulkVideoConfirmDialog} onOpenChange={setShowBulkVideoConfirmDialog}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Video className="w-5 h-5 text-blue-500" />
+                Confirm Bulk Video Generation
+              </DialogTitle>
+              <DialogDescription>
+                Review the {pendingVideoCards.length} cards that will have videos generated from their images.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto space-y-3 py-4">
+              {pendingVideoCards.map((card, index) => (
+                <div key={card.id} className="border border-border rounded-lg p-3 bg-muted/20">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
+                      #{index + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{card.title}</p>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                        {card.sceneDescription || 'Cinematic motion from image'}
+                      </p>
+                      {(card.generatedImageUrl || card.imagePath) && (
+                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Has source image
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <DialogFooter className="border-t pt-4">
+              <Button variant="outline" onClick={() => setShowBulkVideoConfirmDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConfirmGenerateAllVideos}
+                className="bg-blue-600 hover:bg-blue-700"
+                data-testid="button-confirm-generate-videos"
+              >
+                <Video className="w-4 h-4 mr-2" />
+                Generate {pendingVideoCards.length} Videos
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+          </TabsContent>
+        </Tabs>
       </div>
-    </Layout>
+    </div>
   );
 }

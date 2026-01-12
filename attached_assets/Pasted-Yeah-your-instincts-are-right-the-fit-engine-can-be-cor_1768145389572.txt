@@ -1,0 +1,99 @@
+Yeah, your instincts are right: the fit engine can be “correct” and the result can still look wrong.
+
+What you’re seeing now (text sitting low, feeling “left-ish”, loads of unused space) is almost always one of these two problems:
+	1.	You’re scaling the text with transform: scale(...), but the transform origin is not centred, so it shrinks towards a corner.
+	2.	The panel is not a true centring container, so even if the text block is centred, it’s being laid out like normal flow (top-left) then scaled.
+
+What “CapCut centred” actually means
+
+CapCut title cards behave like this:
+	•	The panel is just a box.
+	•	Inside the box there is a single caption stage that is:
+	•	horizontally centred
+	•	vertically centred
+	•	centred after scaling, not before
+
+So we need a very specific structure:
+	•	Panel (flex, centre)
+	•	Scale wrapper (transform-origin centre)
+	•	Text block (max width 88–92%, text-align centre)
+	•	Line 1
+	•	Line 2
+	•	Line 3
+
+The fix I’d push into the NextMonth project
+
+Make the centring and scaling deterministic by doing all transforms on an inner wrapper and forcing its origin to the middle.
+
+Drop this into ScaleToFitCaption.tsx (or wherever the final caption is rendered), and ensure your panel container uses it exactly like this:
+
+// Panel (the box)
+<div
+  style={{
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "18px 20px",
+    boxSizing: "border-box",
+  }}
+>
+  {/* Scale wrapper: THIS is what you scale */}
+  <div
+    style={{
+      transform: `scale(${scale})`,
+      transformOrigin: "center center",
+      width: "100%",
+      display: "flex",
+      justifyContent: "center",
+    }}
+  >
+    {/* Text block: centred, constrained */}
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "92%",
+        textAlign: "center",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        lineHeight: 1.12,
+      }}
+    >
+      {lines.map((line, i) => (
+        <div key={i} style={{ whiteSpace: "nowrap" }}>
+          {line}
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
+Why this fixes your exact screenshots
+	•	The text currently looks like it’s shrinking into the bottom area of the panel. That’s classic “scale from top-left (default origin)” behaviour.
+	•	Setting transformOrigin: "center center" and centring the scale wrapper means the text shrinks towards the centre, like CapCut.
+	•	The maxWidth: "92%" stops long lines becoming one massive sentence across the panel.
+	•	whiteSpace: "nowrap" per line stops CSS second-guessing your TitleComposer.
+
+One more thing that will quietly sabotage you
+
+If the panel (the dark rounded rectangle) is itself doing something like:
+	•	align-items: flex-end
+	•	justify-content: flex-end
+	•	or it has padding-bottom much larger than padding-top
+
+then the caption will always feel low.
+
+So: check the panel component CSS (where the rounded rectangle is defined) and make sure it does NOT pin content to the bottom.
+
+What I’d do next, in order
+	1.	Apply the wrapper structure above (panel flex centre + scale wrapper with centred origin).
+	2.	Confirm the caption block stays centred while changing scale manually (0.9, 0.6, 0.4).
+	3.	Only then tweak “CapCut polish” settings:
+	•	lineHeight (1.08–1.15)
+	•	maxWidth (88–92%)
+	•	slight letterSpacing (optional)
+
+If you want, paste the current ScaleToFitCaption.tsx render return (just that component) and I’ll tell you exactly what line is causing the “sits low” behaviour.

@@ -1,0 +1,261 @@
+You’re right to flag this. Email is one of those “everything looks finished until it isn’t” systems. If magic links and notifications aren’t rock solid, the beta will feel flaky even if everything else is brilliant.
+
+Here’s how to think about it, and then a Replit prompt that will force a proper audit and implement the missing pieces in a Render-friendly way.
+
+What you need for the 100-user beta
+
+Keep it simple and transactional.
+
+Must-have for beta
+	1.	Company email magic link for Orbit claim
+
+	•	Send email
+	•	Link works
+	•	Token validation + expiry
+	•	Single-use
+	•	Clear UI states (sent, expired, already used)
+
+	2.	Basic system emails
+
+	•	Orbit claim confirmed
+	•	“Your Orbit is live”
+	•	Billing receipts should stay in Stripe, but plan changes can be emailed
+
+	3.	In-app notifications (minimal)
+
+	•	A bell icon
+	•	A list of notifications
+	•	Mark read/unread
+	•	No fancy preferences yet
+
+Can wait until after beta
+	•	Complex notification preferences
+	•	Digests
+	•	SMS
+	•	Multi-recipient rules
+	•	Full marketing email system
+
+Provider choice for Render
+
+Pick a transactional email provider that behaves well on Render:
+	•	Postmark (my top pick for beta, simplest, reliable delivery)
+	•	SendGrid (fine, but can be fiddly)
+	•	Mailgun (good, more setup)
+	•	AWS SES (cheap and solid, but setup is more involved)
+
+Whatever you choose, you need:
+	•	SPF and DKIM configured
+	•	A verified sending domain (ideally nextmonth.io)
+	•	A single “from” address like hello@nextmonth.io or notify@nextmonth.io
+
+Key technical rule
+
+Do not build email sending directly into random routes.
+
+Build a small Notification Service layer:
+	•	EmailProvider interface
+	•	Templates in one place
+	•	Queue or at least async dispatch with retries
+	•	Logging of sends and failures
+
+Then both magic links and alerts use the same service.
+
+⸻
+
+Replit Prompt: Email + Notifications Beta Readiness
+
+Paste this verbatim into Replit:
+
+Replit Prompt: Email Integration + Notifications (Beta Readiness)
+
+Context
+We need production-grade transactional email for:
+1) Orbit claim magic link sent to a company email address
+2) Core system notifications (email and in-app)
+
+We have no confirmed evidence the magic link email flow is working end-to-end in production (Render).
+We also need a minimal in-app notification system for beta.
+
+Goal
+Implement and verify:
+- Orbit claim email magic link flow works reliably on Render
+- Email provider integration is production-ready and environment-agnostic
+- Minimal in-app notifications exist with a clear event model
+- All actions are logged and testable
+
+Non-goals
+- No marketing emails
+- No complex notification preferences
+- No team multi-recipient routing
+- No UI redesign outside minimal notification surfaces
+
+---
+
+Part A: Audit current state (evidence required)
+1) Search codebase for:
+- magic link
+- claim orbit
+- email, mailer, nodemailer
+- resend, postmark, sendgrid, mailgun, ses
+- notification
+
+2) Report with file paths:
+- Where claim flow is implemented
+- Whether email is actually sent
+- Which provider is used (if any)
+- Any placeholder code or missing env vars
+- How tokens are generated, stored, validated, expired
+
+If there is no working email provider, proceed to implement one.
+
+---
+
+Part B: Implement transactional email provider (Render compatible)
+Implement a provider abstraction:
+- EmailProvider interface with sendEmail()
+- One concrete provider selected for beta:
+  - Prefer Postmark OR Resend OR SendGrid (choose based on what exists in repo)
+- Env vars:
+  - EMAIL_PROVIDER (postmark|resend|sendgrid|ses)
+  - EMAIL_API_KEY
+  - EMAIL_FROM_ADDRESS
+  - OPTIONAL: EMAIL_REPLY_TO
+  - OPTIONAL: PUBLIC_APP_URL (used for link generation)
+- Fail fast in production if required email env vars are missing.
+
+Logging:
+- Log send attempts and failures with:
+  - message type
+  - userId or claimId
+  - destination domain (not full address if you want privacy)
+  - provider response id
+- Never log the full magic token.
+
+Templates:
+- Store templates in a dedicated folder.
+- Use a simple template engine or string templates.
+- Ensure plain text fallback exists.
+
+---
+
+Part C: Orbit claim magic link flow (end-to-end)
+Requirements:
+1) User enters a company email address to claim an Orbit
+2) System sends a magic link email containing a signed token with:
+   - resourceType = orbitClaim
+   - claimId (or orbitId)
+   - email hash or email
+   - iat, exp (suggest 30 minutes)
+   - ver field
+3) Token must be:
+   - single-use (store tokenId/jti in DB and mark consumed)
+   - expiring
+   - invalid if email does not match claim record
+
+Routes:
+- POST /api/orbits/:id/claim-request
+  - Validate email format
+  - Optionally block free email domains or allow but warn (configurable)
+  - Create claim record in DB
+  - Issue token
+  - Send email
+  - Return success state
+
+- GET /claim/orbit?token=...
+  - Validate token
+  - Mark claim consumed
+  - Attach orbit to account
+  - Redirect to the correct UI state
+
+Security:
+- Rate limit claim-request endpoint
+- Do not reveal whether an email exists
+- Audit log claim events
+
+UX:
+- Clear UI state: “Check your inbox”
+- Resend link with cooldown
+- Expired link page with “request new link”
+
+---
+
+Part D: In-app notifications (minimal beta scope)
+Implement:
+- notifications table:
+  - id (uuid)
+  - userId
+  - type
+  - title
+  - body
+  - resourceType
+  - resourceId
+  - createdAt
+  - readAt (nullable)
+
+API:
+- GET /api/notifications (auth required, paginated)
+- POST /api/notifications/:id/read (auth required)
+
+UI:
+- Add minimal bell icon entry in app navigation
+- Notifications drawer or simple page
+- Mark read on click
+
+Events that should create notifications (minimum):
+- Orbit claim requested (for the requester)
+- Orbit claim completed
+- Subscription changed (upgrade, downgrade, past_due) (optional but recommended)
+
+---
+
+Part E: Email notifications (minimal beta scope)
+Send transactional emails for:
+- Orbit claim magic link
+- Orbit claim confirmed
+- Subscription status changes (optional)
+Do not send analytics digests or marketing messages.
+
+---
+
+Part F: Render deployment checklist and docs
+Add docs:
+- docs/email-and-notifications.md
+Include:
+- Provider setup steps
+- Required env vars for Render
+- SPF/DKIM notes
+- How to test in staging
+- How to verify delivery
+
+Add tests:
+- Unit test token creation/validation for orbitClaim tokens
+- Integration test that claim-request returns success and writes claim record
+- If provider is mocked in tests, verify sendEmail called with correct template and link.
+
+Acceptance criteria
+- Claim flow sends a real email in production environment
+- Magic link is single-use and expires correctly
+- In-app notifications show key events
+- Render env vars are clearly documented and validated at startup
+- No secrets logged
+- Minimal UI added without disrupting existing flows
+
+Output required
+- List of files changed
+- Env var list
+- How to test claim flow locally and on Render
+- Which provider chosen and why
+
+
+⸻
+
+A quick sanity check on the “company email” rule
+
+Be careful with “must be company email” as an absolute. Plenty of legit early users will use Gmail. A better beta rule is:
+	•	Allow any email
+	•	If it’s a free domain (gmail, yahoo, etc), show a warning like:
+“For organisations, we recommend using your work email.”
+
+Then later you can enforce “domain verified” for certain features (like Orbit Business Hub).
+
+If you want, tell me what you’d prefer (strict enforcement vs warn-first), and I’ll adjust the prompt copy accordingly.

@@ -1,0 +1,63 @@
+RATPLID PROMPT: Consolidate all header/nav instances into one canonical component with variants
+
+Context
+- Current nav/header differs across routes:
+  - /orbits and /library show app nav (Launchpad/Orbits/Library + Sign in)
+  - /for/businesses shows minimal nav (Sign in + Create free preview)
+  - /for/creators and /for/educator show hybrid nav (app links + marketing links + Try IceMaker + Claim Orbit + Sign in)
+- Goal: One consistent navigation system across all pages, with controlled variants based on route + auth state.
+
+Hard requirements
+1) Create a single shared nav component (e.g. components/SiteNav.tsx)
+- It must be the ONLY header used across the app.
+- Remove/replace any duplicated header markup from individual pages.
+
+2) Support exactly two nav variants:
+A) Marketing variant (used for /for/* routes and optionally /)
+- Left: NextMonth logo -> links to "/"
+- Centre links:
+  - "For Businesses" -> /for/businesses
+  - "For Creators" -> /for/creators
+  - "For Educators" -> /for/educator (or /for/educators - match existing route)
+- Right:
+  - "Sign in" -> sign-in route
+  - Primary CTA button: "Try IceMaker" -> existing IceMaker entry route
+- IMPORTANT: Do NOT include page-specific CTAs in the nav (e.g. remove "Create free preview" from the header on /for/businesses).
+  Those CTAs stay inside the page hero.
+
+B) App variant (used for app/product routes: /launchpad, /orbits, /library, /orbit/*, etc)
+- Left: NextMonth logo -> links to "/launchpad" (or your canonical app home)
+- Centre links:
+  - "Launchpad"
+  - "Orbits"
+  - "Library"
+- Right behaviour depends on auth state:
+  - Logged OUT: "Sign in" + primary CTA "Try IceMaker"
+  - Logged IN: show an account/avatar menu in place of "Sign in" (keep "Try IceMaker" optional, but consistent)
+- Use the same button styling and spacing across all routes.
+
+3) Active state consistency
+- Active nav item must highlight correctly for both variants based on current path.
+- Use a single active style token/class.
+
+4) Layout / spacing / responsiveness
+- Keep it clean on mobile/tablet/desktop.
+- Do not introduce horizontal overflow.
+- Ensure the nav doesn’t “jump” between pages.
+
+Implementation guidance
+- Use route detection (e.g. React Router useLocation()) to choose variant:
+  - if pathname startsWith("/for") => marketing variant
+  - else => app variant
+- Use existing auth state hook/store to determine logged-in vs logged-out behaviour.
+- Centralise link config arrays in the nav file so future pages don’t add bespoke headers.
+
+Acceptance criteria
+- Every page shows the same header component.
+- /for/businesses, /for/creators, /for/educator all share identical marketing nav structure.
+- /launchpad, /orbits, /library all share identical app nav structure.
+- "Create free preview" no longer appears as a header-only special case; it lives in the /for/businesses hero.
+- Visual consistency: same logo placement, same link spacing, same CTA styling.
+
+Deliverable
+- Commit the refactor with minimal behavioural risk (navigation only, no backend changes).

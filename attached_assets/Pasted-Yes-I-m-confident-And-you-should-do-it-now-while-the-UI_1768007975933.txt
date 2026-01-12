@@ -1,0 +1,173 @@
+Yes. I’m confident. And you should do it now, while the UI direction is clear, because the router logic is the bit that turns Orbit from “chat with tiles” into “future internet”.
+
+Below is a copy-paste prompt for RAPTOR that covers: desktop side pane (windscreen), mobile behaviour, the view engine, the routing logic (Detect → Decide → Fill), strict JSON contracts, schema validation, and logging.
+
+⸻
+
+RAPTOR Prompt: Orbit View Engine + Desktop Windscreen + Template Router
+
+Project: Orbit UI/UX upgrade - “Chat as spine, Views as outputs”
+Goal: Make Orbit feel like the future of the internet by rendering structured UI templates (compare, shortlist, checklist, evidence, pulse, web preview) driven by AI intent, while keeping chat as the universal interface.
+
+1) Core Product Principle
+	•	Everything must work inside the chat thread (mobile and desktop).
+	•	Desktop adds a right-hand side pane (“Active View” / “Windscreen”) that renders structured templates generated from the latest assistant response.
+	•	Mobile renders the same templates as a full-screen card or bottom sheet triggered from the thread (tap “Open view”, swipe to dismiss).
+
+2) Desktop Layout
+	•	Centre: Chat thread (canonical conversation history).
+	•	Right: Active View Pane (collapsible):
+	•	Shows the currently active rendered template view.
+	•	Has tabs or controls: “View”, “Sources” (if any), “Saved”.
+	•	Allows actions like “Ask about this row”, “Refine”, “Save”.
+	•	Left (optional, collapsible): Orbit map/topics (not required for this prompt).
+
+3) View Engine Concept
+
+The assistant response must return:
+	1.	message (always, text for the chat thread)
+	2.	optional view payload (structured JSON that the UI renders in the pane)
+
+Do not rely on markdown tables or prose formatting. The view must be data-driven.
+
+4) Templates to Support (MVP Set)
+
+Implement these view types first:
+	•	compare (comparison table + verdict + priority toggles)
+	•	shortlist (top 3–5 options + why + tradeoffs)
+	•	checklist (buyer checklist + priorities + dealbreakers)
+	•	evidence (claims + confidence + sources drawer)
+	•	pulse (what’s trending + what changed + sentiment)
+	•	web_preview (iframe source preview, used sparingly)
+
+5) Routing Logic: Detect → Decide → Fill
+
+Implement a 3-stage pipeline so the AI “knows when” to render a template.
+
+Stage A: Intent Detection (JSON only)
+Given user message + minimal recent context, produce:
+
+{
+  "primary_intent": "compare|recommend|explain|summarise|verify|browse|show_page",
+  "entities": {
+    "products": [],
+    "brands": [],
+    "attributes": [],
+    "topics": []
+  },
+  "constraints": {
+    "budget": null,
+    "use_case": null,
+    "region": null
+  },
+  "missing_slots": [],
+  "confidence": 0.0
+}
+
+Stage B: Deterministic View Decision
+Select the view type using rules + confidence thresholds.
+
+Rules (minimum):
+	•	If intent is compare AND 2+ entities → compare
+	•	If intent is recommend AND use_case/priorities present → shortlist
+	•	If intent is recommend BUT missing slots → disambiguation (chips) with 1 question max
+	•	If intent is “what features / what to look for” → checklist
+	•	If intent is “latest / news / what changed” → pulse
+	•	If intent is verify → evidence
+	•	If intent is show_page → web_preview
+	•	Otherwise → no view
+
+Confidence thresholds:
+	•	< 0.65 → no view + ask 1 clarifying question (chips)
+	•	0.65–0.8 → light view (shortlist/checklist) plus refine chips
+	•	> 0.8 → full view (compare/pulse/evidence)
+
+Stage C: View Fill (JSON only)
+Generate a validated view.data object matching the selected view schema.
+
+6) Slot Gates (Prevent “Long-lasting” nonsense)
+
+Each view type has required fields. If missing, the system must:
+	•	ask a single disambiguation question via chips
+	•	or fall back to chat-only
+
+Example:
+User clicks “Best Battery Life”.
+	•	If category unknown, ask:
+“Which type of smart glasses are you focused on?”
+Chips: Camera-first, AR display, Audio + camera, Enterprise
+
+7) Response Contract (Strict)
+
+All assistant outputs must conform to:
+
+type AssistantResponse = {
+  message: string;
+  view?: {
+    type: "compare"|"shortlist"|"checklist"|"evidence"|"pulse"|"web_preview";
+    title?: string;
+    data: any;
+  };
+  followups?: string[]; // next action chips
+  disambiguation?: {
+    question: string;
+    options: { id: string; label: string }[];
+  };
+  meta?: {
+    intent: string;
+    confidence: number;
+    reason_codes: string[];
+    missing_slots: string[];
+  };
+};
+
+8) Schema Validation
+	•	Use JSON Schema or Zod to validate view.data per view type.
+	•	If invalid, log the error and fall back to chat-only response.
+
+9) Logging and Debuggability (Non-negotiable)
+
+Log:
+	•	detected intent
+	•	selected view + reason codes
+	•	missing slots
+	•	schema validation result
+	•	render success/failure
+
+Example log object:
+
+{
+  "intent": "compare",
+  "view_selected": "compare",
+  "reason_codes": ["INTENT_COMPARE","HAS_2_ENTITIES","CONF_HIGH"],
+  "missing_slots": [],
+  "schema_valid": true
+}
+
+10) UX Behaviours
+	•	The chat message should include a subtle “Open View” affordance when a view exists.
+	•	Clicking “Open View” focuses the right pane (desktop) or opens the view card (mobile).
+	•	“Ask about this row” button on compare tables injects context into chat and triggers a targeted response.
+	•	Provide 3–5 smart follow-up chips after each response.
+
+11) Iframe/Web Preview Guardrails
+	•	Only use web_preview when user explicitly asks to see a page or when verification is needed.
+	•	Show a clear “Source Preview” label and keep it in the side pane, not inline in chat.
+
+12) Deliverables
+
+Implement:
+	•	View templates (components)
+	•	View engine renderer (pane + mobile sheet)
+	•	Router pipeline (Detect → Decide → Fill)
+	•	Schemas + validation
+	•	Logging
+
+Success criteria:
+	•	“Compare” queries render a proper table view every time.
+	•	Attribute clicks produce useful structured outputs or disambiguation chips, never fluff.
+	•	Mobile and desktop behave consistently (chat is always enough; side pane is an enhancement).
+
+⸻
+
+If you want one extra improvement to add to that prompt (worth it): tell RAPTOR to implement a “View State URL” so any rendered comparison or shortlist becomes shareable (Orbit Moments). That’s how this stops being a tool and becomes a platform.

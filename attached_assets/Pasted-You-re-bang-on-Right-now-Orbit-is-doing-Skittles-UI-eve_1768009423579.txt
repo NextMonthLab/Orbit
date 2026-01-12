@@ -1,0 +1,149 @@
+You’re bang on. Right now Orbit is doing “Skittles UI”: every node is trying to be the main character. The result is noise, not intelligence.
+
+If you want it to feel mature, premium, and “future internet”, you need to flip the rule:
+
+Neutrals are the default. Colour is the exception. Meaning first, vibe second.
+And yes, most of the “colour” should come from real media (product renders, logos, photos, videos) pulled from the Orbit Seed Pack, not from UI chrome.
+
+Here’s how I’d fix it in a way RAPTOR/REPLAYER can actually implement.
+
+⸻
+
+The target feel
+	•	Calm baseline (like ChatGPT / Gemini)
+	•	Colour used like punctuation, not wallpaper
+	•	“Objects” feel like knowledge, not sticky notes
+	•	Images provide the punch, UI provides the structure
+
+⸻
+
+1) New colour strategy: 90/9/1 rule
+
+90% neutral surfaces
+9% muted semantic accents
+1% true accent (brand / highlight)
+
+What this means in Orbit
+	•	Cards are dark glass (or light paper, if you ever do light mode) with a soft border.
+	•	Type colours do the hierarchy: title, secondary, muted.
+	•	Colour is only used for:
+	•	a left stroke
+	•	a tiny icon tint
+	•	a small chip
+	•	a selection/hover state
+	•	No full-colour headers. No rainbow tiles.
+
+⸻
+
+2) Kill the “competing colours” at the source: node types
+
+Right now, each category colour is screaming.
+
+Do this:
+	•	One neutral card design for everything
+	•	Node “type” is shown by:
+	•	an icon
+	•	a subtle left accent bar (2–4px)
+	•	optional tiny dot in the corner
+
+Example:
+	•	Manufacturer: subtle blue accent bar
+	•	Product: subtle teal
+	•	Community: subtle green
+	•	Attribute: subtle amber
+	•	Evidence/News: subtle purple
+
+But the important bit: these should be desaturated, not neon.
+
+⸻
+
+3) Make the right pane a “calm surface”
+
+Your side pane (windscreen) must be the most readable part of the UI.
+
+So:
+	•	White/grey text on near-black background
+	•	Tables with row separators, not coloured cells
+	•	Highlight only the active row or selected item
+	•	Colour in tables should be limited to:
+	•	a single accent for selection
+	•	a tiny confidence indicator
+	•	icons (muted)
+
+If the pane becomes a carnival, it defeats its purpose.
+
+⸻
+
+4) Let media do the heavy lifting (this is your key point)
+
+Orbit should feel richer by loading:
+	•	manufacturer logos
+	•	product renders
+	•	“hero images” per product
+	•	video thumbnails
+	•	source favicons
+
+So the UI can stay calm, while the content brings life.
+
+This ties perfectly to the Orbit Seed Pack:
+	•	the pack supplies the media links and logo URLs
+	•	the UI renders them as the colour and texture of the experience
+
+⸻
+
+5) A clean hierarchy for nodes
+
+Each node needs to feel like a “knowledge snippet”.
+
+Collapsed node shows:
+	•	icon + title
+	•	1 meaningful line (not “Long-lasting”)
+	•	tiny metadata (optional, muted)
+
+Expanded shows:
+	•	a proper summary
+	•	key facts
+	•	actions (compare / save / ask)
+
+No big headers. No repeated labels.
+
+⸻
+
+6) Design tokens (non-negotiable)
+
+If you don’t centralise tokens, you’ll keep repainting the same mess.
+
+Define tokens for:
+	•	background surfaces (primary, elevated, modal)
+	•	borders
+	•	text (primary, secondary, muted)
+	•	accent colours per node type (muted variants)
+	•	hover/active states
+
+Then apply those tokens everywhere: map nodes, chat, pane, modals.
+
+⸻
+
+7) A dead simple instruction for RAPTOR
+
+Paste this to RAPTOR/REPLAYER as a directive:
+
+UI Direction Change: Orbit must adopt a “calm neutral baseline”
+	•	Replace full-colour node headers and coloured tiles with a single neutral “glass” card style.
+	•	Use colour only as a subtle 2–4px left accent stroke + small icon tint.
+	•	Desaturate node-type colours significantly (no neon blocks).
+	•	Reduce labels: type should be icon-first; chips minimal and muted.
+	•	Right pane (Active View) must be the most readable surface: neutral background, minimal colour, table separators not coloured cells.
+	•	Visual richness must come from Orbit Seed Pack media: logos, product renders, video thumbnails, favicons.
+	•	Implement via design tokens so the palette is consistent across map, chat, and side pane.
+
+⸻
+
+What I’d do next (fastest win)
+	1.	Neutralise the node cards (remove coloured headers, add subtle left stroke)
+	2.	Neutralise the side pane (make it “ChatGPT calm”)
+	3.	Add logo + product images from the seed pack so the Orbit still feels alive
+
+That sequence gives you an immediate “mature UI” jump without losing personality.
+
+If you want, send me one more screenshot where the colours feel worst (or tell me which node type colour is the biggest offender), and I’ll give you a very specific “before/after spec” for the node component and the pane tables.

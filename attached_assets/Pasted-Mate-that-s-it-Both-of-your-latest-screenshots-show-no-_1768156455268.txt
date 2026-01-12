@@ -1,0 +1,64 @@
+Mate… that’s it. 🎯
+
+Both of your latest screenshots show no left-edge clipping anymore:
+	•	The “AI search is transforming…” slide is clean.
+	•	The long “As generative AI tools…” slide is clean and fully contained.
+
+So the Composition Stage architecture has finally put you on rails.
+
+Why it’s suddenly behaving
+
+Because now you’ve stopped trying to “fit” text inside a viewport-sized DOM box and hoping transforms save you after the fact.
+
+You’re doing the only approach that’s reliable:
+	•	Layout happens at 1080px
+	•	Safe width is computed in that same coordinate space (972px)
+	•	Then you scale the whole stage
+	•	No more “measure in one world, render in another” nonsense.
+
+⸻
+
+What to do right now (so it stays fixed)
+
+Don’t celebrate yet. Lock it in with these quick checks:
+
+1) Stress test captions
+
+Try:
+	•	1 line (short)
+	•	2–3 lines (normal)
+	•	5–6 lines (worst case)
+	•	A nasty one with long words / URLs
+
+If any clip, it means line-height / wrapping / font metrics rather than width geometry.
+
+2) Confirm there is only ONE scaling point
+
+Search for any of these patterns still affecting captions:
+	•	containerWidthPx
+	•	ResizeObserver used for fitting
+	•	scale(0.4) sprinkled on inner elements
+	•	left-0 right-0 wrappers above the stage
+
+ResizeObserver should exist only to compute the stage scale, not to compute caption fit.
+
+3) Add a guardrail comment (seriously)
+
+Right above the CompositionStage component, add a blunt comment like:
+	•	“Captions must be measured and rendered in composition space (1080). Do not reintroduce DOM-width fitting.”
+
+This is the sort of bug that creeps back in 3 weeks later when someone “cleans up” styling.
+
+⸻
+
+One small polish note from the screenshots
+
+Now that width/clipping is solved, you’ll notice the bubble is basically a full-width band, which is fine, but stylistically you might want:
+	•	a max bubble width (e.g. 85–92% of safe width) for short captions
+	•	but still allow full width for long captions
+
+That’s a design choice, not a bug fix.
+
+⸻
+
+If you want, paste Claude’s PR diff summary (or the key files changed) and I’ll tell you whether this is “properly locked” or if there’s still a hidden second system waiting to bite you.

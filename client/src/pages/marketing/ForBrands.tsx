@@ -1,30 +1,32 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Globe, Wand2, MessageCircle, Share2, Code, Video, QrCode, CheckCircle2, Sparkles, Loader2 } from "lucide-react";
+import { ArrowRight, Globe, Wand2, MessageCircle, Share2, Code, QrCode, CheckCircle2, Sparkles, Loader2, Shield, Eye, BarChart3, Brain } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { SiteIngestionLoader } from "@/components/preview/SiteIngestionLoader";
+import MarketingHeader from "@/components/MarketingHeader";
 
 const benefits = [
   {
-    title: "Connect your existing website",
-    description: "We understand what you do, how you sell, and what customers ask.",
+    title: "We read your public pages",
+    description: "We fetch your website content and structure it into a guided experience.",
     icon: Globe,
   },
   {
-    title: "Your Smart Site is generated",
-    description: "Your content becomes explorable, conversational, and clear.",
+    title: "Chapters and boundaries are created",
+    description: "We create key points, safe guardrails, and clear structure from your content.",
     icon: Wand2,
   },
   {
     title: "Customers can ask real questions",
-    description: "The Smart Site answers consistently, using your content.",
+    description: "Answers stay grounded in your pages, not generic internet knowledge.",
     icon: MessageCircle,
   },
   {
-    title: "Deploy anywhere",
-    description: "Embeddable experience, shareable link, or standalone video.",
+    title: "Share it anywhere",
+    description: "Embed on your site, share a link, or export as an asset.",
     icon: Share2,
   },
 ];
@@ -60,6 +62,12 @@ export default function ForBrands() {
   const [, setLocation] = useLocation();
   const [siteUrl, setSiteUrl] = useState("");
   const [error, setError] = useState("");
+  const [showProgress, setShowProgress] = useState(false);
+  const [previewResult, setPreviewResult] = useState<{ previewId: string } | null>(null);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const createPreviewMutation = useMutation({
     mutationFn: async (url: string) => {
@@ -75,9 +83,10 @@ export default function ForBrands() {
       return response.json();
     },
     onSuccess: (data) => {
-      setLocation(`/preview/${data.previewId}`);
+      setPreviewResult(data);
     },
     onError: (err: Error) => {
+      setShowProgress(false);
       setError(err.message);
     },
   });
@@ -96,87 +105,117 @@ export default function ForBrands() {
 
     try {
       new URL(url);
+      setShowProgress(true);
+      setPreviewResult(null);
       createPreviewMutation.mutate(url);
     } catch {
       setError("Please enter a valid URL");
     }
   };
 
+  const handleLoaderReady = () => {
+    if (previewResult) {
+      setLocation(`/preview/${previewResult.previewId}`);
+    }
+  };
+
+  const scanDomain = siteUrl.replace(/^https?:\/\//, '').split('/')[0] || 'your site';
+
+  if (showProgress) {
+    return (
+      <SiteIngestionLoader 
+        isComplete={!!previewResult} 
+        onReady={handleLoaderReady} 
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black via-black/90 to-transparent">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          <Link href="/">
-            <img
-              src="/nextscene-logo.png"
-              alt="NextScene"
-              className="h-[75px] cursor-pointer"
-              data-testid="link-logo"
-            />
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10" data-testid="button-login">
-                Sign In
-              </Button>
-            </Link>
-            <a href="#how-it-works">
-              <Button className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white border-0 shadow-lg shadow-blue-500/25" data-testid="button-signup">
-                Get Started
-              </Button>
-            </a>
-          </div>
-        </div>
-      </header>
+      <MarketingHeader />
 
       <main>
-        {/* Smart Site Preview Section */}
-        <section className="relative py-20 px-6 overflow-hidden pt-32">
-          <div className="absolute inset-0 bg-gradient-to-b from-blue-950/30 via-black to-black" />
+        {/* Orbit Preview Section */}
+        <section className="relative py-24 px-6 overflow-hidden pt-24">
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-black" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-pink-900/10 via-transparent to-transparent" />
           <div className="max-w-3xl mx-auto text-center relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-sm">
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="inline-flex items-center gap-2 px-4 py-2 mb-8 bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-sm"
+              >
                 <Sparkles className="w-4 h-4 text-blue-400" />
-                <span className="text-blue-300 text-sm font-medium">Smart Site Preview</span>
-              </div>
-              <h1 className="text-4xl md:text-5xl font-display font-black tracking-tight mb-4 leading-[1.1]">
+                <span className="text-blue-300 text-sm font-medium">Orbit Preview</span>
+              </motion.div>
+              <motion.h1 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-5xl md:text-6xl font-black tracking-tight mb-6 leading-[1.1]"
+              >
                 Your website is passive.<br />
-                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                  See the version that actually talks to customers.
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
+                  Launch your Orbit.
                 </span>
-              </h1>
-              <p className="text-xl text-white/60 max-w-2xl mx-auto mb-6 leading-relaxed">
-                Turn your existing website into a Smart Site in under 60 seconds.<br />
-                No rebuild. No signup. Just see it working.
-              </p>
-              <p className="text-sm text-white/50 max-w-lg mx-auto mb-10 italic">
-                Most websites answer nothing. Smart Sites answer everything.
-              </p>
+              </motion.h1>
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-4 leading-relaxed"
+              >
+                Enter your URL. We generate your Orbit - an intelligent layer that lets visitors explore and ask questions based on your real content.
+              </motion.p>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.25 }}
+                className="text-sm text-white/50 max-w-xl mx-auto mb-8"
+              >
+                Uses only public pages you provide. No changes to your site. You can delete the preview anytime.
+              </motion.p>
 
-              <div className="max-w-xl mx-auto">
-                <div className="flex flex-col sm:flex-row gap-3 mb-3">
-                  <Input
-                    type="url"
-                    placeholder="yourbrand.com"
-                    value={siteUrl}
-                    onChange={(e) => {
-                      setSiteUrl(e.target.value);
-                      setError("");
-                    }}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCreatePreview()}
-                    disabled={createPreviewMutation.isPending}
-                    className="flex-1 h-14 px-5 text-base bg-white/5 border-white/10 text-white placeholder:text-white/40 focus-visible:ring-blue-500"
-                    data-testid="input-preview-url"
-                  />
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="max-w-xl mx-auto"
+              >
+                <p className="text-sm text-white/60 text-left mb-2">
+                  Paste your homepage URL (e.g. https://yourbrand.com)
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                  <div className="relative flex-1">
+                    <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 blur-xl opacity-0 animate-pulse" />
+                    <div className="absolute inset-0 rounded-lg" style={{
+                      animation: 'pulse-border 3s ease-in-out infinite',
+                    }} />
+                    <Input
+                      type="url"
+                      placeholder="yourbrand.com"
+                      value={siteUrl}
+                      onChange={(e) => {
+                        setSiteUrl(e.target.value);
+                        setError("");
+                      }}
+                      onKeyDown={(e) => e.key === 'Enter' && handleCreatePreview()}
+                      disabled={createPreviewMutation.isPending}
+                      className="relative h-14 px-5 text-base bg-white/5 border-0 text-white placeholder:text-white/40 focus-visible:ring-blue-500 focus-visible:border-blue-400 transition-all duration-300 rounded-lg w-full"
+                      data-testid="input-preview-url"
+                    />
+                  </div>
                   <Button
                     onClick={handleCreatePreview}
                     disabled={createPreviewMutation.isPending || !siteUrl.trim()}
                     size="lg"
-                    className="gap-2 h-14 px-8 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white border-0 shadow-lg shadow-blue-500/25"
+                    className="gap-2 h-14 px-6 sm:px-8 bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/40 transition-all duration-300 rounded-lg whitespace-nowrap"
                     data-testid="button-create-preview"
                   >
                     {createPreviewMutation.isPending ? (
@@ -186,22 +225,61 @@ export default function ForBrands() {
                       </>
                     ) : (
                       <>
-                        Create my Smart Site preview
+                        Create Preview
                       </>
                     )}
                   </Button>
                 </div>
                 {error && (
-                  <p className="text-sm text-red-400 text-left mb-3" data-testid="text-preview-error">
-                    {error}
-                  </p>
+                  <div className="text-left mb-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <p className="text-sm text-red-400" data-testid="text-preview-error">
+                      {error}
+                    </p>
+                    {error.includes("valid URL") && (
+                      <p className="text-xs text-red-300/70 mt-1">
+                        Try using your homepage URL without paths (e.g. https://yourbrand.com)
+                      </p>
+                    )}
+                    {error.includes("Failed") && (
+                      <p className="text-xs text-red-300/70 mt-1">
+                        Make sure the page is publicly accessible. Try your homepage URL instead.
+                      </p>
+                    )}
+                  </div>
                 )}
-                <p className="text-xs text-white/50 text-center">
-                  Free preview. Ready in 60 seconds.
-                </p>
-              </div>
+                <div className="text-center space-y-1">
+                  <p className="text-xs text-white/50">
+                    Free preview. Ready in about 60 seconds.
+                  </p>
+                  <p className="text-xs text-white/40">
+                    We fetch your public content and generate a guided experience.
+                  </p>
+                </div>
+              </motion.div>
+
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="text-sm text-white/40 max-w-lg mx-auto mt-6 italic"
+              >
+                Most websites answer nothing. Orbit changes that.
+              </motion.p>
             </motion.div>
           </div>
+          
+          <style>{`
+            @keyframes pulse-border {
+              0%, 100% {
+                border: 2px solid rgba(236, 72, 153, 0.2);
+                box-shadow: 0 0 20px rgba(236, 72, 153, 0.1);
+              }
+              50% {
+                border: 2px solid rgba(236, 72, 153, 0.4);
+                box-shadow: 0 0 30px rgba(236, 72, 153, 0.2);
+              }
+            }
+          `}</style>
         </section>
 
         {/* Divider */}
@@ -220,8 +298,8 @@ export default function ForBrands() {
 
         {/* Hero */}
         <section className="relative min-h-[60vh] flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-blue-950/30 via-black to-black" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-black" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent" />
           
           <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
             <motion.div
@@ -234,20 +312,20 @@ export default function ForBrands() {
                 <span className="text-blue-300">For Brands & Businesses</span>
               </div>
               
-              <h1 className="text-5xl md:text-7xl font-display font-black tracking-tight mb-8 leading-[0.9]" data-testid="text-hero-title">
-                <span className="block text-white">How Smart Sites</span>
-                <span className="block bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
-                  work
+              <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-[0.9]" data-testid="text-hero-title">
+                <span className="block text-white">How Orbit</span>
+                <span className="block bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
+                  works
                 </span>
               </h1>
 
               <p className="text-xl md:text-2xl text-white/60 max-w-2xl mx-auto mb-12 leading-relaxed" data-testid="text-hero-description">
-                Smart Sites present your content as a guided, cinematic experience customers can explore or talk to.
+                Orbit presents your content as a guided, cinematic experience customers can explore or talk to.
               </p>
               
-              <Link href="/login?signup=true">
-                <Button size="lg" className="h-14 px-8 text-lg bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white border-0 shadow-xl shadow-blue-500/30 gap-3" data-testid="button-hero-cta">
-                  Create a Brand Story
+              <Link href="/try">
+                <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-hero-cta">
+                  Build a Brand Experience
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
@@ -260,11 +338,11 @@ export default function ForBrands() {
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
-                What happens when you <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">create a preview</span>
+              <h2 className="text-3xl md:text-5xl font-bold mb-4">
+                What happens when you <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">create a preview</span>
               </h2>
               <p className="text-white/50 text-lg max-w-3xl mx-auto mt-4">
-                We create a temporary Smart Site that sits on top of your existing website. Customers can ask it questions. It answers using your real content. You see what your website would do if it could actually respond.
+                We create your Orbit - an intelligent layer on top of your existing website. Customers can ask it questions. It answers using your real content. You see what your website would do if it could actually respond.
               </p>
             </div>
             
@@ -279,7 +357,7 @@ export default function ForBrands() {
                   className="p-8 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10"
                 >
                   <div className="flex items-start gap-5">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
                       <benefit.icon className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -293,13 +371,47 @@ export default function ForBrands() {
           </div>
         </section>
 
+        {/* Built for Trust */}
+        <section className="py-16 px-6 relative">
+          <div className="absolute inset-0 bg-black" />
+          <div className="max-w-3xl mx-auto relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="p-8 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-purple-400" />
+                </div>
+                <h3 className="text-xl font-bold">Built for trust</h3>
+              </div>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-white/70 text-sm">Source-grounded answers</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-white/70 text-sm">Guardrails to reduce hallucination</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-white/70 text-sm">Human review options for publish flows</span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
         {/* Export Options */}
         <section className="py-24 px-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-950/20 via-black to-black" />
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-black to-black" />
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
-                Export <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">anywhere</span>
+              <h2 className="text-3xl md:text-5xl font-bold mb-4">
+                Export <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">anywhere</span>
               </h2>
               <p className="text-white/50 text-lg">Three ways to share your brand story</p>
             </div>
@@ -314,7 +426,7 @@ export default function ForBrands() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="p-8 rounded-2xl bg-gradient-to-b from-white/5 to-transparent border border-white/10 text-center"
                 >
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-6">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-6">
                     <option.icon className="w-7 h-7 text-blue-400" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">{option.title}</h3>
@@ -330,7 +442,7 @@ export default function ForBrands() {
           <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
           <div className="max-w-4xl mx-auto relative z-10">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
+              <h2 className="text-3xl md:text-5xl font-bold mb-4">
                 Perfect for
               </h2>
             </div>
@@ -353,9 +465,49 @@ export default function ForBrands() {
           </div>
         </section>
 
+        {/* What You Unlock */}
+        <section className="py-20 px-6 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-neutral-950 to-black" />
+          <div className="max-w-3xl mx-auto relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center"
+            >
+              <h2 className="text-2xl md:text-3xl font-bold mb-8">
+                What you unlock when you <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">claim your Orbit</span>
+              </h2>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="p-6 rounded-xl bg-white/5 border border-white/10">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
+                    <BarChart3 className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <h3 className="font-bold mb-2">Free Claim</h3>
+                  <p className="text-white/50 text-sm">Analytics and activity counts</p>
+                </div>
+                <div className="p-6 rounded-xl bg-white/5 border border-white/10">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center mx-auto mb-4">
+                    <Eye className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <h3 className="font-bold mb-2">Paid Tier</h3>
+                  <p className="text-white/50 text-sm">Insights and transcripts</p>
+                </div>
+                <div className="p-6 rounded-xl bg-white/5 border border-white/10">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
+                    <Brain className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <h3 className="font-bold mb-2">Intelligence</h3>
+                  <p className="text-white/50 text-sm">Pattern intelligence and strategic advice</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
         {/* CTA */}
         <section className="py-32 px-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-t from-blue-950/40 via-blue-950/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black to-transparent" />
           
           <div className="max-w-4xl mx-auto text-center relative z-10">
             <motion.div
@@ -363,18 +515,26 @@ export default function ForBrands() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-4xl md:text-6xl font-display font-bold mb-6">
+              <h2 className="text-4xl md:text-6xl font-bold mb-6">
                 Ready to transform<br />
-                <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">
                   your brand story?
                 </span>
               </h2>
-              <Link href="/login?signup=true">
-                <Button size="lg" className="h-16 px-12 text-lg bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white border-0 shadow-xl shadow-blue-500/30 gap-3" data-testid="button-footer-cta">
-                  Create a Brand Story
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/try">
+                  <Button size="lg" className="h-16 px-12 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-footer-cta">
+                    Build a Brand Experience
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <Link href="/orbit/progress-accountants-accountin-1766789673893">
+                  <Button size="lg" variant="outline" className="h-16 px-8 text-lg bg-transparent border-white/30 text-white hover:bg-white/10 hover:border-white/50 gap-3" data-testid="button-sample-cta">
+                    Explore a sample Orbit
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Link>
+              </div>
             </motion.div>
           </div>
         </section>
@@ -384,9 +544,10 @@ export default function ForBrands() {
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
               <img
-                src="/nextscene-logo.png"
-                alt="NextScene"
-                className="h-[60px]"
+                src="/logo.png"
+                alt="NextMonth"
+                className="h-40"
+                style={{ clipPath: 'inset(30% 0 30% 0)' }}
               />
               <div className="flex items-center gap-8">
                 <Link href="/for/brands" className="text-white text-sm transition-colors">Brands</Link>

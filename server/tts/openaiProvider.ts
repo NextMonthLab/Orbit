@@ -14,7 +14,10 @@ export class OpenAITTSProvider implements TTSProvider {
   private client: OpenAI | null = null;
 
   constructor() {
+    // TTS requires a direct OpenAI API key - the Replit AI integration doesn't support /audio/speech
+    // Only use OPENAI_API_KEY, NOT AI_INTEGRATIONS_OPENAI_API_KEY
     const apiKey = process.env.OPENAI_API_KEY;
+    
     if (apiKey) {
       this.client = new OpenAI({ apiKey });
     }

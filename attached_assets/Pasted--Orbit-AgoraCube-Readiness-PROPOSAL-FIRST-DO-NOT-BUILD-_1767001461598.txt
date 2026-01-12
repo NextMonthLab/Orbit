@@ -1,0 +1,103 @@
+# Orbit → AgoraCube Readiness (PROPOSAL FIRST — DO NOT BUILD YET)
+
+## Context
+We have a working **Orbit interface** (orbiting tiles/cubes + central chat window) and **IceMaker**.  
+We are adding support for a future hardware client called **AgoraCube**, running a **Raspberry Pi 5** in kiosk mode.
+
+Important: **This request is NOT about the Pi implementation.**  
+This is about making **Orbit itself** ready to be used by the Pi (and any other thin client) via clean endpoints and modes.
+
+## The Goal (locked in)
+AgoraCube should display **exactly the same Orbit UI** a normal web user sees (same renderer, same tiling logic, same responsiveness).  
+The only difference on Cube is **voice input/output** (STT fills the chat input; TTS reads the response).
+
+Orbit remains the “brain”. Cube is a thin client.
+
+## Your Task (Step 1: PROPOSE ONLY)
+Before writing code, propose the best Orbit-side implementation to support this:
+
+---
+
+# A) Kiosk Mode + Voice Mode (UI/route design)
+
+Propose:
+1) The route/flag approach:
+- `/orbit/kiosk` vs `/orbit?kiosk=1`
+- `voice=1` toggle (UI shows mic + speaker controls)
+
+2) Exactly what changes in kiosk mode:
+- remove/hide navigation, settings, admin panels
+- touch-friendly adjustments (tile size, spacing, hit targets)
+- performance safeguards for low-power devices (reduced motion, capped animations, node limits)
+
+3) How to ensure **the same tiling logic** is used everywhere (no duplication).
+
+---
+
+# B) Orbit API Surface for Thin Clients (optional but recommended)
+
+We want Orbit to be callable by a thin client if needed (even if we start with pure web kiosk).
+
+Propose minimal endpoints and contracts:
+
+## 1) “Ask Orbit” endpoint
+`POST /api/orbit/ask` (or equivalent)
+- request: conversationId, text, selectedNodeIds/sourceIds, snapshot scoping options
+- response: replyText, optional replySSML, optional cards/tiles/actions, conversationId
+
+## 2) “Scene state” endpoint (only if required)
+If you believe a scene endpoint is needed, propose:
+`GET /api/orbit/scene`
+- include ETag caching strategy (304)
+- return node state, positions, badges, hub meta, etc.
+
+If you believe it is NOT needed because the Pi will just load the UI, explain why and what to implement instead.
+
+---
+
+# C) Authentication for Devices (Orbit-side)
+Propose the cleanest approach (choose one and justify):
+- device tokens (scoped + revocable)
+- pairing codes
+- standard login with a “kiosk session”
+- how to bind a device to a tenant/business safely
+
+Include:
+- scopes (orbit:read, orbit:ask)
+- rate limiting
+- audit logs (device id, time, request type)
+
+---
+
+# D) Voice plumbing (Orbit-side only)
+We are doing **text + TTS** first.
+Propose:
+- how Orbit should return “speakable” output (replyText, optional SSML)
+- whether TTS should be generated server-side or client-side (default client-side)
+- how to keep responses short and spoken-friendly
+
+Do NOT implement STT/TTS on Pi in this phase; just define Orbit expectations.
+
+---
+
+# E) Integration with IceMaker + Snapshot ingestion (if relevant)
+If Orbit chat already uses curated sources, explain:
+- how the conversation stays grounded to snapshots
+- how “latest snapshot” is selected by default
+- how a thin client can request “compare snapshots” in future
+
+---
+
+## Output Format (required)
+Return your proposal as:
+1) Recommended architecture (in plain English)
+2) Endpoint list + request/response shapes
+3) UI route/mode plan (kiosk/voice)
+4) Security checklist (device auth + SSRF considerations if applicable)
+5) File-level change plan (what files/components/modules you’d edit/add)
+6) MVP scope vs v1.1 roadmap
+
+## Hard constraint
+**Do not implement yet.** Stop after the proposal and wait for approval.
+
+Assume reasonable defaults and list assumptions rather than asking lots of questions.

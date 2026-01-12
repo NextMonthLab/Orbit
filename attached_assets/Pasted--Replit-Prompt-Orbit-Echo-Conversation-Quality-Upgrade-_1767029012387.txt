@@ -1,0 +1,83 @@
+# Replit Prompt: Orbit Echo Conversation Quality Upgrade (Long-term Fix)
+
+## Role
+You are a senior conversational UX engineer + LLM systems designer.
+You will implement a durable fix for Echo’s chat responses inside Orbit experiences.
+
+## Problem Summary (Observed Issues)
+We are seeing recurring conversation quality problems:
+1) Duplicate lines (e.g. “Deliver on time” repeated)
+2) Re-stating the same snippet twice (preview + full text)
+3) Robotic prompts like: “What would you like to explore about…”
+4) Shouty ALL CAPS page titles and repeated CTAs
+5) Weak interaction flow: user gets a wall of text, no clear next action
+6) Inconsistent tone: sometimes helpful guide, sometimes “helpdesk bot”
+7) Lack of deterministic guardrails for regulated/professional brands (Assure UK)
+
+We want a LONG-TERM fix, not one-off copy edits.
+
+## Outcome
+Echo should feel like a calm, competent guide:
+- concise, non-repetitive
+- benefit-led, not definition-led
+- action-oriented with suggested next questions
+- consistent across all Orbits
+- safe for professional services (no overclaiming)
+
+---
+
+## Deliverables to Implement
+
+### 1) Message Rendering Pipeline (No Dupes)
+Implement a response assembly pipeline that prevents repetition:
+- Deduplicate repeated sentences and repeated title lines
+- Prevent “snippet” + “full text” from being displayed back-to-back unless the user explicitly asks for full detail
+- Prefer one of:
+  A) short summary + “Want more detail?” expand
+  B) one clean paragraph + suggested questions
+
+Implementation detail:
+- Add a `dedupeText()` function that:
+  - normalises whitespace
+  - lowercases for comparison
+  - removes identical lines and near-identical lines (use similarity threshold, e.g. cosine on embeddings OR a simple Jaccard/Levenshtein approximation)
+  - removes duplicate paragraphs if similarity > 0.90
+
+### 2) Conversation Style Contract (Echo Voice)
+Create a “Style Contract” used in prompts and/or post-processing:
+- No ALL CAPS except acronyms (e.g. “DB”, “API”)
+- No repeating the user-visible title twice
+- Avoid “What would you like to explore about…”
+- Replace with:
+  - “Would you like to understand…”
+  - “I can explain…”
+  - “Most people ask…”
+- Prefer benefit-led framing:
+  - “Here’s what this means for you…”
+  - “Here’s what happens next…”
+- Keep tone professional and calm.
+
+Add `echoStyleGuard(text)` to:
+- convert ALL CAPS headings to Title Case (unless acronym)
+- remove duplicate CTA lines
+- enforce max 1 question at end (unless using bullet options)
+
+### 3) Structured Response Format (Template-Based)
+Echo responses must follow a consistent template with optional sections:
+
+**Template:**
+1) Title (short, title case)
+2) 1–2 sentence explanation (benefit-led)
+3) Optional bullets: “Would you like to understand:” (max 4 bullets)
+4) Optional link line (only once)
+5) Suggested quick-reply chips (3–5)
+
+Implement a response schema:
+```ts
+type EchoResponse = {
+  title: string;
+  summary: string;
+  bullets?: string[];
+  link?: { label: string; url: string };
+  chips?: string[];
+};

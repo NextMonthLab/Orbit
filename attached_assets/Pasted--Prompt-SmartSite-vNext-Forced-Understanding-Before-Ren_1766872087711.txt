@@ -1,0 +1,133 @@
+# Prompt: SmartSite vNext – Forced Understanding Before Rendering
+
+## Core Principle (Non-Negotiable)
+Speed is NOT a success metric.
+Clarity and correctness are.
+
+The SmartSite generator must NOT render any visitor-facing UI
+until it has proven it understands the website in human language.
+
+---
+
+## New Mandatory Pipeline (Render is forbidden until Step 4)
+
+### STEP 1: Deep Read (No UI Allowed)
+You must:
+- Crawl key pages (home, services, about, FAQs, contact)
+- Extract raw text, headings, CTAs, and navigation labels
+- Store them verbatim as `raw_site_content`
+
+DO NOT summarise yet.
+DO NOT generate UI.
+DO NOT rename anything yet.
+
+---
+
+### STEP 2: Concept Mapping (Internal Only)
+Translate raw content into a **concept map**:
+
+For each service or section, produce:
+- internal_id (slug or label from site)
+- human_description (plain English, one sentence)
+- visitor_problem (what the visitor thinks they need help with)
+- confidence_score (0–1)
+
+Example:
+- internal_id: "looking-for-support-with-your-assurance-reporting"
+- human_description: "Help with preparing and reviewing pension assurance reports"
+- visitor_problem: "We need our pension assurance report done properly and on time"
+- confidence_score: 0.92
+
+If confidence < 0.75, mark as `needs_review`.
+
+---
+
+### STEP 3: Language Sanity Check (Hard Gate)
+Before rendering anything:
+
+- Rewrite all section headings into **human language**
+- Rewrite all questions as **things a real person would say**
+- Reject any phrase that:
+  - sounds like a label
+  - is in ALL CAPS
+  - contains “LOOKING FOR…”
+  - reads like an internal service name
+
+If any visitor-facing text fails this test:
+- STOP
+- Loop back to Step 2
+- Refine language
+
+This step cannot be skipped.
+
+---
+
+### STEP 4: Visitor Mental Model Validation
+Answer internally (do not render yet):
+
+- If I landed on this site, would I understand:
+  - what this business does?
+  - whether it’s relevant to me?
+  - what to do next?
+
+If the answer is “maybe” or “not clearly”:
+- STOP
+- Refine structure and language
+
+Only proceed when the answer is “yes, clearly”.
+
+---
+
+### STEP 5: Render SmartSite Page (Only Now Allowed)
+
+Use the validated language to render:
+
+- Overview (1–2 human sentences, no labels)
+- What We Do (bullet points, rewritten, human)
+- Common Questions (generated from visitor_problem fields only)
+
+IMPORTANT:
+Common Questions MUST:
+- Be phrased as real questions
+- Trigger AI chat (not expand static text)
+- Never repeat service names verbatim
+
+---
+
+## Progress UI (Must Reflect Reality)
+The progress screen must:
+- Reflect actual steps being completed
+- Enforce minimum dwell time per step (eg 10–15 seconds)
+- Never skip steps
+
+If processing finishes early:
+- Remain on the current step
+- Explain what is being checked or validated
+
+Never lie about progress.
+
+---
+
+## Failure Conditions (Hard Stops)
+If any of the following occur, DO NOT RENDER:
+
+- Service labels appear as questions
+- “What we do” repeats a service name verbatim
+- Questions sound robotic or internal
+- Confidence score < 0.75 on key services
+- Language cannot be rewritten cleanly
+
+In these cases:
+- Surface an internal warning
+- Continue analysis until resolved
+
+---
+
+## Success Criteria
+A human reading the page should:
+- Never see internal labels
+- Never see awkward grammar
+- Never feel the page was auto-generated
+- Feel like the site genuinely understands their problem
+
+Only then is rendering allowed.

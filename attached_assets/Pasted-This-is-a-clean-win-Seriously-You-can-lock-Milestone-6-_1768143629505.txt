@@ -1,0 +1,138 @@
+This is a clean win. Seriously. You can lock Milestone 6 with confidence.
+
+Let me reflect it back to you in plain terms, then tell you exactly what to do next so momentum doesn’t bleed away.
+
+⸻
+
+Milestone 6: ✅ Properly complete
+
+What you now have is the hard, unglamorous, foundational part that most tools never actually solve.
+
+You’ve locked the contract, not just the behaviour
+
+That’s the difference.
+
+Invariant guarantees (this is the gold):
+	•	Words never split mid-word
+	•	No ellipsis hacks
+	•	No overflow, ever
+	•	Text always fits the box, even if it has to shrink aggressively
+	•	Behaviour is measurable and inspectable (?captionDebug=1)
+
+That debug overlay is not a nice-to-have.
+It’s what prevents future regressions when features pile on.
+
+You now have:
+
+“If it fits = green, if it doesn’t = we broke the contract.”
+
+That’s production-grade thinking.
+
+⸻
+
+Why this now is CapCut-adjacent (even if it doesn’t feel like it yet)
+
+CapCut has two layers:
+	1.	Mechanical guarantees (you now have these)
+	2.	Editorial direction (you deliberately postponed this)
+
+Most teams try to fake layer 2 without ever building layer 1.
+You did the opposite. That’s why this felt hard.
+
+You are no longer fighting layout bugs.
+You are about to design taste.
+
+⸻
+
+What NOT to do next (important)
+
+Do not:
+	•	Touch fit-to-box again
+	•	Add more scaling heuristics
+	•	“Just tweak” font maths
+	•	Blend Milestone 7 rules into the fitter
+
+That way lies another loop.
+
+Milestone 6 is locked. Treat it as a black box.
+
+⸻
+
+Milestone 7: the correct framing
+
+You already described it perfectly, but here’s the subtle shift that will keep it sane:
+
+Milestone 7 is composition, not fitting
+
+TitleComposer’s only job:
+
+Decide what the lines should be, not how big they are.
+
+It should output:
+
+{
+  lines: string[]
+}
+
+Nothing else.
+
+Then:
+
+rawText
+ → TitleComposer (editorial rules)
+ → fitTextToBox (unchanged)
+ → render
+
+This separation is why CapCut feels magical and stable at the same time.
+
+⸻
+
+Suggested Milestone 7 scope (keep it tight)
+
+Start with just these rules:
+	1.	Max 3 lines. Always.
+	2.	Never allow a 1-word last line
+	3.	Prefer 2–4 words per line
+	4.	Numbers / percentages may get their own line
+	5.	If text won’t compose cleanly → rephrase or split into next caption card
+
+That’s it. No animations. No effects. No karaoke.
+
+Once that works, then you layer style and motion.
+
+⸻
+
+What I’d do immediately (next 1–2 sessions)
+	1.	Declare Milestone 6 frozen
+	•	No changes unless it breaks the debug contract
+	2.	Create TitleComposer.ts as a pure function
+	•	No DOM
+	•	No canvas
+	•	No styling
+	•	Input: string
+	•	Output: string[]
+	3.	Build a tiny test harness
+	•	Feed it 20 real captions
+	•	Log line outputs side by side
+	•	Judge them like an editor, not an engineer
+	4.	Only after that wire it into the pipeline
+
+⸻
+
+One last thing (because morale matters)
+
+The reason this felt “a million miles from CapCut” earlier is because CapCut hides this complexity behind polish.
+
+You’ve now uncovered the machinery and made it deterministic.
+
+That’s not a setback.
+That’s exactly how you build something that won’t collapse at scale.
+
+You’re past the hardest part.
+
+If you want, next I can:
+	•	Draft the first TitleComposer ruleset
+	•	Help you design a caption-splitting strategy (when text is too dense for one card)
+	•	Or help you decide when not to show a headline at all (another CapCut trick)
+
+Just say the word.

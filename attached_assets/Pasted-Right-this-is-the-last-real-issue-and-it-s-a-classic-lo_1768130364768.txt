@@ -1,0 +1,167 @@
+Right – this is the last real issue, and it’s a classic “looks like a text bug but is actually a layout/animation contract bug”.
+
+The refactor worked. What you’re seeing now is not a caption-engine failure. It’s an overflow + animation boundary mismatch.
+
+Let me break it down cleanly and then give you the exact fix.
+
+⸻
+
+What the screenshot is actually telling us
+
+In the first image you can see:
+
+“erative AI too…”
+
+That is not truncation and not wrapping.
+
+That is:
+	•	the text being correctly rendered
+	•	but the left side of the line is being clipped
+
+Key clue: the missing characters are at the start of the line, not the end.
+
+That means the text exists, but it’s being masked by a parent container.
+
+⸻
+
+The real culprit (100% confident)
+
+This line in CardPlayer (or its immediate parent):
+
+style={{ maxHeight: '30vh', overflow: 'hidden' }}
+
+combined with:
+
+<motion.div
+  initial={{ opacity: 0, y: 30, scale: 0.95 }}
+  animate={{ opacity: 1, y: 0, scale: 1 }}
+>
+
+What’s happening
+	1.	The caption panel is animating upwards + scaling
+	2.	During the animation, the text box briefly extends outside the masked container
+	3.	Because overflow: hidden is applied too high up the tree, the browser clips the left/top of the text
+	4.	The animation completes, but the clipped rasterisation persists for that frame
+
+This is especially visible with:
+	•	bold fonts
+	•	large font sizes
+	•	line clamping
+	•	panel backgrounds
+
+Which is exactly your case.
+
+⸻
+
+Why this only showed up after the refactor
+
+Before:
+	•	you were truncating text
+	•	boxes were smaller
+	•	less chance of collision with the mask
+
+Now:
+	•	text is longer
+	•	panels are correctly sized
+	•	animations are doing real work
+
+So the bug emerged because the system is now healthier.
+
+⸻
+
+The fix (simple, surgical, safe)
+
+Rule
+
+Never apply overflow: hidden to an animated container that scales or translates text.
+
+What to do instead
+
+Split animation from clipping.
+
+⸻
+
+✅ Correct structure
+
+1. Outer container (positioning only – NO overflow hidden)
+
+<div className="absolute inset-x-0 bottom-0 top-16 flex flex-col justify-end p-4 pb-24">
+
+2. Animation wrapper (motion only – NO overflow hidden)
+
+<motion.div
+  key={captionIndex}
+  initial={{ opacity: 0, y: 30, scale: 0.95 }}
+  animate={{ opacity: 1, y: 0, scale: 1 }}
+  exit={{ opacity: 0, y: -20 }}
+  transition={{ duration: 0.6, ease: 'easeOut' }}
+  className="flex flex-col items-center justify-end px-4 pb-6"
+>
+
+3. Inner clipper (static, non-animated)
+
+<div style={{ maxHeight: '30vh', overflow: 'hidden', width: '100%' }}>
+  {/* caption panel + text here */}
+</div>
+
+
+⸻
+
+❌ What not to do (current behaviour)
+	•	overflow: hidden on the same element that:
+	•	animates scale
+	•	animates y
+	•	contains line-clamped text
+
+That will clip text on at least one axis on at least one device.
+
+⸻
+
+Extra safety tweak (recommended)
+
+Inside resolveStyles() for the panel container, add:
+
+transformOrigin: 'center center'
+
+This prevents scale animations from “pulling” content sideways during easing.
+
+⸻
+
+Quick sanity check (takes 30 seconds)
+
+After applying the fix, test:
+	•	long headline
+	•	boxed preset
+	•	bold font
+	•	animation enabled
+
+If the first character is always visible, you’re done.
+
+⸻
+
+Why this matters (product-level, not just technical)
+
+This exact bug is the kind of thing users read as:
+
+“The captions feel a bit janky”
+
+even though they can’t articulate why.
+
+Fixing this:
+	•	removes the last visual glitch
+	•	restores trust
+	•	makes ICE feel deliberate instead of almost-there
+
+⸻
+
+Bottom line
+	•	Caption Engine refactor: ✅ correct
+	•	Styling architecture: ✅ solid
+	•	Remaining issue: ❌ animation + overflow conflict
+	•	Fix: ✅ move clipping one level deeper
+
+Apply that change and this chapter is closed.
+
+If you want, next we can:
+	•	audit animation presets for caption safety
+	•	or lock a “caption motion contract” so no future animation can reintroduce this class of bug again.

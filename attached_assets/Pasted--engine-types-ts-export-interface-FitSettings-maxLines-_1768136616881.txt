@@ -1,0 +1,469 @@
+=== engine/types.ts ===
+
+export interface FitSettings {
+  maxLines: 1 | 2 | 3;
+  panelMaxWidthPercent: number;
+  baseFontSize: number;
+  minFontSize: number;
+  padding: number;
+  lineHeight: number;
+}
+export interface FitResult {
+  lines: string[];
+  fontSize: number;
+  lineCount: number;
+  panelWidth: number;
+  fitted: boolean;
+  warning: string | null;
+  iterations: number;
+  overflowLog: string[];
+}
+export interface LineComposition {
+  lines: string[];
+  score: number;
+}
+=== engine/composeLines.ts ===
+
+export interface LineComposition {
+  lines: string[];
+  score: number;
+}
+function scoreLayout(lines: string[]): number {
+  let score = 0;
+  
+  const ORPHAN_PENALTY = 1000;
+  for (const line of lines) {
+    const wordCount = line.trim().split(/\s+/).filter(w => w.length > 0).length;
+    if (wordCount === 1) {
+      score += ORPHAN_PENALTY;
+    }
+  }
+  
+  const lengths = lines.map(l => l.length);
+  const maxLen = Math.max(...lengths);
+  const minLen = Math.min(...lengths);
+  
+  const imbalancePenalty = maxLen - minLen;
+  score += imbalancePenalty * 2;
+  
+  const avgLen = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+  const variance = lengths.reduce((sum, len) => sum + Math.pow(len - avgLen, 2), 0) / lengths.length;
+  score += Math.sqrt(variance);
+  
+  score += lines.length * 0.5;
+  
+  return score;
+}
+function generateBreakpoints(words: string[], maxLines: number): string[][] {
+  const results: string[][] = [];
+  
+  if (maxLines === 1 || words.length <= 1) {
+    results.push([words.join(' ')]);
+    return results;
+  }
+  
+  if (maxLines === 2) {
+    for (let i = 1; i < words.length; i++) {
+      const line1 = words.slice(0, i).join(' ');
+      const line2 = words.slice(i).join(' ');
+      results.push([line1, line2]);
+    }
+  } else if (maxLines >= 3) {
+    for (let i = 1; i < words.length - 1; i++) {
+      for (let j = i + 1; j < words.length; j++) {
+        const line1 = words.slice(0, i).join(' ');
+        const line2 = words.slice(i, j).join(' ');
+        const line3 = words.slice(j).join(' ');
+        results.push([line1, line2, line3]);
+      }
+    }
+    
+    for (let i = 1; i < words.length; i++) {
+      const line1 = words.slice(0, i).join(' ');
+      const line2 = words.slice(i).join(' ');
+      results.push([line1, line2]);
+    }
+  }
+  
+  return results;
+}
+export function composeLines(text: string, maxLines: number): LineComposition {
+  const trimmedText = text.trim();
+  
+  if (!trimmedText) {
+    return { lines: [''], score: 0 };
+  }
+  
+  const words = trimmedText.split(/\s+/).filter(w => w.length > 0);
+  
+  if (words.length === 1) {
+    return { lines: [trimmedText], score: 0 };
+  }
+  
+  if (maxLines === 1) {
+    return { lines: [trimmedText], score: 0 };
+  }
+  
+  const layouts = generateBreakpoints(words, maxLines);
+  layouts.push([trimmedText]);
+  
+  let bestLayout: string[] = [trimmedText];
+  let bestScore = Infinity;
+  
+  for (const layout of layouts) {
+    const score = scoreLayout(layout);
+    if (score < bestScore) {
+      bestScore = score;
+      bestLayout = layout;
+    }
+  }
+  
+  return {
+    lines: bestLayout,
+    score: bestScore
+  };
+}
+export function getAllCompositions(text: string, maxLines: number): LineComposition[] {
+  const trimmedText = text.trim();
+  
+  if (!trimmedText) {
+    return [{ lines: [''], score: 0 }];
+  }
+  
+  const words = trimmedText.split(/\s+/).filter(w => w.length > 0);
+  
+  if (words.length === 1) {
+    return [{ lines: [trimmedText], score: 0 }];
+  }
+  
+  if (maxLines === 1) {
+    return [{ lines: [trimmedText], score: 0 }];
+  }
+  
+  const layouts = generateBreakpoints(words, maxLines);
+  layouts.push([trimmedText]);
+  
+  return layouts.map(lines => ({
+    lines,
+    score: scoreLayout(lines)
+  })).sort((a, b) => a.score - b.score);
+}
+=== engine/measurer.ts ===
+
+let cachedCtx: CanvasRenderingContext2D | null = null;
+export function getCanvasContext(): CanvasRenderingContext2D {
+  if (cachedCtx) {
+    return cachedCtx;
+  }
+  
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Cannot create canvas context');
+  }
+  cachedCtx = ctx;
+  return ctx;
+}
+export function measureLineWidth(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  fontSize: number,
+  fontFamily: string = 'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+  fontWeight: number = 700
+): number {
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+  const metrics = ctx.measureText(text);
+  return metrics.width;
+}
+export function checkLinesFit(
+  ctx: CanvasRenderingContext2D,
+  lines: string[],
+  availableWidth: number,
+  fontSize: number,
+  fontFamily?: string,
+  fontWeight?: number
+): { fits: boolean; maxWidth: number } {
+  let maxWidth = 0;
+  
+  for (const line of lines) {
+    const width = measureLineWidth(ctx, line, fontSize, fontFamily, fontWeight);
+    maxWidth = Math.max(maxWidth, width);
+    if (width > availableWidth) {
+      return { fits: false, maxWidth };
+    }
+  }
+  
+  return { fits: true, maxWidth };
+}
+=== engine/fitTextToBox.ts ===
+
+import { composeLines } from './composeLines';
+import { getCanvasContext, checkLinesFit } from './measurer';
+export interface FitSettings {
+  maxLines: 1 | 2 | 3;
+  panelMaxWidthPercent: number;
+  baseFontSize: number;
+  minFontSize: number;
+  padding: number;
+  lineHeight: number;
+  fontFamily?: string;
+  fontWeight?: number;
+}
+export interface FitResult {
+  lines: string[];
+  fontSize: number;
+  lineCount: number;
+  panelWidth: number;
+  fitted: boolean;
+  warning: string | null;
+  iterations: number;
+  overflowLog: string[];
+}
+const SAFETY_MARGIN_PERCENT = 0.08;
+export const DEFAULT_SETTINGS: FitSettings = {
+  maxLines: 3,
+  panelMaxWidthPercent: 92,
+  baseFontSize: 56,
+  minFontSize: 12,
+  padding: 16,
+  lineHeight: 1.1,
+  fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+  fontWeight: 700
+};
+function forceLineBreaks(words: string[], targetLines: number): string[] {
+  if (words.length <= targetLines) {
+    return words.slice();
+  }
+  
+  const wordsPerLine = Math.ceil(words.length / targetLines);
+  const lines: string[] = [];
+  
+  for (let i = 0; i < targetLines; i++) {
+    const start = i * wordsPerLine;
+    const end = Math.min(start + wordsPerLine, words.length);
+    if (start < words.length) {
+      lines.push(words.slice(start, end).join(' '));
+    }
+  }
+  
+  return lines.filter(l => l.length > 0);
+}
+function tryFit(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  targetLines: number,
+  availableWidth: number,
+  settings: FitSettings,
+  overflowLog: string[]
+): { lines: string[]; fontSize: number } | null {
+  const words = text.split(/\s+/);
+  
+  let lines: string[];
+  if (targetLines === 1) {
+    lines = [text];
+  } else {
+    const composition = composeLines(text, targetLines);
+    lines = composition.lines;
+    if (lines.length < targetLines && words.length >= targetLines) {
+      lines = forceLineBreaks(words, targetLines);
+    }
+  }
+  
+  overflowLog.push(`Lines=${lines.length}: [${lines.map(l => `"${l}"`).join(', ')}]`);
+  
+  let fontSize = settings.baseFontSize;
+  
+  while (fontSize >= settings.minFontSize) {
+    const { fits, maxWidth } = checkLinesFit(
+      ctx, 
+      lines, 
+      availableWidth, 
+      fontSize,
+      settings.fontFamily,
+      settings.fontWeight
+    );
+    
+    if (fits) {
+      overflowLog.push(`OK ${fontSize}px fits (${Math.round(maxWidth)}px <= ${Math.round(availableWidth)}px)`);
+      return { lines, fontSize };
+    }
+    
+    overflowLog.push(`X ${fontSize}px overflow (${Math.round(maxWidth)}px > ${Math.round(availableWidth)}px)`);
+    fontSize -= 2;
+  }
+  
+  return null;
+}
+export function fitTextToBox(
+  text: string,
+  containerWidth: number,
+  settings: FitSettings = DEFAULT_SETTINGS
+): FitResult {
+  const overflowLog: string[] = [];
+  
+  const trimmedText = text.trim();
+  const panelWidth = (containerWidth * settings.panelMaxWidthPercent) / 100;
+  const rawAvailableWidth = panelWidth - (settings.padding * 2);
+  const availableWidth = rawAvailableWidth * (1 - SAFETY_MARGIN_PERCENT);
+  
+  if (!trimmedText) {
+    return {
+      lines: [''],
+      fontSize: settings.baseFontSize,
+      lineCount: 1,
+      panelWidth,
+      fitted: true,
+      warning: null,
+      iterations: 0,
+      overflowLog: []
+    };
+  }
+  
+  const words = trimmedText.split(/\s+/);
+  const wordCount = words.length;
+  const hasLongToken = words.some(w => w.length > 25);
+  
+  overflowLog.push(`Container=${containerWidth}px Panel=${panelWidth.toFixed(0)}px Available=${Math.round(availableWidth)}px`);
+  
+  const ctx = getCanvasContext();
+  
+  for (let targetLines = 1; targetLines <= settings.maxLines; targetLines++) {
+    if (wordCount < targetLines) continue;
+    
+    const result = tryFit(ctx, trimmedText, targetLines, availableWidth, settings, overflowLog);
+    
+    if (result) {
+      return {
+        lines: result.lines,
+        fontSize: result.fontSize,
+        lineCount: result.lines.length,
+        panelWidth,
+        fitted: true,
+        warning: null,
+        iterations: 0,
+        overflowLog
+      };
+    }
+    
+    overflowLog.push(`Trying more lines...`);
+  }
+  
+  const composition = composeLines(trimmedText, settings.maxLines);
+  let finalLines = composition.lines;
+  if (finalLines.length < settings.maxLines && wordCount >= settings.maxLines) {
+    finalLines = forceLineBreaks(words, settings.maxLines);
+  }
+  
+  const warning = hasLongToken
+    ? 'Text contains an unbreakable long word that cannot fit without splitting'
+    : 'Cannot fit text within constraints - showing at minimum size';
+  
+  overflowLog.push(`Warning: Min size ${settings.minFontSize}px`);
+  
+  return {
+    lines: finalLines,
+    fontSize: settings.minFontSize,
+    lineCount: finalLines.length,
+    panelWidth,
+    fitted: false,
+    warning,
+    iterations: 0,
+    overflowLog
+  };
+}
+=== engine/index.ts ===
+
+export { composeLines, getAllCompositions } from './composeLines';
+export type { LineComposition } from './composeLines';
+export { getCanvasContext, measureLineWidth, checkLinesFit } from './measurer';
+export { fitTextToBox, DEFAULT_SETTINGS } from './fitTextToBox';
+export type { FitSettings, FitResult } from './fitTextToBox';
+=== Demo Usage (CaptionRenderer.tsx) ===
+
+import { useEffect, useRef, useState } from 'react';
+import { fitTextToBox, DEFAULT_SETTINGS, type FitResult, type FitSettings } from './engine';
+interface CaptionRendererProps {
+  text: string;
+  containerWidth: number;
+  settings?: Partial<FitSettings>;
+}
+export function CaptionRenderer({ text, containerWidth, settings }: CaptionRendererProps) {
+  const [result, setResult] = useState<FitResult | null>(null);
+  
+  const mergedSettings: FitSettings = {
+    ...DEFAULT_SETTINGS,
+    ...settings
+  };
+  useEffect(() => {
+    const runFit = async () => {
+      await document.fonts.ready;
+      const fitResult = fitTextToBox(text, containerWidth, mergedSettings);
+      setResult(fitResult);
+    };
+    runFit();
+  }, [text, containerWidth, mergedSettings]);
+  if (!result) return null;
+  return (
+    <div
+      style={{
+        maxWidth: `${mergedSettings.panelMaxWidthPercent}%`,
+        padding: `${mergedSettings.padding}px`,
+        fontSize: `${result.fontSize}px`,
+        lineHeight: mergedSettings.lineHeight,
+        fontFamily: mergedSettings.fontFamily || 'Inter, system-ui, sans-serif',
+        fontWeight: mergedSettings.fontWeight || 700,
+        letterSpacing: '-0.02em',
+        textAlign: 'center',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        borderRadius: '16px',
+        color: 'white',
+      }}
+    >
+      {result.lines.map((line, index) => (
+        <div
+          key={index}
+          style={{
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {line}
+        </div>
+      ))}
+    </div>
+  );
+}
+// Usage example:
+// <CaptionRenderer 
+//   text="Your headline text here"
+//   containerWidth={375}
+//   settings={{ maxLines: 2, baseFontSize: 48 }}
+// />
+COPY INTO NEXTMONTH
+Recommended folder structure:
+
+src/
+  lib/
+    caption-engine/
+      types.ts
+      composeLines.ts
+      measurer.ts
+      fitTextToBox.ts
+      index.ts
+Imports to change:
+
+None required if using TypeScript
+Adjust import paths: import { fitTextToBox } from '@/lib/caption-engine'
+CSS assumptions:
+
+None required
+All styling is inline via the style prop
+Ensure Inter font is loaded (via Google Fonts or local):
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
+Contract guarantees:
+
+Words are NEVER split mid-word (no word-break: break-all)
+Text shrinks from baseFontSize to minFontSize until it fits
+Line breaks are deterministic via result.lines[] array
+If text cannot fit, fitted=false is returned but text still renders at min size without splitting

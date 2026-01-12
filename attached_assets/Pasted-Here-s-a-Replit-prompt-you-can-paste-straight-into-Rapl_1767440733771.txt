@@ -1,0 +1,210 @@
+Here’s a Replit prompt you can paste straight into Raplet. It’s written to be unambiguous, lightweight, and aligned with the new NextMonth style and the Amalgamated Editor flow.
+
+⸻
+
+REPLIT PROMPT: NextMonth First-Run Onboarding (Light Wizard + Spotlight)
+
+Project: NextMonth (Launchpad, Orbits, Library, ICE Maker)
+Goal: Add a simple first-run onboarding that helps brand new users understand the system and complete a meaningful first action without blocking normal navigation.
+Important: This must use the new Amalgamated Editor flow (draft generation navigates into the editor).
+
+⸻
+
+1) Product intent (what this onboarding must achieve)
+
+New users currently land inside a powerful system but the loop is not obvious.
+
+This onboarding must make the core loop crystal clear:
+
+Orbit → Traffic/Signals → Insights → ICE Draft → Amalgamated Editor → Publish → Feedback loop
+
+It must do two things:
+	1.	Teach the mental model in under 90 seconds.
+	2.	Get the user to do one meaningful action:
+	•	Power up an Orbit (add sources), OR
+	•	Generate their first ICE draft and open it in the editor.
+
+⸻
+
+2) UX rules (non-negotiable)
+	•	Must be skippable at any time.
+	•	Must not feel like a “paywall wizard”. It is an orientation.
+	•	Must not block nav or trap users in a flow.
+	•	Must support “Don’t show again”.
+	•	Must be consistent with the new style guide:
+	•	Dark, premium, minimal
+	•	Subtle NextMonth gradient accent (magenta → blue) only on primary actions and small highlights
+	•	No loud colours, no clutter, keep spacing generous
+	•	Consistent icon style (lucide)
+	•	Copy must be simple, confident, and non-salesy.
+
+⸻
+
+3) Trigger logic
+
+Show onboarding automatically when:
+	•	User is logged in AND
+	•	onboardingCompleted = false AND
+	•	onboardingDismissed = false
+
+Do not show onboarding again after completion or dismissal.
+
+If user chooses “Remind me later”, set onboardingDismissed = true but allow user to reopen onboarding later from a small “Help / Take the tour” item in the profile menu.
+
+⸻
+
+4) Data model + API (persist state properly)
+
+Add onboarding state to the user record.
+
+Preferred fields on users table (or equivalent profile table):
+	•	onboarding_completed boolean default false
+	•	onboarding_dismissed boolean default false
+	•	onboarding_path text null (values: orbit-first, ice-first)
+	•	onboarding_completed_at timestamp null
+
+API endpoints
+	•	GET /api/me should include these fields (or create dedicated endpoint):
+	•	GET /api/user/onboarding
+	•	POST /api/user/onboarding
+	•	accepts partial updates:
+	•	{ onboarding_completed, onboarding_dismissed, onboarding_path }
+
+Make sure this is not mocked and survives refresh.
+
+⸻
+
+5) UI implementation
+
+Create a component:
+client/src/components/onboarding/FirstRunOnboarding.tsx
+
+Use a modal / dialog with step UI, not a full page route.
+
+Step 0: Welcome
+	•	Title: “Welcome to NextMonth”
+	•	Sub: “In two minutes you’ll understand Orbits, create your first ICE draft, and open the editor.”
+	•	Buttons:
+	•	Primary: “Start”
+	•	Secondary: “Skip”
+	•	Tertiary text: “Don’t show again”
+
+Step 1: Choose a path (two cards)
+	•	Card A: “Set up my Orbit (recommended)”
+	•	Sub: “Add sources so Orbit understands your business.”
+	•	Button: “Start Orbit setup”
+	•	Card B: “Create content now”
+	•	Sub: “Generate an ICE draft from an insight and open the editor.”
+	•	Button: “Create my first ICE”
+
+Store the chosen path in onboarding_path.
+
+⸻
+
+6) Path A: Orbit-first (fast and practical)
+
+This path is NOT a full wizard reimplementation. It’s a guided handoff into existing UI.
+
+A1: Spotlight Orbits
+	•	Close modal, navigate user to /orbit (or Orbits landing).
+	•	Show a spotlight tooltip anchored to the “Claim Orbit” CTA:
+	•	“Step 1: Claim your Orbit”
+	•	“This gives you a place to collect sources and start generating insights.”
+	•	Buttons: “Next”, “Exit tour”
+
+A2: After Orbit is claimed (detect via state)
+	•	Navigate to Orbit settings (or wherever Quick Setup wizard lives).
+	•	Spotlight the “Add sources / Quick Setup” entry:
+	•	“Step 2: Add sources to power up your Orbit”
+	•	When sources submitted successfully:
+	•	Show a small success toast:
+	•	“Orbit powered up. Strength: XX/100”
+	•	Then CTA:
+	•	“Go to Launchpad”
+
+A3: Spotlight Launchpad
+	•	Navigate to /launchpad
+	•	Spotlight “Generate draft” area:
+	•	“Step 3: Turn an insight into an ICE”
+	•	“Generate a draft, then refine it in the Amalgamated Editor.”
+
+Tour ends.
+
+⸻
+
+7) Path B: ICE-first (straight to the magic)
+
+B1: Navigate to Launchpad
+	•	Spotlight the “New ICE” button:
+	•	“Start here: choose an insight or add your own source.”
+	•	Buttons: “Next”, “Exit”
+
+B2: Explain entry options clearly (Insight, URL, Paste, Upload)
+If Launchpad already supports only insight-driven drafts, add a small “Create from…” dropdown or segmented control:
+	•	Insight (default)
+	•	URL
+	•	Paste text
+	•	Upload file
+
+This is just an entry selector, not a whole new page.
+
+B3: Generate
+	•	Spotlight the “Generate draft” button:
+	•	“This creates your draft and opens the editor.”
+
+B4: Confirm it opens the Amalgamated Editor
+After generation:
+	•	Must navigate to the editor route (existing behaviour):
+	•	Example: /ice/preview/:id
+	•	On editor load, show a small tooltip on the instruction banner:
+	•	“This is the Amalgamated Editor. Tap a card to edit. Use the + between cards for interactions.”
+
+Tour ends.
+
+⸻
+
+8) “Take the tour” re-entry
+
+Add a small item in the user dropdown menu:
+	•	“Take the tour”
+
+This should reset onboarding_dismissed=false temporarily for this session and open the onboarding modal again (do not wipe completion unless explicitly required).
+
+⸻
+
+9) Analytics events (if you have a pattern, use it)
+
+Log these events (even if just console + storage for now, but prefer DB-backed):
+	•	onboarding_started
+	•	onboarding_skipped
+	•	onboarding_path_selected
+	•	onboarding_completed
+	•	onboarding_exited_midway
+
+If there is an existing tracking endpoint, use it. If not, create a minimal app_events table or reuse an existing general events mechanism.
+
+⸻
+
+10) Acceptance criteria (must pass)
+	1.	New user logs in and sees onboarding once.
+	2.	Skip hides it forever if “Don’t show again” is clicked.
+	3.	“Skip” hides it, “Take the tour” can reopen it later.
+	4.	Orbit-first path guides user to claim Orbit, then power up, then Launchpad.
+	5.	ICE-first path guides user to Launchpad, draft generation, then opens editor.
+	6.	Draft generation must open the Amalgamated Editor.
+	7.	No mock state. Refreshing browser keeps onboarding status.
+	8.	UI matches the new NextMonth look and does not introduce mismatched colours or components.
+
+⸻
+
+11) Deliverables
+	•	PR with:
+	•	DB migration for onboarding fields
+	•	API support
+	•	FirstRunOnboarding modal + spotlight tooltips
+	•	“Take the tour” menu item
+	•	No broken navigation or regressions
+
+⸻
+
+If you want, I can also give you the exact copy for each tooltip and screen so it sounds sharp and “NextMonth” instead of generic software waffle.

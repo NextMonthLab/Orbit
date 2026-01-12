@@ -1,0 +1,128 @@
+# REPLIT: Self-Interrogation Audit — Orbit Embed/Share + API Connector (Initial Assessment)
+
+You must interrogate the actual codebase and return an evidence-based assessment.
+No speculation. No “we could/should”. Use file paths, route paths, schema references, and quick smoke-test instructions.
+If something is only UI or only a stub, label it clearly as STUB/MOCK/PARTIAL.
+
+## Audit Targets
+A) Orbit “Share / Embed code” feature
+B) Orbit “Connect API” / operational insights feature
+
+---
+
+# A) Orbit Share / Embed Code — Evidence Check
+
+1) UI Entry Points
+- Where in the UI can a user generate an Orbit share link and/or embed code?
+- Provide:
+  - route(s)
+  - component file path(s)
+
+2) Public Orbit Access
+- Is there a public Orbit page route (unauthenticated)?
+  - e.g. /o/:slug, /orbit/public/:slug, /embed/orbit/:slug, etc
+- Provide:
+  - route definition (client + server if relevant)
+  - what it renders
+  - whether it requires auth
+
+3) Embed Code Generation
+- Does embed code exist as a real generated snippet?
+- Provide:
+  - where the snippet is composed (frontend or backend)
+  - exact code snippet template
+  - how it injects slug/id + base URL + options
+- Confirm whether it uses:
+  - iframe embed
+  - script widget
+  - both
+
+4) Tracking From Embed/Public Views
+- When someone views an embedded Orbit, are sessions/events recorded?
+- Provide:
+  - event tracking endpoint(s)
+  - file path(s) where the embed/public page fires events
+
+5) Quick Smoke Test Steps
+- Provide a 5-minute test:
+  - where to paste the embed code (simple HTML page route, test page, etc)
+  - what network calls should appear
+  - what DB tables/rows should change
+
+Output for A:
+- Status: ✅ REAL / ⚠️ PARTIAL / ❌ MISSING
+- Evidence: file paths + routes + schema/tables used
+- Missing pieces (if any): bullet list
+
+---
+
+# B) “Connect API to Orbit” — Evidence Check
+
+1) Schema / Storage
+- Search for any tables or models related to integrations/data sources:
+  - orbit_integrations, data_sources, api_connections, webhooks, credentials, sync_logs, etc
+- Provide:
+  - schema file path and exact definitions (table + key fields)
+
+2) UI
+- Is there a UI screen to connect an API?
+- Provide:
+  - route(s)
+  - component file path(s)
+- Confirm if it supports:
+  - generic REST (polling)
+  - webhook ingestion
+  - provider-specific integrations (Shopify/Stripe/etc)
+
+3) Backend Endpoints
+- Search for routes such as:
+  - POST /api/orbit/:slug/integrations
+  - POST /api/orbit/:slug/webhook/...
+  - POST /api/orbit/:slug/connect-api
+  - scheduled polling jobs
+- Provide:
+  - server route handler file paths
+  - what they store
+  - auth method (token, bearer, etc)
+
+4) Operational Insights Wiring
+- Does any integration data affect insights generation?
+- Provide:
+  - where insight generator reads integration/operational data
+  - file path(s) and the query used
+- If not wired, say so.
+
+5) Quick Smoke Test Steps
+- Provide a 5-minute test:
+  - how to create a connection (or why you cannot)
+  - how to POST a sample payload (webhook) or trigger polling
+  - what DB tables/rows should change
+  - whether any insight changes as a result
+
+Output for B:
+- Status: ✅ REAL / ⚠️ PARTIAL / ❌ MISSING
+- Evidence: file paths + routes + schema/tables used
+- Missing pieces (if any): bullet list
+
+---
+
+# Codebase Search Instructions (Required)
+Perform a code search for the following keywords and report findings with file paths:
+- embed, iframe, script, widget, share, public orbit, copy code, snippet
+- integration, connector, webhook, apiKey, credentials, data source, sync, provider
+- orbit_integrations, api_connections, data_sources, webhook_events
+
+---
+
+# Final Output Format (Required)
+Return:
+
+1) Summary table:
+Feature | Status | Evidence highlights (paths/routes/tables)
+
+2) Detailed findings:
+- A) Embed/Share
+- B) API Connector
+
+3) Punch list:
+If anything is missing, list the smallest next steps to reach a safe MVP.

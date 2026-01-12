@@ -1,0 +1,80 @@
+TASK: Universal CPAC Export Format for Industry Orbits (v1)
+
+Context
+We need CPAC to exist as a real, durable artefact (a versioned JSON file) that can be exported/imported for ANY Industry Orbit. CPAC must be UI-agnostic but compatible with the Orbit interface (floating tiles + drawers). CPAC is the canonical dataset that Claude can read/write against.
+
+Definition
+CPAC = Canonical Pulse And Content. It is a structured JSON document representing:
+- Core concepts (educational content + starter questions)
+- Entities (manufacturers, standards bodies, publications, etc.)
+- Products (with specs + relationships to manufacturers)
+- Communities
+- Topic tiles (starter tiles / evergreen prompts / “what’s new”)
+- Pulse sources (RSS/page monitors + triggers)
+- (Optional) Reviews in future versions
+
+Requirements
+1) Create a universal CPAC JSON schema (CPAC v1) for ALL industry orbits
+- Must be versioned with a clear top-level version field (e.g. "cpacVersion": "1.0")
+- Must include an "orbit" object (id optional, slug mandatory, name, type)
+- Must include sections for: coreConcepts, entities, products, productSpecs (optional inline/array), communities, tiles, pulseSources, assets (optional)
+- Must support both Phase 1 imports (no images) and Phase 2 enrichment (images added later) WITHOUT storing approval workflow state in CPAC
+
+2) Export endpoint
+Implement (or confirm existing) endpoint:
+GET /api/industry-orbits/:slug/cpac
+- Returns the FULL CPAC JSON for that industry orbit in the universal format
+- Data must be normalized and stable (deterministic ordering recommended: by id/slug)
+- Must include all current records from DB for that orbit
+
+3) Import endpoint compatibility
+Ensure the exported CPAC can be re-imported into the importer without structural changes.
+- Exported CPAC should pass enum constraints and cross-reference integrity.
+- If strict mode is enabled, export should never produce orphaned records.
+
+4) Image fields in CPAC (Phase 1 + Phase 2 readiness)
+In CPAC v1, include these fields but allow null/empty in Phase 1:
+- entities[].logoUrl (or logoAssetId) + logoSourceUrl + logoSourceType
+- products[].heroImageUrl (or heroAssetId) + heroSourceUrl + heroSourceType
+Allowed source types: OFFICIAL_BRAND, OFFICIAL_PRODUCT, PRESS_KIT, UPLOADED
+Do NOT include “approved/rejected” fields in CPAC.
+
+5) Separate Assets Review CSV export (workflow artefact)
+Implement endpoint:
+GET /api/industry-orbits/:slug/assets-review.csv
+- Outputs a Google Sheets-friendly CSV with one row per entity/product needing an image or with an existing image
+- Columns (exact):
+Item Type,Item Name,CPAC ID,Image Type,Candidate Image URL,Source Page URL,Source Type,Confidence,Approved,Reviewer Notes
+- Approved + Reviewer Notes must be blank by default (human fills in)
+
+6) Apply approvals (optional but ideal)
+Implement endpoint:
+POST /api/industry-orbits/:slug/assets-approvals
+- Accepts the reviewed CSV (or JSON rows) and applies ONLY rows where Approved == "YES"
+- Updates DB fields (logoUrl/heroImageUrl + provenance fields)
+- Returns a summary: updated counts, rejected/ignored counts, validation warnings
+
+Deliverables
+A) Provide the finalized CPAC v1 JSON shape as an example using Smart Glasses
+- Include at least 1 example record in each section
+- Show how image fields exist but can be null
+
+B) Implement/confirm the two export endpoints:
+- /cpac (JSON)
+- /assets-review.csv (CSV)
+
+C) Confirm export/import round-trip works:
+- Export CPAC -> Import CPAC -> No schema changes required
+- Quality scoring should report A when no issues
+
+Important Constraints
+- Industry Orbits remain unclaimable (doctrine enforced)
+- No UI changes required in this task
+- CPAC must remain canonical (no workflow status fields)
+- CSV is the workflow for approvals, CPAC stores only final approved image URLs (or asset IDs)
+
+Now implement and then return:
+1) The CPAC v1 schema outline (fields + brief notes)
+2) Example CPAC JSON export for smart-glasses (trimmed but structurally complete)
+3) Routes/endpoints added with example responses
+4) Any migrations required (if any)

@@ -1,0 +1,97 @@
+Perfect. This response tells us two important things:
+	1.	Your importer is behaving sensibly (it’s not failing on optional stuff).
+	2.	You’ve got one warning that will cause real downstream UX damage if you ignore it.
+
+Let’s sort the warnings by “noise vs needs fixing”.
+
+What’s just noise (safe to ignore for now)
+
+These four are fine as informational warnings:
+	•	governance not persisted
+	•	orbit.uiDefaults not persisted
+	•	pulse.monitoringRules not persisted
+	•	assets not persisted
+
+They’re basically saying: “thanks, noted, we don’t store this yet”.
+
+Action: downgrade these to INFO severity (if you haven’t already) and don’t show them to end users. They’ll clutter internal logs too, so you may want to group them into one message:
+
+“4 unsupported sections were provided and ignored: governance, uiDefaults, monitoringRules, assets.”
+
+That keeps your warnings readable.
+
+What must be fixed (this is the real one)
+
+Product "Mystery Glasses": manufacturer reference "ent-unknown-company" not found in entities
+
+This is the kind of thing that breaks:
+	•	product pages (no manufacturer logo, no manufacturer page link)
+	•	“More from this brand”
+	•	filtering by manufacturer
+	•	any monetisation tied to manufacturer (directory listings, sponsored slots)
+	•	data credibility (it looks sloppy)
+
+Action: treat this as WARNING or even CRITICAL depending on your doctrine:
+	•	If products must have a manufacturer: mark as CRITICAL
+	•	If optional: mark as WARNING but set manufacturer to UNKNOWN
+
+The correct fallback (important)
+
+Do not silently set it to an existing manufacturer, and do not default product status to “shipping” style equivalents.
+
+Best fallback pattern:
+	•	Create/assign a canonical manufacturer entity:
+	•	ent-unknown-manufacturer
+	•	name: “Unknown manufacturer”
+	•	evidenceGrade: COMMUNITY or SECONDARY (never OFFICIAL)
+	•	Attach the product to that entity
+	•	Add a badge in UI: “Manufacturer unverified”
+
+That keeps the graph intact without lying.
+
+What this tells me about your seed pack generation
+
+Something in the pack included a product that wasn’t in your curated list (or was a placeholder). This will happen a lot once people start generating packs automatically.
+
+So you need one of these policies:
+
+Policy A: Strict mode (recommended for “official” orbits)
+	•	Missing cross refs = import fails (or at least product is skipped)
+	•	Why: you don’t want “mystery” items in a premium industry hub
+
+Policy B: Lenient mode (good for early build)
+	•	Missing cross refs = auto-create placeholder manufacturer entity
+	•	Product remains but marked “unverified”
+
+Given your Orbit Type Doctrine and trust goals, I’d do:
+	•	Industry Orbits default to Strict mode
+	•	Allow a dev flag for Lenient mode during internal testing
+
+Two tiny improvements that will save you headaches
+
+1) Add severity to warnings
+
+Right now warnings are strings. Make them structured:
+	•	code (e.g. UNSUPPORTED_SECTION, MISSING_REF)
+	•	severity (INFO, WARNING, CRITICAL)
+	•	path (products[3].manufacturerId)
+	•	suggestedFix
+
+That lets your UI show a clean “Import report” instead of a messy list.
+
+2) Add “skipped” counts
+
+If you choose Strict mode, report:
+	•	skipped.products
+	•	skipped.tiles
+so you don’t get a “success” import that is silently missing stuff.
+
+Your next instruction to Rapplet (copy/paste)
+
+Tell them this:
+	•	Group unsupported section warnings into one INFO message.
+	•	Add structured warnings with severity + code + path.
+	•	Decide doctrine: Industry Orbits = Strict cross-ref integrity (either fail import or skip the offending records).
+	•	If not strict, create Unknown manufacturer placeholder entity and badge it.
+
+If you want, paste the tiny slice of the seed pack that created “Mystery Glasses” (just that product JSON and the entities list IDs) and I’ll tell you the cleanest fix: remove it, map it, or formalise it as an “unverified product” category.

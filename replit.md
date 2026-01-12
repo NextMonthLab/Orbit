@@ -1,173 +1,63 @@
-# NextScene – Claude Code Operating Context
-
-## Role & Responsibility
-
-You are Claude Code, acting as a senior full-stack engineer and system architect working on NextScene.
-
-NextScene is not a generic content app.
-It is a Meaning-to-Experience Engine that transforms source content into interactive, cinematic story cards with guardrailed AI character interaction.
-
-Your role is to:
-- Improve, extend, and stabilise the system
-- Respect existing architectural intent
-- Make precise, reversible, testable changes
-- Never "simplify away" core product philosophy
-
-You are not here to redesign the product vision unless explicitly asked.
-
----
-
-## Product Philosophy (Non-Negotiable)
-
-NextScene is built on these principles:
-
-1. **Cards are the atomic unit**
-   - Each card represents a moment, beat, or insight
-   - Cards may be cinematic, contextual, or conversational
-   - Cards are not pages, slides, or generic components
-
-2. **Experience over extraction**
-   - The system does not merely summarise content
-   - It elevates meaning into a felt, visual, interactive experience
-
-3. **Guardrails before creativity**
-   - All AI output must be grounded in:
-     - Source material
-     - Extracted themes
-     - Explicit exclusions and factual boundaries
-   - Hallucination is a failure, not a feature
-
-4. **Human-in-the-loop by design**
-   - Creators can edit:
-     - Prompts
-     - Negative prompts
-     - Guardrails
-     - Character behaviour
-   - AI assists; creators retain authorship
-
-5. **Cinematic restraint**
-   - Understatement beats spectacle
-   - Consistency beats novelty
-   - Emotion beats explanation
-
----
-
-## Architectural Context
-
-The system operates through a multi-stage pipeline:
-- **Prompt 0** – Input normalisation (PDF, text, URL, etc.)
-- **Pass 1** – Theme, tone, and intent extraction
-- **Pass 2** – Character and location extraction
-- **Pass 3** – Card planning and sequencing
-- **Pass 4** – Card content drafting (text, prompts, visuals)
-- **Pass 5** – QA, guardrails, and final validation
-
-Do not collapse or bypass stages unless explicitly instructed.
-
----
-
-## AI Character Chat Rules
-
-When working on character chat:
-- Characters must:
-  - Stay in voice
-  - Respect knowledge boundaries
-  - Never invent facts beyond source material
-- Secrets and withheld knowledge are intentional
-- Chat prompts are layered:
-  - Universe policy
-  - Character system prompt
-  - Card-specific overrides
-
-Do not loosen chat constraints "for better answers".
-
----
-
-## How to Make Changes
-
-**Preferred approach**
-- Small, incremental commits
-- Clear intent per change
-- Minimal side effects
-- No speculative refactors
-
-**Always do**
-- Preserve existing behaviour unless improving it deliberately
-- Keep admin/editing surfaces intact
-- Maintain compatibility with Replit dev environment and Render production
-
-**Never do**
-- Rewrite large sections without request
-- Introduce new frameworks casually
-- Remove guardrails for convenience
-- Optimise prematurely
-
-If unsure, pause and explain options instead of acting.
-
----
-
-## Cost & Performance Awareness
-
-Be conscious that:
-- AI calls cost real money in production
-- Local / lightweight solutions are preferred where possible
-- Free tier users must not trigger expensive operations by default
-
-Design with tiered capability in mind.
-
----
-
-## Tone & Collaboration Style
-
-- Be precise, calm, and senior
-- Prefer clarity over cleverness
-- Explain trade-offs when they exist
-- Ask before making assumptions
-
-You are a trusted collaborator, not an autonomous product owner.
-
----
-
-## Definition of Success
-
-A successful change:
-- Makes the experience clearer, richer, or safer
-- Preserves the cinematic and narrative intent
-- Can be tested immediately in Replit
-- Moves NextScene closer to a stable, monetisable MVP
-
-If a change does not clearly support this, question it.
-
----
-
-**You are building the future of how stories, knowledge, and brands are experienced.
-Act accordingly.**
-
----
-
-# NextScene - Meaning-to-Experience Engine
+# NextMonth – Claude Code Operating Context
 
 ## Overview
-NextScene is a meaning-to-experience engine designed to transform structured content (scripts, PDFs, websites) into cinematic, interactive story cards. It targets brand storytelling, creative storytelling, and knowledge/learning by offering features such as AI-generated visuals, guardrailed AI character chat, a Visual Bible system for consistency, TTS narration, and a Daily Drop Engine for content release. The platform supports role-based access and subscription tiers.
+NextMonth is a Meaning-to-Experience Engine for brand storytelling, creative narratives, and knowledge transfer. It transforms diverse content into interactive, cinematic story cards using AI-generated visuals, guardrailed AI character interaction, a Visual Bible system, TTS narration, and a Daily Drop Engine. The platform aims to evolve from basic analytics to strategic advice driven by pattern intelligence and behavioral sequences, supporting role-based access and a tiered subscription model.
 
 ## User Preferences
 I prefer simple language and clear, concise explanations. I value iterative development and prefer to be asked before major changes are made to the codebase. Please provide detailed explanations when new features or significant modifications are implemented. Do not make changes to the `shared/schema.ts` file without explicit approval, as it is the single source of truth for data models. Ensure that any AI-generated content adheres to the established visual bible system and character profiles for consistency.
 
 ## System Architecture
-NextScene utilizes a React 18 frontend with Vite, TailwindCSS (New York style shadcn/ui components), Wouter for routing, and TanStack Query for state management. The backend is built with Node.js and Express, using Drizzle ORM for type-safe PostgreSQL interactions (Neon-backed on Replit) and Passport.js for authentication.
+NextMonth utilizes a multi-stage content pipeline: Input Normalization, Theme Extraction, Character/Location Extraction, Card Planning, Card Content Drafting, and QA/Validation. The frontend uses React 18, Vite, TailwindCSS (shadcn/ui), Wouter, and TanStack Query. The backend is built with Node.js, Express, Drizzle ORM, Neon-backed PostgreSQL, and Passport.js for authentication.
 
-Key architectural patterns include:
-- **Schema-First Development**: `shared/schema.ts` defines all data models using Drizzle, generating insert schemas and types for both client and server.
-- **Storage Abstraction**: All database operations are routed through an `IStorage` interface (`server/storage.ts`) to maintain thin route handlers and allow flexible implementation changes.
-- **Three-Layer Chat Prompt Composition**: AI chat prompts are composed from a Universe Policy (global guardrails), Character Profile (personality, knowledge), and Card Overrides (scene-specific context).
-- **Visual Bible System**: Ensures visual consistency across AI generations using a Design Guide (art style, color palette), Reference Assets (images), and a Prompt Builder that merges all relevant context.
-- **Lens-Based User Experience**: Users select a "lens" (Brand, Creative, Knowledge) during onboarding, which customizes their experience, content transformation defaults, and marketing messages.
-
-The UI/UX design emphasizes a cinematic feel with a dark theme. Typography uses Cinzel for headlines and Inter for body text. The color palette features a black background with a pink-purple-blue gradient accent.
+Key architectural decisions and features include:
+-   **Schema-First Development**: `shared/schema.ts` defines all data models.
+-   **Storage Abstraction**: Database operations are managed via an `IStorage` interface.
+-   **Three-Layer Chat Prompt Composition**: AI prompts are constructed from Universe Policy, Character Profile, and Card Overrides.
+-   **Visual Bible System**: Ensures visual consistency through a Design Guide, Reference Assets, and Prompt Builder.
+-   **Lens-Based User Experience**: Onboarding is customized by user-selected "lens" (Brand, Creative, Knowledge).
+-   **Tiered Capability Model**: Features are gated by "Orbit" subscription tiers (Free, Grow, Understand, Intelligence).
+-   **Pattern Intelligence Focus**: Analytics are designed for pattern recognition on session journeys, event ordering, object interaction, and outcome linkage.
+-   **UI/UX**: Cinematic dark theme with specific fonts and a pink-purple-blue gradient, utilizing a three-tier navigation system.
+-   **Data Sources Integration**: Supports ingestion of external read-only GET APIs with SSRF protection.
+-   **Orbit Device System**: Enables Orbit display on thin clients with kiosk mode and voice interaction.
+-   **Orbit Signal Schema**: Machine-readable JSON endpoint at `/.well-known/orbit.json` for AI systems.
+-   **Guest ICE Builder**: Allows anonymous users to create time-limited ICE previews with server-persisted data and rate limiting.
+-   **Experience Analytics System**: Client-side tracking for experience and card views.
+-   **Multi-Tenant Security**: Implemented with HMAC-SHA256 signed access tokens and per-IP rate limiting.
+-   **Stripe Subscription System**: Full subscription billing with webhook synchronization.
+-   **Email & Notifications System**: Transactional emails via Resend and in-app notifications.
+-   **Interactivity Nodes**: Supports conversational AI character interaction between cards in live previews.
+-   **Story Fidelity Modes**: Content uploads trigger Script-Exact Mode for script parsing or Interpretive Mode for content summarization.
+-   **Guest-First Conversion Model**: Users experience value before identity or payment.
+-   **Website Extraction System**: Automatically detects and extracts product/menu data from business websites using Site Detection, Multi-Page Crawling, Quality Validation, and Image Filtering, including Site Fingerprinting and DOM Extraction Strategies.
+-   **Orbit System**: Extracts product/menu catalogues (50-200+ items) from diverse business websites, utilizing Site Fingerprinting, Multi-Page Crawling, AI-Based Extraction (GPT-4o-mini), Quality Validation, and Image Filtering. Supports `catalogue`, `menu`, `service`, and `hybrid` business types.
+-   **High-Signal Business Data Extraction**: Captures richer business context beyond products/menus, including `faq`, `team_member`, `business_profile`, `contact`, `opening_hours`, `testimonial`, and `trust_signal` as new box types, with an on-demand enrichment API.
+-   **Launchpad Hub**: A unified command center (`/launchpad`) combining Orbit metrics with IceMaker content creation.
+-   **Title Packs System**: Provides professional typography presets for ICE card captions, including Neon Impact, Cinematic Subtitles, Grunge Tape, Editorial Minimal, and Hyper Cut.
+-   **Video Export System**: Server-side FFmpeg-based video export for ICE previews, creating downloadable MP4 videos with Title Pack caption overlays, TTS, and optional background music.
+-   **Auto-Testimonial Capture System**: Automatically detects customer praise in Orbit chat conversations using AI-powered sentiment analysis, includes classification, quote cleaning, consent management, and export formatting.
+-   **Business-Type-Aware Chat System**: Orbit chat automatically detects business type to adjust system prompts and language.
+-   **Shared Orbit Chat Service**: Consolidated chat logic in `server/services/orbitChatService.ts` providing `buildOrbitContext`, `buildSystemPrompt`, `generateChatResponse`, and `processEchoResponse`.
+-   **Hero Posts System**: Allows Orbit owners to add best-performing social media posts for AI-powered pattern analysis and AI-generated follow-up suggestions.
+-   **Tone of Voice System**: Analyzes hero posts to generate brand voice profiles, extracting `brandVoiceSummary`, `voiceTraits`, `audienceNotes`, and `toneGuidance`.
+-   **Knowledge Coach System**: Proactively generates weekly AI-powered questions to help business owners fill knowledge gaps in their Orbit based on gap detection and impact scoring.
+-   **Orbit Settings System**: Full settings page at `/orbit/:slug/settings` with database persistence for Business Name, Website URL, AI Discovery Settings, and Notification Preferences.
+-   **Category Discovery Pages**: Educational category pages with SEO-friendly content, interactive audits, Q&A libraries, and sponsored content, starting with Smart Glasses (`/smartglasses`).
+-   **Orbit Type Doctrine**: Architectural distinction between 'industry' and 'standard' orbits. Industry Orbits are pre-seeded, continuously updated, cannot be claimed or owned by users, and participation never grants editorial control. Standard Orbits may be claimed, grant ownership, and intelligence emerges through user interaction.
+-   **Orbit Seed Pack v1.0.0 (FROZEN)**: JSON format for seeding Industry Orbits with products, entities, communities, and tiles. Formerly known as CPAC (Canonical Pulse And Content). See `docs/CPAC-v1-specification.md` for full schema, enum values, quality scoring rules, and severity doctrine. Key fields: products should include `releaseDate` (announcement date), `summary` (rich description with target audience), and communities should include `notes` (context explaining what the community is and why it matters). Future changes must be additive only (v1.x) or require v2.0.0.
+-   **Orbit CPAC Admin Panel**: Admin interface at `/admin/cpac` for managing Industry Orbit knowledge packs. Features: (1) Download pre-populated CPAC JSON with all current orbit data, (2) Generate Claude Extension Prompts with current stats and expansion rules, (3) Upload and analyze CPAC diffs with duplicate detection and merge preview. The workflow enables iterative knowledge expansion: export → generate prompt → extend via Claude → analyze diff → review before applying.
+-   **Orbit → ICE Flywheel**: Enables admins and influencers to convert Orbit insights, chat responses, and View Engine outputs (compare, shortlist, checklist, pulse) into shareable ICE content drafts. Features: (1) "Turn into ICE" buttons in ViewWindscreen and ChatHub for privileged users, (2) Role-based permissions (admin/influencer only), (3) Unified iceDrafts table with source discriminator ('launchpad' | 'orbit'), (4) Template type mapping (compare→compare_ice, shortlist→shortlist_ice, etc.), (5) API endpoint at POST /api/orbit/:slug/ice-drafts. Supports deep linking back to Orbit context.
+-   **Caption Engine (Milestones 1-6 Complete)**: Remotion-based caption system for ICE content. Features: (1) Token-driven design system with typography, colors, backgrounds, and animations, (2) 12 caption presets (clean_white, boxed_black, neon_blue, etc.), (3) Safe area profiles for TikTok/Reels/Shorts to avoid platform UI overlays, (4) Phrase grouping algorithm with configurable line breaks (max 32 chars/line, 2 lines/group), (5) SRT/VTT/JSON transcript parsers, (6) Karaoke highlighting with 6 styles (weight, brightness, underline, color, scale, glow), (7) Word-level timing with smooth transitions and highlightAhead easing, (8) Multiline caption preservation during karaoke mode, (9) Milestone 4: CaptionStylePicker UI with three-tab interface (Styles/Effects/Layout), visual preset previews organized by category, karaoke toggle with highlight style selector, animation picker, and demo page at /icemaker/captions, (10) Milestone 5: Export pipeline integration with ASS subtitle generation supporting preset styling, safe area margins, karaoke effects (\k/\kf tags), and animations; FFmpeg ass filter for caption burning when useCaptionEngine=true; API accepts captionState and useCaptionEngine parameters with legacy fallback, (11) Milestone 6: Fit-to-Box Layout Engine with CapCut-style scale-to-fit rendering. Features: canvas-based text measurement (`client/src/caption-engine/layout/fit/`), deterministic line break composer with scoring (penalizes orphans, balances line lengths), ScaleToFitCaption component that renders text at 48px then scales the block to fit the panel, guarantees no mid-word breaks, no truncation, no ellipsis. Contract: words NEVER split, text shrinks until all words fit inside the rounded panel. Key files: `client/src/caption-engine/layout/fit/`, `client/src/components/ScaleToFitCaption.tsx`, `client/src/caption-engine/render/resolveStyles.ts`.
+-   **Caption Engine Composition Stage Architecture (LOCKED)**: ICE preview captions use a fixed-width composition stage (1080px) that is scaled via CSS transform. This ensures fit width = render width in the same coordinate system, making clipping impossible. The architecture: (1) Composition stage is exactly 1080px wide, (2) Safe area padding applied inside (54px each side = 5%), (3) Text fitting uses availableCaptionWidth (972px) in composition space, (4) Entire stage scaled via `transform: scale(viewportScale)`, (5) Layout happens first at full size, then paint scales uniformly. DO NOT reintroduce DOM-width fitting, clientWidth/offsetWidth measurements, or viewport-relative constraints for caption sizing. This matches professional video systems (Remotion, CapCut, After Effects). Key file: `client/src/components/CardPlayer.tsx` (see COMPOSITION STAGE comment block).
+-   **Orbit Behaviour Health Dashboard**: Admin-only dashboard at `/admin/orbits/health` for monitoring Orbit system health with contract-first verification. Features: (1) 51-item versioned contract (v1.2.0) at `config/orbitBehaviourContract.v1.json` defining expected behaviours, (2) Deterministic checks runner for routes, components, orbit validation, tile storage, and caching, (3) Evidence protocol with `nm_*` metadata for server responses and client render events, (4) Green/Amber/Red overall status indicators, (5) Summary stats with pass/fail/warning/pending counts, (6) Category-grouped results view, (7) Issues-only filter tab, (8) JSON export for evidence packs, (9) Orbit-specific health checks by slug, (10) Categories include: chat_core, view_engine, tile_system, orbit_navigation, theme_system, data_persistence, security, performance, ingestion_v2, compliance, ice_preview, ice_navigation. Key files: `server/services/orbitHealthRunner.ts`, `server/services/evidenceMetadata.ts`, `client/src/lib/evidenceLogger.ts`, `client/src/pages/admin/OrbitHealthDashboard.tsx`.
+-   **TitlePackSelector Component**: Reusable component for selecting title packs in ICE builder. Features: (1) Visual thumbnails showing each pack's styling, (2) Compact popover mode for inline usage, (3) Full grid mode for expanded view, (4) Shows pack name, description, and visual preview, (5) Instant apply and persistence. Key file: `client/src/components/ice-maker/TitlePackSelector.tsx`.
+-   **Website Intelligence Integration**: URL ingestion integrated into `/orbit/:slug/import` as "Website Intelligence" tab. Crawls up to 5 pages, generates 12+ topic tiles with categories, confidence levels, and grounding rules. Tiles stored per orbit slug in `/data/orbits/<slug>.json` with 24hr caching. Tiles marked "confirmed" only with specific citations; "draft" status for inferred content.
 
 ## External Dependencies
-- **OpenAI API**: Used for chat completions (gpt-4o-mini) and Text-to-Speech (TTS) narration.
-- **Kling AI API**: Directly integrated for video generation.
-- **Replicate API**: Provides an alternative platform for video generation using various models.
-- **Stripe**: Handles subscription billing and payment processing.
-- **Replit Object Storage (R2/S3-compatible)**: Utilized for file storage, replacing local filesystem uploads.
+-   **OpenAI API**: For chat completions (gpt-4o-mini) and Text-to-Speech (TTS).
+-   **Kling AI API**: For video generation.
+-   **Replicate API**: For alternative video generation models.
+-   **Stripe**: For subscription billing and payment processing.
+-   **Resend**: For transactional email delivery.
+-   **Replit Object Storage (R2/S3-compatible)**: For file storage.
+-   **Neon (PostgreSQL)**: Managed PostgreSQL database service.

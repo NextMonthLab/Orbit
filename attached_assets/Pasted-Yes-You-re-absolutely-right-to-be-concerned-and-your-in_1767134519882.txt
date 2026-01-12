@@ -1,0 +1,125 @@
+Yes. You’re absolutely right to be concerned, and your instinct here is spot on.
+
+What you’re describing is a core creative failure mode of AI storytelling systems:
+they default to interpretation when you actually need faithful cinematic translation.
+
+Right now, IceMaker is behaving like a theme summariser, not a script realiser.
+
+That’s unacceptable for something like Failsafe.
+
+Let’s do this properly.
+
+⸻
+
+First: Name the real problem (so Replit can’t dodge it)
+
+The AI is currently answering the question:
+
+“What is this about?”
+
+When it should be answering:
+
+“How do I stage, pace, and visualise this exact story without changing it?”
+
+That means the issue is upstream of visuals.
+It’s in the story-construction prompt and logic layer.
+
+So yes, we absolutely can and should interrogate Replit.
+
+But we need to ask the right questions.
+
+⸻
+
+What we need to extract from Replit (explicitly)
+
+We are not asking them to “improve the story”.
+
+We are asking them to expose the machinery.
+
+Specifically:
+	1.	What prompt is used once raw content is ingested?
+	2.	Is the model instructed to summarise, reinterpret, or adapt?
+	3.	Does it collapse scripts into themes before story construction?
+	4.	Is there any abstraction step that loses structure, dialogue, or beats?
+	5.	Is there a difference between script input vs article input?
+	6.	Where does deviation become allowed or encouraged?
+
+⸻
+
+The exact prompt to give Replit (copy/paste)
+
+This is written deliberately firm, technical, and non-optional.
+
+You’re not asking for ideas.
+You’re asking for truth.
+
+⸻
+
+🔴 Replit Interrogation Prompt: IceMaker Story Formation
+
+We need a clear technical explanation of how IceMaker currently converts uploaded content (scripts, documents, webpages) into a “story” before visuals are generated.
+
+Please answer the following precisely and concretely, not conceptually:
+	1.	What is the exact prompt (or prompt chain) used after content ingestion to form the story output?
+	•	If there are multiple stages, list each stage and its purpose.
+	2.	Is the model instructed to summarise, reinterpret, adapt, or creatively reframe the input?
+	•	If yes, where and why?
+	3.	How are scripts handled differently from articles or webpages (if at all)?
+	•	Are dialogue, scene headings, action lines, and beats preserved or collapsed?
+	4.	At what point does the system extract “themes” or “meaning”?
+	•	Is this used as a replacement for structure, or as an enhancement?
+	5.	Is there any instruction that allows the AI to deviate from the source material?
+	•	If so, what safeguards exist to prevent loss of authorial intent?
+	6.	Does the current system treat uploaded scripts as canonical source material, or as inspiration?
+	7.	Where exactly would we intervene if we wanted the AI to strictly preserve narrative structure, scene order, character intent, and dialogue?
+
+We are diagnosing a case where a filmmaker uploaded their own script and the resulting experience reflected high-level themes but did not faithfully follow the original story.
+This behaviour is not acceptable for script-based projects and must be addressed at the prompt and logic level.
+
+⸻
+
+Why this matters (and why you’re right to stop here)
+
+For Failsafe, the AI must behave like:
+
+🎬 a director and production designer
+
+Not:
+
+📝 a book report writer
+
+Your script already is the story.
+
+IceMaker’s job is to:
+	•	preserve structure
+	•	respect beats
+	•	honour character intent
+	•	translate scenes into cinematic cards
+	•	add interaction without rewriting
+
+If it can’t do that, it’s not a story engine yet. It’s a content blender.
+
+⸻
+
+What comes next (once Replit answers)
+
+Once we see their current prompt/flow, the next step will be:
+	•	introducing Story Fidelity Modes, for example:
+	•	Faithful Adaptation (Script-Exact)
+	•	Interpretive Expansion
+	•	Conceptual Summary
+
+Failsafe clearly requires Script-Exact Mode.
+
+But we don’t jump there yet.
+First we force clarity.
+
+⸻
+
+You’re doing the right thing by pausing and interrogating the system before polishing visuals.
+That’s the difference between a filmmaker building a platform and a tool chasing vibes.
+
+Send that prompt to Replit.
+When they reply, bring it back here and we’ll dissect it like a screenplay draft.
+
+This is the moment IceMaker grows up.

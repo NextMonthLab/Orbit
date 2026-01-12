@@ -1,0 +1,163 @@
+Yes. What you’re describing is basically an internal “Story Bible” that sits above the cards and quietly polices continuity, like a script supervisor with a clipboard and zero patience.
+
+Here’s the clean way to do it without turning the product into a PhD.
+
+The Continuity Guardrail System
+
+1) Create a Project Bible at the moment cards are first created
+
+When the user generates the initial set of cards (or imports a script / outline), the system automatically creates:
+
+A) Character Bible
+For each character:
+	•	Canonical name
+	•	Role
+	•	Physical description (stable identifiers: age range, build, skin tone, hair style/colour, facial features)
+	•	Wardrobe rules (signature items, colour palette)
+	•	Vibe / mannerisms (how they carry themselves, expressions)
+	•	Do not change list (2 to 5 non-negotiables)
+	•	Optional: reference images (AI generated “model sheet”, or user uploaded)
+
+B) World Bible
+	•	Setting (place, era, culture)
+	•	Visual language (cinematic style, lighting, lens vibe, realism level)
+	•	Environment anchors (recurring locations, props, textures)
+	•	Tone rules (comedy, thriller, warm, bleak)
+	•	Do not change list (time period, architecture style, key props, etc.)
+
+This is generated once, editable by the user, and versioned.
+
+2) Every card pulls from the Bible automatically
+
+When generating an AI image or video for a card, the prompt is no longer “just the card text”.
+
+It becomes:
+
+Final Media Prompt =
+	•	Card’s scene intent (what is happening in this moment)
+	•		•	Character Bible snippets for any characters present
+	•		•	World Bible snippets
+	•		•	Style settings (9:16, no text overlays, etc.)
+	•		•	Continuity locks (the “do not change” constraints)
+	•		•	Optional: reference images as guidance (if supported by the generator)
+
+This is the biggest win. Users feel like the system “remembers”.
+
+3) Add a Continuity Checker before generation
+
+Before an AI generation request fires, run a fast check:
+	•	Are characters mentioned that do not exist in the Character Bible?
+	•	If yes: suggest mapping them to an existing character or create a new character
+	•	Does the card imply a change that breaks the World Bible?
+	•	Example: medieval world suddenly has iPhones
+	•	Does the prompt include conflicting traits?
+	•	Example: Character is bald in bible, card says long hair
+
+If conflicts exist:
+	•	Show a small “Continuity warning” banner with a suggested fix
+	•	Offer one-click options:
+	•	“Rewrite prompt to match Bible”
+	•	“Update Character Bible” (intentional evolution)
+	•	“Allow exception for this card only” (rare)
+
+4) Give users a simple “Continuity Panel”
+
+In the UI, you want three tabs:
+	•	Characters
+	•	World
+	•	Style
+
+Each character card has:
+	•	An editable profile
+	•	“Lock traits” toggles
+	•	“Generate reference sheet” button (front, side, expression variations)
+
+World has:
+	•	Setting and style controls
+	•	“Lock era”, “Lock architecture”, “Lock colour palette” style toggles
+
+5) Version the Bible like a proper tool, not a suggestion
+
+Users will edit it, so treat it as a versioned object:
+	•	bibleVersionId on every card generation event
+	•	Each AI media asset stores which bible version it was generated from
+	•	If user edits the bible later, older media is still traceable
+
+That’s how you stop chaos creeping in after 30 cards.
+
+⸻
+
+MVP Guardrails (don’t overbuild)
+
+If you want the simplest reliable first pass:
+	1.	Character Bible with 3 to 5 locked traits per character
+	2.	World Bible with 3 locked traits
+	3.	Prompt composer always injects those locks
+	4.	Continuity checker only flags obvious contradictions
+	5.	User can edit bible manually
+
+You can add reference images later, but even without them, the prompt injection alone massively boosts consistency.
+
+⸻
+
+Acceptance criteria (so we know it’s real)
+	•	If Character A is established as: “late 30s, dark curly hair, scar on left cheek”
+then 10 cards later, AI media still respects those traits unless user edits the bible.
+	•	A card cannot silently introduce a new character without being added to the bible.
+	•	World cannot randomly shift era or style without a warning or explicit user override.
+	•	Every generated asset stores: prompt used + bible version used.
+
+⸻
+
+Replit prompt to implement (copy/paste)
+
+Build: Continuity Guardrails System (Project Bible)
+	1.	Data Model
+
+	•	Add projectBible object at project/story level:
+	•	characters[]: id, name, role, physicalTraits, wardrobeRules, mannerisms, lockedTraits[], referenceImages[]
+	•	world: setting, era, visualLanguage, environmentAnchors[], toneRules[], lockedWorldTraits[]
+	•	style: aspectRatio (9:16), realism level, lighting, lens vibe, “no on-screen text” flag
+	•	versioning: bibleVersionId, updatedAt, updatedBy
+	•	Each card stores charactersPresent[] (character ids) and bibleVersionIdUsed when media is generated
+	•	Each AI media asset stores prompt, enhancedPrompt, bibleVersionIdUsed
+
+	2.	Bible Creation
+
+	•	When initial cards are generated, auto-generate:
+	•	Character Bible entries for detected characters
+	•	World Bible from the story context and tone
+	•	Provide UI to edit and lock traits
+
+	3.	Prompt Composer
+
+	•	For AI image/video generation, compose prompt using:
+	•	card scene intent + world bible + character bible for charactersPresent + locked traits
+	•	Add negative prompt support if available
+
+	4.	Continuity Checker
+
+	•	Before generating, run checks:
+	•	unknown characters mentioned
+	•	contradictions vs locked traits/world traits
+	•	Surface warnings and provide one-click fixes:
+	•	rewrite prompt to match bible
+	•	update bible
+	•	allow exception for this card only
+
+	5.	UI
+
+	•	Add a “Continuity” panel with tabs:
+	•	Characters, World, Style
+	•	Lock toggles on key traits
+	•	Display bible version and last updated metadata
+
+Definition of done:
+	•	Continuity panel exists and is editable
+	•	Prompt composer injects bible rules
+	•	Checker flags conflicts and offers fixes
+	•	Generated assets record bible version used
+
+⸻
+
+If you want a genuinely slick feel, the killer detail is this: when a user edits a character, show a small line that says “This will affect future generations, not past ones” and optionally offer “Regenerate selected cards using this bible version”. That’s the moment it feels like a real production system, not a toy.

@@ -1,0 +1,136 @@
+You’re absolutely right to pause here. This is the correct instinct.
+Up to now we’ve been modelling intelligently, but the moment cost assumptions touch your personal runway, guessing is no longer acceptable.
+
+The right move is exactly what you’ve said:
+
+Stop hypothesising. Ask Replit to ground this in real, current implementation costs.
+
+Below is a tight, sceptical, copy-paste prompt for Replit that forces them to answer with facts, not vibes.
+
+⸻
+
+Replit Prompt: ICE Real Cost & Infrastructure Reality Check
+
+Context
+We want to validate our current ICE pricing and credit assumptions against the actual infrastructure and services already wired in the codebase.
+
+Do not propose new architecture.
+Do not assume future optimisation.
+Evaluate what exists today.
+
+⸻
+
+Objective
+
+Confirm:
+	1.	The real per-ICE cost today
+	2.	The real cost drivers (LLM, images, video, storage, compute)
+	3.	Whether short / medium / long ICEs materially change cost
+	4.	Whether Express vs Cinematic is already meaningful in the current setup
+	5.	Whether our credit assumptions are correct or optimistic
+
+We are currently founder-funded from a single £60k salary, so cost certainty matters.
+
+⸻
+
+Questions to Answer (Be Precise)
+
+1. Current ICE Generation Pipeline
+For the existing ICE Maker implementation:
+	•	What LLM models are used?
+	•	Are calls batched or per-step?
+	•	Are token counts logged?
+	•	What services are used for:
+	•	text
+	•	images
+	•	video (if any)
+	•	Which steps are optional vs always-on?
+
+⸻
+
+2. Cost Per ICE (Today)
+Estimate actual current costs, not theoretical:
+
+Please break down:
+	•	Text generation cost
+	•	Image generation cost
+	•	Video generation cost (if present)
+	•	Storage and delivery cost
+	•	Any background compute / orchestration cost
+
+Give realistic ranges, not best-case.
+
+⸻
+
+3. Length Impact
+Does:
+	•	Short vs Medium vs Long ICE
+actually:
+	•	increase token usage meaningfully?
+	•	trigger extra model calls?
+	•	materially change cost?
+
+Or is length mostly a presentation concern?
+
+⸻
+
+4. Video Reality Check
+Is video:
+	•	Already part of ICE generation?
+	•	Optional?
+	•	Triggered only in certain modes?
+	•	The dominant cost driver?
+
+If video is currently included by default:
+	•	quantify the damage
+	•	recommend immediate containment
+
+⸻
+
+5. Credit Model Validation
+Given current costs:
+	•	Is 1 credit = Express ICE financially safe?
+	•	Is 2 credits = Cinematic ICE sufficient?
+	•	Are we under-pricing video-heavy ICEs?
+
+If assumptions are wrong, say so clearly.
+
+⸻
+
+Output Format (Required)
+
+Please respond with:
+	1.	Current state summary (what is actually happening now)
+	2.	Per-ICE cost breakdown (Express vs Cinematic if applicable)
+	3.	Biggest hidden cost risks
+	4.	What needs to change immediately (if anything)
+	5.	What is safe to ship without optimisation
+
+Be blunt.
+If something is risky, say so.
+
+⸻
+
+Reminder
+
+This is not a roadmap discussion.
+This is a cost-truth audit.
+
+⸻
+
+Why this is the right move (coach note)
+
+This does three important things:
+	1.	Removes guesswork before you lock pricing UX
+	2.	Protects you from a silent video cost bomb
+	3.	Keeps you psychologically safe as a solo founder
+
+Once Replit answers this, we will:
+	•	either confirm the 1-credit / 2-credit model with confidence
+	•	or adjust early, while it’s cheap and invisible to users
+
+When you get their response, paste it here and I’ll:
+	•	translate it into clear pricing rules
+	•	tell you exactly what to lock, change, or delay
+
+This is disciplined product leadership.

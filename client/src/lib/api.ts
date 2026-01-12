@@ -63,6 +63,7 @@ class ApiClient {
       cards: Card[]; 
       characters: Character[];
       creator?: { displayName: string; slug: string | null; headline: string | null; avatarUrl: string | null } | null;
+      publicAccessToken?: string;
     }>(`/story/${slug}`);
   }
 
@@ -335,6 +336,72 @@ class ApiClient {
     }
     
     return response.json();
+  }
+
+  // Admin Command Center
+  async getAdminStats(): Promise<{
+    totalUsers: number;
+    usersByRole: { role: string; count: number }[];
+    totalOrbits: number;
+    industryOrbits: number;
+    standardOrbits: number;
+    totalVisits30d: number;
+    totalConversations30d: number;
+  }> {
+    return this.request("/admin/stats");
+  }
+  
+  async getAdminUsers(): Promise<Array<{
+    id: number;
+    username: string;
+    email: string | null;
+    role: string | null;
+    isAdmin: boolean | null;
+    createdAt: string;
+    orbitCount: number;
+    iceCount: number;
+  }>> {
+    return this.request("/admin/users");
+  }
+  
+  async getAdminIndustryOrbits(): Promise<any[]> {
+    return this.request("/admin/industry-orbits");
+  }
+
+  async getAdminAllOrbits(): Promise<Array<{
+    businessSlug: string;
+    businessName: string;
+    sourceUrl: string | null;
+    orbitType: string | null;
+    generationStatus: string | null;
+    planTier: string | null;
+    lastUpdated: string | null;
+    visits30d: number;
+    conversations30d: number;
+  }>> {
+    return this.request("/admin/all-orbits");
+  }
+
+  // Orbit → ICE Flywheel
+  async createIceDraftFromOrbit(orbitSlug: string, data: {
+    sourceMessageId?: string;
+    viewType?: string;
+    viewData?: any;
+    summaryText: string;
+    sources?: any[];
+    templateType?: string;
+    deepLink?: string;
+    orbitViewState?: any;
+    title?: string;
+  }): Promise<any> {
+    return this.request(`/orbit/${orbitSlug}/ice-drafts`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+  
+  async getOrbitIceDrafts(orbitSlug: string): Promise<any[]> {
+    return this.request(`/orbit/${orbitSlug}/ice-drafts`);
   }
 
   // Audio

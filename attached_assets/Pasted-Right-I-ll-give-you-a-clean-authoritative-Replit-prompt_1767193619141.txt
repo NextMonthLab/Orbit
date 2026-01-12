@@ -1,0 +1,124 @@
+Right. I’ll give you a clean, authoritative Replit prompt you can drop straight in. This is written to direct the system, not debate with it.
+
+No ambiguity. No options list. This locks the intent while leaving implementation freedom.
+
+⸻
+
+Replit Prompt: Orbit Navigation Restructure (Authoritative)
+
+Context
+
+You are working inside the NextMonth / Orbit product.
+
+Orbit is a public-facing product surface that doubles as:
+	•	A discovery layer for visitors
+	•	A conversion layer for prospects
+	•	A management surface for business owners
+
+The key design principle is:
+
+The public Orbit is the product.
+Ownership enhances the view, it does not replace it.
+
+Do not turn Orbit into a traditional “public site + admin panel” split.
+Maintain a thin, cinematic boundary between public and private.
+
+⸻
+
+Problem to Solve (Confirmed)
+
+The current Orbit navigation causes confusion due to:
+	•	Overlapping concepts (“Dashboard” vs “Business Hub”)
+	•	Indirect access to owner tools
+	•	No support for managing multiple Orbits
+	•	One menu serving owners, non-owners, and guests without adaptation
+
+This restructure is a clarification pass, not a rebuild.
+
+⸻
+
+Required Outcomes (Non-Negotiable)
+
+1. Introduce My Orbits
+	•	A first-class navigation item for logged-in owners
+	•	Lists all Orbits owned by the user
+	•	Shows lightweight stats per Orbit (visits, interactions, etc.)
+	•	Primary action: Open Hub
+	•	This is the owner’s fastest path to control
+
+2. Remove or Rename “Orbit Dashboard”
+	•	The term Dashboard must not be used for discovery or marketing surfaces
+	•	Replace with a name that implies exploration, not control (e.g. Orbit Home / Explore Orbit)
+	•	“Hub” or equivalent language is reserved for owned management only
+
+3. Role-Adaptive Orbit Menu (Soft, Not Hard Gated)
+
+The Orbit menu must adapt based on user state:
+
+Logged-in Orbit Owner
+Orbit menu shows:
+	•	My Orbits
+	•	Explore Orbits
+	•	Knowledge Map (defaults to primary owned Orbit)
+	•	Intelligence (defaults to owner context)
+
+Logged-in Non-Owner
+Orbit menu shows:
+	•	Explore Orbits
+	•	Claim an Orbit
+	•	How Orbit Works
+
+Guest (Not Logged In)
+Orbit menu shows:
+	•	Explore Orbits
+	•	Claim an Orbit (leads to sign-in → claim flow)
+	•	Sign In
+
+Do not expose management actions to non-owners.
+Do not fully hide advanced concepts; teaser visibility is acceptable.
+
+⸻
+
+Navigation Behaviour Rules
+	•	Owners should never need to visit their public Orbit to access their Hub
+	•	Clicking an Orbit anywhere should:
+	•	Show subtle “Owner View” affordances if owned
+	•	Remain clean and public if not
+	•	Public vs private is contextual, not a hard fork
+
+⸻
+
+Naming & Language Rules
+	•	“Dashboard” implies control and ownership. Avoid unless literal.
+	•	“Hub” = private, owner-only management
+	•	“Explore” = public discovery
+	•	Language should reinforce ownership enhancement, not mode switching
+
+⸻
+
+Explicit Non-Goals (Do Not Do These)
+	•	Do not create a separate “Admin App”
+	•	Do not hard-split Orbit into public vs private URLs beyond what already exists
+	•	Do not remove discovery from owners
+	•	Do not overcomplicate permissions or roles
+
+⸻
+
+Success Criteria
+
+This task is complete when:
+	•	Owners can reach their management tools in one click
+	•	Non-owners clearly understand how to explore or claim
+	•	The Orbit menu no longer mixes discovery, management, and marketing blindly
+	•	The product still feels cinematic and singular, not fragmented
+
+⸻
+
+If you want, next we can:
+	•	Add microcopy for menu items (very powerful here)
+	•	Design the My Orbits screen UX
+	•	Or script the owner-context affordances precisely (badges, ribbons, subtle UI cues)
+
+But this prompt alone is enough to move Replit decisively.
+
+Good call trusting your gut on this one. This is the kind of polish that separates “clever” from credible.

@@ -1,0 +1,91 @@
+You are Rapplet inside the NextScene repo.
+
+Context
+We have implemented a Micro Smart Site Preview flow:
+- /for/brands page creates a preview from a URL
+- /preview/:id shows a chat-first preview with TTL, caps, SSRF protection, rate limits, Stripe claim
+This is working technically, but the preview experience is conceptually wrong.
+
+Problem
+The preview does not feel like the user’s original website.
+It has no identity continuity:
+- No logo
+- No images
+- No recognisable copy (headline, service names)
+- No visual resemblance (colours, typography)
+It currently feels like a generic chatbot page with a title, not "your website switched on".
+
+Goal
+Reframe the preview as: "Your website, rendered in Smart Mode", with chat as an overlay, not the whole canvas.
+Identity preservation is mandatory.
+
+What I want from you
+1) First, give me a clear pitch of what you would change, in priority order, with reasoning.
+2) Then propose an implementation plan (small diffs, follow existing conventions).
+3) Then list the exact files you would expect to touch in this repo.
+Do not implement yet unless I explicitly ask. I want your plan first.
+
+Non negotiables
+- Preserve brand identity within 3 seconds of landing on the preview page.
+- Show real source copy before any AI rewriting.
+- Chat must be secondary.
+- Keep all existing safety controls (SSRF, caps, TTL, rate limits) intact.
+- UK English spelling in copy.
+- Avoid long dashes in copy.
+
+Design requirements for the new Preview page
+A. Brand header
+- Use the ingested site title and sourceDomain
+- Pull and show logo if available (favicon, site logo if detected)
+- Derive primary colour from the site (or fallback)
+- Show a small "Preview Mode" badge, but do not dominate
+
+B. Page content scaffold (must be visible above the chat)
+Render a simple but recognisable mini-site:
+- Hero section:
+  - Real headline from the site, or closest h1
+  - Short description from the site content
+  - One hero image if available
+- "What you do" section using real service names / headings
+- "Who it’s for" section if content exists
+- "FAQs" section using questions extracted from the site (or create from headings if none)
+
+C. Smart Mode layer
+- Add a small "Ask about this page" panel or floating button
+- Chat responses must be grounded in the ingested content
+- Suggested prompts should be contextual to the page content, not generic sales questions
+
+D. Paywall moment
+- Do not show message counters or caps upfront
+- Only surface the paywall modal at the cap
+- Copy should focus on continuation:
+  "Your Smart Site is ready. To keep it live and claim the leads it is already uncovering, activate it."
+
+Backend adjustments needed
+- Extend ingestion to capture identity and content fields needed for the mini-site:
+  - page title
+  - hero headline (h1)
+  - meta description or first meaningful paragraph
+  - logo url (prefer site logo, fallback favicon)
+  - hero image url (og:image or first large image)
+  - primary colour (from theme CSS if feasible, fallback to extracted dominant colour from logo/favicon, fallback to purple)
+  - key headings and service bullets
+  - faq candidates (headings with question marks, or common patterns)
+- Store these in preview_instances so the preview page does not re-scrape on every load
+
+Acceptance criteria
+1) When I create a preview for a real site, the preview page shows:
+   - Logo or favicon
+   - Real headline and some recognisable copy from the site
+   - At least one image
+   - A layout that feels like a website, not a chat app
+2) Chat is present but secondary.
+3) Existing caps, TTL, SSRF and rate limits remain functional.
+4) No big performance regression (no repeated scraping on every chat turn).
+
+Now do the pitch and plan.
+Be specific about:
+- What data you will extract
+- Where you will store it
+- How the preview page will render it
+- What the fallback behaviour is when extraction fails

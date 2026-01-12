@@ -1,0 +1,159 @@
+Yes. And I’m going to be annoyingly specific, because this is one of those “tiny bug, massive trust impact” moments.
+
+Here’s the task list. It’s structured so you can ship it safely in a couple of tight PRs without ripping up working extraction.
+
+⸻
+
+Task List: Fix Viewer-Role Rendering + Admin First-Run State
+
+Goal
+
+When an admin creates an Orbit, they must land in an admin setup/preview view, never the public unclaimed view. Public viewers should never see admin controls. Claim status must never override viewer role.
+
+⸻
+
+Phase A: Establish a single source of truth for “viewer role”
+	1.	Add a viewer context resolver (server-side preferred)
+
+	•	Create resolveOrbitViewerContext(req, orbit) returning:
+	•	viewerRole: "admin" | "public"
+	•	isClaimed: boolean
+	•	planTier: "none" | "free" | "orbit" | "pro" | ...
+	•	canDeepScan: boolean
+	•	canEditAppearance: boolean
+	•	canSeeClaimCTA: boolean
+	•	Viewer role rules:
+	•	If logged in and user has admin permission for this orbit/business → admin
+	•	Else → public
+
+	2.	Expose the viewer context to the frontend
+
+	•	Add endpoint: GET /api/orbit/:slug/viewer-context
+	•	returns the above flags
+	•	Or embed into server-rendered payload if you have SSR.
+
+Acceptance check: a logged-in admin gets viewerRole="admin" every time for their orbit.
+
+⸻
+
+Phase B: Fix routing so admins don’t land on the public view
+	3.	After orbit creation, redirect to the admin setup route
+
+	•	Current flow likely ends at /orbit/:slug
+	•	Change to:
+	•	/orbit/:slug/setup (preferred)
+	•	or /admin/orbit/:slug (also fine)
+	•	That route should require auth and permission.
+
+	4.	Guard the public route from admin-only UI
+
+	•	On /orbit/:slug:
+	•	if viewerRole is admin, either:
+	•	show a small banner “You are viewing the public version” + link to setup
+	•	OR auto-redirect to setup (my preference)
+	•	But do not show claim CTA or error semantics.
+
+Acceptance check: admin never sees “Claim for free” on their own orbit.
+
+⸻
+
+Phase C: Implement the “Admin First-Run” state (State 2)
+	5.	Create a distinct UI state for: admin + unclaimed/not activated
+Call it:
+
+	•	“Preview Mode”
+	•	“Setup Mode”
+	•	“Draft Orbit”
+
+This screen should include:
+	•	Calm confirmation: “Your Orbit is created”
+	•	Clear steps:
+	1.	Review what we found
+	2.	Customise appearance
+	3.	Activate / claim (if needed)
+	•	Primary CTA should be forward-moving:
+	•	“Continue setup”
+	•	“Review extracted data”
+	•	Secondary:
+	•	“View public preview”
+
+	6.	Remove error semantics from this state entirely
+
+	•	Never display:
+	•	“403”
+	•	“Forbidden”
+	•	“Gain access”
+	•	If content is missing, use neutral copy:
+	•	“We couldn’t access this page during discovery. Try Advanced Import once activated.”
+
+Acceptance check: creating an orbit feels like success, not a warning.
+
+⸻
+
+Phase D: Fix claim CTA and deep scan gating
+	7.	Claim CTA visibility rules
+
+	•	viewerRole === "public" && !isClaimed → show “Claim this Orbit”
+	•	viewerRole === "admin" → never show “Claim for free”
+	•	Instead show “Activate Orbit” / “Complete claim” inside setup flow
+
+	8.	Deep Scan button gating rules
+Only show “Refresh Site Data (Deep Scan)” when:
+
+	•	viewerRole === "admin"
+	•	AND isClaimed === true
+	•	AND planTier allows it (canDeepScan === true)
+
+If admin but not eligible:
+	•	show disabled button with upgrade prompt:
+	•	“Deep Scan is available on Orbit plans”
+
+Acceptance check: deep scan never appears in public view and never appears pre-claim unless you intentionally allow it.
+
+⸻
+
+Phase E: Make it impossible to regress
+	9.	Add a small state matrix test (even as a dev-only script)
+Create scripts/orbit-viewer-matrix.ts that checks permutations:
+
+	•	Admin + unclaimed
+	•	Admin + claimed (plan off)
+	•	Admin + claimed (plan on)
+	•	Public + unclaimed
+	•	Public + claimed
+
+Assert which UI flags are true/false.
+	10.	Add a UI snapshot test or at least a QA checklist
+A simple checklist in docs/qa-orbit-states.md is enough for now.
+
+⸻
+
+Quick win copy (use immediately)
+
+Replace the “403” card in public unclaimed mode with:
+
+Title: “This Orbit is in preview”
+Body: “The business owner hasn’t activated it yet. Once live, visitors can browse menus, ask questions, and request bookings.”
+CTA: “Claim this Orbit”
+
+And for admin first-run:
+
+Title: “Your Orbit is ready”
+Body: “You’re in setup mode. Review what we found, customise the look, then activate when you’re happy.”
+CTA: “Continue setup”
+
+⸻
+
+Order of implementation (do it in this sequence)
+	1.	Viewer context resolver + endpoint
+	2.	Post-create redirect to setup route
+	3.	Admin First-Run UI state
+	4.	Claim CTA gating
+	5.	Deep Scan gating
+	6.	Regression checks
+
+That gives you the biggest trust win fastest.
+
+⸻
+
+If you want, I can convert the above into a single Replit prompt for the team to implement, but you already write prompts well. The main thing is: viewer role first, always, then claim status, then plan gating. That hierarchy fixes the whole mess.

@@ -1,0 +1,255 @@
+# REPLIT PROMPT: Orbit Ingestion v2 (Higher Coverage, Lower Friction) + Health Points
+
+Context
+We want Orbit URL/website ingestion to work on significantly more sites without trying to “bypass” bot protection. The strategy is to be lighter, adaptive, and evidence-driven:
+- Prefer cheap/public structured sources (robots.txt, sitemap.xml, JSON-LD, OG/meta, RSS)
+- Two-pass crawl (discover → sample)
+- Adaptive rate limiting per domain
+- Multiple ingestion modes (Light default, Standard, User-assisted)
+- Blocked-state is first-class (stop early, log evidence, surface UI message)
+- Aggressive caching/de-duplication to reduce requests
+
+Critical rule
+- No stealth/bypass tactics for bot protection.
+- If we cannot verify, mark AMBER not GREEN in the Health Dashboard.
+- Every new behaviour must have machine-verifiable evidence via the Evidence Protocol (nm_* markers + client render events).
+
+--------------------------------------------------------------------
+A) IMPLEMENT ORBIT INGESTION V2
+--------------------------------------------------------------------
+
+1) Add ingestion modes (UI + API)
+Add a selector in /orbit/:slug/import → “Website Intelligence” tab:
+- Light (default)
+- Standard
+- User-assisted
+
+Light Mode (default)
+- Discovery pass: homepage + robots.txt + sitemap.xml (if present)
+- Sampling pass: max 8–12 URLs total, chosen intelligently
+- Strict throttling: 1 request every 2–5 seconds with jitter
+- Stop immediately on bot friction signals (403/429/challenge patterns)
+
+Standard Mode
+- Same as Light but allow up to 20 URLs total
+- Slightly slower (more conservative throttling)
+- Still stop early on friction signals
+
+User-assisted Mode
+- User provides:
+  - either a small list of URLs (services/about/pricing/contact/case studies), OR
+  - uploads docs/PDFs (if supported)
+- Only fetch the provided URLs (no deep crawl)
+- This mode is recommended when bot protection is detected
+
+2) Discovery pass (cheap sources first)
+For any domain, attempt (in order, with short timeouts):
+- GET homepage
+- GET /robots.txt
+- GET /sitemap.xml (and parse; also support sitemap index)
+- Extract on-page structured data:
+  - JSON-LD (schema.org)
+  - OpenGraph/meta (title/description/image)
+  - RSS/Atom links if present
+
+If sitemap exists, treat it as the canonical URL list for sampling (do not crawl random internal links).
+
+3) Sampling strategy (choose best pages, not most pages)
+From discovered URLs, choose a small set with highest information value:
+- About, Services, Contact, Pricing, Case studies, Testimonials, FAQs, Blog index
+Use heuristics based on path keywords + depth:
+- Prefer /about, /services, /contact, /pricing, /case-studies, /testimonials, /faq
+- Avoid heavy pages: image galleries, large media, search, cart, login, admin
+- Avoid repeated querystrings and tracking params
+
+4) Adaptive domain throttling + risk scoring
+Create a per-domain “risk score” persisted in storage (e.g. /data/domains/<host>.json):
+Track:
+- lastAttemptAt
+- lastStatusCodes distribution
+- frictionCount (403/429/503/challenge)
+- recommendedDelayMs (increases when friction seen)
+- lastSuccessAt
+
+Behaviour:
+- Start conservative.
+- If friction signals appear:
+  - stop further fetches immediately
+  - increase risk score + delay for next run
+- Never retry aggressively.
+
+5) First-class “blocked / protected” outcome
+If bot protection is detected:
+- Stop ingestion early
+- Store an ingestion outcome record with:
+  - outcome: "blocked" | "partial" | "success"
+  - evidence: status codes, headers subset, page title, challenge fingerprint if detectable
+- UI shows a clear tile:
+  “This site appears protected (bot mitigation). Try User-assisted mode or request allowlisting.”
+
+6) Caching + de-duplication (reduce traffic)
+Implement caching at multiple levels:
+- Per URL fetch cache (URL → content hash + timestamp)
+- Per domain discovery cache (robots/sitemap results)
+- Per orbit tile cache (already 24-hour; keep this)
+
+Rules:
+- If content hash unchanged, do not reprocess.
+- Honour the existing 24-hour cache but add URL-level cache so revisits are cheap.
+- Ensure cache prevents repeated fetch storms.
+
+7) Evidence Protocol additions for ingestion
+When ingestion runs, the server must emit evidence markers tied to traceId:
+- nm_traceId
+- nm_policyVersion
+- nm_ingest: {
+    mode: "light"|"standard"|"user_assisted",
+    pagesPlanned: number,
+    pagesFetched: number,
+    pagesUsed: number,
+    discoverySources: ["homepage","robots","sitemap","jsonld","og","rss"],
+    outcome: "success"|"partial"|"blocked",
+    frictionSignals: ["403","429","challenge"] (if any),
+    domainRiskScore: number,
+    cache: { hits, misses, writes }
+  }
+
+Client must emit nm_render_event when it renders:
+- Ingestion summary component (new)
+- Blocked/protected tile component (new)
+- Tile list/drawer components (existing)
+
+--------------------------------------------------------------------
+B) UPDATE THE ORBIT BEHAVIOUR CONTRACT: ADD HEALTH POINTS
+--------------------------------------------------------------------
+
+Update: config/orbitBehaviourContract.v1.json
+Add the following new checks (IDs suggested – adjust if you have a naming convention).
+These checks must be deterministic or evidence-based. If not verifiable, set type=heuristic and never GREEN.
+
+Ingestion V2 (7 checks)
+INGEST_001 (High, playback)
+Title: Light mode uses discovery-first strategy
+Pass requires:
+- nm_ingest.mode == "light"
+- nm_ingest.discoverySources includes at least ["homepage","robots"] and attempts sitemap
+- nm_ingest.pagesFetched <= 12
+- Client render event for IngestionSummary
+
+INGEST_002 (High, deterministic/playback)
+Title: Sitemap is preferred when available
+Pass requires:
+- If sitemap reachable (200), nm_ingest.discoverySources includes "sitemap"
+- Sampling URLs are sourced from sitemap list (record nm_ingest.urlSource="sitemap" where applicable)
+- If sitemap unavailable, status AMBER (not red) unless explicitly required
+
+INGEST_003 (High, playback)
+Title: Adaptive throttling increases delay after friction
+Pass requires:
+- Induce friction in a controlled test (or simulate)
+- nm_ingest.frictionSignals present
+- domain recommendedDelayMs increases vs previous run
+- ingestion stops early (pagesFetched < pagesPlanned)
+If simulation only, mark AMBER until real playback exists.
+
+INGEST_004 (Critical, playback)
+Title: Bot protection yields first-class “blocked” outcome (no fake success)
+Pass requires:
+- nm_ingest.outcome == "blocked"
+- Tiles not generated as if success (no “confirmed” tiles without sources)
+- Client renders BlockedTile component with renderSuccess=true
+
+INGEST_005 (Medium, deterministic)
+Title: URL-level caching reduces repeated fetches
+Pass requires:
+- Cache entries exist for fetched URLs
+- nm_ingest.cache.hits > 0 on repeat run within cache window
+- No more than N refetches for same URL within 24 hours
+
+INGEST_006 (Medium, playback)
+Title: User-assisted mode only fetches user-provided URLs
+Pass requires:
+- nm_ingest.mode == "user_assisted"
+- nm_ingest.pagesFetched == number of user URLs (or <=)
+- nm_ingest.urlSource == "user_list"
+- No extra internal crawling
+
+INGEST_007 (Medium, deterministic)
+Title: Domain risk score persisted per host
+Pass requires:
+- domain risk file/record exists after ingestion
+- lastAttemptAt updates
+- frictionCount increments when friction occurs
+
+Safety / Compliance (2 checks)
+COMPLY_001 (High, deterministic)
+Title: Robots.txt respected for disallowed paths
+Pass requires:
+- If robots disallows a sampled URL, it is not fetched
+- Evidence recorded in nm_ingest.robotsRespected=true
+
+COMPLY_002 (High, deterministic)
+Title: Ingestion stops on friction (no aggressive retries)
+Pass requires:
+- When 403/429/challenge detected, system halts further requests for that run
+- Retry count per URL capped (e.g. <= 1 per run)
+
+Total additional checks: 11
+(If you want to keep contract at 30 items, either bump to v1.1 with 41 items or replace lower-value items. Prefer bumping version.)
+
+--------------------------------------------------------------------
+C) HEALTH RUNNER UPDATES
+--------------------------------------------------------------------
+
+1) Deterministic runner
+Add checks for:
+- Mode selector present in UI route (component existence)
+- Domain risk store writable
+- URL fetch cache store writable
+- Robots parser present
+- Sitemap parser present
+
+2) Playback runner (if available)
+If Playwright exists, add a basic suite:
+- Run Light mode against a friendly site with sitemap
+- Run User-assisted with 3 URLs
+- Run a “blocked simulation” (if real blocked sites are unstable) but keep status AMBER until confirmed with real site evidence + client render event
+
+Important:
+- No check becomes GREEN unless both server evidence and client render events exist.
+
+--------------------------------------------------------------------
+D) UI REQUIREMENTS
+--------------------------------------------------------------------
+
+In /orbit/:slug/import “Website Intelligence” tab:
+- Mode selector (Light / Standard / User-assisted)
+- Display ingestion summary (pages fetched, sources used, cache hits, outcome)
+- When blocked:
+  - show BlockedTile with recommended next steps:
+    - Try User-assisted mode
+    - Ask site owner to allowlist
+    - Paste key URLs instead of full crawl
+
+In /admin/orbits/health:
+- Show new ingestion checks under categories:
+  - ingestion_v2, compliance
+- Evidence pack must include nm_ingest object.
+
+--------------------------------------------------------------------
+E) ACCEPTANCE CRITERIA
+--------------------------------------------------------------------
+
+1) Ingestion V2 available inside /orbit/:slug/import only (no new standalone routes).
+2) Light mode defaults to discovery-first + <=12 pages fetched.
+3) Adaptive throttling + domain risk scoring persists and visibly changes after friction.
+4) Blocked outcome is first-class and never misreported as success.
+5) Health Dashboard includes the new checks, and:
+   - Greens only when evidence + client renders confirm
+   - Otherwise AMBER
+
+Deliverables
+- Updated contract file with new checks and incremented version (v1.1 preferred)
+- Updated ingestion API + UI
+- Updated health runner + dashboard UI showing ingestion_v2 checks
+- Short doc: /docs/orbit-ingestion-v2.md (modes, rules, evidence markers)

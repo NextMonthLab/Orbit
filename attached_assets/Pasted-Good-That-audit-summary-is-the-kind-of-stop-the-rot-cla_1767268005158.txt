@@ -1,0 +1,186 @@
+Good. That audit summary is the kind of “stop the rot” clarity you need.
+
+And no, you shouldn’t “proceed” in a vague sense. You should proceed with a Phase 1 consolidation PR that is explicitly scoped to:
+	•	zero behaviour change
+	•	one browser lifecycle
+	•	one media filter
+	•	quality gate becomes real, but thresholds unchanged
+	•	no new extraction features
+
+Here’s the Phase 1 plan I’d execute, with concrete file-level edits and acceptance checks.
+
+⸻
+
+Phase 1 Consolidation PR
+
+Outcome targets
+	1.	Exactly 1 Puppeteer launch path (deepScraper singleton)
+	2.	Exactly 1 media filter implementation used everywhere
+	3.	No parallel deep crawl implementations (multi-page menu scrape delegates to deepScraper)
+	4.	Quality gating returns pass/fail and can block persistence when configured, but doesn’t silently change outputs
+
+⸻
+
+Step-by-step changes (explicit)
+
+1) Create shared media filter utility
+
+New file: server/utils/mediaFilter.ts
+
+Move the blocklists and heuristics into a single canonical function:
+	•	isBadImageUrl(url: string): boolean
+	•	optionally: filterImagePool(urls: string[]): string[] (thin wrapper)
+
+Rules:
+	•	Do not “improve” logic yet. Just consolidate.
+	•	Preserve all existing blocklist entries (union them, then dedupe).
+	•	Add comments indicating source origin (previewHelpers/routes/catalogueDetection).
+
+Replace call sites:
+	•	previewHelpers.ts:extractImagePool() → uses mediaFilter.filterImagePool(...)
+	•	routes.ts:isExtractionBadImage() → becomes a wrapper calling mediaFilter.isBadImageUrl
+	•	catalogueDetection.ts:isPaymentOrBadImage() → wrapper calling mediaFilter.isBadImageUrl + its payment-specific rules (if payment detection is genuinely separate)
+
+Acceptance check:
+	•	For the same input URL list, filtered outputs match current behaviour as closely as possible.
+	•	If there’s a mismatch risk, add a temporary “legacy mode” flag to compare counts in logs (not user-facing).
+
+⸻
+
+2) Remove Puppeteer launches from catalogueDetection.ts (delegate to deepScraper)
+
+Edits: server/services/catalogueDetection.ts
+
+Replace all puppeteer.launch() usage with deepScraper-provided primitives. Catalogue detection should become “pure-ish” logic: it receives HTML / page contexts, returns structured results.
+
+Two safe patterns:
+
+Pattern A (preferred): deepScraper provides withPage(url, fn)
+	•	deepScraper owns browser
+	•	catalogueDetection passes a callback to analyse DOM
+
+Pattern B: deepScraper provides fetchPageHtml(url) + evaluateOnPage(url, fn)
+	•	catalogueDetection never sees puppeteer directly
+
+Also replace: extractMenuItemsMultiPage()
+It must call deepScrapeMultiplePages() and then parse pages, rather than crawling itself.
+
+Acceptance check:
+	•	Search repo for puppeteer.launch and ensure only deepScraper owns it.
+	•	Run an import on known URLs and compare item counts pre/post.
+
+⸻
+
+3) Kill the “second deep crawl” implementation
+
+Edits: catalogueDetection.ts
+	•	Keep the parsing logic from extractMenuItemsMultiPage if it’s valuable.
+	•	Delete/retire its crawling loop and browser creation.
+	•	New structure:
+
+extractMenuItemsMultiPage(url) -> deepScraper.deepScrapeMultiplePages(url, candidates) -> parseMenuFromPages(pages)
+
+Acceptance check:
+	•	A menu site that previously worked still extracts the same items.
+	•	Crawl time is similar or better (likely better due to shared navigation/scroll logic).
+
+⸻
+
+4) Convert quality validation into a real gate (without breaking flows)
+
+Right now it “logs but saves anyway”, which poisons data.
+
+Edits: where validateExtractionQuality lives (you mentioned it’s dead-ish; likely catalogueDetection.ts or orbit generator)
+
+Change it to return:
+
+type QualityResult = {
+  pass: boolean;
+  score: number;
+  reasons: string[];
+  warnings: string[];
+}
+
+Then in the orchestrator / route that persists:
+	•	If pass === false, do not persist when the caller is in “strict” mode.
+	•	Default behaviour for Phase 1 can be:
+	•	Advanced Import (claimed + orbit plan): strict mode ON (block persistence)
+	•	Light Discovery: strict mode OFF (store as “low confidence” preview only, or skip save)
+
+This prevents behaviour regressions in early discovery, but protects paid imports from garbage.
+
+Acceptance check:
+	•	Low-quality results do not overwrite existing good datasets.
+	•	Logs clearly state “quality gate failed, persistence skipped”.
+
+⸻
+
+5) Fingerprinting: delete or wire, but don’t leave it floating
+
+You’ve got detectSiteFingerprint() exported but unused.
+
+Phase 1 options (choose the safest):
+	•	Option 1 (safest): wire it only for telemetry/logging and keep strategy selection unchanged.
+	•	Option 2: delete it if it’s unused and untrusted.
+
+My recommendation for Phase 1: log it, don’t route on it. Routing changes behaviour.
+
+Acceptance check:
+	•	No change to strategy choice. Only additional log context.
+
+⸻
+
+Guardrails so you don’t overwrite good infrastructure again
+
+Create a single entrypoint and name it “the law”
+
+Add a new orchestrator file even if it’s mostly glue in Phase 1:
+
+server/services/extraction/orchestrator.ts
+
+This file becomes the only module allowed to:
+	•	trigger crawling
+	•	choose between discovery vs advanced
+	•	apply media filtering
+	•	apply quality gating
+	•	write to persistence
+
+Then slowly move call sites to use it.
+
+Key rule: Routes must call orchestrator, not a random helper.
+
+⸻
+
+Tests / validation you should run immediately
+
+No fancy test framework required yet. Just a repeatable smoke suite.
+
+Create a scripts/extraction-smoke.ts that runs on 10–20 URLs and prints:
+	•	fingerprint (if logged)
+	•	detected type (menu/catalogue/both)
+	•	items extracted count
+	•	images extracted count
+	•	quality score + pass/fail
+	•	whether persisted
+
+Run it before and after Phase 1 and compare counts. This is your “don’t break prod” shield.
+
+⸻
+
+What I’d do next (Phase 2, but don’t start yet)
+	•	Virtualised review UI + pagination (for 200+ items)
+	•	Job-based batching for advanced import
+	•	Strategy routing using fingerprint/platform detection
+	•	Golden snapshot tests
+
+⸻
+
+Bottom line
+
+Yes: proceed with Phase 1 consolidation, but only under the constraints above. If you do it this way, you’ll remove the fragmentation without accidentally “improving” something into a regression.
+
+If you paste the current implementations of:
+	•	the 4 puppeteer launches in catalogueDetection.ts (just those blocks)
+	•	and the three image filter functions
+
+…I’ll tell you exactly how to refactor them into the single shared path with minimal diff.

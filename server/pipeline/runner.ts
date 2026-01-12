@@ -610,10 +610,14 @@ GROUNDING RULES:
     }
 
     for (const loc of ctx.locations || []) {
+      // Handle both formats: {id, name} or {location_name, address}
+      const locationName = loc.name || loc.location_name || "Unknown Location";
+      const locationSlug = loc.id || locationName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      
       await storage.createLocation({
         universeId: universe.id,
-        locationSlug: loc.id,
-        name: loc.name,
+        locationSlug,
+        name: locationName,
       });
     }
 

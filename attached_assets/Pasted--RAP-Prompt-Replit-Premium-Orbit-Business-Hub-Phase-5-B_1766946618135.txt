@@ -1,0 +1,209 @@
+# RAP Prompt (Replit): Premium Orbit Business Hub — Phase 5 Build (Final Pass, Integration & Soft Launch Readiness)
+
+## Where this prompt belongs
+**Applies to:** NextMonth (Orbit + ICE) codebase in Replit  
+**Phase:** 5 (Prompt 5 — Final Pass)  
+**Goal:** Ensure all Orbit layers (Free → Grow → Insight → Intelligence → Notifications) work seamlessly together, with clean tier gating, consistent language, reliable flows, and no sharp edges — ready for a **soft launch**.
+
+This phase is about **cohesion, safety, and trust**, not new capability.
+
+---
+
+## Context (locked product doctrine)
+All strategic decisions are already locked in `replit.md`:
+
+- One Orbit per business
+- Free → Grow → Insight → Intelligence value ladder
+- Pricing (£19 / £49 / £99)
+- Free conversation cap (50)
+- ICE economics + video caps
+- Intelligence before notifications
+- Notifications are signal-based, not spam-based
+
+This phase must **not reinterpret or reopen** any of these.
+
+---
+
+## Phase 5 Objective
+Perform a **full-system integration pass** so that:
+
+1. All tiers feel intentional and consistent
+2. All features talk to each other cleanly
+3. Upgrade paths feel natural and earned
+4. Nothing leaks cost, scope, or confusion
+5. You can invite real businesses without anxiety
+
+---
+
+## What NOT to build
+Do NOT:
+- Add new features
+- Add new pricing options
+- Add dashboards or charts
+- Add automation
+- Add experiments or flags
+
+If it doesn’t reduce friction or risk, don’t touch it.
+
+---
+
+## Implementation Plan (Final Pass)
+
+### Step 1 — Tier Gating Audit (Critical)
+Systematically audit every feature, route, and UI element to confirm:
+
+| Feature | Free | Grow | Insight | Intelligence |
+|------|------|------|---------|--------------|
+Public Orbit | ✓ | ✓ | ✓ | ✓ |
+Business Hub sidebar | ✗ | ✓ | ✓ | ✓ |
+Grid curation | ✗ | ✓ | ✓ | ✓ |
+ICE Maker | ✗ | ✓ (credits) | ✓ (bundled) | ✓ (bundled) |
+Conversations (counts) | ✓ | ✓ | ✓ | ✓ |
+Conversation transcripts | ✗ | ✗ | ✓ | ✓ |
+Leads (counts) | ✓ | ✓ | ✓ | ✓ |
+Lead details & context | ✗ | ✗ | ✓ | ✓ |
+Intelligence panel | ✗ | ✗ | ✗ | ✓ |
+Notifications | ✗ | ✗ | ✓ | ✓ |
+
+Actions:
+- Verify server-side enforcement for every restricted API
+- Verify client-side UI hides or locks appropriately
+- Remove any accidental access paths
+
+---
+
+### Step 2 — Language & Copy Consistency Pass
+Audit all user-facing copy and ensure:
+
+- Limits are framed as **success**, not restriction
+- “Unlock” language is consistent everywhere
+- No mixed metaphors (analytics vs intelligence vs understanding)
+- No tier names leaked incorrectly
+
+Specifically check:
+- Conversation cap messages
+- ICE usage nudges
+- Locked panel previews
+- Upgrade CTAs
+- Notification wording
+- Email subject lines
+
+If duplicate or conflicting copy exists, consolidate.
+
+---
+
+### Step 3 — End-to-End Flow Validation
+Manually walk through these critical journeys and fix friction:
+
+#### A) Free → Grow
+- Claim Orbit
+- Hit conversation cap
+- See calm upgrade CTA
+- Upgrade to Grow
+- Immediately see Business Hub unlock
+
+#### B) Grow → Insight
+- See locked Conversations / Leads previews
+- Understand *why* upgrade matters
+- Upgrade
+- Immediately see transcripts + context
+
+#### C) Insight → Intelligence
+- See partial Intelligence previews
+- Understand value of patterns
+- Upgrade
+- Immediately see real insights (no empty state)
+
+Ensure:
+- No reload confusion
+- No stale data
+- No “why didn’t anything change?” moments
+
+---
+
+### Step 4 — Data Integrity & Safety Checks
+Verify:
+
+- Conversation counts match transcripts
+- Lead counts match lead list
+- Intelligence summaries match underlying events
+- Notifications reference valid targets
+- Magic links:
+  - expire correctly
+  - open correct context
+  - never over-grant access
+
+Add logging for:
+- failed notification sends
+- failed magic-link resolutions
+- tier mismatch access attempts
+
+These logs are for you, not users.
+
+---
+
+### Step 5 — Cost Guardrail Verification
+Confirm in code that:
+
+- Free conversation cap is enforced server-side
+- ICE video caps are respected by default
+- Premium video always costs credits
+- Bundled ICE usage increments correctly
+- No background job can silently exceed expected cost
+
+Add (if not already present):
+- Simple kill-switch env flag for:
+  - free conversations
+  - video generation
+  - notifications
+
+This is a safety net, not a feature.
+
+---
+
+### Step 6 — Soft Launch Readiness Toggles
+Prepare for quiet rollout:
+
+- Add feature flag or config for:
+  - “Show pricing publicly” vs “invite-only”
+  - Notification emails on/off
+- Ensure:
+  - Billing works end-to-end
+  - No debug UI visible
+  - Error states are human-readable
+
+You should be able to:
+- invite 1 business
+- watch usage
+- adjust quietly
+- repeat
+
+---
+
+### Step 7 — Final UX Polish (Small, Important)
+Light polish only:
+- Loading states where empty panels might appear
+- Friendly empty states (“No conversations yet” etc.)
+- Clear timestamps (“Updated today”, “Last week”)
+
+No redesigns. No new UI patterns.
+
+---
+
+## Deliverable
+A **cohesive, trustworthy Orbit product** where:
+
+- Every tier feels intentional
+- Upgrades feel earned
+- Costs are capped
+- Intelligence is believable
+- Notifications feel helpful
+- Nothing feels bolted on
+
+At the end of Phase 5, the product should be safe to:
+- invite real businesses
+- charge real money
+- observe real behaviour
+
+Proceed with implementation now.
+This phase is about restraint, not ambition.

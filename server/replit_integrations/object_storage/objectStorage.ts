@@ -42,6 +42,41 @@ export class ObjectNotFoundError extends Error {
 export class ObjectStorageService {
   constructor() {}
 
+  // Checks if object storage is configured
+  isConfigured(): boolean {
+    return !!(process.env.PRIVATE_OBJECT_DIR && process.env.PUBLIC_OBJECT_SEARCH_PATHS);
+  }
+
+  // Uploads a buffer directly to the private object directory and returns the public URL
+  async uploadBuffer(
+    buffer: Buffer,
+    fileName: string,
+    contentType: string,
+    subDirectory: string = "uploads"
+  ): Promise<string> {
+    const privateObjectDir = this.getPrivateObjectDir();
+    const fullPath = `${privateObjectDir}/${subDirectory}/${fileName}`;
+    
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    
+    await file.save(buffer, {
+      contentType,
+      resumable: false,
+    });
+    
+    // Use the Replit sidecar for signing URLs (not the GCS library which requires client_email)
+    const signedUrl = await signObjectURL({
+      bucketName,
+      objectName,
+      method: "GET",
+      ttlSec: 7 * 24 * 60 * 60, // 7 days
+    });
+    
+    return signedUrl;
+  }
+
   // Gets the public object search paths.
   getPublicObjectSearchPaths(): Array<string> {
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
@@ -127,6 +162,32 @@ export class ObjectStorageService {
       if (!res.headersSent) {
         res.status(500).json({ error: "Error downloading file" });
       }
+    }
+  }
+
+  // Downloads an object to a Buffer (for processing)
+  async downloadBuffer(
+    fileName: string,
+    subDirectory: string = "uploads"
+  ): Promise<Buffer | null> {
+    try {
+      const privateObjectDir = this.getPrivateObjectDir();
+      const fullPath = `${privateObjectDir}/${subDirectory}/${fileName}`;
+      
+      const { bucketName, objectName } = parseObjectPath(fullPath);
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+      
+      const [exists] = await file.exists();
+      if (!exists) {
+        return null;
+      }
+      
+      const [buffer] = await file.download();
+      return buffer;
+    } catch (error) {
+      console.error("Error downloading buffer:", error);
+      return null;
     }
   }
 

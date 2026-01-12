@@ -1,0 +1,128 @@
+Replit Prompt: Add sustainable “Active Ice” hosting model (creation + ongoing hosting/tracking), without breaking existing IceMaker UX
+
+Context
+We currently charge users primarily for creating IceMaker experiences (“Ices”). However, each Ice has ongoing costs: hosting, bandwidth, storage, analytics event logging, and conversation logs. If we only charge once at creation and keep experiences live indefinitely, the platform becomes financially unsustainable.
+
+We need to implement an “Active Ice” model:
+- Creation is a one-time unlock (short/medium/long generation cost).
+- Ongoing public hosting + tracking + conversations require an active subscription (or a paid “active slot”).
+- If a subscription ends, the Ice is not deleted. It becomes “Paused” (no public access, no tracking, no new conversations), but the user can still view/manage it privately and re-activate later.
+
+Non-negotiables
+1) Do NOT clutter the IceMaker Library view at /app.
+2) Do NOT delete user content when a plan ends.
+3) Public availability and ongoing analytics/conversations must be gated by plan/active status.
+4) Keep UX simple and premium: “Active” vs “Paused”, not technical “hosting” language.
+5) Avoid long dash characters in UI copy. Use simple punctuation.
+
+Goal
+Implement a sustainable billing + entitlement system for long-term hosting and intelligence, framed as “Active Ices”.
+
+Definitions
+- Ice: An experience (cards, metadata, share link, optional embed).
+- Active Ice: An Ice that is currently published and allowed to collect analytics and conversations.
+- Paused Ice: An Ice that is retained but not publicly accessible and does not collect new analytics/conversations.
+
+Core product rules
+1) Users can create Ices (pay per creation or included in plan).
+2) Only Active Ices can be:
+   - Publicly accessible via share link
+   - Embeddable on a website
+   - Collect analytics events
+   - Accept new chat conversations or messages
+   - Appear in Orbit dashboards
+3) When a user’s subscription is cancelled or payment fails:
+   - Their Ices are NOT deleted
+   - Any Ices above their allowed “Active Ice” limit become Paused
+   - Public links return a friendly “Paused” page with a CTA to reactivate
+   - Analytics collection and chat ingestion stop for Paused Ices
+4) Users can reactivate an Ice by upgrading or freeing an active slot.
+
+Entitlements model (recommended)
+Each plan defines:
+- activeIceLimit (integer)
+- analyticsEnabled (bool)
+- chatEnabled (bool)
+- orbitAccess (bool)
+- maxRetentionDays for analytics/events (optional later)
+
+Example (do not hardcode copy yet, just model support):
+- Free: 0 active Ices (preview only)
+- Pro: N active Ices
+- Business: higher N + Orbit access + team features
+
+Database changes
+Add fields to the Ice/Experience table:
+- status: "draft" | "active" | "paused"
+- activeSince (timestamp, nullable)
+- pausedAt (timestamp, nullable)
+- ownerUserId (already exists)
+- publicSlug / shareId (already exists)
+- lastPublishedAt (optional)
+Add fields to User/Account or Subscription table:
+- planId
+- subscriptionStatus: "active" | "past_due" | "cancelled"
+- activeIceLimit
+- features flags (analyticsEnabled, chatEnabled, orbitAccess)
+
+If you already have a subscription model, extend it rather than replacing it.
+
+API changes
+Create/adjust endpoints:
+1) POST /api/ices/:iceId/activate (auth required)
+   - Checks user subscription and activeIceLimit
+   - If limit exceeded, return a clear error and suggest pausing another Ice
+   - Sets status=active, activeSince=now, pausedAt=null
+2) POST /api/ices/:iceId/pause (auth required)
+   - Sets status=paused, pausedAt=now
+3) GET /api/ices/:iceId/status (auth optional)
+   - Returns current status and whether it is publicly accessible
+4) Public consumption gating:
+   - The public share route (e.g. /i/:slug or similar) must verify Ice status.
+   - If paused or draft, show a friendly paused page.
+5) Analytics ingestion gating:
+   - POST /api/public/analytics/event must reject events for paused/draft Ices (return 403 or 200 with “ignored” depending on desired behaviour, but do not store).
+6) Chat ingestion gating:
+   - Any endpoint that starts a conversation or stores chat messages must reject if Ice is paused/draft.
+
+UI changes
+Important: Do NOT change /app library view density.
+
+Where to surface Active vs Paused:
+- Inside the per-experience context view (not the library)
+- In Publish flow
+- In Insights tab
+- In Experience Settings
+
+Recommended UI behaviours:
+1) Publish button behaviour:
+   - If user has available active slots and plan allows, “Publish” activates the Ice.
+   - If no slots, show modal: “No active slots available. Pause another Ice or upgrade.”
+2) When an Ice is paused:
+   - Show a banner inside the experience context: “This Ice is paused. Activate it to enable sharing, conversations, and insights.”
+   - Provide “Activate” CTA
+3) Public paused page:
+   - Title: “This experience is paused”
+   - Copy: “The owner has not activated this Ice. Check back later.”
+   - If viewer is owner (logged in), show “Activate” CTA.
+4) Insights and Orbit gating:
+   - If paused: show a friendly message that tracking is disabled until activation.
+
+Billing integration touchpoints
+- On upgrade success: allow user to activate immediately or auto-activate the current Ice.
+- On downgrade/cancellation: automatically pause Ices beyond limit. Choose which to pause deterministically (e.g. least recently viewed, or oldest active) and notify the user.
+
+Acceptance criteria
+1) Users can activate/pause an Ice.
+2) Active Ices are publicly accessible and collect analytics/conversations.
+3) Paused Ices retain content but do not allow public access or collect new events.
+4) Subscription cancellation triggers pausing logic without deletions.
+5) No UI clutter is added to /app. All status and controls live inside the experience context, publish flow, insights, or settings.
+
+Implementation notes
+- Keep language user-friendly: “Active” and “Paused”. Avoid technical “hosting” wording.
+- Ensure gating is enforced server-side, not only in the UI.
+- Add basic tests for: activation limit enforcement, paused public page, analytics rejection, chat rejection.
+
+Deliverable
+Implement the backend model changes, API endpoints, UI controls, and gating logic described above, keeping existing IceMaker browsing UX intact.

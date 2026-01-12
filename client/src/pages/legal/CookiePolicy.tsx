@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 
-const LOGO_URL = "https://res.cloudinary.com/drl0fxrkq/image/upload/c_crop,w_1920,h_500/v1766782089/18477D76-902C-4604-95AA-121B881D0618_xwlgoc.png";
+const LOGO_URL = "/logo.png";
 
 export default function CookiePolicy() {
   return (
@@ -9,7 +9,7 @@ export default function CookiePolicy() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/">
-            <img src={LOGO_URL} alt="NextScene" className="h-12 cursor-pointer" />
+            <img src={LOGO_URL} alt="NextMonth" className="h-20 cursor-pointer" style={{ clipPath: 'inset(30% 0 30% 0)' }} />
           </Link>
           <Link href="/">
             <span className="text-white/60 hover:text-white text-sm flex items-center gap-2 cursor-pointer">
@@ -28,7 +28,7 @@ export default function CookiePolicy() {
           <section>
             <h2 className="text-2xl font-semibold mb-4 text-white">1. Introduction</h2>
             <p className="text-white/70 leading-relaxed">
-              This Cookie Policy explains how NextMonth Ltd ("we", "us", or "our"), company number 16464586, uses cookies and similar technologies when you visit the NextScene platform. This policy should be read alongside our <Link href="/privacy" className="text-purple-400 hover:text-purple-300">Privacy Policy</Link>.
+              This Cookie Policy explains how NextMonth Ltd ("we", "us", or "our"), company number 16464586, uses cookies and similar technologies when you visit the NextMonth platform. This policy should be read alongside our <Link href="/privacy" className="text-purple-400 hover:text-purple-300">Privacy Policy</Link>.
             </p>
           </section>
 

@@ -1,9 +1,24 @@
 import cardImage from "@assets/generated_images/cinematic_cyberpunk_noir_city_street_at_night_with_rain.png";
 import charImage from "@assets/generated_images/mysterious_cyberpunk_character_portrait.png";
 
+export interface MediaAsset {
+  id: string;
+  kind: 'image' | 'video';
+  source: 'upload' | 'ai';
+  url: string;
+  thumbnailUrl?: string;
+  createdAt: string;
+  prompt?: string;
+  enhancedPrompt?: string;
+  negativePrompt?: string;
+  status: 'ready' | 'generating' | 'failed';
+  predictionId?: string;
+  model?: string;
+}
+
 export interface Card {
   id: string | number;
-  dayIndex: number;
+  dayIndex?: number; // Optional - removed from display per "bin Day 1/2/3" directive
   title: string;
   image: string;
   captions: string[];
@@ -18,6 +33,11 @@ export interface Card {
   videoGenerated?: boolean;
   videoGenerationStatus?: string | null;
   preferredMediaType?: 'image' | 'video' | null;
+  mediaAssets?: MediaAsset[];
+  selectedMediaAssetId?: string | null;
+  enhancePromptEnabled?: boolean;
+  basePrompt?: string;
+  enhancedPrompt?: string;
 }
 
 export interface Character {

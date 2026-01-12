@@ -1,10 +1,14 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Card } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, ChevronUp, Share2, BookOpen, RotateCcw, Volume2, VolumeX, Film, Image } from "lucide-react";
+import { MessageSquare, ChevronUp, Share2, BookOpen, RotateCcw, Volume2, VolumeX, Film, Image, Play, Pause } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import MessageBoard from "@/components/MessageBoard";
+import type { CaptionState } from "@/caption-engine/schemas";
+import { resolveStyles } from "@/caption-engine/render/resolveStyles";
+import { ScaleToFitCaption } from "@/components/ScaleToFitCaption";
+import { measureCaptionSet } from "@/caption-engine/layout/fit";
 
 function useIsTabletLandscape() {
   const [isTabletLandscape, setIsTabletLandscape] = useState(false);
@@ -37,6 +41,23 @@ interface Character {
   avatar?: string | null;
 }
 
+interface BrandPreferences {
+  accentColor: string;
+  theme: 'dark' | 'light';
+  selectedLogo: string | null;
+  selectedImages: string[];
+}
+
+import {
+  getTitlePackById,
+  splitTextIntoHeadlineAndSupporting,
+  getLayerStylesWithText,
+  DEFAULT_TITLE_PACK_ID,
+  type TitlePack
+} from "@shared/titlePacks";
+import { calculateCaptionGeometry } from "@/caption-engine/geometry";
+import { CaptionDebugOverlay } from "./CaptionDebugOverlay";
+
 interface CardPlayerProps {
   card: Card;
   autoplay?: boolean;
@@ -44,6 +65,10 @@ interface CardPlayerProps {
   onChatClick?: (characterId: number) => void;
   onPhaseChange?: (phase: "cinematic" | "context") => void;
   fullScreen?: boolean;
+  brandPreferences?: BrandPreferences | null;
+  narrationVolume?: number; // 0-100
+  narrationMuted?: boolean;
+  captionState?: CaptionState; // Caption Engine state for presets/karaoke/animations
 }
 
 type Phase = "cinematic" | "context";
@@ -54,7 +79,11 @@ export default function CardPlayer({
   characters = [],
   onChatClick,
   onPhaseChange,
-  fullScreen = false
+  fullScreen = false,
+  brandPreferences,
+  narrationVolume = 100,
+  narrationMuted = false,
+  captionState
 }: CardPlayerProps) {
   const [, setLocation] = useLocation();
   const [phase, setPhase] = useState<Phase>("cinematic");
@@ -62,15 +91,106 @@ export default function CardPlayer({
   const [captionIndex, setCaptionIndex] = useState(0);
   const [showSwipeHint, setShowSwipeHint] = useState(false);
   const [dismissedRotateHint, setDismissedRotateHint] = useState(false);
-  const [audioMuted, setAudioMuted] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [debugOverlay, setDebugOverlay] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const captionRegionRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidthPx, setContainerWidthPx] = useState(375);
   const isTabletLandscape = useIsTabletLandscape();
+
+  useEffect(() => {
+    const el = captionRegionRef.current;
+    if (!el) return;
+
+    const updateWidth = () => {
+      // Use clientWidth and subtract padding to get actual content area
+      const style = getComputedStyle(el);
+      const paddingLeft = parseFloat(style.paddingLeft) || 0;
+      const paddingRight = parseFloat(style.paddingRight) || 0;
+      const contentWidth = el.clientWidth - paddingLeft - paddingRight;
+      setContainerWidthPx(contentWidth);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, []);
+  
+  const theme = brandPreferences?.theme || 'dark';
+  const accentColor = brandPreferences?.accentColor || '#ffffff';
+  const bgColor = theme === 'dark' ? '#0a0a0a' : '#f5f5f5';
+  const textColor = theme === 'dark' ? 'white' : '#1a1a1a';
+  const mutedTextColor = theme === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)';
+  
+  const titlePack = getTitlePackById(captionState?.presetId || DEFAULT_TITLE_PACK_ID) || getTitlePackById(DEFAULT_TITLE_PACK_ID)!;
+
+  // Calculate unified caption geometry contract
+  const captionGeometry = calculateCaptionGeometry({
+    compositionWidth: titlePack.canvas.width,
+    compositionHeight: titlePack.canvas.height,
+    safeZoneLeftPercent: titlePack.safeZone.left,
+    safeZoneRightPercent: titlePack.safeZone.right,
+    safeZoneTopPercent: titlePack.safeZone.top,
+    safeZoneBottomPercent: titlePack.safeZone.bottom,
+    viewportScale: fullScreen ? 0.5 : 0.4,
+  });
+  
+  // Deck-level caption measurement for consistent sizing across all captions
+  // Computes the global scale factor based on the longest caption
+  const deckMeasurement = useMemo(() => {
+    const fontSize = captionState?.fontSize || 'medium';
+    const fontSizeMultiplier = fontSize === 'small' ? 0.75 : fontSize === 'large' ? 1.25 : 1;
+    const baseFontSize = (fullScreen ? 48 : 48 * 0.7) * fontSizeMultiplier;
+    const minFontSize = (fullScreen ? 24 : 16) * fontSizeMultiplier;
+    
+    return measureCaptionSet({
+      captions: card.captions || [],
+      containerWidthPx: captionGeometry.availableCaptionWidth,
+      baseFontSize,
+      minFontSize,
+      maxLines: 3,
+      padding: 16,
+      lineHeight: 1.1,
+      fontFamily: 'Inter, sans-serif',
+      fontWeight: 700,
+      layoutMode: 'title',
+    });
+  }, [card.captions, captionGeometry.availableCaptionWidth, captionState?.fontSize, fullScreen]);
+
+  const getActiveMedia = () => {
+    if (card.mediaAssets?.length && card.selectedMediaAssetId) {
+      const selected = card.mediaAssets.find(a => a.id === card.selectedMediaAssetId);
+      if (selected && selected.status === 'ready') {
+        return {
+          imageUrl: selected.kind === 'image' ? selected.url : card.image,
+          videoUrl: selected.kind === 'video' ? selected.url : card.generatedVideoUrl,
+          selectedIsVideo: selected.kind === 'video',
+        };
+      }
+    }
+    return {
+      imageUrl: card.image,
+      videoUrl: card.generatedVideoUrl,
+      selectedIsVideo: false,
+    };
+  };
+  
+  const activeMedia = getActiveMedia();
   
   const hasNarration = card.narrationEnabled && card.narrationStatus === "ready" && card.narrationAudioUrl;
-  const hasVideo = card.videoGenerated && card.generatedVideoUrl && card.videoGenerationStatus === "completed";
-  const hasImage = !!card.image;
+  // Show video if: selected asset is video, OR videoGenerated flag is set, OR generatedVideoUrl exists (fallback for older cards)
+  const hasVideo = !!activeMedia.videoUrl && (
+    activeMedia.selectedIsVideo || 
+    (card.videoGenerated && card.videoGenerationStatus === "completed") ||
+    !!card.generatedVideoUrl  // Fallback: show if URL exists even without flags
+  );
+  const hasImage = !!activeMedia.imageUrl;
   const hasBothMediaTypes = hasImage && hasVideo;
 
   // Reset all state when card changes
@@ -79,8 +199,12 @@ export default function CardPlayer({
     setCaptionIndex(0);
     setShowSwipeHint(false);
     setIsPlaying(autoplay);
-    // Use preferred media type from card settings, fallback to video if available
-    const useVideo = card.preferredMediaType === 'video' ? hasVideo : false;
+    // Show video if: preferredMediaType is video, OR selected asset is video, OR only video available (no image)
+    const useVideo = hasVideo && (
+      card.preferredMediaType === 'video' || 
+      activeMedia.selectedIsVideo || 
+      !hasImage
+    );
     setShowVideo(!!useVideo);
     
     // Stop any playing audio when card changes
@@ -88,12 +212,22 @@ export default function CardPlayer({
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
+    setAudioProgress(0);
+    setAudioDuration(0);
+    setIsAudioPlaying(false);
     // Stop any playing video when card changes
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
     }
   }, [card.id, autoplay, hasVideo]);
+
+  // Update narration volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = narrationVolume / 100;
+    }
+  }, [narrationVolume]);
   
   const toggleMediaType = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -104,26 +238,49 @@ export default function CardPlayer({
   useEffect(() => {
     if (!hasNarration || !audioRef.current) return;
     
-    if (phase === "cinematic" && isPlaying && !audioMuted) {
+    if (phase === "cinematic" && isPlaying && !narrationMuted) {
       audioRef.current.play().catch(() => {});
     } else {
       audioRef.current.pause();
     }
-  }, [phase, isPlaying, hasNarration, audioMuted]);
+  }, [phase, isPlaying, hasNarration, narrationMuted]);
   
-  const toggleAudioMute = useCallback((e: React.MouseEvent) => {
+  const toggleAudioPlayback = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    setAudioMuted(prev => !prev);
+    if (!hasNarration) return;
+    
+    // Toggle isPlaying to sync captions and audio
+    setIsPlaying(prev => {
+      const newPlaying = !prev;
+      if (audioRef.current) {
+        if (newPlaying) {
+          audioRef.current.play().catch(() => {});
+        } else {
+          audioRef.current.pause();
+        }
+      }
+      return newPlaying;
+    });
+  }, [hasNarration]);
+  
+  const handleAudioTimeUpdate = useCallback(() => {
+    if (audioRef.current) {
+      setAudioProgress(audioRef.current.currentTime);
+    }
   }, []);
   
-  // Cleanup audio on unmount
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
+  const handleAudioLoadedMetadata = useCallback(() => {
+    if (audioRef.current) {
+      setAudioDuration(audioRef.current.duration);
+    }
+  }, []);
+  
+  const handleAudioPlay = useCallback(() => {
+    setIsAudioPlaying(true);
+  }, []);
+  
+  const handleAudioPause = useCallback(() => {
+    setIsAudioPlaying(false);
   }, []);
 
   const advanceToContext = useCallback(() => {
@@ -138,11 +295,101 @@ export default function CardPlayer({
     setIsPlaying(true);
     onPhaseChange?.("cinematic");
   }, [onPhaseChange]);
+  
+  const handleAudioEnded = useCallback(() => {
+    setIsAudioPlaying(false);
+    setAudioProgress(0);
+    // When narration ends, advance to context phase
+    if (phase === "cinematic") {
+      advanceToContext();
+    }
+  }, [phase, advanceToContext]);
+  
+  const seekAudio = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (!audioRef.current || !audioDuration) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = clickX / rect.width;
+    audioRef.current.currentTime = percentage * audioDuration;
+  }, [audioDuration]);
+  
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Debug overlay toggle (press 'D' key)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'd' || e.key === 'D') {
+        setDebugOverlay(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  // Smart duration calculation: max(narration, text read time, minimum)
+  const calculateCaptionDuration = useCallback((captionText: string): number => {
+    // If we have narration, let audio control timing (handled by handleAudioEnded)
+    if (hasNarration && audioDuration > 0) {
+      // Distribute audio duration across captions
+      const perCaptionDuration = (audioDuration * 1000) / card.captions.length;
+      return Math.max(perCaptionDuration, 2000); // Minimum 2s per caption
+    }
+    
+    // Text read time: ~2.8 words per second (comfortable reading speed)
+    const wordCount = captionText.split(/\s+/).filter(w => w.length > 0).length;
+    const textReadTime = Math.ceil((wordCount / 2.8) * 1000);
+    
+    // Minimum 2.5s, maximum 10s per caption
+    return Math.min(Math.max(textReadTime, 2500), 10000);
+  }, [hasNarration, audioDuration, card.captions.length]);
+  
+  // Clear swipe hint when audio metadata loads (prevents early transition)
+  useEffect(() => {
+    if (hasNarration && audioDuration > 0) {
+      setShowSwipeHint(false);
+    }
+  }, [hasNarration, audioDuration]);
 
   useEffect(() => {
     if (!isPlaying || phase !== "cinematic") return;
-
-    const captionInterval = setInterval(() => {
+    
+    // If we have narration, wait for audio metadata before running any timers
+    // The handleAudioEnded callback will control the phase transition
+    if (hasNarration) {
+      if (audioDuration > 0) {
+        // Advance captions in sync with audio duration
+        const perCaptionDuration = (audioDuration * 1000) / Math.max(card.captions.length, 1);
+        const captionInterval = setInterval(() => {
+          setCaptionIndex((prev) => {
+            const next = prev + 1;
+            if (next >= card.captions.length) {
+              return prev; // Audio end will trigger context phase
+            }
+            return next;
+          });
+        }, perCaptionDuration);
+        
+        return () => clearInterval(captionInterval);
+      }
+      // Still waiting for audio metadata - don't start any timers yet
+      return;
+    }
+    
+    // No narration - use smart text-based timing
+    const currentCaption = card.captions[captionIndex] || "";
+    const duration = calculateCaptionDuration(currentCaption);
+    
+    const timeout = setTimeout(() => {
       setCaptionIndex((prev) => {
         const next = prev + 1;
         if (next >= card.captions.length) {
@@ -151,19 +398,20 @@ export default function CardPlayer({
         }
         return next;
       });
-    }, 3000);
+    }, duration);
 
-    return () => clearInterval(captionInterval);
-  }, [isPlaying, card.captions.length, phase]);
+    return () => clearTimeout(timeout);
+  }, [isPlaying, card.captions, phase, captionIndex, calculateCaptionDuration, hasNarration, audioDuration]);
 
+  // Auto-advance after swipe hint (only for non-narration cards)
   useEffect(() => {
-    if (showSwipeHint) {
+    if (showSwipeHint && !hasNarration) {
       const timeout = setTimeout(() => {
         advanceToContext();
       }, 2000);
       return () => clearTimeout(timeout);
     }
-  }, [showSwipeHint, advanceToContext]);
+  }, [showSwipeHint, advanceToContext, hasNarration]);
 
   const handleTap = () => {
     if (phase === "cinematic") {
@@ -173,13 +421,18 @@ export default function CardPlayer({
 
   const primaryCharacter = characters[0];
 
+  // Force 9:16 portrait aspect ratio on all devices for consistent mobile-first experience
   const containerClass = fullScreen
-    ? "relative w-full h-full overflow-hidden bg-black"
-    : "relative w-full aspect-[9/16] overflow-hidden rounded-2xl bg-black shadow-2xl border border-white/10";
+    ? "relative h-full max-h-screen aspect-[9/16] mx-auto overflow-hidden"
+    : "relative w-full aspect-[9/16] overflow-hidden rounded-2xl shadow-2xl";
 
   return (
     <div 
       className={containerClass}
+      style={{ 
+        backgroundColor: bgColor,
+        border: fullScreen ? 'none' : `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`
+      }}
       onClick={handleTap}
       data-testid="card-player"
     >
@@ -215,23 +468,19 @@ export default function CardPlayer({
               {showVideo && hasVideo ? (
                 <video
                   ref={videoRef}
-                  src={card.generatedVideoUrl!}
+                  src={activeMedia.videoUrl!}
                   autoPlay
                   loop
                   muted
                   playsInline
-                  className={fullScreen && isTabletLandscape 
-                    ? "max-w-full max-h-full object-contain" 
-                    : "w-full h-full object-cover"}
+                  className="w-full h-full object-cover"
                   data-testid="video-player"
                 />
-              ) : card.image ? (
+              ) : activeMedia.imageUrl ? (
                 <img
-                  src={card.image}
+                  src={activeMedia.imageUrl}
                   alt={card.title}
-                  className={fullScreen && isTabletLandscape 
-                    ? "max-w-full max-h-full object-contain" 
-                    : "w-full h-full object-cover"}
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary/40 via-background to-primary/20" />
@@ -240,10 +489,7 @@ export default function CardPlayer({
 
             <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80 pointer-events-none" />
 
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-              <span className="text-xs font-mono text-white/60 bg-black/30 px-2 py-1 rounded backdrop-blur-sm">
-                DAY {card.dayIndex}
-              </span>
+            <div className="absolute top-4 left-4 right-4 flex items-center justify-end">
               <div className="flex items-center gap-2">
                 {hasBothMediaTypes && (
                   <button
@@ -265,49 +511,238 @@ export default function CardPlayer({
                   </button>
                 )}
                 {hasNarration && (
-                  <button
-                    onClick={toggleAudioMute}
-                    className="p-2 bg-black/30 rounded-full backdrop-blur-sm hover:bg-black/50 transition-colors"
-                    data-testid="button-toggle-audio"
-                  >
-                    {audioMuted ? (
-                      <VolumeX className="w-4 h-4 text-white/70" />
-                    ) : (
-                      <Volume2 className="w-4 h-4 text-white/70" />
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={toggleAudioPlayback}
+                      className="p-2 bg-black/30 rounded-full backdrop-blur-sm hover:bg-black/50 transition-colors"
+                      data-testid="button-toggle-audio-playback"
+                    >
+                      {isPlaying ? (
+                        <Pause className="w-4 h-4 text-white/70" />
+                      ) : (
+                        <Play className="w-4 h-4 text-white/70" />
+                      )}
+                    </button>
+                    {narrationMuted && (
+                      <div className="p-2 bg-black/30 rounded-full backdrop-blur-sm">
+                        <VolumeX className="w-4 h-4 text-white/40" />
+                      </div>
                     )}
-                  </button>
+                  </div>
                 )}
               </div>
             </div>
+            
+            {hasNarration && audioDuration > 0 && (
+              <div 
+                className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 cursor-pointer z-20"
+                onClick={seekAudio}
+                data-testid="audio-progress-bar"
+              >
+                <motion.div 
+                  className="h-full bg-white/80"
+                  style={{ width: `${(audioProgress / audioDuration) * 100}%` }}
+                  transition={{ duration: 0.1 }}
+                />
+                {isAudioPlaying && (
+                  <motion.div
+                    className="absolute right-2 bottom-2 flex items-center gap-1"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <span className="text-[10px] text-white/60 font-mono">
+                      {Math.floor(audioProgress)}s / {Math.floor(audioDuration)}s
+                    </span>
+                  </motion.div>
+                )}
+              </div>
+            )}
             
             {hasNarration && (
               <audio
                 ref={audioRef}
                 src={card.narrationAudioUrl!}
                 preload="auto"
+                muted={narrationMuted}
                 className="hidden"
+                onTimeUpdate={handleAudioTimeUpdate}
+                onLoadedMetadata={handleAudioLoadedMetadata}
+                onPlay={handleAudioPlay}
+                onPause={handleAudioPause}
+                onEnded={handleAudioEnded}
                 data-testid="audio-narration-player"
               />
             )}
+            
 
-            <div className={`absolute inset-x-0 bottom-0 flex flex-col justify-end ${fullScreen ? 'p-8 pb-24' : 'p-6 pb-16'}`}>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={captionIndex}
-                  initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                  className="flex items-center justify-center"
+            {/* ═══════════════════════════════════════════════════════════════════════
+                COMPOSITION STAGE - Caption Rendering Architecture
+                
+                CRITICAL: Captions MUST be measured and rendered in composition space (1080px).
+                DO NOT reintroduce DOM-width fitting or viewport-based calculations.
+                
+                How it works:
+                1. Composition stage is exactly compositionWidth (1080px)
+                2. Safe area padding applied inside the stage (54px each side)
+                3. Text fitting uses availableCaptionWidth (972px) in composition space
+                4. The ENTIRE stage is scaled via CSS transform: scale(viewportScale)
+                5. Layout happens first at full size, then paint scales uniformly
+                
+                If fit width = render width in the same coordinate system, clipping is IMPOSSIBLE.
+                
+                DO NOT:
+                - Use clientWidth, offsetWidth, or ResizeObserver for caption fitting
+                - Apply max-width: 90% or similar viewport-relative constraints
+                - Add scale() transforms to inner caption elements
+                - Reference containerWidthPx from DOM measurements
+                
+                This architecture matches professional video systems (Remotion, CapCut, After Effects).
+            ═══════════════════════════════════════════════════════════════════════ */}
+            {(() => {
+              // Position settings: top/middle/bottom third of screen
+              // Using flexbox for reliable vertical positioning without transform conflicts
+              const position = captionState?.position || 'bottom';
+              const justifyContent = position === 'top' ? 'flex-start' : position === 'middle' ? 'center' : 'flex-end';
+              const transformOrigin = position === 'top' ? 'top center' : position === 'middle' ? 'center center' : 'bottom center';
+              
+              // Safe area padding based on position
+              const paddingTop = position === 'top' ? `${captionGeometry.safeAreaTop * captionGeometry.viewportScale}px` : 0;
+              const paddingBottom = position === 'bottom' ? `${captionGeometry.safeAreaBottom * captionGeometry.viewportScale}px` : 0;
+              
+              return (
+            <div
+              className="absolute inset-0 flex flex-col items-center pointer-events-none"
+              style={{
+                justifyContent,
+                paddingTop,
+                paddingBottom,
+              }}
+            >
+              {/* Scale wrapper - scales the composition stage to viewport size */}
+              <div
+                style={{
+                  transform: `scale(${captionGeometry.viewportScale})`,
+                  transformOrigin,
+                }}
+              >
+                {/* COMPOSITION STAGE - exactly compositionWidth, no DOM constraints */}
+                <div
+                  style={{
+                    width: captionGeometry.compositionWidth,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "flex-end",
+                    paddingLeft: captionGeometry.safeAreaLeft,
+                    paddingRight: captionGeometry.safeAreaRight,
+                    boxSizing: "border-box",
+                  }}
                 >
-                  {captionIndex < card.captions.length ? (
-                    <p className={`font-bold text-white text-center leading-snug drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] px-4 ${fullScreen ? 'text-3xl md:text-4xl' : 'text-2xl md:text-3xl'}`}>
-                      {card.captions[captionIndex]}
-                    </p>
-                  ) : null}
-                </motion.div>
-              </AnimatePresence>
+                  <AnimatePresence mode="wait">
+                    {(() => {
+                      // Animation variants based on captionState.animationId
+                      const animationId = captionState?.animationId || 'fade';
+                      
+                      // Get animation props based on selected animation
+                      const getAnimationProps = () => {
+                        switch (animationId) {
+                          case 'none':
+                            return {
+                              initial: { opacity: 1 },
+                              animate: { opacity: 1 },
+                              exit: { opacity: 1 },
+                              transition: { duration: 0 },
+                            };
+                          case 'slide_up':
+                            return {
+                              initial: { opacity: 0, y: 40 },
+                              animate: { opacity: 1, y: 0 },
+                              exit: { opacity: 0, y: -30 },
+                              transition: { duration: 0.5, ease: "easeOut" as const },
+                            };
+                          case 'pop':
+                            return {
+                              initial: { opacity: 0, scale: 0.8 },
+                              animate: { opacity: 1, scale: 1 },
+                              exit: { opacity: 0, scale: 0.9 },
+                              transition: { duration: 0.4, type: "spring" as const, stiffness: 400, damping: 15 },
+                            };
+                          case 'typewriter':
+                            return {
+                              initial: { opacity: 0, x: -20 },
+                              animate: { opacity: 1, x: 0 },
+                              exit: { opacity: 0, x: 20 },
+                              transition: { duration: 0.4, ease: "easeOut" as const },
+                            };
+                          case 'fade':
+                          default:
+                            return {
+                              initial: { opacity: 0 },
+                              animate: { opacity: 1 },
+                              exit: { opacity: 0 },
+                              transition: { duration: 0.5, ease: "easeOut" as const },
+                            };
+                        }
+                      };
+                      const animProps = getAnimationProps();
+                      
+                      return (
+                    <motion.div
+                      key={captionIndex}
+                      initial={animProps.initial}
+                      animate={animProps.animate}
+                      exit={animProps.exit}
+                      transition={animProps.transition}
+                      style={{
+                        width: "100%",
+                        maxWidth: captionGeometry.availableCaptionWidth,
+                      }}
+                    >
+                      {captionIndex < card.captions.length ? (
+                        (() => {
+                          const captionText = card.captions[captionIndex];
+                          
+                          // CRITICAL: Fit in COMPOSITION space (972px), not viewport space
+                          // Uses deck-level globalScaleFactor for consistent sizing across all captions
+                          const styles = resolveStyles({
+                            presetId: captionState?.presetId || 'clean_white',
+                            fullScreen,
+                            karaokeEnabled: captionState?.karaokeEnabled,
+                            karaokeStyle: captionState?.karaokeStyle,
+                            headlineText: captionText,
+                            layoutMode: 'title',
+                            fontSize: captionState?.fontSize || 'medium',
+                            globalScaleFactor: deckMeasurement.globalScaleFactor,
+                            layout: { containerWidthPx: captionGeometry.availableCaptionWidth },
+                          });
+                          
+                          const showCaptionDebug = new URLSearchParams(window.location.search).get('captionDebug') === '1';
+                          
+                          return (
+                            <div className="flex flex-col items-center w-full">
+                              <ScaleToFitCaption
+                                lines={styles.headlineLines}
+                                panelStyle={styles.panel}
+                                textStyle={styles.headline}
+                                containerWidthPx={captionGeometry.availableCaptionWidth}
+                                fittedFontSizePx={styles.headlineFontSizePx}
+                                didFit={styles.headlineDidFit}
+                                showDebug={showCaptionDebug}
+                                fitGeometry={styles.fitGeometry}
+                              />
+                            </div>
+                          );
+                        })()
+                      ) : null}
+                    </motion.div>
+                      );
+                    })()}
+                  </AnimatePresence>
+                </div>
+              </div>
             </div>
+            );
+            })()}
+            {/* End composition stage */}
 
             {showSwipeHint && (
               <motion.div
@@ -336,9 +771,9 @@ export default function CardPlayer({
             onClick={(e) => e.stopPropagation()}
           >
             <div className={`relative overflow-hidden shrink-0 ${fullScreen && isTabletLandscape ? 'h-1/3 flex items-center justify-center bg-black' : 'h-2/5'}`}>
-              {card.image ? (
+              {activeMedia.imageUrl ? (
                 <img
-                  src={card.image}
+                  src={activeMedia.imageUrl}
                   alt={card.title}
                   className={fullScreen && isTabletLandscape 
                     ? "max-w-full max-h-full object-contain"
@@ -361,8 +796,7 @@ export default function CardPlayer({
             <div className="flex-1 min-h-0 bg-gradient-to-b from-black via-zinc-900 to-zinc-900 p-5 pb-28 flex flex-col overflow-y-auto">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <span className="text-xs font-mono text-primary/80">DAY {card.dayIndex}</span>
-                  <h2 className="text-xl font-bold text-white mt-0.5" data-testid="context-title">
+                  <h2 className="text-xl font-display font-bold text-white tracking-wide" data-testid="context-title">
                     {card.title}
                   </h2>
                 </div>
@@ -419,27 +853,18 @@ export default function CardPlayer({
                     Chat with {primaryCharacter.name}
                   </Button>
                 </div>
-              ) : (
-                <div className="space-y-3 mb-4">
-                  <Link href="/journal">
-                    <Button 
-                      size="lg" 
-                      variant="outline"
-                      className="w-full gap-2 py-6 text-base border-white/20 hover:bg-white/5"
-                      data-testid="button-journal"
-                    >
-                      <BookOpen className="w-5 h-5" />
-                      View Case Journal
-                    </Button>
-                  </Link>
-                </div>
-              )}
+              ) : null}
               
               <MessageBoard cardId={card.id} compact={true} />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Debug overlay (toggle with 'D' key) */}
+      {phase === "cinematic" && (
+        <CaptionDebugOverlay geometry={captionGeometry} enabled={debugOverlay} />
+      )}
     </div>
   );
 }

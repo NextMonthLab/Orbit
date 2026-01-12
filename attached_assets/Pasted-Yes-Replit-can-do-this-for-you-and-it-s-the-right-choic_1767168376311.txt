@@ -1,0 +1,119 @@
+Yes – Replit can do this for you, and it’s the right choice to use 99% off rather than 100%.
+
+I’ll be very clear about what Replit can do, what Stripe must do, and what to sanity-check so nothing undermines your EPIC 1 work.
+
+⸻
+
+Short answer
+	•	✅ Stripe must create the 99% coupon / promo code
+	•	✅ Replit can fully support it in checkout, validation, and webhooks
+	•	❌ Replit should not invent discounts or bypass Stripe
+
+Replit’s job is to honour Stripe’s discounted totals, not calculate them.
+
+⸻
+
+The correct division of responsibility (important)
+
+Stripe is responsible for:
+	•	Coupon definition (99% off)
+	•	Discount application
+	•	Final amount calculation
+	•	Invoice / payment intent totals
+
+Replit is responsible for:
+	•	Using the correct price ID
+	•	Passing the promo code to Stripe Checkout
+	•	Validating that:
+	•	The price ID is expected
+	•	The final amount matches Stripe’s discounted amount
+	•	Processing the webhook result
+
+If Replit tries to “do” the discount itself, that’s a bug.
+
+⸻
+
+What to ask Replit to do (copy this verbatim)
+
+Paste this into Replit so it doesn’t overthink or block you:
+
+Stripe Discount Support – 99% Off
+
+We will be using a 99% off Stripe promotion code for internal testing.
+
+Requirements:
+	•	Checkout must accept Stripe promotion codes normally
+	•	Server-side validation must:
+	•	Validate the original price ID
+	•	Accept the final discounted amount returned by Stripe
+	•	Do not reject low or near-zero totals if they result from a valid Stripe coupon
+
+Stripe remains the source of truth for discount calculations.
+Replit must not recalculate or override totals.
+
+This is required for realistic payment testing without bypassing revenue protection.
+
+That keeps EPIC 1 intact.
+
+⸻
+
+Why 99% off is the right choice (you chose well)
+
+99% off means:
+	•	✔ Card is still required
+	•	✔ Payment intent still exists
+	•	✔ VAT, rounding, currency logic still runs
+	•	✔ Webhooks behave like a real payment
+	•	✔ No “£0 edge case” bugs
+
+100% off often skips important paths.
+
+So this is the professional testing setup.
+
+⸻
+
+One thing to double-check in your backend
+
+Make sure your validation logic is not doing this:
+
+❌ if (amount < MIN_PRICE) reject
+
+Instead it should be:
+
+✅
+
+“Does the Stripe amount match the expected price after applying discounts?”
+
+Given what you described earlier, you’re probably already good here, but this is where 99% coupons usually fail if they’re going to.
+
+⸻
+
+Recommended Stripe setup (quick)
+
+In Stripe Dashboard:
+	•	Coupon:
+	•	99% off
+	•	Duration: once
+	•	Promotion Code:
+	•	Something like DEV99
+	•	Restricted to specific price IDs
+	•	Limited redemptions
+
+Then test end-to-end through Replit.
+
+⸻
+
+Bottom line
+
+✅ Yes, Replit can support 99% off
+✅ Stripe should own the discount
+✅ Your revenue protection stays intact
+✅ You get realistic payment testing
+
+This is exactly how a production SaaS team does it.
+
+If you want, next we can:
+	•	Sanity-check your webhook logic for discounted payments
+	•	Or decide how promo codes should behave with subscriptions vs one-offs
+
+But you’re on solid ground here.

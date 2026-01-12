@@ -1,0 +1,1316 @@
+import { useState, useEffect, useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { 
+  Image, Video, Mic, Upload, Loader2, Play, Pause, RefreshCw, 
+  Save, Trash2, Lock, Sparkles, Crown, Wand2, Volume2, X,
+  ChevronDown, ChevronUp, Check, AlertCircle
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface MediaAsset {
+  id: string;
+  kind: 'image' | 'video';
+  source: 'upload' | 'ai';
+  url: string;
+  thumbnailUrl?: string;
+  createdAt: string;
+  prompt?: string;
+  enhancedPrompt?: string;
+  negativePrompt?: string;
+  status: 'ready' | 'generating' | 'failed';
+  predictionId?: string;
+  model?: string;
+}
+
+interface PreviewCard {
+  id: string;
+  title: string;
+  content: string;
+  order: number;
+  mediaAssets?: MediaAsset[];
+  selectedMediaAssetId?: string;
+  generatedImageUrl?: string;
+  generatedVideoUrl?: string;
+  videoGenerated?: boolean;
+  videoGenerationStatus?: string;
+  narrationAudioUrl?: string;
+  enhancePromptEnabled?: boolean;
+  basePrompt?: string;
+  enhancedPrompt?: string;
+}
+
+interface Entitlements {
+  canGenerateImages: boolean;
+  canGenerateVideos: boolean;
+  canUseCloudLlm: boolean;
+  canUploadAudio: boolean;
+  planName: string;
+  tier: string;
+}
+
+interface IceCardEditorProps {
+  previewId: string;
+  card: PreviewCard;
+  cardIndex: number;
+  entitlements: Entitlements | null;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onCardUpdate: (cardId: string, updates: Partial<PreviewCard>) => void;
+  onCardSave: (cardId: string, updates: Partial<PreviewCard>) => void;
+  onUpgradeClick: () => void;
+}
+
+function LockedOverlay({ 
+  feature, 
+  description, 
+  onUpgrade 
+}: { 
+  feature: string; 
+  description: string; 
+  onUpgrade: () => void;
+}) {
+  return (
+    <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center p-4 z-10">
+      <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full p-3 mb-3">
+        <Lock className="w-6 h-6 text-purple-400" />
+      </div>
+      <h4 className="text-white font-semibold mb-1">{feature}</h4>
+      <p className="text-slate-400 text-sm text-center mb-4 max-w-xs">{description}</p>
+      <Button
+        onClick={onUpgrade}
+        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 gap-2"
+        size="sm"
+      >
+        <Crown className="w-4 h-4" />
+        Upgrade to Unlock
+      </Button>
+    </div>
+  );
+}
+
+export function IceCardEditor({
+  previewId,
+  card,
+  cardIndex,
+  entitlements,
+  isExpanded,
+  onToggleExpand,
+  onCardUpdate,
+  onCardSave,
+  onUpgradeClick,
+}: IceCardEditorProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const canGenerateImages = entitlements?.canGenerateImages ?? false;
+  const canGenerateVideos = entitlements?.canGenerateVideos ?? false;
+  const canGenerateVoiceover = entitlements?.canUploadAudio ?? false;
+  const isPro = entitlements && entitlements.tier !== "free";
+  
+  const [activeTab, setActiveTab] = useState<"content" | "image" | "video" | "narration">("content");
+  const [editedTitle, setEditedTitle] = useState(card.title);
+  const [editedContent, setEditedContent] = useState(card.content);
+  
+  useEffect(() => {
+    setEditedTitle(card.title);
+    setEditedContent(card.content);
+  }, [card.title, card.content]);
+  const [imagePrompt, setImagePrompt] = useState("");
+  const [imageLoading, setImageLoading] = useState(false);
+  const [videoMode, setVideoMode] = useState<"text-to-video" | "image-to-video">("text-to-video");
+  const [videoModel, setVideoModel] = useState("");
+  const [videoDuration, setVideoDuration] = useState<5 | 10>(5);
+  const [videoPrompt, setVideoPrompt] = useState("");
+  const [referenceImageUrl, setReferenceImageUrl] = useState("");
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const [videoStatus, setVideoStatus] = useState<string | null>(null);
+  const [videoGenElapsed, setVideoGenElapsed] = useState(0);
+  const [videoGenStartTime, setVideoGenStartTime] = useState<number | null>(null);
+  
+  const [narrationEnabled, setNarrationEnabled] = useState(false);
+  const [narrationText, setNarrationText] = useState(card.content || "");
+  const [narrationVoice, setNarrationVoice] = useState("alloy");
+  const [narrationSpeed, setNarrationSpeed] = useState(1.0);
+  const [narrationLoading, setNarrationLoading] = useState(false);
+  const [previewPlaying, setPreviewPlaying] = useState(false);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  
+  const [enhancePromptEnabled, setEnhancePromptEnabled] = useState(card.enhancePromptEnabled ?? false);
+  const [enhancedPrompt, setEnhancedPrompt] = useState(card.enhancedPrompt || "");
+  const [enhanceLoading, setEnhanceLoading] = useState(false);
+  const [enhancedVideoPrompt, setEnhancedVideoPrompt] = useState("");
+  const [videoEnhanceLoading, setVideoEnhanceLoading] = useState(false);
+  const [selectingAsset, setSelectingAsset] = useState(false);
+  const [deletingAsset, setDeletingAsset] = useState<string | null>(null);
+  
+  const { data: videoConfig } = useQuery({
+    queryKey: ["video-config"],
+    queryFn: async () => {
+      const res = await fetch("/api/video/config");
+      if (!res.ok) return { configured: false, models: [] };
+      return res.json();
+    },
+  });
+  
+  const { data: voicesData } = useQuery({
+    queryKey: ["tts-voices"],
+    queryFn: async () => {
+      const res = await fetch("/api/tts/voices");
+      if (!res.ok) return { configured: false, voices: [] };
+      return res.json();
+    },
+  });
+  
+  useEffect(() => {
+    if (videoConfig?.models?.length > 0 && !videoModel) {
+      setVideoModel(videoConfig.models[0].id);
+    }
+  }, [videoConfig, videoModel]);
+  
+  useEffect(() => {
+    if (videoStatus === "processing" || videoStatus === "pending") {
+      if (!videoGenStartTime) {
+        setVideoGenStartTime(Date.now());
+      }
+      const interval = setInterval(() => {
+        setVideoGenElapsed(Math.floor((Date.now() - (videoGenStartTime || Date.now())) / 1000));
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setVideoGenStartTime(null);
+      setVideoGenElapsed(0);
+    }
+  }, [videoStatus, videoGenStartTime]);
+  
+  // Poll for video generation status
+  useEffect(() => {
+    if (videoStatus !== "processing") return;
+    
+    let cancelled = false;
+    const pollInterval = setInterval(async () => {
+      if (cancelled) return;
+      
+      try {
+        const res = await fetch(`/api/ice/preview/${previewId}/cards/${card.id}/video/status`, {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        
+        const data = await res.json();
+        if (cancelled) return;
+        
+        if (data.status === "completed" && data.videoUrl) {
+          setVideoStatus("completed");
+          onCardUpdate(card.id, { 
+            generatedVideoUrl: data.videoUrl, 
+            videoGenerationStatus: "completed",
+            videoGenerated: true 
+          });
+          toast({ title: "Video ready!", description: "Your AI video has been generated." });
+        } else if (data.status === "failed") {
+          setVideoStatus("failed");
+          toast({ 
+            title: "Video generation failed", 
+            description: data.error || "Please try again", 
+            variant: "destructive" 
+          });
+        }
+      } catch (err) {
+        console.error("Error polling video status:", err);
+      }
+    }, 10000); // Poll every 10 seconds
+    
+    return () => {
+      cancelled = true;
+      clearInterval(pollInterval);
+    };
+  }, [videoStatus, previewId, card.id, onCardUpdate, toast]);
+  
+  // Initialize video status from card data
+  useEffect(() => {
+    if (card.videoGenerationStatus === "processing" && !videoStatus) {
+      setVideoStatus("processing");
+    } else if (card.generatedVideoUrl && videoStatus !== "completed") {
+      setVideoStatus("completed");
+    }
+  }, [card.videoGenerationStatus, card.generatedVideoUrl, videoStatus]);
+  
+  const handleEnhancePrompt = async (mediaType: 'image' | 'video' = 'image') => {
+    setEnhanceLoading(true);
+    try {
+      const res = await fetch('/api/ai/enhance-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          cardTitle: card.title,
+          cardContent: card.content,
+          styleHints: 'cinematic, professional, high production value',
+          mediaType,
+        }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to enhance prompt');
+      
+      const data = await res.json();
+      setEnhancedPrompt(data.enhancedPrompt);
+      onCardUpdate(card.id, { 
+        enhancePromptEnabled: true, 
+        enhancedPrompt: data.enhancedPrompt,
+        basePrompt: data.basePrompt,
+      });
+      toast({ title: 'Prompt enhanced!', description: 'Your prompt has been optimized for better results.' });
+    } catch (error: any) {
+      toast({ title: 'Enhancement failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setEnhanceLoading(false);
+    }
+  };
+
+  const handleEnhanceVideoPrompt = async () => {
+    setVideoEnhanceLoading(true);
+    try {
+      const res = await fetch('/api/ai/enhance-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          cardTitle: card.title,
+          cardContent: card.content,
+          styleHints: 'cinematic motion, camera movement, professional video production, smooth transitions',
+          mediaType: 'video',
+        }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to enhance video prompt');
+      
+      const data = await res.json();
+      setEnhancedVideoPrompt(data.enhancedPrompt);
+      setVideoPrompt(data.enhancedPrompt);
+      toast({ title: 'Video prompt enhanced!', description: 'Motion and camera directions optimized.' });
+    } catch (error: any) {
+      toast({ title: 'Enhancement failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setVideoEnhanceLoading(false);
+    }
+  };
+
+  const handleSelectAsset = async (assetId: string) => {
+    setSelectingAsset(true);
+    try {
+      const res = await fetch(`/api/ice/preview/${previewId}/cards/${card.id}/media/select`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ assetId }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to select asset');
+      
+      const data = await res.json();
+      const asset = data.asset;
+      onCardUpdate(card.id, { 
+        selectedMediaAssetId: assetId,
+        generatedImageUrl: asset.kind === 'image' ? asset.url : card.generatedImageUrl,
+        generatedVideoUrl: asset.kind === 'video' ? asset.url : card.generatedVideoUrl,
+      });
+      toast({ title: 'Asset selected', description: `${asset.kind === 'image' ? 'Image' : 'Video'} is now active for this card.` });
+    } catch (error: any) {
+      toast({ title: 'Selection failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setSelectingAsset(false);
+    }
+  };
+
+  const handleDeleteAsset = async (assetId: string) => {
+    setDeletingAsset(assetId);
+    try {
+      const res = await fetch(`/api/ice/preview/${previewId}/cards/${card.id}/media/${assetId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      
+      if (!res.ok) throw new Error('Failed to delete asset');
+      
+      const data = await res.json();
+      const updatedAssets = (card.mediaAssets || []).filter(a => a.id !== assetId);
+      onCardUpdate(card.id, { 
+        mediaAssets: updatedAssets,
+        selectedMediaAssetId: data.newSelectedAssetId,
+      });
+      toast({ title: 'Asset deleted' });
+    } catch (error: any) {
+      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setDeletingAsset(null);
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!canGenerateImages) {
+      onUpgradeClick();
+      return;
+    }
+    
+    setImageLoading(true);
+    try {
+      const prompt = enhancePromptEnabled && enhancedPrompt 
+        ? enhancedPrompt 
+        : (imagePrompt || `${card.title}. ${card.content}`);
+      const res = await fetch(`/api/ice/preview/${previewId}/cards/${card.id}/generate-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ prompt }),
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        if (err.upgradeRequired) {
+          onUpgradeClick();
+          return;
+        }
+        throw new Error(err.message || "Failed to generate image");
+      }
+      
+      const data = await res.json();
+      const newAssets = [...(card.mediaAssets || []), data.asset];
+      onCardUpdate(card.id, { 
+        generatedImageUrl: data.imageUrl,
+        mediaAssets: newAssets,
+        selectedMediaAssetId: data.asset.id,
+      });
+      toast({ title: "Image generated!", description: "AI image has been created for this card." });
+    } catch (error: any) {
+      toast({ title: "Generation failed", description: error.message, variant: "destructive" });
+    } finally {
+      setImageLoading(false);
+    }
+  };
+  
+  const handleGenerateVideo = async () => {
+    if (!canGenerateVideos) {
+      onUpgradeClick();
+      return;
+    }
+    
+    setVideoLoading(true);
+    setVideoStatus("pending");
+    setVideoGenStartTime(Date.now());
+    
+    try {
+      const effectivePrompt = videoPrompt || `Cinematic scene: ${card.title}. ${card.content}`;
+      const effectiveImageUrl = videoMode === "image-to-video" 
+        ? (referenceImageUrl || card.generatedImageUrl) 
+        : undefined;
+      
+      const res = await fetch(`/api/ice/preview/${previewId}/cards/${card.id}/generate-video`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          mode: videoMode,
+          model: videoModel,
+          duration: videoDuration,
+          prompt: effectivePrompt,
+          sourceImageUrl: effectiveImageUrl,
+        }),
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        if (err.upgradeRequired) {
+          onUpgradeClick();
+          return;
+        }
+        throw new Error(err.message || "Failed to generate video");
+      }
+      
+      const data = await res.json();
+      if (data.status === "completed") {
+        setVideoStatus("completed");
+        onCardUpdate(card.id, { 
+          generatedVideoUrl: data.videoUrl, 
+          videoGenerationStatus: "completed",
+          videoGenerated: true 
+        });
+        toast({ title: "Video ready!", description: "AI video has been generated." });
+      } else {
+        setVideoStatus("processing");
+        toast({ title: "Video generation started", description: "This may take 5-10 minutes." });
+      }
+    } catch (error: any) {
+      setVideoStatus("failed");
+      toast({ title: "Generation failed", description: error.message, variant: "destructive" });
+    } finally {
+      setVideoLoading(false);
+    }
+  };
+  
+  const handlePreviewNarration = async () => {
+    if (previewPlaying && previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+      setPreviewPlaying(false);
+      return;
+    }
+    
+    const text = narrationText.slice(0, 300);
+    if (!text.trim()) {
+      toast({ title: "No text to preview", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      setPreviewPlaying(true);
+      const res = await fetch(`/api/ice/preview/${previewId}/cards/${card.id}/narration/preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          text,
+          voice: narrationVoice,
+          speed: narrationSpeed,
+        }),
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Preview failed");
+      }
+      
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      previewAudioRef.current = audio;
+      audio.onended = () => {
+        setPreviewPlaying(false);
+        URL.revokeObjectURL(url);
+      };
+      audio.play();
+    } catch (error: any) {
+      setPreviewPlaying(false);
+      toast({ title: "Preview failed", description: error.message, variant: "destructive" });
+    }
+  };
+  
+  const handleGenerateNarration = async () => {
+    if (!canGenerateVoiceover) {
+      onUpgradeClick();
+      return;
+    }
+    
+    setNarrationLoading(true);
+    try {
+      const res = await fetch(`/api/ice/preview/${previewId}/cards/${card.id}/narration/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          text: narrationText,
+          voice: narrationVoice,
+          speed: narrationSpeed,
+        }),
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        if (err.upgradeRequired) {
+          onUpgradeClick();
+          return;
+        }
+        throw new Error(err.message || "Failed to generate narration");
+      }
+      
+      const data = await res.json();
+      onCardUpdate(card.id, { narrationAudioUrl: data.audioUrl });
+      toast({ title: "Narration generated!", description: "AI voiceover has been created." });
+    } catch (error: any) {
+      toast({ title: "Generation failed", description: error.message, variant: "destructive" });
+    } finally {
+      setNarrationLoading(false);
+    }
+  };
+  
+  const handleUploadMedia = async (file: File, type: "image" | "video") => {
+    const setUploading = type === "image" ? setImageUploading : setVideoUploading;
+    setUploading(true);
+    
+    try {
+      const urlRes = await fetch("/api/uploads/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: file.name,
+          size: file.size,
+          contentType: file.type,
+        }),
+      });
+      
+      if (!urlRes.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+      
+      const { uploadURL, objectPath } = await urlRes.json();
+      
+      // Use XMLHttpRequest for Safari compatibility with presigned URLs
+      await new Promise<void>((resolve, reject) => {
+        try {
+          const xhr = new XMLHttpRequest();
+          // Safari can be strict about URL validation - ensure URL is properly formatted
+          xhr.open("PUT", uploadURL, true);
+          xhr.setRequestHeader("Content-Type", file.type);
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
+          };
+          xhr.onerror = () => reject(new Error("Network error during upload"));
+          xhr.ontimeout = () => reject(new Error("Upload timed out"));
+          xhr.send(file);
+        } catch (e: any) {
+          // Safari may throw during xhr.open() if URL is malformed
+          console.error("XHR setup error:", e);
+          reject(new Error(e?.message || "Failed to initiate upload"));
+        }
+      });
+      
+      const mediaUrl = objectPath;
+      
+      if (type === "image") {
+        onCardUpdate(card.id, { generatedImageUrl: mediaUrl });
+        onCardSave(card.id, { generatedImageUrl: mediaUrl });
+        toast({ title: "Image uploaded!", description: "Your image has been added to the card." });
+      } else {
+        onCardUpdate(card.id, { 
+          generatedVideoUrl: mediaUrl, 
+          videoGenerationStatus: "completed",
+          videoGenerated: true 
+        });
+        onCardSave(card.id, { 
+          generatedVideoUrl: mediaUrl, 
+          videoGenerationStatus: "completed",
+          videoGenerated: true 
+        });
+        toast({ title: "Video uploaded!", description: "Your video has been added to the card." });
+      }
+    } catch (error: any) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+  
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast({ title: "Invalid file", description: "Please select an image file.", variant: "destructive" });
+        return;
+      }
+      handleUploadMedia(file, "image");
+    }
+    e.target.value = "";
+  };
+  
+  const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("video/")) {
+        toast({ title: "Invalid file", description: "Please select a video file.", variant: "destructive" });
+        return;
+      }
+      handleUploadMedia(file, "video");
+    }
+    e.target.value = "";
+  };
+  
+  return (
+    <div className="border border-slate-700 rounded-lg overflow-hidden bg-slate-900/80">
+      <div 
+        className={`flex items-center gap-3 p-4 cursor-pointer transition-colors ${
+          isExpanded ? "bg-purple-900/30 border-b border-purple-500/30" : "hover:bg-slate-800/50"
+        }`}
+        onClick={onToggleExpand}
+        data-testid={`card-editor-header-${cardIndex}`}
+      >
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-mono text-sm ${
+          isExpanded ? "bg-purple-600 text-white" : "bg-slate-800 text-slate-400"
+        }`}>
+          {String(cardIndex + 1).padStart(2, '0')}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-white truncate">{card.title || "Untitled Card"}</h3>
+          <p className="text-sm text-slate-400 truncate">{card.content?.slice(0, 60) || "No content"}...</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {card.generatedImageUrl && (
+            <div className="w-6 h-6 rounded bg-green-500/20 flex items-center justify-center" title="Has image">
+              <Image className="w-3 h-3 text-green-400" />
+            </div>
+          )}
+          {card.generatedVideoUrl && (
+            <div className="w-6 h-6 rounded bg-blue-500/20 flex items-center justify-center" title="Has video">
+              <Video className="w-3 h-3 text-blue-400" />
+            </div>
+          )}
+          {card.narrationAudioUrl && (
+            <div className="w-6 h-6 rounded bg-purple-500/20 flex items-center justify-center" title="Has narration">
+              <Mic className="w-3 h-3 text-purple-400" />
+            </div>
+          )}
+          {isExpanded ? (
+            <ChevronUp className="w-5 h-5 text-slate-400" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-slate-400" />
+          )}
+        </div>
+      </div>
+      
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="p-4 space-y-4">
+              <div className="flex gap-2 border-b border-slate-700 pb-2 overflow-x-auto">
+                <button
+                  onClick={() => setActiveTab("content")}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
+                    activeTab === "content" 
+                      ? "bg-purple-600 text-white" 
+                      : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  }`}
+                  data-testid="tab-content"
+                >
+                  <Wand2 className="w-4 h-4" />
+                  Content
+                </button>
+                <button
+                  onClick={() => setActiveTab("image")}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
+                    activeTab === "image" 
+                      ? "bg-purple-600 text-white" 
+                      : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  }`}
+                  data-testid="tab-image-gen"
+                >
+                  <Image className="w-4 h-4" />
+                  AI Image
+                  {!canGenerateImages && <Lock className="w-3 h-3 ml-1 text-yellow-400" />}
+                </button>
+                <button
+                  onClick={() => setActiveTab("video")}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
+                    activeTab === "video" 
+                      ? "bg-purple-600 text-white" 
+                      : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  }`}
+                  data-testid="tab-video-gen"
+                >
+                  <Video className="w-4 h-4" />
+                  AI Video
+                  {!canGenerateVideos && <Lock className="w-3 h-3 ml-1 text-yellow-400" />}
+                </button>
+                <button
+                  onClick={() => setActiveTab("narration")}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    activeTab === "narration" 
+                      ? "bg-purple-600 text-white" 
+                      : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  }`}
+                  data-testid="tab-narration"
+                >
+                  <Mic className="w-4 h-4" />
+                  Narration
+                  {!canGenerateVoiceover && <Lock className="w-3 h-3 ml-1 text-yellow-400" />}
+                </button>
+              </div>
+              
+              {activeTab === "content" && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Card Title</Label>
+                    <Input
+                      value={editedTitle}
+                      onChange={(e) => {
+                        setEditedTitle(e.target.value);
+                        onCardUpdate(card.id, { title: e.target.value });
+                      }}
+                      onBlur={() => onCardSave(card.id, { title: editedTitle, content: editedContent })}
+                      placeholder="Enter card title..."
+                      className="bg-slate-800 border-slate-700 text-white font-semibold"
+                      data-testid="input-card-title"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Card Content</Label>
+                    <Textarea
+                      value={editedContent}
+                      onChange={(e) => {
+                        setEditedContent(e.target.value);
+                        onCardUpdate(card.id, { content: e.target.value });
+                      }}
+                      onBlur={() => onCardSave(card.id, { title: editedTitle, content: editedContent })}
+                      placeholder="Enter card content..."
+                      rows={5}
+                      className="bg-slate-800 border-slate-700 text-white"
+                      data-testid="input-card-content"
+                    />
+                  </div>
+                  
+                  <div className="p-3 bg-slate-800/50 rounded-lg">
+                    <p className="text-xs text-slate-400">
+                      This content will be used to generate AI images, videos, and narration for this card.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {activeTab === "image" && (
+                <div className="relative space-y-4">
+                  {!canGenerateImages && (
+                    <LockedOverlay
+                      feature="AI Image Generation"
+                      description="Generate stunning AI images for your story cards with a Pro subscription."
+                      onUpgrade={onUpgradeClick}
+                    />
+                  )}
+                  
+                  {/* Media Library - shows all assets */}
+                  {(card.mediaAssets?.length || 0) > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">Media Library</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {card.mediaAssets?.filter(a => a.kind === 'image').map((asset) => (
+                          <div 
+                            key={asset.id}
+                            className={`relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer group ${
+                              card.selectedMediaAssetId === asset.id 
+                                ? 'border-green-500 ring-2 ring-green-500/30' 
+                                : 'border-slate-700 hover:border-slate-500'
+                            }`}
+                            onClick={() => handleSelectAsset(asset.id)}
+                            data-testid={`asset-image-${asset.id}`}
+                          >
+                            <img 
+                              src={asset.url} 
+                              alt="Media asset"
+                              className="w-full h-20 object-cover"
+                            />
+                            <div className="absolute top-1 left-1 flex gap-1">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                asset.source === 'ai' 
+                                  ? 'bg-purple-500/80 text-white' 
+                                  : 'bg-blue-500/80 text-white'
+                              }`}>
+                                {asset.source === 'ai' ? 'AI' : 'Upload'}
+                              </span>
+                            </div>
+                            {card.selectedMediaAssetId === asset.id && (
+                              <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
+                                <Check className="w-3 h-3 text-white" />
+                              </div>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="absolute bottom-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 bg-red-500/80 hover:bg-red-600 text-white"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteAsset(asset.id);
+                              }}
+                              disabled={deletingAsset === asset.id}
+                              data-testid={`delete-asset-${asset.id}`}
+                            >
+                              {deletingAsset === asset.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3 h-3" />
+                              )}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Click an image to select it as active. {card.mediaAssets?.filter(a => a.kind === 'image').length} image(s) available.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Currently Selected Preview */}
+                  {card.generatedImageUrl && (
+                    <div className="rounded-lg overflow-hidden border border-green-500/30 bg-green-500/5">
+                      <div className="p-2 bg-green-500/10 flex items-center justify-between">
+                        <span className="text-sm font-medium text-green-400">Active Image</span>
+                      </div>
+                      <img 
+                        src={card.generatedImageUrl} 
+                        alt={card.title}
+                        className="w-full max-h-48 object-contain bg-black"
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Enhance Prompt Toggle */}
+                  <div className="p-3 bg-slate-800/50 rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-purple-400" />
+                        <Label className="text-slate-300 cursor-pointer">Enhance Prompt</Label>
+                      </div>
+                      <Switch
+                        checked={enhancePromptEnabled}
+                        onCheckedChange={(checked) => {
+                          setEnhancePromptEnabled(checked);
+                          onCardUpdate(card.id, { enhancePromptEnabled: checked });
+                        }}
+                        data-testid="toggle-enhance-prompt"
+                      />
+                    </div>
+                    
+                    {enhancePromptEnabled && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Textarea
+                            value={enhancedPrompt}
+                            onChange={(e) => {
+                              setEnhancedPrompt(e.target.value);
+                              onCardUpdate(card.id, { enhancedPrompt: e.target.value });
+                            }}
+                            placeholder="Enhanced prompt will appear here..."
+                            rows={3}
+                            className="bg-slate-900 border-slate-700 text-white text-sm flex-1"
+                            data-testid="input-enhanced-prompt"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEnhancePrompt('image')}
+                            disabled={enhanceLoading}
+                            className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                            data-testid="button-regenerate-enhanced"
+                          >
+                            {enhanceLoading ? (
+                              <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                            ) : (
+                              <RefreshCw className="w-3 h-3 mr-1" />
+                            )}
+                            {enhancedPrompt ? 'Regenerate' : 'Generate'} Enhanced Prompt
+                          </Button>
+                          <span className="text-xs text-slate-500">
+                            Creates a production-grade prompt for better results
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!enhancePromptEnabled && (
+                      <p className="text-xs text-slate-500">
+                        Enable to get AI-optimized prompts with cinematic direction and style.
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Manual Prompt Override (when enhance is off) */}
+                  {!enhancePromptEnabled && (
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">Image Prompt</Label>
+                      <Textarea
+                        placeholder={`Auto-generated from card content: "${card.title}. ${card.content?.slice(0, 100)}..."`}
+                        value={imagePrompt}
+                        onChange={(e) => setImagePrompt(e.target.value)}
+                        rows={3}
+                        className="bg-slate-800 border-slate-700 text-white"
+                        data-testid="input-image-prompt"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Leave empty to auto-generate from card content
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleGenerateImage}
+                      disabled={imageLoading || imageUploading}
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 gap-2"
+                      data-testid="button-generate-image"
+                    >
+                      {imageLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-4 h-4" />
+                      )}
+                      {imageLoading ? "Generating..." : "Generate AI Image"}
+                    </Button>
+                    <Button
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={imageLoading || imageUploading}
+                      variant="outline"
+                      className="border-slate-600 hover:bg-slate-800 gap-2"
+                      data-testid="button-upload-image"
+                    >
+                      {imageUploading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4" />
+                      )}
+                      {imageUploading ? "Uploading..." : "Upload"}
+                    </Button>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageFileChange}
+                      data-testid="input-upload-image"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {activeTab === "video" && (
+                <div className="relative space-y-4">
+                  {!canGenerateVideos && (
+                    <LockedOverlay
+                      feature="AI Video Generation"
+                      description="Create cinematic AI videos from your story cards with a Business subscription."
+                      onUpgrade={onUpgradeClick}
+                    />
+                  )}
+                  
+                  {card.generatedVideoUrl && (
+                    <div className="rounded-lg overflow-hidden border border-blue-500/30 bg-blue-500/5">
+                      <div className="p-2 bg-blue-500/10 flex items-center justify-between">
+                        <span className="text-sm font-medium text-blue-400">Generated Video</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          onClick={() => onCardUpdate(card.id, { generatedVideoUrl: undefined })}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
+                      <video 
+                        src={card.generatedVideoUrl}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="w-full bg-black max-h-64"
+                        data-testid="video-preview"
+                        onError={(e) => console.error("Video load error:", e)}
+                      />
+                    </div>
+                  )}
+                  
+                  {!videoConfig?.configured ? (
+                    <div className="p-4 bg-slate-800 rounded-lg text-sm text-slate-400">
+                      Video generation is not configured. Contact support to enable AI video generation.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="space-y-2">
+                          <Label className="text-slate-300">Mode</Label>
+                          <Select value={videoMode} onValueChange={(v) => setVideoMode(v as any)}>
+                            <SelectTrigger className="bg-slate-800 border-slate-700">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="text-to-video">Text to Video</SelectItem>
+                              <SelectItem value="image-to-video">Image to Video</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label className="text-slate-300">Model</Label>
+                          <Select value={videoModel} onValueChange={setVideoModel}>
+                            <SelectTrigger className="bg-slate-800 border-slate-700">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {videoConfig?.models?.map((m: any) => (
+                                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label className="text-slate-300">Duration</Label>
+                          <Select value={String(videoDuration)} onValueChange={(v) => setVideoDuration(parseInt(v) as any)}>
+                            <SelectTrigger className="bg-slate-800 border-slate-700">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="5">5 seconds</SelectItem>
+                              <SelectItem value="10">10 seconds</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      {videoMode === "image-to-video" && (
+                        <div className="space-y-2">
+                          <Label className="text-slate-300">Reference Image URL</Label>
+                          <Input
+                            placeholder={card.generatedImageUrl ? "Using generated image (or paste URL)" : "Paste image URL for animation"}
+                            value={referenceImageUrl}
+                            onChange={(e) => setReferenceImageUrl(e.target.value)}
+                            className="bg-slate-800 border-slate-700 text-white"
+                            data-testid="input-reference-image-url"
+                          />
+                          {card.generatedImageUrl && !referenceImageUrl && (
+                            <p className="text-xs text-green-400">Will use card's generated image</p>
+                          )}
+                          {!card.generatedImageUrl && !referenceImageUrl && (
+                            <p className="text-xs text-yellow-400">Paste an image URL to animate</p>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-slate-300">Video Prompt</Label>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleEnhanceVideoPrompt}
+                            disabled={videoEnhanceLoading}
+                            className="h-7 border-blue-500/50 text-blue-400 hover:bg-blue-500/10 gap-1"
+                            data-testid="button-enhance-video-prompt"
+                          >
+                            {videoEnhanceLoading ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-3 h-3" />
+                            )}
+                            {videoEnhanceLoading ? "Enhancing..." : "Enhance Prompt"}
+                          </Button>
+                        </div>
+                        <Textarea
+                          placeholder="Describe the video motion and scene (e.g., 'Slow zoom into the scene, gentle camera movement...')"
+                          value={videoPrompt}
+                          onChange={(e) => setVideoPrompt(e.target.value)}
+                          rows={3}
+                          className="bg-slate-800 border-slate-700 text-white"
+                          data-testid="input-video-prompt"
+                        />
+                        <p className="text-xs text-slate-500">
+                          {enhancedVideoPrompt ? "Prompt enhanced with motion & camera directions" : "Leave empty to auto-generate from card content"}
+                        </p>
+                      </div>
+                      
+                      {videoStatus === "processing" && (
+                        <div className="p-3 bg-slate-800 rounded-lg space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm flex items-center gap-2">
+                              <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                              Generating video...
+                            </span>
+                            <span className="text-sm font-mono text-slate-400">
+                              {Math.floor(videoGenElapsed / 60)}:{(videoGenElapsed % 60).toString().padStart(2, '0')}
+                            </span>
+                          </div>
+                          <Progress value={Math.min(95, (videoGenElapsed / 600) * 100)} className="h-2" />
+                          <p className="text-xs text-slate-500">Typically completes in 5-10 minutes</p>
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleGenerateVideo}
+                          disabled={videoLoading || videoStatus === "processing" || videoUploading}
+                          className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 gap-2"
+                          data-testid="button-generate-video"
+                        >
+                          {videoLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Video className="w-4 h-4" />
+                          )}
+                          {videoLoading ? "Starting..." : "Generate AI Video"}
+                        </Button>
+                        <Button
+                          onClick={() => videoInputRef.current?.click()}
+                          disabled={videoLoading || videoStatus === "processing" || videoUploading}
+                          variant="outline"
+                          className="border-slate-600 hover:bg-slate-800 gap-2"
+                          data-testid="button-upload-video"
+                        >
+                          {videoUploading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Upload className="w-4 h-4" />
+                          )}
+                          {videoUploading ? "Uploading..." : "Upload"}
+                        </Button>
+                        <input
+                          ref={videoInputRef}
+                          type="file"
+                          accept="video/*"
+                          className="hidden"
+                          onChange={handleVideoFileChange}
+                          data-testid="input-upload-video"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              
+              {activeTab === "narration" && (
+                <div className="relative space-y-4">
+                  {!canGenerateVoiceover && (
+                    <LockedOverlay
+                      feature="AI Narration"
+                      description="Add professional AI voiceover to your story cards with a Pro subscription."
+                      onUpgrade={onUpgradeClick}
+                    />
+                  )}
+                  
+                  {card.narrationAudioUrl && (
+                    <div className="rounded-lg overflow-hidden border border-purple-500/30 bg-purple-500/5">
+                      <div className="p-2 bg-purple-500/10 flex items-center justify-between">
+                        <span className="text-sm font-medium text-purple-400">Generated Narration</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          onClick={() => onCardUpdate(card.id, { narrationAudioUrl: undefined })}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
+                      <div className="p-3">
+                        <audio 
+                          src={card.narrationAudioUrl} 
+                          controls 
+                          className="w-full h-10"
+                          data-testid="audio-preview"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!voicesData?.configured ? (
+                    <div className="p-4 bg-slate-800 rounded-lg text-sm text-slate-400">
+                      TTS is not configured. Contact support to enable AI narration.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label className="text-slate-300">Narration Text</Label>
+                        <Textarea
+                          placeholder="Enter the text to be narrated..."
+                          value={narrationText}
+                          onChange={(e) => setNarrationText(e.target.value)}
+                          rows={4}
+                          className="bg-slate-800 border-slate-700 text-white font-mono text-sm"
+                          data-testid="input-narration-text"
+                        />
+                        <div className="flex justify-between text-xs text-slate-500">
+                          <span>{narrationText.length} / 3000 characters</span>
+                          {narrationText.length > 3000 && (
+                            <span className="text-red-400">Exceeds limit</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-slate-300">Voice</Label>
+                          <Select value={narrationVoice} onValueChange={setNarrationVoice}>
+                            <SelectTrigger className="bg-slate-800 border-slate-700">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {voicesData?.voices?.map((voice: any) => (
+                                <SelectItem key={voice.id} value={voice.id}>
+                                  {voice.name} - {voice.description}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label className="text-slate-300">Speed: {narrationSpeed.toFixed(1)}x</Label>
+                          <Slider
+                            value={[narrationSpeed]}
+                            onValueChange={([v]) => setNarrationSpeed(v)}
+                            min={0.5}
+                            max={2.0}
+                            step={0.1}
+                            className="mt-3"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={handlePreviewNarration}
+                          disabled={!narrationText.trim()}
+                          className="gap-2 border-slate-600"
+                          data-testid="button-preview-narration"
+                        >
+                          {previewPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                          {previewPlaying ? "Stop" : "Preview"}
+                        </Button>
+                        
+                        <Button
+                          onClick={handleGenerateNarration}
+                          disabled={narrationLoading || !narrationText.trim() || narrationText.length > 3000}
+                          className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 gap-2"
+                          data-testid="button-generate-narration"
+                        >
+                          {narrationLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Mic className="w-4 h-4" />
+                          )}
+                          {narrationLoading ? "Generating..." : "Generate Narration"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export default IceCardEditor;

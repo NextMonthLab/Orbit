@@ -1,0 +1,302 @@
+Here’s a Replit prompt that tells them exactly how to architect an Industry Orbit so it can be seeded, monitored (Pulse), and can store and surface manufacturers, products, media, reviews, specs, and communities. This is written as “build instructions”, not discussion.
+
+⸻
+
+Replit Prompt: Industry Orbit Architecture (Seed + Pulse + Industry Entities)
+
+Context
+We have two Orbit types: standard and industry. This prompt is ONLY about implementing the backend and UI architecture required for Industry Orbits to be seeded and for Pulse monitoring to be activated. Industry Orbits are neutral and unowned. Users can align (friend, influencer, sponsor) but no one can claim or control an Industry Orbit.
+
+Non negotiables
+	•	Industry Orbits cannot be claimed or owned. Do not add an ownerId concept for industry orbits.
+	•	Sponsorship must never influence answers, ordering, or suppression of competitors. Sponsorship is a clearly labelled presence only.
+	•	Industry Orbits must be capable of updating even if no users visit.
+	•	Standard Orbits remain unchanged unless explicitly required for shared UI reuse.
+
+Goal
+Build a canonical “Industry Orbit data layer” that supports:
+	1.	Seeding an Orbit with manufacturers, products, media, specs, reviews, communities, and starter topics
+	2.	Monitoring sources (RSS or page monitor) and creating “Pulse Events”
+	3.	Updating the Orbit’s topic tiles and product nodes based on events
+	4.	Surfacing this in the Orbit UI as subtle “alive” signals and structured evidence artefacts
+
+⸻
+
+1) Data Model (DB schema)
+
+Add first class orbit_type field:
+	•	orbit_type: "standard" | "industry" immutable after creation
+
+Create the following tables (names can vary, but structure must match):
+
+Orbits
+	•	id
+	•	slug (unique)
+	•	title
+	•	summary
+	•	orbit_type
+	•	status (active, hidden, archived)
+	•	created_at, updated_at
+
+IndustryEntity (Manufacturers, platforms, standards bodies, communities, influencers)
+	•	id
+	•	orbit_id (FK Orbits)
+	•	entity_type (manufacturer, platform, standards, publication, influencer, community, retailer, distributor)
+	•	name
+	•	description
+	•	website_url
+	•	region_tags (array or json)
+	•	trust_level (official, trade, independent)
+	•	logo_asset_id (FK Asset, optional)
+	•	created_at, updated_at
+
+Product
+	•	id
+	•	orbit_id
+	•	manufacturer_entity_id (FK IndustryEntity, optional for unknown)
+	•	name
+	•	category (consumer, enterprise, developer)
+	•	status (shipping, announced, rumoured, discontinued)
+	•	release_date (optional)
+	•	primary_url (official product page)
+	•	summary
+	•	hero_asset_id (FK Asset, optional)
+	•	created_at, updated_at
+
+ProductSpec (structured specs, flexible)
+	•	id
+	•	product_id
+	•	spec_key (string)
+	•	spec_value (string)
+	•	spec_unit (string, optional)
+	•	source_url (string)
+	•	last_verified_at
+	•	created_at, updated_at
+
+Review
+	•	id
+	•	orbit_id
+	•	product_id (optional, some reviews are category level)
+	•	reviewer_entity_id (FK IndustryEntity for influencer or publication)
+	•	title
+	•	url
+	•	published_at
+	•	rating_value (optional)
+	•	rating_scale (optional)
+	•	summary (short)
+	•	sentiment (positive, mixed, negative, unknown)
+	•	created_at, updated_at
+
+Asset (images, videos, documents)
+	•	id
+	•	orbit_id
+	•	asset_type (image, video, document)
+	•	storage_url (or path)
+	•	thumb_url (optional)
+	•	source_url (where it came from)
+	•	title (optional)
+	•	created_at
+
+CommunityLink (forums, subreddits, Discords, etc)
+	•	id
+	•	orbit_id
+	•	name
+	•	url
+	•	community_type (forum, subreddit, discord, slack, community_site, event_series)
+	•	notes
+	•	created_at
+
+TopicTile (the orbit tiles)
+	•	id
+	•	orbit_id
+	•	label
+	•	sublabel (optional)
+	•	intent_tags (json array)
+	•	priority (int)
+	•	badge_state (json, eg trending, new, debated, updated_recently)
+	•	last_refreshed_at
+	•	created_at, updated_at
+
+PulseSource (monitored sources)
+	•	id
+	•	orbit_id
+	•	name
+	•	source_type (manufacturer, publication, influencer, standards, community, retailer)
+	•	url
+	•	rss_url (nullable)
+	•	monitoring_method (rss, page_monitor)
+	•	update_frequency (daily, twice_weekly, weekly)
+	•	trust_level (official, trade, independent)
+	•	event_types (json array)
+	•	is_enabled (bool)
+	•	last_checked_at
+	•	created_at, updated_at
+
+PulseSnapshot (optional but recommended for diffing)
+	•	id
+	•	pulse_source_id
+	•	fetched_at
+	•	content_hash
+	•	content_excerpt (short, optional)
+	•	raw_storage_url (optional, store raw html text elsewhere)
+	•	created_at
+
+PulseEvent
+	•	id
+	•	orbit_id
+	•	pulse_source_id
+	•	event_type (product_launch, firmware_update, pricing_change, compatibility_change, regulatory_change, review, rumour, partnership, availability_change)
+	•	importance (low, medium, high)
+	•	title
+	•	url
+	•	detected_at
+	•	entity_refs (json, eg manufacturerId, productId)
+	•	summary (short, must be factual)
+	•	status (new, processed, dismissed)
+	•	created_at, updated_at
+
+Alignment (friend, influencer, sponsor)
+	•	id
+	•	orbit_id
+	•	user_id
+	•	mode (friend, influencer, sponsor)
+	•	status (active, paused)
+	•	created_at, updated_at
+
+Important constraints in code:
+	•	Alignment never equals ownership. No owner permissions for industry orbits.
+	•	Sponsor mode must not change ranking logic or answer generation.
+
+⸻
+
+2) Seed Pack Import
+
+Implement a seed import endpoint for industry orbits:
+
+POST /api/industry-orbits/:slug/seed
+	•	Accepts a single JSON payload (“Industry Orbit Pack”)
+	•	Upserts:
+	•	Industry entities
+	•	Products + specs
+	•	Review links
+	•	Community links
+	•	Starter tiles
+	•	Pulse sources
+
+This must be idempotent (safe to re-run). Store a seed_version on Orbit or keep a seed log table.
+
+Also create:
+GET /api/industry-orbits/:slug/definition
+	•	Returns the current orbit seed plus sources summary (for admin and debugging)
+
+⸻
+
+3) Pulse Monitoring Service
+
+Create a server side scheduled job (cron style) that:
+	•	Selects enabled PulseSources due for checking based on update_frequency
+	•	Fetches RSS feed if rss_url exists, else fetches source_url HTML and extracts meaningful region (basic extraction is fine)
+	•	Computes hash and compares to last snapshot
+	•	If changed, creates PulseEvents (one or more) using simple heuristics initially:
+	•	keyword triggers
+	•	detection of “announced”, “launch”, “release”, “firmware”, “update”, “price”, “available”, “regulation”
+	•	Importance scoring:
+	•	product launch by major manufacturer is high
+	•	minor blog post is low
+	•	regulatory changes are high
+
+Do not block on perfect classification. Ship a working pipeline.
+
+Create admin endpoints:
+	•	POST /api/pulse/run-now?orbitSlug=
+	•	GET /api/pulse/events?orbitSlug=&status=
+	•	POST /api/pulse/events/:id/dismiss
+	•	POST /api/pulse/events/:id/mark-processed
+
+⸻
+
+4) Knowledge Update From Events
+
+Implement a processor that converts PulseEvents into Orbit updates:
+	•	Update or create Product nodes when a new product is detected
+	•	Update ProductSpec entries if change suggests specs updated
+	•	Create Review entries if event_type is review
+	•	Update TopicTile badges:
+	•	“New” for tiles related to newly detected products
+	•	“Updated recently” when relevant events happen
+	•	“Trending” when user interactions spike (separate signal, see below)
+
+Keep a simple mapping function:
+	•	event_type + keywords map to intent_tags
+	•	intent_tags map to tiles
+
+⸻
+
+5) User Interaction Signals
+
+Add lightweight tracking for:
+	•	tile clicks
+	•	questions asked (store only metadata and intent tags, do not store sensitive content if not required)
+	•	saves, thumbs up, thumbs down
+
+Use this to:
+	•	mark tiles as trending (badge_state)
+	•	improve relevance ordering (intent gravity)
+	•	surface “Most asked this week” style badges (without fake numbers unless you have real metrics)
+
+⸻
+
+6) Orbit UI Integration (Universal)
+
+Industry Orbits must surface structured industry data without turning into a catalogue.
+
+In the Orbit UI:
+	•	Tiles remain primary.
+	•	Responses can include “Evidence artefacts” cards:
+	•	related products (name, image, short factual snippet)
+	•	key specs (3 to 8 items)
+	•	review links (with source name)
+	•	community links
+
+Add subtle “alive” signals for all industry orbits:
+	•	“Updated recently” chip
+	•	“New product detected” chip
+	•	Do not show big dashboards, keep it subtle.
+
+Important:
+	•	Any “Advertise” or sponsor presence must be clearly labelled and must not appear inside the AI answer text. It may appear as a separate “Sponsored” artefact block.
+
+⸻
+
+7) Admin UI (Internal)
+
+Add an admin panel section for Industry Orbits only:
+	•	Seed pack upload (JSON)
+	•	Pulse sources list, enable disable, run now
+	•	Pulse events list with status and actions
+	•	Entities and products viewer (basic tables)
+	•	Asset manager (optional, can be minimal)
+
+Standard Orbits should not show these controls.
+
+⸻
+
+8) Acceptance Tests
+	•	Create an Industry Orbit with slug “smart-glasses”
+	•	Import a seed pack
+	•	Confirm tiles, manufacturers, and products appear in UI evidence blocks
+	•	Enable Pulse sources and run monitor now
+	•	Confirm events created and processed updates tiles and products
+	•	Confirm no ownership or claim UI appears
+	•	Confirm sponsors cannot influence answers or tile ordering
+
+Deliverables
+	•	DB schema migrations
+	•	API routes for seed import, entity and product retrieval, pulse operations
+	•	Scheduled job for monitoring
+	•	UI updates to render evidence artefacts and alive signals
+	•	Admin UI for seed and pulse management
+
+⸻
+
+If you want, I can also give you the exact JSON seed pack format we should standardise on (so Claude Deep Research outputs a file that drops straight into /orbits/industry/smart-glasses.json and Replit can import it with zero hand editing).
