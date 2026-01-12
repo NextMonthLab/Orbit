@@ -320,6 +320,21 @@ export interface IStorage {
   addOrbitMessage(data: schema.InsertOrbitMessage): Promise<schema.OrbitMessage>;
   getOrbitMessages(conversationId: number): Promise<schema.OrbitMessage[]>;
 
+  // Phase 2: Owner Conversation Layer (Internal Training)
+  createOwnerConversation(data: schema.InsertOrbitOwnerConversation): Promise<schema.OrbitOwnerConversation>;
+  getOwnerConversation(id: number): Promise<schema.OrbitOwnerConversation | undefined>;
+  getOwnerConversations(businessSlug: string, ownerId: number): Promise<schema.OrbitOwnerConversation[]>;
+  getActiveOwnerConversation(businessSlug: string, ownerId: number): Promise<schema.OrbitOwnerConversation | undefined>;
+  updateOwnerConversation(id: number, data: Partial<schema.InsertOrbitOwnerConversation>): Promise<schema.OrbitOwnerConversation | undefined>;
+  
+  addOwnerMessage(data: schema.InsertOrbitOwnerMessage): Promise<schema.OrbitOwnerMessage>;
+  getOwnerMessages(conversationId: number): Promise<schema.OrbitOwnerMessage[]>;
+  
+  createOwnerCorrection(data: schema.InsertOrbitOwnerCorrection): Promise<schema.OrbitOwnerCorrection>;
+  getOwnerCorrections(businessSlug: string, status?: schema.OwnerCorrectionStatus): Promise<schema.OrbitOwnerCorrection[]>;
+  updateOwnerCorrection(id: number, data: Partial<schema.InsertOrbitOwnerCorrection>): Promise<schema.OrbitOwnerCorrection | undefined>;
+  getAppliedCorrections(businessSlug: string): Promise<schema.OrbitOwnerCorrection[]>;
+
   // Phase 2: Orbit Insights Summary
   getOrbitInsightsSummary(businessSlug: string): Promise<schema.OrbitInsightsSummary | undefined>;
   upsertOrbitInsightsSummary(data: schema.InsertOrbitInsightsSummary): Promise<schema.OrbitInsightsSummary>;
@@ -2570,6 +2585,112 @@ export class DatabaseStorage implements IStorage {
     return db.query.orbitMessages.findMany({
       where: eq(schema.orbitMessages.conversationId, conversationId),
       orderBy: [asc(schema.orbitMessages.createdAt)],
+    });
+  }
+
+  // Phase 2: Owner Conversation Layer (Internal Training)
+  async createOwnerConversation(data: schema.InsertOrbitOwnerConversation): Promise<schema.OrbitOwnerConversation> {
+    const [conversation] = await db.insert(schema.orbitOwnerConversations).values(data).returning();
+    return conversation;
+  }
+
+  async getOwnerConversation(id: number): Promise<schema.OrbitOwnerConversation | undefined> {
+    return db.query.orbitOwnerConversations.findFirst({
+      where: eq(schema.orbitOwnerConversations.id, id),
+    });
+  }
+
+  async getOwnerConversations(businessSlug: string, ownerId: number): Promise<schema.OrbitOwnerConversation[]> {
+    return db.query.orbitOwnerConversations.findMany({
+      where: and(
+        eq(schema.orbitOwnerConversations.businessSlug, businessSlug),
+        eq(schema.orbitOwnerConversations.ownerId, ownerId)
+      ),
+      orderBy: [desc(schema.orbitOwnerConversations.lastMessageAt)],
+    });
+  }
+
+  async getActiveOwnerConversation(businessSlug: string, ownerId: number): Promise<schema.OrbitOwnerConversation | undefined> {
+    // Get the most recent conversation (within the last 24 hours) or create a new one
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return db.query.orbitOwnerConversations.findFirst({
+      where: and(
+        eq(schema.orbitOwnerConversations.businessSlug, businessSlug),
+        eq(schema.orbitOwnerConversations.ownerId, ownerId),
+        gte(schema.orbitOwnerConversations.lastMessageAt, oneDayAgo)
+      ),
+      orderBy: [desc(schema.orbitOwnerConversations.lastMessageAt)],
+    });
+  }
+
+  async updateOwnerConversation(id: number, data: Partial<schema.InsertOrbitOwnerConversation>): Promise<schema.OrbitOwnerConversation | undefined> {
+    const [conversation] = await db.update(schema.orbitOwnerConversations)
+      .set({ ...data, lastMessageAt: new Date() })
+      .where(eq(schema.orbitOwnerConversations.id, id))
+      .returning();
+    return conversation;
+  }
+
+  async addOwnerMessage(data: schema.InsertOrbitOwnerMessage): Promise<schema.OrbitOwnerMessage> {
+    const [message] = await db.insert(schema.orbitOwnerMessages).values(data).returning();
+    await db.update(schema.orbitOwnerConversations)
+      .set({ 
+        messageCount: sql`${schema.orbitOwnerConversations.messageCount} + 1`,
+        lastMessageAt: new Date()
+      })
+      .where(eq(schema.orbitOwnerConversations.id, data.conversationId));
+    return message;
+  }
+
+  async getOwnerMessages(conversationId: number): Promise<schema.OrbitOwnerMessage[]> {
+    return db.query.orbitOwnerMessages.findMany({
+      where: eq(schema.orbitOwnerMessages.conversationId, conversationId),
+      orderBy: [asc(schema.orbitOwnerMessages.createdAt)],
+    });
+  }
+
+  async createOwnerCorrection(data: schema.InsertOrbitOwnerCorrection): Promise<schema.OrbitOwnerCorrection> {
+    const [correction] = await db.insert(schema.orbitOwnerCorrections).values(data).returning();
+    // Increment corrections count on the conversation
+    if (data.conversationId) {
+      await db.update(schema.orbitOwnerConversations)
+        .set({ correctionsCount: sql`${schema.orbitOwnerConversations.correctionsCount} + 1` })
+        .where(eq(schema.orbitOwnerConversations.id, data.conversationId));
+    }
+    return correction;
+  }
+
+  async getOwnerCorrections(businessSlug: string, status?: schema.OwnerCorrectionStatus): Promise<schema.OrbitOwnerCorrection[]> {
+    if (status) {
+      return db.query.orbitOwnerCorrections.findMany({
+        where: and(
+          eq(schema.orbitOwnerCorrections.businessSlug, businessSlug),
+          eq(schema.orbitOwnerCorrections.status, status)
+        ),
+        orderBy: [desc(schema.orbitOwnerCorrections.createdAt)],
+      });
+    }
+    return db.query.orbitOwnerCorrections.findMany({
+      where: eq(schema.orbitOwnerCorrections.businessSlug, businessSlug),
+      orderBy: [desc(schema.orbitOwnerCorrections.createdAt)],
+    });
+  }
+
+  async updateOwnerCorrection(id: number, data: Partial<schema.InsertOrbitOwnerCorrection>): Promise<schema.OrbitOwnerCorrection | undefined> {
+    const [correction] = await db.update(schema.orbitOwnerCorrections)
+      .set(data)
+      .where(eq(schema.orbitOwnerCorrections.id, id))
+      .returning();
+    return correction;
+  }
+
+  async getAppliedCorrections(businessSlug: string): Promise<schema.OrbitOwnerCorrection[]> {
+    return db.query.orbitOwnerCorrections.findMany({
+      where: and(
+        eq(schema.orbitOwnerCorrections.businessSlug, businessSlug),
+        eq(schema.orbitOwnerCorrections.status, 'applied')
+      ),
+      orderBy: [desc(schema.orbitOwnerCorrections.appliedAt)],
     });
   }
 
