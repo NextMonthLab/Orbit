@@ -214,6 +214,8 @@ interface ChatHubProps {
   lightMode?: boolean;
   onCreateIce?: (messageContent: string, messageIndex: number) => void;
   canCreateIce?: boolean;
+  isOwnerMode?: boolean;
+  onCorrectionApplied?: (correction: { type: string; confidence: number }) => void;
 }
 
 export function ChatHub({
@@ -231,15 +233,22 @@ export function ChatHub({
   lightMode = false,
   onCreateIce,
   canCreateIce = false,
+  isOwnerMode = false,
+  onCorrectionApplied,
 }: ChatHubProps) {
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
   const videoStartTimeRef = useRef<number>(0);
+  
+  const getOwnerWelcome = () => {
+    return `Hi there. You're now in training mode.\n\nThis is a private conversation between you and your Orbit. I'm here to help you understand what I know about ${brandName} — and to learn from you where I'm wrong or incomplete.\n\nYou can:\n• Ask what I know about something\n• Correct me if I've got something wrong\n• Tell me about things I'm missing\n• Check how confident I am about specific details\n\nI'll be honest about what I don't know. Just talk to me like you would a new team member you're onboarding.`;
+  };
+  
   const getProactiveWelcome = () => {
     return `This is not a menu.\n\nOrbit is a living intelligence that understands ${brandName}. Each tile represents a knowledge node about products, services, pages, or ideas.\n\nAs you talk to me, I'll bring the most relevant knowledge closer together so I can respond accurately.\n\nYou don't need to find the right page. Just ask.\n\n· · ·\n\nOrbit evolves over time — first understanding the business, then letting owners shape the intelligence, then connecting knowledge to visuals.`;
   };
 
   const [messages, setMessages] = useState<Message[]>(() => [
-    { role: 'assistant', content: initialMessage || getProactiveWelcome() }
+    { role: 'assistant', content: initialMessage || (isOwnerMode ? getOwnerWelcome() : getProactiveWelcome()) }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -374,11 +383,18 @@ export function ChatHub({
           <div className="flex items-center gap-3">
             <div 
               className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: `${accentColor}20` }}
+              style={{ backgroundColor: isOwnerMode ? 'rgba(168, 85, 247, 0.2)' : `${accentColor}20` }}
             >
-              <MessageCircle className="w-4 h-4" style={{ color: accentColor }} />
+              <MessageCircle className="w-4 h-4" style={{ color: isOwnerMode ? '#a855f7' : accentColor }} />
             </div>
-            <span className={`font-medium text-sm ${lightMode ? 'text-gray-900' : 'text-white'}`}>{brandName}</span>
+            <div className="flex flex-col">
+              <span className={`font-medium text-sm ${lightMode ? 'text-gray-900' : 'text-white'}`}>{brandName}</span>
+              {isOwnerMode && (
+                <span className="text-[10px] font-medium text-purple-400" data-testid="owner-mode-badge">
+                  Training Mode
+                </span>
+              )}
+            </div>
           </div>
           <button
             onClick={onMinimize}

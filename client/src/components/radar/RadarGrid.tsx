@@ -60,6 +60,7 @@ interface RadarGridProps {
   lightMode?: boolean;
   onCreateIce?: (messageContent: string, messageIndex: number) => void;
   canCreateIce?: boolean;
+  isOwnerMode?: boolean;
 }
 
 function generateTilePositions(count: number, ringSpacing: number = 180): { x: number; y: number }[] {
@@ -87,7 +88,7 @@ function generateTilePositions(count: number, ringSpacing: number = 180): { x: n
   return positions;
 }
 
-export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, accentColor = '#3b82f6', onInteraction, lightMode = false, onCreateIce, canCreateIce = false }: RadarGridProps) {
+export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, accentColor = '#3b82f6', onInteraction, lightMode = false, onCreateIce, canCreateIce = false, isOwnerMode = false }: RadarGridProps) {
   const [isHubMinimized, setIsHubMinimized] = useState(false);
   const [conversationKeywords, setConversationKeywords] = useState<string[]>([]);
   const [selectedItem, setSelectedItem] = useState<AnyKnowledgeItem | null>(null);
@@ -555,6 +556,7 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
           nearbyTiles={nearbyTileLabels}
           onCreateIce={onCreateIce}
           canCreateIce={canCreateIce}
+          isOwnerMode={isOwnerMode}
         />
       </AnimatePresence>
 

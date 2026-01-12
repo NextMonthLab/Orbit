@@ -318,7 +318,8 @@ export default function OrbitView() {
   type ChatResponse = { text: string; video?: SuggestedVideo | null };
 
   // Shared chat handler for all RadarGrid instances
-  const createChatHandler = (accessToken?: string, menuContext?: any) => {
+  // When useOwnerChat is true, messages go to the owner-chat endpoint for training mode
+  const createChatHandler = (accessToken?: string, menuContext?: any, useOwnerChat?: boolean) => {
     return async (message: string): Promise<ChatResponse> => {
       if (!conversationTracked) {
         trackMetric('conversations');
@@ -326,10 +327,19 @@ export default function OrbitView() {
       }
       
       try {
-        const response = await fetch(`/api/orbit/${slug}/chat`, {
+        // Use owner-chat endpoint for training mode, regular chat otherwise
+        const endpoint = useOwnerChat 
+          ? `/api/orbit/${slug}/owner-chat` 
+          : `/api/orbit/${slug}/chat`;
+        
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
+          credentials: 'include',
+          body: JSON.stringify(useOwnerChat ? { 
+            message,
+            history: chatHistoryRef.current,
+          } : { 
             message,
             accessToken,
             menuContext,
@@ -1230,6 +1240,7 @@ export default function OrbitView() {
               onSendMessage={createIndustryViewChatHandler()}
               onCreateIce={handleCreateIceFromChat}
               canCreateIce={!!canCreateIce}
+              isOwnerMode={isOwner}
             />
           </div>
           
@@ -1355,9 +1366,10 @@ export default function OrbitView() {
                   console.error('Failed to track video event:', e);
                 }
               }}
-              onSendMessage={createChatHandler(undefined, menuContext)}
+              onSendMessage={createChatHandler(undefined, menuContext, isOwner)}
               onCreateIce={handleCreateIceFromChat}
               canCreateIce={!!canCreateIce}
+              isOwnerMode={isOwner}
             />
           )}
         </div>
@@ -1901,9 +1913,10 @@ export default function OrbitView() {
               console.error('Failed to track video event:', e);
             }
           }}
-          onSendMessage={createChatHandler(preview.previewAccessToken)}
+          onSendMessage={createChatHandler(preview.previewAccessToken, undefined, isOwner)}
           onCreateIce={handleCreateIceFromChat}
           canCreateIce={!!canCreateIce}
+          isOwnerMode={isOwner}
         />
       )}
 

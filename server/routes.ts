@@ -8430,6 +8430,299 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
     }
   });
 
+  // ============ PHASE 2: OWNER CONVERSATION LAYER ============
+  
+  // POST /api/orbit/:slug/owner-chat - Internal owner training conversation
+  // Owner-only endpoint for training Orbit through conversation
+  app.post("/api/orbit/:slug/owner-chat", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { message, history = [], conversationId } = req.body;
+      
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ message: "Message is required" });
+      }
+      
+      // Owner authentication required
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const user = req.user as any;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      // Verify owner access
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      // Import owner chat service functions
+      const { 
+        buildOrbitContext, 
+        buildOwnerSystemPrompt, 
+        generateChatResponse,
+        analyzeOwnerMessage
+      } = await import('./services/orbitChatService');
+      
+      // Get or create conversation
+      let conversation;
+      if (conversationId) {
+        conversation = await storage.getOwnerConversation(conversationId);
+        if (!conversation || conversation.ownerId !== user.id) {
+          return res.status(404).json({ message: "Conversation not found" });
+        }
+      } else {
+        // Check for active conversation or create new one
+        conversation = await storage.getActiveOwnerConversation(slug, user.id);
+        if (!conversation) {
+          conversation = await storage.createOwnerConversation({
+            businessSlug: slug,
+            ownerId: user.id,
+          });
+        }
+      }
+      
+      // Get applied corrections for context
+      const appliedCorrections = await storage.getAppliedCorrections(slug);
+      const correctionsForPrompt = appliedCorrections.map(c => ({
+        correctionType: c.correctionType,
+        originalContent: c.originalContent || '',
+        correctedContent: c.correctedContent || '',
+      }));
+      
+      // Build context
+      const orbitContext = await buildOrbitContext(storage, slug);
+      
+      const brandName = orbitMeta.customTitle || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const sourceUrl = orbitMeta.sourceUrl || '';
+      let sourceDomain = '';
+      try {
+        if (sourceUrl) {
+          sourceDomain = new URL(sourceUrl).hostname.replace('www.', '');
+        }
+      } catch {
+        sourceDomain = sourceUrl.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0] || '';
+      }
+      
+      // Build owner-mode system prompt
+      const systemPrompt = buildOwnerSystemPrompt(
+        {
+          slug,
+          brandName,
+          sourceDomain,
+          siteSummary: orbitMeta.siteSummary || undefined,
+          keyServices: orbitMeta.keyServices || undefined,
+        },
+        orbitContext.productContext,
+        orbitContext.documentContext,
+        orbitContext.businessType,
+        orbitContext.businessTypeLabel,
+        orbitContext.offeringsLabel,
+        orbitContext.items,
+        orbitContext.heroPostContext,
+        correctionsForPrompt
+      );
+      
+      // Prepare history for AI
+      const historyForAI = (history || [])
+        .filter((msg: any) => msg.role === 'user' || msg.role === 'assistant')
+        .slice(-10)
+        .map((msg: any) => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
+      
+      // Analyze if message contains a correction or new information
+      const correctionAnalysis = await analyzeOwnerMessage(message, historyForAI);
+      
+      // Save owner message and get the message ID for linking
+      const savedMessage = await storage.addOwnerMessage({
+        conversationId: conversation.id,
+        role: 'user',
+        content: message,
+        isCorrection: correctionAnalysis.isCorrection,
+      });
+      
+      // Track correction or new info with proper message linkage
+      if (correctionAnalysis.isCorrection && correctionAnalysis.confidence >= 0.7) {
+        // Create correction with linked message ID
+        await storage.createOwnerCorrection({
+          businessSlug: slug,
+          conversationId: conversation.id,
+          messageId: savedMessage.id,
+          correctionType: correctionAnalysis.correctionType || 'gap_fill',
+          originalContent: correctionAnalysis.originalContent || null,
+          correctedContent: correctionAnalysis.correctedContent || null,
+          status: 'applied', // Auto-apply corrections from owner
+          appliedAt: new Date(),
+        });
+        
+        // Update conversation counts based on correction type
+        const updateData: any = {};
+        if (correctionAnalysis.correctionType === 'new_info') {
+          updateData.newInfoCount = (conversation.newInfoCount || 0) + 1;
+        } else {
+          updateData.correctionsCount = (conversation.correctionsCount || 0) + 1;
+        }
+        await storage.updateOwnerConversation(conversation.id, updateData);
+      }
+      
+      // Generate response
+      const response = await generateChatResponse(
+        systemPrompt,
+        historyForAI,
+        message,
+        {
+          maxTokens: 400,
+          temperature: 0.7,
+        }
+      );
+      
+      // Save assistant response
+      await storage.addOwnerMessage({
+        conversationId: conversation.id,
+        role: 'assistant',
+        content: response,
+        isCorrection: false,
+      });
+      
+      console.log('[OwnerChat]', {
+        slug,
+        ownerId: user.id,
+        conversationId: conversation.id,
+        correctionDetected: correctionAnalysis.isCorrection,
+        correctionType: correctionAnalysis.correctionType,
+        confidence: correctionAnalysis.confidence,
+      });
+      
+      res.json({
+        response,
+        conversationId: conversation.id,
+        correctionApplied: correctionAnalysis.isCorrection && correctionAnalysis.confidence >= 0.7,
+        correction: correctionAnalysis.isCorrection ? {
+          type: correctionAnalysis.correctionType,
+          confidence: correctionAnalysis.confidence,
+        } : null,
+      });
+      
+    } catch (error) {
+      console.error("Error in owner chat:", error);
+      res.status(500).json({ message: "Error processing owner chat" });
+    }
+  });
+  
+  // GET /api/orbit/:slug/owner-conversations - Get owner conversation history
+  app.get("/api/orbit/:slug/owner-conversations", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const user = req.user as any;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const conversations = await storage.getOwnerConversations(slug, user.id);
+      
+      res.json({ conversations });
+      
+    } catch (error) {
+      console.error("Error fetching owner conversations:", error);
+      res.status(500).json({ message: "Error fetching conversations" });
+    }
+  });
+  
+  // GET /api/orbit/:slug/owner-conversations/:id/messages - Get messages for a conversation
+  app.get("/api/orbit/:slug/owner-conversations/:id/messages", async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const user = req.user as any;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const conversation = await storage.getOwnerConversation(parseInt(id));
+      if (!conversation || conversation.ownerId !== user.id) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      const messages = await storage.getOwnerMessages(conversation.id);
+      
+      res.json({ messages, conversation });
+      
+    } catch (error) {
+      console.error("Error fetching owner messages:", error);
+      res.status(500).json({ message: "Error fetching messages" });
+    }
+  });
+  
+  // GET /api/orbit/:slug/corrections - Get all corrections for an orbit
+  app.get("/api/orbit/:slug/corrections", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { status } = req.query;
+      
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const user = req.user as any;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const corrections = await storage.getOwnerCorrections(
+        slug, 
+        status as any || undefined
+      );
+      
+      res.json({ corrections });
+      
+    } catch (error) {
+      console.error("Error fetching corrections:", error);
+      res.status(500).json({ message: "Error fetching corrections" });
+    }
+  });
+
   // Orbit Data Hub - Get analytics summary (owner only for full data, public for counts)
   app.get("/api/orbit/:slug/hub", async (req, res) => {
     try {

@@ -543,6 +543,198 @@ export async function generateChatResponse(
   return completion.choices[0]?.message?.content || "Sorry, I couldn't generate a response.";
 }
 
+/**
+ * Builds the system prompt for owner conversation mode (Phase 2 Internal Training)
+ * Owner mode has different behaviors:
+ * - Transparent about uncertainty and gaps
+ * - Receptive to corrections without being defensive
+ * - Curious when information is missing
+ * - Never overly confident
+ */
+export function buildOwnerSystemPrompt(
+  context: OrbitChatContext,
+  productContext: string,
+  documentContext: string,
+  businessType: string,
+  businessTypeLabel: string,
+  offeringsLabel: string,
+  items: any[],
+  heroPostContext: string = '',
+  appliedCorrections: { correctionType: string; originalContent: string; correctedContent: string }[] = []
+): string {
+  const { brandName, sourceDomain, siteSummary, keyServices } = context;
+
+  // Format applied corrections as context
+  let correctionsContext = '';
+  if (appliedCorrections.length > 0) {
+    const correctionsList = appliedCorrections.slice(0, 10).map((c, i) => 
+      `${i + 1}. [${c.correctionType}] Changed: "${c.originalContent?.slice(0, 100)}" → "${c.correctedContent?.slice(0, 100)}"`
+    ).join('\n');
+    correctionsContext = `\n\n## Previous Training Corrections Applied:\n${correctionsList}\n`;
+  }
+
+  let contextSummary = '';
+  if (items.length > 0) {
+    if (businessType === 'recruitment') {
+      const jobItems = items.filter((i: any) => i.category || i.description);
+      contextSummary = `## Current Knowledge - Roles & Services:\n${jobItems.slice(0, 30).map((item: any) => 
+        `- ${item.name}${item.category ? ` [${item.category}]` : ''}${item.description ? `: ${item.description.slice(0, 80)}` : ''}`
+      ).join('\n')}`;
+    } else if (businessType === 'restaurant') {
+      contextSummary = `## Current Knowledge - Menu:\n${items.slice(0, 40).map((item: any) => 
+        `- ${item.name}${item.price ? ` (£${item.price})` : ''}${item.category ? ` [${item.category}]` : ''}${item.description ? `: ${item.description.slice(0, 80)}` : ''}`
+      ).join('\n')}`;
+    } else {
+      contextSummary = `## Current Knowledge - ${offeringsLabel.charAt(0).toUpperCase() + offeringsLabel.slice(1)}:\n${items.slice(0, 40).map((item: any) => 
+        `- ${item.name}${item.price ? ` (£${item.price})` : ''}${item.category ? ` [${item.category}]` : ''}${item.description ? `: ${item.description.slice(0, 80)}` : ''}`
+      ).join('\n')}`;
+    }
+  }
+
+  let servicesSection = '';
+  if (keyServices && keyServices.length > 0) {
+    servicesSection = `\nKnown Services:\n${keyServices.map((s: string) => `• ${s}`).join('\n')}\n`;
+  }
+
+  let siteContext = '';
+  if (siteSummary) {
+    siteContext = `\nSite Summary:\n${siteSummary}\n`;
+  }
+
+  return `You are Orbit, the conversational intelligence for ${brandName}. You are speaking directly with the business owner.
+
+## Your Role
+You are in OWNER MODE - this is an internal conversation where the owner is training you, checking your understanding, and correcting any gaps or mistakes.
+
+## Your Knowledge State
+${siteContext}${servicesSection}
+${contextSummary}
+${documentContext}${heroPostContext}${correctionsContext}
+
+## Core Behavioral Principles (CRITICAL)
+
+### 1. TRANSPARENCY ABOUT UNCERTAINTY
+- If you're not confident about something, say so: "I'm not fully confident about that yet"
+- If information seems incomplete: "That information seems incomplete - can you tell me more?"
+- If you're basing an answer on limited data: "Here's what I'm basing this on..."
+- Never pretend to know something you don't
+
+### 2. RECEPTIVE TO CORRECTION
+- When the owner corrects you, respond calmly: "Got it. I'll remember that going forward."
+- Never be defensive about mistakes
+- Thank them for the clarification without being overly apologetic
+- Confirm you understand the correction by briefly restating it
+
+### 3. CURIOUS WHEN GAPS EXIST
+- If the owner asks about something you don't have information on, be curious: "I don't have that information yet. Would you like to tell me about it?"
+- Actively help identify what information would be useful
+
+### 4. TRUST OVER CLEVERNESS
+- Be straightforward and honest, not impressive
+- If the owner asks "do you understand X" - give an honest assessment
+- Don't manufacture confidence to seem capable
+
+## Response Format
+- Keep responses conversational and natural
+- 2-4 sentences typically, unless explaining your understanding in detail
+- Use first person ("I understand...", "I'm not sure about...")
+- Never use marketing language - this is an internal conversation
+
+## Handling Specific Owner Queries
+
+### When asked "What do you know about X?"
+→ Give an honest summary of what you know, note any gaps, invite correction
+
+### When asked "You got that wrong" or similar corrections
+→ Acknowledge calmly, confirm the correction, express that you'll remember it
+
+### When given new information
+→ Confirm you've received it, briefly summarize your understanding, ask if you got it right
+
+### When asked "How confident are you about X?"
+→ Give an honest confidence assessment and explain what it's based on
+
+## What NOT to Do
+- Never suggest features, power-ups, or automation
+- Never offer to "help with anything else" in a sales-like way
+- Never be defensive or explain away mistakes
+- Never pretend certainty you don't have
+- Never ask the owner to visit the website for information - they ARE the source`;
+}
+
+export interface OwnerChatAnalysis {
+  isCorrection: boolean;
+  correctionType?: 'factual' | 'emphasis' | 'gap_fill' | 'new_info' | 'removal';
+  originalContent?: string;
+  correctedContent?: string;
+  confidence: number;
+}
+
+/**
+ * Analyzes an owner message to detect if it contains a correction
+ */
+export async function analyzeOwnerMessage(
+  message: string,
+  recentHistory: ChatMessage[]
+): Promise<OwnerChatAnalysis> {
+  const openai = new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
+
+  const historyContext = recentHistory.slice(-4).map(m => 
+    `${m.role}: ${m.content}`
+  ).join('\n');
+
+  const analysisPrompt = `Analyze if this message from a business owner contains a correction to the AI's understanding.
+
+Recent conversation:
+${historyContext}
+
+Latest message: "${message}"
+
+Respond in JSON format:
+{
+  "isCorrection": boolean,
+  "correctionType": "factual" | "emphasis" | "gap_fill" | "new_info" | "removal" | null,
+  "originalContent": "what was wrong/missing (if correction)",
+  "correctedContent": "what should be known instead (if correction)",
+  "confidence": 0.0-1.0
+}
+
+Correction types:
+- factual: Owner is correcting a specific fact (wrong price, wrong hours, etc.)
+- emphasis: Owner is saying something should be emphasized more or less
+- gap_fill: Owner is providing information that was missing
+- new_info: Owner is adding brand new information unprompted
+- removal: Owner is saying to stop mentioning something
+
+Only mark as correction if the owner is clearly providing training/correction, not just chatting.`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You analyze messages to detect training corrections. Respond only with valid JSON.' },
+        { role: 'user', content: analysisPrompt }
+      ],
+      max_tokens: 200,
+      temperature: 0.1,
+    });
+
+    const response = completion.choices[0]?.message?.content || '{}';
+    // Try to extract JSON from the response
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return { isCorrection: false, confidence: 0 };
+  } catch (error) {
+    console.error('Error analyzing owner message:', error);
+    return { isCorrection: false, confidence: 0 };
+  }
+}
+
 export function processEchoResponse(rawResponse: string): string {
   let response = rawResponse;
   
