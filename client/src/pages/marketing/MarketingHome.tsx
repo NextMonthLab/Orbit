@@ -354,7 +354,7 @@ export default function MarketingHome() {
                 </span>
               </h2>
               <p className="text-slate-400 max-w-2xl mx-auto">
-                Experience how businesses use Orbit to answer customer questions and build trust.
+                Each demo shows both the public-facing Orbit experience AND the backend admin view.
               </p>
             </motion.div>
 
@@ -368,19 +368,33 @@ export default function MarketingHome() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   data-testid={`card-demo-hero-${demo.slug}`}
                 >
-                  <Link href={`/orbit/${demo.slug}`}>
-                    <div className="group p-5 rounded-2xl bg-[#1a1b2e]/50 border border-white/10 hover:border-[#ff4d8f]/50 transition-all cursor-pointer h-full">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${demo.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                        <demo.icon className="w-6 h-6 text-white" />
-                      </div>
-                      <h3 className="text-lg font-bold mb-1 group-hover:text-[#ff4d8f] transition-colors">{demo.name}</h3>
-                      <p className="text-slate-400 text-sm leading-relaxed mb-3">{demo.description}</p>
-                      <div className="flex items-center gap-2 text-[#ff4d8f] text-sm font-medium">
-                        <span>Try it now</span>
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </div>
+                  <div className="p-5 rounded-2xl bg-[#1a1b2e]/50 border border-white/10 h-full flex flex-col">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${demo.color} flex items-center justify-center mb-3`}>
+                      <demo.icon className="w-6 h-6 text-white" />
                     </div>
-                  </Link>
+                    <h3 className="text-lg font-bold mb-1">{demo.name}</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed mb-4 flex-1">{demo.description}</p>
+                    <div className="space-y-2">
+                      <Link href={`/orbit/${demo.slug}`}>
+                        <Button 
+                          className="w-full bg-gradient-to-r from-[#ff6b4a] to-[#ff4d8f] hover:opacity-90 text-white border-0 text-sm"
+                          data-testid={`button-front-${demo.slug}`}
+                        >
+                          View Orbit Front
+                        </Button>
+                      </Link>
+                      <Link href={`/orbit/${demo.slug}/demo`}>
+                        <Button 
+                          variant="outline"
+                          className="w-full text-white border-white/20 hover:bg-white/10 text-sm"
+                          data-testid={`button-backend-${demo.slug}`}
+                        >
+                          <Briefcase className="w-4 h-4 mr-2" />
+                          Try Orbit Backend Demo
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
                 </motion.div>
               ))}
             </div>

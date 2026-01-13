@@ -224,36 +224,22 @@ export default function DemoOrbitsPage() {
                           <Link href={`/orbit/${demo.slug}`} className="w-full">
                             <Button 
                               className="w-full bg-gradient-to-r from-[#ff6b4a] to-[#ff4d8f] hover:opacity-90 text-white border-0"
-                              data-testid={`button-launch-${demo.id}`}
+                              data-testid={`button-front-${demo.id}`}
                             >
                               <Eye className="mr-2 w-4 h-4" />
-                              Public Experience
+                              View Orbit Front
                             </Button>
                           </Link>
-                          <div className="flex gap-2 w-full">
-                            <Link href={`/orbit/${demo.slug}?view=business`} className="flex-1">
-                              <Button 
-                                variant="outline"
-                                className="w-full text-white border-white/20 hover:bg-white/10"
-                                size="sm"
-                                data-testid={`button-business-view-${demo.id}`}
-                              >
-                                <Briefcase className="mr-1.5 w-3.5 h-3.5" />
-                                Business
-                              </Button>
-                            </Link>
-                            <Link href={`/orbit/${demo.slug}?view=intelligence`} className="flex-1">
-                              <Button 
-                                variant="outline"
-                                className="w-full text-white border-white/20 hover:bg-white/10"
-                                size="sm"
-                                data-testid={`button-intelligence-view-${demo.id}`}
-                              >
-                                <Brain className="mr-1.5 w-3.5 h-3.5" />
-                                Intelligence
-                              </Button>
-                            </Link>
-                          </div>
+                          <Link href={`/orbit/${demo.slug}/demo`} className="w-full">
+                            <Button 
+                              variant="outline"
+                              className="w-full text-white border-white/20 hover:bg-white/10"
+                              data-testid={`button-backend-${demo.id}`}
+                            >
+                              <Briefcase className="mr-2 w-4 h-4" />
+                              Try Orbit Backend Demo
+                            </Button>
+                          </Link>
                         </>
                       ) : (
                         <Button 
