@@ -184,7 +184,7 @@ export default function MarketingHome() {
               <img 
                 src={businessOrbitLogo} 
                 alt="Business Orbit" 
-                className="h-14 w-auto object-contain"
+                className="h-28 w-auto object-contain"
               />
             </div>
           </Link>
@@ -631,7 +631,7 @@ export default function MarketingHome() {
                   <img 
                     src={businessOrbitLogo} 
                     alt="Business Orbit" 
-                    className="h-14 w-auto object-contain"
+                    className="h-28 w-auto object-contain"
                   />
                 </div>
                 <p className="text-slate-500 text-sm">
