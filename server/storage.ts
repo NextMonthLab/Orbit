@@ -349,6 +349,21 @@ export interface IStorage {
   getVisualCorrectionRequests(orbitId: number, status?: 'pending' | 'applied' | 'rejected'): Promise<schema.VisualCorrectionRequest[]>;
   updateVisualCorrectionRequest(id: number, data: Partial<schema.InsertVisualCorrectionRequest>): Promise<schema.VisualCorrectionRequest | undefined>;
 
+  // Phase 4: Scoped Node Refinement
+  createScopedConversation(data: schema.InsertScopedConversation): Promise<schema.ScopedConversation>;
+  getScopedConversation(id: number): Promise<schema.ScopedConversation | undefined>;
+  getScopedConversationForNode(businessSlug: string, ownerId: number, nodeIdentifier?: string, tileId?: number): Promise<schema.ScopedConversation | undefined>;
+  getScopedConversations(businessSlug: string, ownerId: number): Promise<schema.ScopedConversation[]>;
+  updateScopedConversation(id: number, data: Partial<schema.InsertScopedConversation>): Promise<schema.ScopedConversation | undefined>;
+  
+  addScopedMessage(data: schema.InsertScopedMessage): Promise<schema.ScopedMessage>;
+  getScopedMessages(conversationId: number): Promise<schema.ScopedMessage[]>;
+  
+  createNodeRefinement(data: schema.InsertNodeRefinement): Promise<schema.NodeRefinement>;
+  getNodeRefinements(businessSlug: string, nodeIdentifier?: string, tileId?: number): Promise<schema.NodeRefinement[]>;
+  getAppliedNodeRefinements(businessSlug: string): Promise<schema.NodeRefinement[]>;
+  updateNodeRefinement(id: number, data: Partial<schema.InsertNodeRefinement>): Promise<schema.NodeRefinement | undefined>;
+
   // Phase 2: Orbit Insights Summary
   getOrbitInsightsSummary(businessSlug: string): Promise<schema.OrbitInsightsSummary | undefined>;
   upsertOrbitInsightsSummary(data: schema.InsertOrbitInsightsSummary): Promise<schema.OrbitInsightsSummary>;
@@ -2795,6 +2810,135 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.visualCorrectionRequests.id, id))
       .returning();
     return request;
+  }
+
+  // Phase 4: Scoped Node Refinement
+  async createScopedConversation(data: schema.InsertScopedConversation): Promise<schema.ScopedConversation> {
+    const [conversation] = await db.insert(schema.scopedConversations).values(data).returning();
+    return conversation;
+  }
+
+  async getScopedConversation(id: number): Promise<schema.ScopedConversation | undefined> {
+    return db.query.scopedConversations.findFirst({
+      where: eq(schema.scopedConversations.id, id),
+    });
+  }
+
+  async getScopedConversationForNode(businessSlug: string, ownerId: number, nodeIdentifier?: string, tileId?: number): Promise<schema.ScopedConversation | undefined> {
+    if (tileId) {
+      return db.query.scopedConversations.findFirst({
+        where: and(
+          eq(schema.scopedConversations.businessSlug, businessSlug),
+          eq(schema.scopedConversations.ownerId, ownerId),
+          eq(schema.scopedConversations.tileId, tileId),
+          eq(schema.scopedConversations.isActive, true)
+        ),
+        orderBy: [desc(schema.scopedConversations.lastMessageAt)],
+      });
+    }
+    if (nodeIdentifier) {
+      return db.query.scopedConversations.findFirst({
+        where: and(
+          eq(schema.scopedConversations.businessSlug, businessSlug),
+          eq(schema.scopedConversations.ownerId, ownerId),
+          eq(schema.scopedConversations.nodeIdentifier, nodeIdentifier),
+          eq(schema.scopedConversations.isActive, true)
+        ),
+        orderBy: [desc(schema.scopedConversations.lastMessageAt)],
+      });
+    }
+    return undefined;
+  }
+
+  async getScopedConversations(businessSlug: string, ownerId: number): Promise<schema.ScopedConversation[]> {
+    return db.query.scopedConversations.findMany({
+      where: and(
+        eq(schema.scopedConversations.businessSlug, businessSlug),
+        eq(schema.scopedConversations.ownerId, ownerId)
+      ),
+      orderBy: [desc(schema.scopedConversations.lastMessageAt)],
+    });
+  }
+
+  async updateScopedConversation(id: number, data: Partial<schema.InsertScopedConversation>): Promise<schema.ScopedConversation | undefined> {
+    const [conversation] = await db.update(schema.scopedConversations)
+      .set({ ...data, lastMessageAt: new Date() })
+      .where(eq(schema.scopedConversations.id, id))
+      .returning();
+    return conversation;
+  }
+
+  async addScopedMessage(data: schema.InsertScopedMessage): Promise<schema.ScopedMessage> {
+    const [message] = await db.insert(schema.scopedMessages).values(data).returning();
+    // Update conversation message count
+    await db.update(schema.scopedConversations)
+      .set({ 
+        messageCount: sql`${schema.scopedConversations.messageCount} + 1`,
+        lastMessageAt: new Date()
+      })
+      .where(eq(schema.scopedConversations.id, data.conversationId));
+    return message;
+  }
+
+  async getScopedMessages(conversationId: number): Promise<schema.ScopedMessage[]> {
+    return db.query.scopedMessages.findMany({
+      where: eq(schema.scopedMessages.conversationId, conversationId),
+      orderBy: [asc(schema.scopedMessages.createdAt)],
+    });
+  }
+
+  async createNodeRefinement(data: schema.InsertNodeRefinement): Promise<schema.NodeRefinement> {
+    const [refinement] = await db.insert(schema.nodeRefinements).values(data).returning();
+    // Update conversation refinement count if linked
+    if (data.conversationId) {
+      await db.update(schema.scopedConversations)
+        .set({ refinementsCount: sql`${schema.scopedConversations.refinementsCount} + 1` })
+        .where(eq(schema.scopedConversations.id, data.conversationId));
+    }
+    return refinement;
+  }
+
+  async getNodeRefinements(businessSlug: string, nodeIdentifier?: string, tileId?: number): Promise<schema.NodeRefinement[]> {
+    if (tileId) {
+      return db.query.nodeRefinements.findMany({
+        where: and(
+          eq(schema.nodeRefinements.businessSlug, businessSlug),
+          eq(schema.nodeRefinements.tileId, tileId)
+        ),
+        orderBy: [desc(schema.nodeRefinements.createdAt)],
+      });
+    }
+    if (nodeIdentifier) {
+      return db.query.nodeRefinements.findMany({
+        where: and(
+          eq(schema.nodeRefinements.businessSlug, businessSlug),
+          eq(schema.nodeRefinements.nodeIdentifier, nodeIdentifier)
+        ),
+        orderBy: [desc(schema.nodeRefinements.createdAt)],
+      });
+    }
+    return db.query.nodeRefinements.findMany({
+      where: eq(schema.nodeRefinements.businessSlug, businessSlug),
+      orderBy: [desc(schema.nodeRefinements.createdAt)],
+    });
+  }
+
+  async getAppliedNodeRefinements(businessSlug: string): Promise<schema.NodeRefinement[]> {
+    return db.query.nodeRefinements.findMany({
+      where: and(
+        eq(schema.nodeRefinements.businessSlug, businessSlug),
+        eq(schema.nodeRefinements.status, 'applied')
+      ),
+      orderBy: [desc(schema.nodeRefinements.appliedAt)],
+    });
+  }
+
+  async updateNodeRefinement(id: number, data: Partial<schema.InsertNodeRefinement>): Promise<schema.NodeRefinement | undefined> {
+    const [refinement] = await db.update(schema.nodeRefinements)
+      .set(data)
+      .where(eq(schema.nodeRefinements.id, id))
+      .returning();
+    return refinement;
   }
 
   // Phase 2: Orbit Insights Summary

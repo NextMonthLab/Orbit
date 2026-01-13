@@ -8914,6 +8914,247 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
     }
   });
 
+  // ============ PHASE 4: SCOPED NODE REFINEMENT ENDPOINTS ============
+
+  // GET /api/orbit/:slug/scoped - Get all scoped conversations for owner
+  app.get("/api/orbit/:slug/scoped", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user as any;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const conversations = await storage.getScopedConversations(slug, user.id);
+      res.json({ conversations });
+      
+    } catch (error) {
+      console.error("Error fetching scoped conversations:", error);
+      res.status(500).json({ message: "Error fetching scoped conversations" });
+    }
+  });
+
+  // GET /api/orbit/:slug/scoped/:nodeId - Get or create scoped conversation for a node
+  app.get("/api/orbit/:slug/scoped/:nodeId", requireAuth, async (req, res) => {
+    try {
+      const { slug, nodeId } = req.params;
+      const { nodeLabel } = req.query;
+      const user = req.user as any;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      // Determine if nodeId is numeric (tile ID) or string (node identifier)
+      const parsedTileId = parseInt(nodeId, 10);
+      const tileId = !isNaN(parsedTileId) ? parsedTileId : undefined;
+      const nodeIdentifier = isNaN(parsedTileId) ? nodeId : undefined;
+      
+      // Try to find existing active conversation
+      let conversation = await storage.getScopedConversationForNode(
+        slug, user.id, nodeIdentifier, tileId
+      );
+      
+      // If no active conversation, create one
+      if (!conversation && nodeLabel) {
+        conversation = await storage.createScopedConversation({
+          businessSlug: slug,
+          ownerId: user.id,
+          tileId: tileId || null,
+          nodeIdentifier: nodeIdentifier || null,
+          nodeLabel: nodeLabel as string,
+          messageCount: 0,
+          refinementsCount: 0,
+          isActive: true,
+        });
+      }
+      
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found and no label provided to create" });
+      }
+      
+      // Get messages for the conversation
+      const messages = await storage.getScopedMessages(conversation.id);
+      
+      // Get refinements for this node
+      const refinements = await storage.getNodeRefinements(slug, nodeIdentifier, tileId);
+      
+      res.json({ conversation, messages, refinements });
+      
+    } catch (error) {
+      console.error("Error fetching scoped conversation:", error);
+      res.status(500).json({ message: "Error fetching scoped conversation" });
+    }
+  });
+
+  // POST /api/orbit/:slug/scoped/:conversationId/message - Send message in scoped conversation
+  app.post("/api/orbit/:slug/scoped/:conversationId/message", requireAuth, async (req, res) => {
+    try {
+      const { slug, conversationId } = req.params;
+      const { content } = req.body;
+      const user = req.user as any;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const conversation = await storage.getScopedConversation(parseInt(conversationId));
+      if (!conversation || conversation.ownerId !== user.id) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Add owner message
+      const ownerMessage = await storage.addScopedMessage({
+        conversationId: conversation.id,
+        role: 'owner',
+        content,
+        messageType: 'chat',
+      });
+      
+      // Generate Orbit response using scoped chat service
+      const { generateScopedChatResponse } = await import('./services/orbitChatService');
+      const orbitResponse = await generateScopedChatResponse(
+        slug,
+        conversation,
+        content,
+        orbitMeta
+      );
+      
+      // Add Orbit message
+      const orbitMessage = await storage.addScopedMessage({
+        conversationId: conversation.id,
+        role: 'orbit',
+        content: orbitResponse.content,
+        messageType: orbitResponse.messageType || 'chat',
+      });
+      
+      // If a refinement was detected, create it and return the saved record with ID
+      let savedRefinement = null;
+      if (orbitResponse.refinement) {
+        savedRefinement = await storage.createNodeRefinement({
+          businessSlug: slug,
+          ownerId: user.id,
+          conversationId: conversation.id,
+          messageId: ownerMessage.id,
+          tileId: conversation.tileId,
+          nodeIdentifier: conversation.nodeIdentifier,
+          nodeLabel: conversation.nodeLabel,
+          refinementType: orbitResponse.refinement.type,
+          scope: orbitResponse.refinement.scope || 'local',
+          status: orbitResponse.refinement.requiresConfirmation ? 'tentative' : 'applied',
+          previousState: orbitResponse.refinement.previousState,
+          refinedState: orbitResponse.refinement.refinedState,
+          ownerIntent: content,
+        });
+      }
+      
+      res.json({ 
+        ownerMessage, 
+        orbitMessage,
+        refinement: savedRefinement,
+        scopeWarning: orbitResponse.scopeWarning,
+      });
+      
+    } catch (error) {
+      console.error("Error sending scoped message:", error);
+      res.status(500).json({ message: "Error sending message" });
+    }
+  });
+
+  // GET /api/orbit/:slug/refinements - Get all refinements for an orbit
+  app.get("/api/orbit/:slug/refinements", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { status } = req.query;
+      const user = req.user as any;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const refinements = status === 'applied' 
+        ? await storage.getAppliedNodeRefinements(slug)
+        : await storage.getNodeRefinements(slug);
+      
+      res.json({ refinements });
+      
+    } catch (error) {
+      console.error("Error fetching refinements:", error);
+      res.status(500).json({ message: "Error fetching refinements" });
+    }
+  });
+
+  // PATCH /api/orbit/:slug/refinements/:refinementId - Update refinement status
+  app.patch("/api/orbit/:slug/refinements/:refinementId", requireAuth, async (req, res) => {
+    try {
+      const { slug, refinementId } = req.params;
+      const { status, scope } = req.body;
+      const user = req.user as any;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const updates: any = {};
+      if (status) {
+        updates.status = status;
+        if (status === 'confirmed') updates.confirmedAt = new Date();
+        if (status === 'applied') updates.appliedAt = new Date();
+        if (status === 'reverted') updates.revertedAt = new Date();
+      }
+      if (scope) updates.scope = scope;
+      
+      const refinement = await storage.updateNodeRefinement(parseInt(refinementId), updates);
+      
+      res.json({ refinement });
+      
+    } catch (error) {
+      console.error("Error updating refinement:", error);
+      res.status(500).json({ message: "Error updating refinement" });
+    }
+  });
+
   // Orbit Data Hub - Get analytics summary (owner only for full data, public for counts)
   app.get("/api/orbit/:slug/hub", async (req, res) => {
     try {

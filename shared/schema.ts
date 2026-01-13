@@ -3478,6 +3478,113 @@ export const insertVisualCorrectionRequestSchema = createInsertSchema(visualCorr
 export type InsertVisualCorrectionRequest = z.infer<typeof insertVisualCorrectionRequestSchema>;
 export type VisualCorrectionRequest = typeof visualCorrectionRequests.$inferSelect;
 
+// ============ PHASE 4: SCOPED NODE REFINEMENT LAYER ============
+// Focused refinement of individual knowledge nodes without global drift
+
+// Refinement scope - whether changes apply locally or more broadly
+export type RefinementScope = 'local' | 'similar_nodes' | 'global';
+
+// Refinement type - what aspect of the node is being refined
+export type RefinementType = 
+  | 'emphasis'         // How prominent/important this is
+  | 'framing'          // How it should be described/positioned
+  | 'audience'         // Who this is for
+  | 'relationship'     // How it relates to other nodes
+  | 'meaning'          // Core definition/understanding
+  | 'timing';          // Seasonal, temporary, permanent
+
+// Refinement status
+export type RefinementStatus = 
+  | 'tentative'        // Exploring, not committed
+  | 'confirmed'        // Owner confirmed the change
+  | 'applied'          // Applied to Orbit's understanding
+  | 'reverted';        // Owner undid the change
+
+// Scoped Conversations - focused dialogues about specific nodes
+export const scopedConversations = pgTable("scoped_conversations", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug).notNull(),
+  ownerId: integer("owner_id").references(() => users.id).notNull(),
+  
+  // The node being refined (tile ID or knowledge item identifier)
+  tileId: integer("tile_id").references(() => topicTiles.id, { onDelete: "cascade" }),
+  nodeIdentifier: text("node_identifier"), // For non-tile nodes like "faq:shipping-policy"
+  nodeLabel: text("node_label").notNull(), // Human-readable label for the node
+  
+  // Conversation state
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  lastMessageAt: timestamp("last_message_at").defaultNow().notNull(),
+  messageCount: integer("message_count").default(0).notNull(),
+  
+  // Summary of refinements made in this conversation
+  refinementsCount: integer("refinements_count").default(0).notNull(),
+  
+  // Whether the conversation is still active
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+export const insertScopedConversationSchema = createInsertSchema(scopedConversations).omit({ id: true, startedAt: true, lastMessageAt: true });
+export type InsertScopedConversation = z.infer<typeof insertScopedConversationSchema>;
+export type ScopedConversation = typeof scopedConversations.$inferSelect;
+
+// Scoped Messages - messages within a node-focused conversation
+export const scopedMessages = pgTable("scoped_messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").references(() => scopedConversations.id, { onDelete: "cascade" }).notNull(),
+  
+  role: text("role").notNull(), // 'owner' | 'orbit'
+  content: text("content").notNull(),
+  
+  // Message type for tracking refinement flow
+  messageType: text("message_type").$type<'chat' | 'interrogation' | 'refinement' | 'confirmation' | 'experiment'>().default('chat').notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertScopedMessageSchema = createInsertSchema(scopedMessages).omit({ id: true, createdAt: true });
+export type InsertScopedMessage = z.infer<typeof insertScopedMessageSchema>;
+export type ScopedMessage = typeof scopedMessages.$inferSelect;
+
+// Node Refinements - persistent record of refinements made to nodes
+export const nodeRefinements = pgTable("node_refinements", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug).notNull(),
+  ownerId: integer("owner_id").references(() => users.id).notNull(),
+  conversationId: integer("conversation_id").references(() => scopedConversations.id),
+  messageId: integer("message_id").references(() => scopedMessages.id),
+  
+  // Target node
+  tileId: integer("tile_id").references(() => topicTiles.id, { onDelete: "cascade" }),
+  nodeIdentifier: text("node_identifier"),
+  nodeLabel: text("node_label").notNull(),
+  
+  // Refinement details
+  refinementType: text("refinement_type").$type<RefinementType>().notNull(),
+  scope: text("scope").$type<RefinementScope>().default('local').notNull(),
+  status: text("status").$type<RefinementStatus>().default('tentative').notNull(),
+  
+  // Before/after understanding
+  previousState: text("previous_state"), // What Orbit understood before
+  refinedState: text("refined_state").notNull(), // What owner wants it to be
+  
+  // Owner's exact words that triggered this
+  ownerIntent: text("owner_intent").notNull(),
+  
+  // If scope expanded beyond local, list affected nodes
+  affectedNodeIds: integer("affected_node_ids").array(),
+  affectedNodeIdentifiers: text("affected_node_identifiers").array(),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  confirmedAt: timestamp("confirmed_at"),
+  appliedAt: timestamp("applied_at"),
+  revertedAt: timestamp("reverted_at"),
+});
+
+export const insertNodeRefinementSchema = createInsertSchema(nodeRefinements).omit({ id: true, createdAt: true });
+export type InsertNodeRefinement = z.infer<typeof insertNodeRefinementSchema>;
+export type NodeRefinement = typeof nodeRefinements.$inferSelect;
+
 // ============ PULSE MONITORING SYSTEM ============
 // Monitors industry sources for events and updates
 

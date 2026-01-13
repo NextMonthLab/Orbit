@@ -1,9 +1,10 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Image, Focus } from "lucide-react";
 import { ChatHub, type ChatResponse } from "./ChatHub";
 import { KnowledgeTile } from "./KnowledgeTile";
 import { VisualPane } from "./VisualPane";
+import { ScopedRefinementPane } from "./ScopedRefinementPane";
 import type { SiteKnowledge, AnyKnowledgeItem } from "@/lib/siteKnowledge";
 import { getAllItems, rankByRelevance, scoreRelevance } from "@/lib/siteKnowledge";
 import { ensureMessageBody, type EchoContext } from "@/lib/echoUtils";
@@ -75,6 +76,97 @@ interface RadarGridProps {
   onCreateIce?: (messageContent: string, messageIndex: number) => void;
   canCreateIce?: boolean;
   isOwnerMode?: boolean;
+}
+
+type OwnerPaneTab = 'refine' | 'visual';
+
+interface OwnerPaneProps {
+  isVisible: boolean;
+  selectedItem: AnyKnowledgeItem | null;
+  orbitSlug: string;
+  isOwnerMode: boolean;
+  onClose: () => void;
+}
+
+function OwnerPane({ isVisible, selectedItem, orbitSlug, isOwnerMode, onClose }: OwnerPaneProps) {
+  const [activeTab, setActiveTab] = useState<OwnerPaneTab>('refine');
+  
+  if (!isVisible) return null;
+  
+  const tileInfo = selectedItem ? {
+    id: selectedItem.id,
+    label: 'label' in selectedItem ? (selectedItem as any).label : undefined,
+    name: 'name' in selectedItem ? (selectedItem as any).name : undefined,
+    title: 'title' in selectedItem ? (selectedItem as any).title : undefined,
+  } : null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ x: 400, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: 400, opacity: 0 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="fixed right-0 top-0 h-full w-[400px] bg-zinc-900/95 backdrop-blur-sm border-l border-white/10 z-30 flex flex-col"
+        data-testid="owner-pane"
+      >
+        <div className="flex items-center justify-between p-3 border-b border-white/10">
+          <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
+            <button
+              onClick={() => setActiveTab('refine')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                activeTab === 'refine' 
+                  ? 'bg-white/15 text-white' 
+                  : 'text-white/50 hover:text-white/80'
+              }`}
+              data-testid="tab-refine"
+            >
+              <Focus className="w-3 h-3" />
+              Refine
+            </button>
+            <button
+              onClick={() => setActiveTab('visual')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                activeTab === 'visual' 
+                  ? 'bg-white/15 text-white' 
+                  : 'text-white/50 hover:text-white/80'
+              }`}
+              data-testid="tab-visual"
+            >
+              <Image className="w-3 h-3" />
+              Visual
+            </button>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white/40 hover:text-white/80 transition-colors"
+            data-testid="button-close-owner-pane"
+          >
+            <Plus className="w-4 h-4 rotate-45" />
+          </button>
+        </div>
+        
+        <div className="flex-1 relative overflow-hidden">
+          <div className={`absolute inset-0 ${activeTab === 'refine' ? 'visible' : 'invisible'}`}>
+            <ScopedRefinementPane
+              tile={tileInfo}
+              orbitSlug={orbitSlug}
+              isOwnerMode={isOwnerMode}
+              className="h-full"
+            />
+          </div>
+          <div className={`absolute inset-0 ${activeTab === 'visual' ? 'visible' : 'invisible'}`}>
+            <VisualPane
+              tile={tileInfo}
+              orbitSlug={orbitSlug}
+              isOwnerMode={isOwnerMode}
+              className="h-full"
+            />
+          </div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
 }
 
 function generateTilePositions(count: number, ringSpacing: number = 180): { x: number; y: number }[] {
@@ -627,41 +719,14 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
         Tiles move to reflect what we're talking about
       </div>
 
-      {/* Visual Pane - Owner mode only on desktop */}
-      {isOwnerMode && isDesktop && showVisualPane && (
-        <AnimatePresence>
-          <motion.div
-            initial={{ x: 320, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 320, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed right-0 top-0 h-full w-80 bg-zinc-900/95 backdrop-blur-sm border-l border-white/10 z-30"
-            data-testid="visual-pane"
-          >
-            <div className="flex items-center justify-between p-3 border-b border-white/10">
-              <span className="text-sm font-medium text-white/80">Visual Preview</span>
-              <button
-                onClick={() => setShowVisualPane(false)}
-                className="text-white/40 hover:text-white/80 transition-colors"
-                data-testid="button-close-visual-pane"
-              >
-                <Plus className="w-4 h-4 rotate-45" />
-              </button>
-            </div>
-            <VisualPane
-              tile={selectedItem ? {
-                id: selectedItem.id,
-                label: 'label' in selectedItem ? (selectedItem as any).label : undefined,
-                name: 'name' in selectedItem ? (selectedItem as any).name : undefined,
-                title: 'title' in selectedItem ? (selectedItem as any).title : undefined,
-              } : null}
-              orbitSlug={orbitSlug || ''}
-              isOwnerMode={isOwnerMode}
-              className="h-[calc(100%-52px)]"
-            />
-          </motion.div>
-        </AnimatePresence>
-      )}
+      {/* Owner Pane - Visual Preview + Scoped Refinement on desktop with tabs */}
+      <OwnerPane
+        isVisible={isOwnerMode && isDesktop && showVisualPane}
+        selectedItem={selectedItem}
+        orbitSlug={orbitSlug || ''}
+        isOwnerMode={isOwnerMode}
+        onClose={() => setShowVisualPane(false)}
+      />
     </div>
   );
 }

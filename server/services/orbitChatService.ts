@@ -830,3 +830,216 @@ export function parseVideoSuggestion(
     },
   };
 }
+
+// ============ PHASE 4: SCOPED NODE REFINEMENT ============
+
+export interface ScopedRefinement {
+  type: 'emphasis' | 'framing' | 'audience' | 'relationship' | 'meaning' | 'timing';
+  scope: 'local' | 'similar_nodes' | 'global';
+  previousState?: string;
+  refinedState: string;
+  requiresConfirmation?: boolean;
+}
+
+export interface ScopedChatResponse {
+  content: string;
+  messageType?: 'chat' | 'interrogation' | 'refinement' | 'confirmation' | 'experiment';
+  refinement?: ScopedRefinement;
+  scopeWarning?: string;
+}
+
+/**
+ * Generates a scoped chat response for node-specific refinement conversations.
+ * This is used when an owner is focused on refining a specific knowledge node.
+ */
+export async function generateScopedChatResponse(
+  businessSlug: string,
+  conversation: { nodeLabel: string; tileId: number | null; nodeIdentifier: string | null },
+  ownerMessage: string,
+  orbitMeta: { businessName: string | null; businessType: string | null }
+): Promise<ScopedChatResponse> {
+  const openai = new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
+
+  const systemPrompt = buildScopedSystemPrompt(
+    orbitMeta.businessName || businessSlug,
+    conversation.nodeLabel,
+    orbitMeta.businessType || 'business'
+  );
+
+  try {
+    // First, analyze if the message contains a refinement request
+    const analysis = await analyzeScopedMessage(ownerMessage, conversation.nodeLabel);
+    
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: ownerMessage }
+      ],
+      max_tokens: 500,
+      temperature: 0.7,
+    });
+
+    const content = completion.choices[0]?.message?.content || "I understand. Let me process that.";
+
+    const response: ScopedChatResponse = {
+      content,
+      messageType: analysis.messageType,
+    };
+
+    // If a refinement was detected, include it
+    if (analysis.isRefinement && analysis.refinement) {
+      response.refinement = analysis.refinement;
+      
+      // Check if this could affect other nodes
+      if (analysis.potentialCrossNodeImpact) {
+        response.scopeWarning = `This change might also affect similar areas. Should I apply it only to "${conversation.nodeLabel}", or across similar services?`;
+        if (response.refinement) {
+          response.refinement.requiresConfirmation = true;
+        }
+      }
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Error generating scoped chat response:', error);
+    return {
+      content: "I'm having trouble processing that. Could you rephrase what you'd like to refine about this area?",
+      messageType: 'chat',
+    };
+  }
+}
+
+function buildScopedSystemPrompt(businessName: string, nodeLabel: string, businessType: string): string {
+  return `You are Orbit, the internal intelligence for ${businessName}. You are currently in SCOPED REFINEMENT MODE, focused specifically on: "${nodeLabel}".
+
+## Current Focus
+We're focusing on one part of your business right now: "${nodeLabel}"
+I'll keep the rest in mind, but this conversation only affects this node unless you tell me otherwise.
+
+## Your Behavior
+You are a context-aware collaborator helping the owner precisely refine how "${nodeLabel}" is understood and presented.
+
+1. **Node-specific interrogation**: When the owner asks questions about "${nodeLabel}", answer only within that context. Examples you can handle:
+   - "How do you currently describe this?"
+   - "Why do you think this is important?"
+   - "What questions do people ask about this?"
+
+2. **Precision refinement**: Accept refinement requests about meaning, not mechanics:
+   - "This should feel more premium"
+   - "This is secondary, not core"
+   - "This is seasonal"
+   - "Frame this as an outcome, not a feature"
+   - "This should appeal to X, not Y"
+
+3. **Safe experimentation**: Allow tentative exploration:
+   - "What if this was positioned differently?"
+   - "How would this look if it were less prominent?"
+   You may simulate or explain outcomes without committing changes.
+
+## Scope Awareness
+- Default: Changes apply only to "${nodeLabel}" (local scope)
+- If a change could affect similar nodes, ask before widening the scope
+- Never silently propagate changes to other areas
+
+## Response Style
+- Be a senior strategist: careful, explicit, calm, precise
+- Acknowledge the owner's intent before reflecting your understanding
+- Never surprise the owner
+- Never be defensive
+- Express uncertainty honestly: "I'm not confident about that yet"
+
+## What NOT to Do
+- Never suggest automation or analytics-driven nudges
+- Never offer batch edits across nodes without confirmation
+- Never suggest structural hierarchy changes
+- Never allow visual layout controls
+- If asked for proactive advice, say: "I can do that once refinement is complete and you're happy with how everything is positioned."
+
+Remember: The owner is shaping meaning, not managing software.`;
+}
+
+interface ScopedMessageAnalysis {
+  messageType: 'chat' | 'interrogation' | 'refinement' | 'confirmation' | 'experiment';
+  isRefinement: boolean;
+  refinement?: ScopedRefinement;
+  potentialCrossNodeImpact: boolean;
+}
+
+async function analyzeScopedMessage(
+  message: string,
+  nodeLabel: string
+): Promise<ScopedMessageAnalysis> {
+  const openai = new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
+
+  const analysisPrompt = `Analyze this message from a business owner who is refining their understanding of "${nodeLabel}":
+
+Message: "${message}"
+
+Classify the message and detect any refinement intent. Respond in JSON:
+{
+  "messageType": "chat" | "interrogation" | "refinement" | "confirmation" | "experiment",
+  "isRefinement": boolean,
+  "refinementType": "emphasis" | "framing" | "audience" | "relationship" | "meaning" | "timing" | null,
+  "previousState": "what the owner thinks is currently understood (if refinement)",
+  "refinedState": "what the owner wants it to be (if refinement)",
+  "potentialCrossNodeImpact": boolean
+}
+
+Message types:
+- interrogation: Owner is asking how Orbit understands this node
+- refinement: Owner is adjusting meaning/emphasis/framing
+- experiment: Owner is exploring "what if" scenarios
+- confirmation: Owner is confirming a previous change
+- chat: General conversation
+
+Refinement types:
+- emphasis: How prominent/important this is
+- framing: How it should be described/positioned
+- audience: Who this is for
+- relationship: How it relates to other nodes
+- meaning: Core definition/understanding
+- timing: Seasonal, temporary, permanent
+
+Set potentialCrossNodeImpact=true if the refinement could logically apply to similar nodes (e.g., "all services should feel premium").`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'Analyze refinement intent. Respond only with valid JSON.' },
+        { role: 'user', content: analysisPrompt }
+      ],
+      max_tokens: 300,
+      temperature: 0.1,
+    });
+
+    const response = completion.choices[0]?.message?.content || '{}';
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        messageType: parsed.messageType || 'chat',
+        isRefinement: parsed.isRefinement || false,
+        refinement: parsed.isRefinement ? {
+          type: parsed.refinementType,
+          scope: 'local',
+          previousState: parsed.previousState,
+          refinedState: parsed.refinedState,
+        } : undefined,
+        potentialCrossNodeImpact: parsed.potentialCrossNodeImpact || false,
+      };
+    }
+    return { messageType: 'chat', isRefinement: false, potentialCrossNodeImpact: false };
+  } catch (error) {
+    console.error('Error analyzing scoped message:', error);
+    return { messageType: 'chat', isRefinement: false, potentialCrossNodeImpact: false };
+  }
+}
