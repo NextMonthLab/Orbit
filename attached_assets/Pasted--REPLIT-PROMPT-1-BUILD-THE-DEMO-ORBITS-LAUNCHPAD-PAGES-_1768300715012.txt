@@ -1,0 +1,142 @@
+# REPLIT PROMPT 1 — BUILD THE DEMO ORBITS LAUNCHPAD (PAGES + ROUTES + SHELL)
+# Phase 2: Scaffold the public demo page and the demo launch shell (no real demo data yet)
+
+## Goal
+Implement the public-facing **Flagship Demo Orbits launchpad** so visitors can:
+1) browse curated demo Orbit cards, and
+2) click **Launch Demo** to enter a dedicated demo route that bypasses the normal Orbit creation / ingestion UI.
+
+This phase must feel premium and finished, but the demo Orbits themselves can remain placeholders.
+
+## Non-negotiables
+- Do NOT touch or refactor the normal Orbit creation / ingestion UI.
+- Do NOT implement ingestion.
+- Do NOT implement full chat or real datasets.
+- This is purely routing + UI scaffolding + placeholder shell.
+
+## Routes to add
+Create these routes (match existing router conventions and folder structure):
+1) `/orbits/demos`
+   - Public demo listing page
+
+2) `/orbit/demo/:demoId`
+   - Public demo launch route
+   - Loads a placeholder "Demo Orbit Shell" for now
+
+If the app already uses a different naming pattern (singular/plural), align to it, but keep the intent identical.
+
+## Page 1: Demo Orbits Listing
+Create a new page/component: `DemoOrbitsPage`
+
+### Requirements
+- Hero section:
+  - Title: **Flagship Demo Orbits**
+  - Subtitle: something like:
+    “Explore fully curated demo Orbits that show what your business could feel like with NextMonth.”
+  - Primary CTA button: **Launch a Demo**
+    - Scrolls to the demo grid or focuses the demo list
+
+- Demo grid:
+  - Premium card layout (not admin style)
+  - Each card shows:
+    - Name
+    - Sector tag (Food, Professional Services, Ecommerce, Healthcare, Property)
+    - One-line positioning
+    - Status badge: Coming Soon (for now)
+    - Primary button: **Launch Demo**
+    - Secondary link/button: **What can Orbit do?** (link to an existing marketing page if present, otherwise route to `/` for now)
+
+- Filtering (lightweight, optional but ideal):
+  - Simple filter chips for the sectors
+  - If this is too much for now, skip it, but structure the UI so it can be added later without a redesign.
+
+## Demo list fixture (placeholder data only)
+Create a fixture file that powers the listing page. Use the simplest structure now so we can expand later.
+
+Suggested location:
+- `client/src/data/demoOrbits.ts` (or wherever your existing app keeps fixtures)
+
+Export an array like:
+
+[
+  {
+    id: "slice-and-stone",
+    name: "Slice & Stone Pizza",
+    sector: "Food",
+    tagline: "Artisan pizza delivery with obsessive operational transparency.",
+    location: "Bristol",
+    status: "coming_soon"
+  },
+  {
+    id: "clarity-accountants",
+    name: "Clarity Chartered Accountants",
+    sector: "Professional Services",
+    tagline: "Fixed-fee accountancy with radical transparency on pricing and process.",
+    location: "Leeds (UK-wide remote)",
+    status: "coming_soon"
+  },
+  {
+    id: "techvault-uk",
+    name: "TechVault UK",
+    sector: "Ecommerce",
+    tagline: "Refurbished tech with grade transparency and buying confidence tools.",
+    location: "Manchester (UK-wide delivery)",
+    status: "coming_soon"
+  },
+  {
+    id: "fernwood-dental",
+    name: "Fernwood Dental Practice",
+    sector: "Healthcare",
+    tagline: "NHS + private dental care with treatment transparency and booking simplicity.",
+    location: "Nottingham",
+    status: "coming_soon"
+  },
+  {
+    id: "greenway-lettings",
+    name: "Greenway Property Lettings",
+    sector: "Property",
+    tagline: "Lettings agency with landlord and tenant transparency.",
+    location: "Oxford",
+    status: "coming_soon"
+  }
+]
+
+The page must render from this fixture.
+
+## Page 2: Demo Orbit Shell
+Create a new page/component: `DemoOrbitShellPage` for route `/orbit/demo/:demoId`
+
+### Behaviour
+- Read `demoId` from the route params.
+- Look up the demo in `demoOrbits.ts`.
+- If not found:
+  - Show a friendly "Demo not found" state
+  - Provide a button: **Back to Demo Orbits** (routes to `/orbits/demos`)
+
+### Shell UI (premium placeholder)
+Display:
+- Demo name, sector, location, tagline
+- A clear placeholder block that says:
+  “This is a curated demo Orbit. The full dataset-backed experience will load here next.”
+
+Include 3 placeholder tiles/buttons (non-functional for now):
+- Overview
+- Explore Knowledge
+- Ask the Orbit (Coming Soon)
+
+And a small note (dev-friendly but user-safe):
+- “This demo bypasses Orbit creation and ingestion.”
+
+## Acceptance Criteria (must satisfy)
+- `/orbits/demos` exists and renders a premium demo listing grid from the fixture file
+- Every card has a **Launch Demo** button that routes to `/orbit/demo/:demoId`
+- `/orbit/demo/:demoId` renders the correct placeholder shell based on the fixture lookup
+- Unknown demoId shows a friendly not-found state with navigation back
+- No changes to ingestion or normal Orbit creation flows
+- No large datasets, no chat implementation yet
+
+## Deliverables
+After implementation, output:
+1) Files created/modified
+2) The exact routes added
+3) Confirmation that standard Orbit creation/ingestion flow remains unchanged

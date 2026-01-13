@@ -1,37 +1,65 @@
 export type DemoOrbitStatus = 'coming_soon' | 'live';
 
+export type DemoSector = 'Food' | 'Professional Services' | 'Ecommerce' | 'Healthcare' | 'Property';
+
 export interface DemoOrbit {
   id: string;
   name: string;
-  industry: string;
+  sector: DemoSector;
   tagline: string;
+  location: string;
   status: DemoOrbitStatus;
 }
 
 export const demoOrbits: DemoOrbit[] = [
   {
-    id: "pizza-01",
-    name: "Banbury Pizza Co.",
-    industry: "Takeaway",
-    tagline: "A menu you can talk to: delivery, allergens, offers, the lot.",
+    id: "slice-and-stone",
+    name: "Slice & Stone Pizza",
+    sector: "Food",
+    tagline: "Artisan pizza delivery with obsessive operational transparency.",
+    location: "Bristol",
     status: "coming_soon"
   },
   {
-    id: "accountancy-01",
-    name: "Summit Accountants",
-    industry: "Professional Services",
-    tagline: "Services, onboarding, pricing, timelines – instantly clear.",
+    id: "clarity-accountants",
+    name: "Clarity Chartered Accountants",
+    sector: "Professional Services",
+    tagline: "Fixed-fee accountancy with radical transparency on pricing and process.",
+    location: "Leeds (UK-wide remote)",
     status: "coming_soon"
   },
   {
-    id: "techshop-01",
-    name: "Northside Tech",
-    industry: "Ecommerce",
-    tagline: "Compare devices, warranties, returns, delivery, finance – properly.",
+    id: "techvault-uk",
+    name: "TechVault UK",
+    sector: "Ecommerce",
+    tagline: "Refurbished tech with grade transparency and buying confidence tools.",
+    location: "Manchester (UK-wide delivery)",
+    status: "coming_soon"
+  },
+  {
+    id: "fernwood-dental",
+    name: "Fernwood Dental Practice",
+    sector: "Healthcare",
+    tagline: "NHS + private dental care with treatment transparency and booking simplicity.",
+    location: "Nottingham",
+    status: "coming_soon"
+  },
+  {
+    id: "greenway-lettings",
+    name: "Greenway Property Lettings",
+    sector: "Property",
+    tagline: "Lettings agency with landlord and tenant transparency.",
+    location: "Oxford",
     status: "coming_soon"
   }
 ];
 
+export const sectors: DemoSector[] = ['Food', 'Professional Services', 'Ecommerce', 'Healthcare', 'Property'];
+
 export function getDemoOrbitById(id: string): DemoOrbit | undefined {
   return demoOrbits.find(demo => demo.id === id);
+}
+
+export function getDemoOrbitsBySector(sector: DemoSector): DemoOrbit[] {
+  return demoOrbits.filter(demo => demo.sector === sector);
 }

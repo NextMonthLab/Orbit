@@ -163,7 +163,7 @@ function Router() {
       <Route path="/orbit/actions" component={OrbitActions} />
       <Route path="/orbit/settings" component={OrbitSettings} />
       <Route path="/orbit/claim" component={OrbitClaim} />
-      <Route path="/orbit/demos" component={DemoOrbitsPage} />
+      <Route path="/orbits/demos" component={DemoOrbitsPage} />
       <Route path="/orbit/demo/:demoId" component={DemoOrbitShellPage} />
       
       <Route path="/o/:slug" component={OrbitRouter} />

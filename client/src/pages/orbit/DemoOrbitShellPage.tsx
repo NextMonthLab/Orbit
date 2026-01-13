@@ -4,7 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { getDemoOrbitById } from "@/data/demoOrbits";
 import businessOrbitLogo from "@assets/business-orbit-logo-cropped.png";
-import { ArrowLeft, Rocket, AlertCircle, MessageSquare } from "lucide-react";
+import { 
+  ArrowLeft, 
+  AlertCircle, 
+  LayoutGrid,
+  BookOpen,
+  MessageCircle,
+  MapPin,
+  Sparkles
+} from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function DemoOrbitShellPage() {
@@ -30,7 +38,7 @@ export default function DemoOrbitShellPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
-              <Link href="/orbit/demos">
+              <Link href="/orbits/demos">
                 <Button 
                   className="bg-gradient-to-r from-[#ff6b4a] to-[#ff4d8f] hover:opacity-90 text-white border-0"
                   data-testid="button-back-to-demos"
@@ -58,16 +66,18 @@ export default function DemoOrbitShellPage() {
                 src={businessOrbitLogo} 
                 alt="Business Orbit" 
                 className="h-14 w-auto cursor-pointer"
+                data-testid="img-logo"
               />
             </Link>
             <div className="hidden sm:block h-6 w-px bg-white/20" />
             <div className="hidden sm:block">
               <Badge className="bg-[#ff6b4a]/20 text-[#ff6b4a] border-[#ff6b4a]/30">
+                <Sparkles className="w-3 h-3 mr-1" />
                 Demo Mode
               </Badge>
             </div>
           </div>
-          <Link href="/orbit/demos">
+          <Link href="/orbits/demos">
             <Button 
               variant="ghost" 
               className="text-white/70 hover:text-white hover:bg-white/10"
@@ -80,97 +90,113 @@ export default function DemoOrbitShellPage() {
         </div>
       </header>
 
-      <main className="pt-32 pb-24 flex items-center justify-center min-h-screen">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-2xl mx-4 w-full"
-        >
-          <Card className="bg-white/5 border-white/10">
-            <CardHeader className="text-center pb-2">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#ff6b4a]/20 to-[#a855f7]/20 flex items-center justify-center mx-auto mb-6">
-                <Rocket className="w-10 h-10 text-[#ff6b4a]" />
-              </div>
+      <main className="pt-32 pb-24">
+        <div className="max-w-4xl mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="text-center mb-12">
               <Badge 
                 variant="outline" 
-                className="w-fit mx-auto mb-4 text-white/60 border-white/20"
+                className="mb-4 text-white/60 border-white/20"
               >
-                {demo.industry}
+                {demo.sector}
               </Badge>
-              <CardTitle className="text-white text-3xl mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
                 {demo.name}
-              </CardTitle>
-              <CardDescription className="text-white/60 text-lg">
+              </h1>
+              <div className="flex items-center justify-center gap-1.5 text-white/50 text-sm mb-4">
+                <MapPin className="w-4 h-4" />
+                {demo.location}
+              </div>
+              <p className="text-lg text-white/70 max-w-2xl mx-auto">
                 {demo.tagline}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-8">
-              {isLive ? (
-                <div className="text-center space-y-6">
-                  <div className="bg-gradient-to-r from-[#ff6b4a]/10 via-[#ff4d8f]/10 to-[#a855f7]/10 rounded-xl p-6 border border-white/10">
-                    <MessageSquare className="w-8 h-8 text-[#ff6b4a] mx-auto mb-4" />
-                    <p className="text-white/80">
-                      Chat interface will load here. Start exploring this demo Orbit.
-                    </p>
-                  </div>
-                  <Button 
-                    size="lg"
-                    className="bg-gradient-to-r from-[#ff6b4a] to-[#ff4d8f] hover:opacity-90 text-white border-0"
-                    data-testid="button-start-chat"
-                  >
-                    Start Conversation
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-center space-y-6">
-                  <div className="bg-amber-500/10 rounded-xl p-6 border border-amber-500/20">
-                    <p className="text-amber-200 mb-2 font-medium">
-                      This is a hardcoded flagship demo Orbit
-                    </p>
-                    <p className="text-amber-200/70 text-sm">
-                      Data will be injected here soon. This demo is currently being curated.
-                    </p>
-                  </div>
-                  
-                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                    <p className="text-white/50 text-sm font-mono">
-                      Demo ID: <code className="text-[#ff6b4a]">{demoId}</code>
-                    </p>
-                  </div>
+              </p>
+            </div>
 
-                  <Link href="/orbit/demos">
-                    <Button 
-                      variant="outline"
-                      className="border-white/20 text-white hover:bg-white/10"
-                      data-testid="button-view-other-demos"
-                    >
-                      View Other Demos
-                    </Button>
-                  </Link>
+            <Card className="bg-gradient-to-br from-white/5 to-white/[0.02] border-white/10 mb-8">
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#ff6b4a]/20 to-[#a855f7]/20 flex items-center justify-center mx-auto mb-6">
+                  <Sparkles className="w-8 h-8 text-[#ff6b4a]" />
                 </div>
-              )}
+                <h2 className="text-xl font-semibold text-white mb-3">
+                  Curated Demo Orbit
+                </h2>
+                <p className="text-white/60 max-w-lg mx-auto">
+                  This is a curated demo Orbit. The full dataset-backed experience will load here next.
+                  You'll be able to explore real products, services, policies, and ask questions.
+                </p>
+              </CardContent>
+            </Card>
 
-              {import.meta.env.DEV && (
-                <div className="mt-8 pt-6 border-t border-white/10">
-                  <Card className="bg-amber-500/10 border-amber-500/30">
-                    <CardHeader className="py-3">
-                      <CardTitle className="text-amber-400 text-xs font-mono flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                        Developer Notes
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-amber-200/80 text-xs font-mono space-y-1 py-0 pb-3">
-                      <p>This route bypasses standard Orbit creation UI.</p>
-                      <p>Demo Orbits are hardcoded as JSON payloads / fixtures.</p>
-                      <p>Status: <code className="bg-amber-500/20 px-1 rounded">{demo.status}</code></p>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+            <div className="grid md:grid-cols-3 gap-4 mb-8">
+              <Card className="bg-white/5 border-white/10 hover:border-white/20 transition-colors">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
+                    <LayoutGrid className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <h3 className="text-white font-medium mb-2">Overview</h3>
+                  <p className="text-white/50 text-sm">
+                    See the full business at a glance
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-white/5 border-white/10 hover:border-white/20 transition-colors">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mx-auto mb-4">
+                    <BookOpen className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <h3 className="text-white font-medium mb-2">Explore Knowledge</h3>
+                  <p className="text-white/50 text-sm">
+                    Browse structured information
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-white/5 border-white/10 hover:border-white/20 transition-colors relative">
+                <Badge className="absolute top-3 right-3 bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
+                  Coming Soon
+                </Badge>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 rounded-xl bg-[#ff6b4a]/20 flex items-center justify-center mx-auto mb-4">
+                    <MessageCircle className="w-6 h-6 text-[#ff6b4a]" />
+                  </div>
+                  <h3 className="text-white font-medium mb-2">Ask the Orbit</h3>
+                  <p className="text-white/50 text-sm">
+                    Conversational intelligence
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="text-center">
+              <p className="text-white/40 text-sm">
+                This demo bypasses Orbit creation and ingestion. Data is curated and fixture-backed.
+              </p>
+            </div>
+
+            {import.meta.env.DEV && (
+              <div className="mt-8">
+                <Card className="bg-amber-500/10 border-amber-500/30">
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-amber-400 text-xs font-mono flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                      Developer Notes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-amber-200/80 text-xs font-mono space-y-1 py-0 pb-3">
+                    <p>Demo ID: <code className="bg-amber-500/20 px-1 rounded">{demoId}</code></p>
+                    <p>Status: <code className="bg-amber-500/20 px-1 rounded">{demo.status}</code></p>
+                    <p>This route bypasses standard Orbit creation UI.</p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </motion.div>
+        </div>
       </main>
     </div>
   );
