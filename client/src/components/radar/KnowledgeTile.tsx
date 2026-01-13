@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { FileText, User, Star, Video, Phone, Mail, Quote, Lightbulb, ExternalLink, Cloud, Sun, Calendar, MapPin, Globe, Briefcase, Award, MessageCircle, Zap, Book, TrendingUp, Shield, Heart, HelpCircle, Settings, Home, DollarSign, Clock, Users, Target, Sparkles, Rss, Twitter, Facebook, Instagram, Linkedin, Youtube, type LucideIcon } from "lucide-react";
 import type { AnyKnowledgeItem, Topic, Page, Person, Proof, Action, Blog, Social } from "@/lib/siteKnowledge";
 import { orbitTokens } from "@/lib/designTokens";
-import { getDemoThumbnailUrl, isVisualItemType } from "@/lib/demoImageUtils";
+import { getRelevantDemoThumbnail } from "@/lib/demoImageManifest";
 
 type DepthTier = 'A' | 'B' | 'C';
 
@@ -339,15 +339,15 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
     return null;
   };
   
-  const demoImageUrl = isDemo && isVisualItemType(item.type) 
-    ? getDemoThumbnailUrl(item.id, getLabel() || '', { 
+  const demoImageUrl = isDemo 
+    ? getRelevantDemoThumbnail(item.id, getLabel() || '', { 
         category: getItemCategory(), 
         orbitSlug, 
         type: item.type 
       })
     : null;
   
-  const showThumbnail = hasOfficialImage || (isDemo && demoImageUrl && isVisualItemType(item.type));
+  const showThumbnail = hasOfficialImage || (isDemo && demoImageUrl);
   const thumbnailUrl = hasOfficialImage ? imageUrl : demoImageUrl;
 
   const tileWidth = 200;

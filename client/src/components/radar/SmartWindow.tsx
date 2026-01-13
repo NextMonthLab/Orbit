@@ -4,7 +4,7 @@ import { X, Lightbulb, FileText, User, Star, Globe, Briefcase, Award, MessageCir
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AnyKnowledgeItem, Topic, Page, Person, Proof, Action, Blog, Social } from "@/lib/siteKnowledge";
 import { orbitTokens } from "@/lib/designTokens";
-import { getDemoHeroImageUrl, isVisualItemType } from "@/lib/demoImageUtils";
+import { getRelevantDemoHero } from "@/lib/demoImageManifest";
 
 interface SmartWindowProps {
   item: AnyKnowledgeItem | null;
@@ -117,8 +117,8 @@ export function SmartWindow({ item, isOpen, onClose, accentColor = '#3b82f6', li
     return null;
   };
   
-  const heroImageUrl = isDemo && isVisualItemType(item.type) && !heroError
-    ? getDemoHeroImageUrl(item.id, label, { 
+  const heroImageUrl = isDemo && !heroError
+    ? getRelevantDemoHero(item.id, label, { 
         category: getItemCategory(), 
         orbitSlug, 
         type: item.type 
