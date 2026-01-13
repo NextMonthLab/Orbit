@@ -1,0 +1,34 @@
+Replit — implement a UI cleanup of the Orbit tile constellation screen. Current problem: tiles look messy because overlaps + translucency stack creates visual noise, and magenta accents pull focus away from the central chat.
+
+NON-NEGOTIABLE GOAL:
+Central chat card remains the visual anchor. Tiles must feel ambient/secondary until hovered.
+
+1) Visual hierarchy (centre must win)
+- Central chat: crispest surface, highest text contrast, strongest shadow, no blur.
+- Tiles: remain LESS prominent than the centre (do NOT match centre opacity/contrast).
+- Reduce tile “loudness” by lowering text contrast slightly and reducing magenta intensity on borders/icons.
+
+2) Transparency + readability (fix the “muddy overlap” problem)
+- Keep tiles more transparent than the centre, BUT remove heavy overlaps because stacked translucency creates mess.
+- Target: tiles should be readable at a glance when not overlapped; if two tiles touch, text must still be readable.
+- Use a slightly more solid surface *behind tile text* if needed (eg subtle gradient panel or darker text area) while keeping the overall tile more transparent.
+
+3) Layout / spacing rules (stop accidental pile)
+- Introduce a “safe zone” around the central chat (no tiles intruding).
+- Space tiles so they do not overlap or only barely overlap at outer edges.
+- Use orbit bands / ring layout around centre with consistent padding.
+- Reduce visible tiles by default if needed (eg 12–18 max), with “View full menu” to reveal the rest.
+
+4) Motion (premium, subtle, optional but recommended)
+- Add slow drift/float and micro-rotation per tile (very subtle, not distracting).
+- Hover state: tile comes forward (z-index), becomes crisper, slightly increases opacity/contrast, and gets a stronger shadow.
+- Respect prefers-reduced-motion and disable motion when set.
+
+5) Background intelligence layer (optional)
+- Add a faint node/line network pattern or subtle parallax background.
+- Keep opacity extremely low; it must never compete with tile text.
+
+DELIVERABLES:
+- Implement the layout + hierarchy changes.
+- Confirm the exact values used (tile opacity relative to centre, spacing/padding, overlap rules, animation duration/amplitude).
+- Provide before/after screenshots or a short description of what changed where.
