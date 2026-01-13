@@ -1,0 +1,72 @@
+# REPLIT PROMPT 2 — SEED REAL DEMO ORBITS INTO THE DATABASE (PIZZA, ACCOUNTANTS, TECH FIRST)
+# This creates actual Orbits that load at /orbit/:slug using the existing OrbitView + chat services.
+
+## Goal
+Create 3 REAL flagship demo Orbits as database records so they function exactly like user-created Orbits:
+- Slice & Stone Pizza → `/orbit/slice-and-stone-pizza`
+- Clarity Chartered Accountants → `/orbit/clarity-chartered-accountants`
+- TechVault UK → `/orbit/techvault-uk`
+
+These must use:
+- the same database tables
+- the same OrbitView
+- the same orbitChatService and grounding pipeline
+
+## Non-negotiables
+- No demo-only rendering code.
+- No demo-only chat service.
+- Seed data must land in DB.
+- Must be safe to run multiple times (idempotent).
+- Must not affect real customer data.
+
+## Implementation approach
+Implement ONE of these, choosing the best fit for the existing repo:
+A) A seed script (recommended): `server/scripts/seedDemoOrbits.ts`
+B) A DB migration that inserts demo records
+C) A protected admin endpoint `POST /api/admin/seed-demo-orbits` (dev-only)
+
+Pick the approach that matches current architecture best.
+
+## Idempotency rules
+- Use stable unique keys (slug) to upsert.
+- If the record exists, update missing fields rather than duplicating.
+- Log clearly what was created vs already present.
+
+## What to seed (minimum viable “real Orbit”)
+For each Orbit, seed enough structured data so chat grounding and navigation feels real.
+Follow the existing schema and table names in this codebase.
+
+Seed at minimum:
+1) Orbit record (slug, title, description, sector/tags, location)
+2) Orbit boxes / nodes to match top-level tile map (menu/deals/delivery etc.)
+3) Knowledge documents or facts that the chat system can ground answers from
+4) Core datasets as facts/documents (minimum sample set, not full 150 rows yet):
+   - Pizza: products (8–12), deals (3–5), delivery zones (5), allergens list, store info, FAQs (15–20)
+   - Accountants: packages (4–6), services (8–10), deadlines (6–8), onboarding steps (6–8), team (4–6), FAQs (20–25)
+   - Tech: products (15–25 mixed categories), grades (3–4), policies (returns/warranty), comparisons (5–8), trade-in values (10–15), FAQs (15–20)
+
+## Grounding integrity
+Make sure demo Orbits do not hallucinate:
+- Ensure the seeded knowledge is in the same format that orbitChatService reads.
+- If the system uses embeddings, enqueue or generate embeddings for seeded documents.
+- If there is a “document ingestion” pipeline, call the same internal function used for normal ingestion, but with our seed content.
+
+## Validation checklist (must pass)
+After seeding:
+- Visiting each URL loads the Orbit page (no errors):
+  - /orbit/slice-and-stone-pizza
+  - /orbit/clarity-chartered-accountants
+  - /orbit/techvault-uk
+- The Orbit page shows top-level navigation/tiles/boxes
+- The chat assistant can answer at least these questions using grounded data:
+  - Pizza: “Do you deliver to BS8?” “What’s vegan?” “Best deal for 6?”
+  - Accountants: “How much for a limited company?” “How do I switch?” “When is Corp Tax due?”
+  - Tech: “Good vs Excellent?” “iPhone 15 vs 16?” “What’s your returns policy?”
+- No separate demo routes were created.
+- Seeding can be run twice without duplicates.
+
+## Deliverables
+- Seed mechanism implemented (script/migration/admin endpoint)
+- Seeded records for the 3 Orbits
+- Clear logs/output
+- Note how to run it locally and in the deployed environment

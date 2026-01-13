@@ -3519,6 +3519,25 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/seed-demo-orbits", requireAdmin, async (req, res) => {
+    try {
+      const { seedAllDemoOrbits } = await import("./scripts/seedDemoOrbits");
+      await seedAllDemoOrbits();
+      res.json({ 
+        success: true, 
+        message: "Demo Orbits seeded successfully",
+        demos: [
+          "slice-and-stone-pizza",
+          "clarity-chartered-accountants", 
+          "techvault-uk"
+        ]
+      });
+    } catch (error: any) {
+      console.error("Error seeding demo orbits:", error);
+      res.status(500).json({ message: "Error seeding demo orbits", error: error.message });
+    }
+  });
+
   // ============ AUDIO LIBRARY ROUTES ============
 
   // Scan uploads/audio directory for unimported tracks
