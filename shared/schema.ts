@@ -3585,6 +3585,117 @@ export const insertNodeRefinementSchema = createInsertSchema(nodeRefinements).om
 export type InsertNodeRefinement = z.infer<typeof insertNodeRefinementSchema>;
 export type NodeRefinement = typeof nodeRefinements.$inferSelect;
 
+// ============ PHASE 5: INTELLIGENT LEVERAGE & SUGGESTION LAYER ============
+// Orbit can notice patterns, surface opportunities, and offer suggestions
+
+// Insight types that Orbit can detect
+export type InsightType = 
+  | 'pattern' // Repeated questions, disproportionate attention
+  | 'opportunity' // Underrepresented offers, unlinked nodes
+  | 'clarity' // Conflicting information, mixed signals
+  | 'engagement' // High/low performing content
+  | 'gap' // Missing information, unanswered questions
+  | 'alignment' // Visual/strategic misalignment;
+
+// Insight confidence levels - only surface high confidence
+export type InsightConfidence = 'low' | 'medium' | 'high';
+
+// Insight status
+export type InsightStatus = 'active' | 'surfaced' | 'accepted' | 'dismissed' | 'expired';
+
+// Orbit Insights - Patterns and observations Orbit has detected
+export const orbitInsights = pgTable("orbit_insights", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug, { onDelete: "cascade" }).notNull(),
+  
+  // What Orbit noticed
+  insightType: text("insight_type").$type<InsightType>().notNull(),
+  confidence: text("confidence").$type<InsightConfidence>().default('medium').notNull(),
+  
+  // The observation itself
+  title: text("title").notNull(), // Short summary
+  description: text("description").notNull(), // Full explanation
+  evidence: jsonb("evidence").$type<{ type: string; data: any }[]>().default([]), // Supporting data
+  
+  // Related nodes/tiles
+  relatedNodeIds: integer("related_node_ids").array(),
+  relatedNodeIdentifiers: text("related_node_identifiers").array(),
+  
+  // Status tracking
+  status: text("status").$type<InsightStatus>().default('active').notNull(),
+  surfacedAt: timestamp("surfaced_at"), // When shown to owner
+  respondedAt: timestamp("responded_at"), // When owner responded
+  
+  // Owner response
+  ownerResponse: text("owner_response"), // 'accepted' | 'dismissed' | 'later'
+  ownerNotes: text("owner_notes"), // Any feedback owner provided
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"), // Some insights become stale
+});
+
+export const insertOrbitInsightSchema = createInsertSchema(orbitInsights).omit({ id: true, createdAt: true });
+export type InsertOrbitInsight = z.infer<typeof insertOrbitInsightSchema>;
+export type OrbitInsight = typeof orbitInsights.$inferSelect;
+
+// Suggestion types - specific actionable recommendations
+export type SuggestionType = 
+  | 'add_content' // Create new content to address gap
+  | 'update_content' // Refresh outdated content
+  | 'link_nodes' // Connect related nodes
+  | 'adjust_emphasis' // Change visual prominence
+  | 'clarify' // Address confusion or conflict
+  | 'respond'; // Answer frequently asked questions
+
+// Suggestion priority
+export type SuggestionPriority = 'low' | 'medium' | 'high';
+
+// Suggestion status
+export type SuggestionStatus = 'pending' | 'shown' | 'accepted' | 'dismissed' | 'completed' | 'expired';
+
+// Orbit Suggestions - Specific actionable recommendations
+export const orbitSuggestions = pgTable("orbit_suggestions", {
+  id: serial("id").primaryKey(),
+  businessSlug: text("business_slug").references(() => orbitMeta.businessSlug, { onDelete: "cascade" }).notNull(),
+  insightId: integer("insight_id").references(() => orbitInsights.id, { onDelete: "cascade" }),
+  
+  // The suggestion
+  suggestionType: text("suggestion_type").$type<SuggestionType>().notNull(),
+  priority: text("priority").$type<SuggestionPriority>().default('medium').notNull(),
+  
+  // Content
+  title: text("title").notNull(), // What Orbit is suggesting
+  description: text("description").notNull(), // Why and how
+  actionPrompt: text("action_prompt"), // Conversational prompt to help
+  
+  // Target nodes
+  targetNodeIds: integer("target_node_ids").array(),
+  targetNodeIdentifiers: text("target_node_identifiers").array(),
+  
+  // Status
+  status: text("status").$type<SuggestionStatus>().default('pending').notNull(),
+  shownAt: timestamp("shown_at"),
+  respondedAt: timestamp("responded_at"),
+  completedAt: timestamp("completed_at"),
+  
+  // Owner response
+  ownerResponse: text("owner_response"), // 'accepted' | 'dismissed' | 'later'
+  dismissReason: text("dismiss_reason"), // Optional reason for dismissal
+  
+  // Deduplication - don't repeat dismissed suggestions aggressively
+  repeatCount: integer("repeat_count").default(0).notNull(),
+  lastDismissedAt: timestamp("last_dismissed_at"),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+});
+
+export const insertOrbitSuggestionSchema = createInsertSchema(orbitSuggestions).omit({ id: true, createdAt: true });
+export type InsertOrbitSuggestion = z.infer<typeof insertOrbitSuggestionSchema>;
+export type OrbitSuggestion = typeof orbitSuggestions.$inferSelect;
+
 // ============ PULSE MONITORING SYSTEM ============
 // Monitors industry sources for events and updates
 

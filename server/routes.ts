@@ -9136,22 +9136,229 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         return res.status(403).json({ message: "Owner access required" });
       }
       
-      const updates: any = {};
+      const updates: Record<string, any> = {};
+      
       if (status) {
         updates.status = status;
-        if (status === 'confirmed') updates.confirmedAt = new Date();
-        if (status === 'applied') updates.appliedAt = new Date();
-        if (status === 'reverted') updates.revertedAt = new Date();
+        if (status === 'confirmed') {
+          updates.confirmedAt = new Date();
+        } else if (status === 'applied') {
+          updates.appliedAt = new Date();
+        } else if (status === 'reverted') {
+          updates.revertedAt = new Date();
+        }
       }
-      if (scope) updates.scope = scope;
+      if (scope) {
+        updates.scope = scope;
+      }
       
-      const refinement = await storage.updateNodeRefinement(parseInt(refinementId), updates);
+      const updatedRefinement = await storage.updateNodeRefinement(parseInt(refinementId), updates);
       
-      res.json({ refinement });
+      res.json({ refinement: updatedRefinement });
       
     } catch (error) {
       console.error("Error updating refinement:", error);
       res.status(500).json({ message: "Error updating refinement" });
+    }
+  });
+
+  // ============ PHASE 5: INTELLIGENT LEVERAGE & SUGGESTION LAYER ============
+
+  // GET /api/orbit/:slug/insights - Get insights for an orbit (owner only)
+  app.get("/api/orbit/:slug/insights", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { status } = req.query;
+      const user = req.user as any;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const insights = status 
+        ? await storage.getOrbitInsights(slug, status as any)
+        : await storage.getOrbitInsights(slug);
+      
+      res.json({ insights });
+      
+    } catch (error) {
+      console.error("Error fetching insights:", error);
+      res.status(500).json({ message: "Error fetching insights" });
+    }
+  });
+
+  // GET /api/orbit/:slug/insights/high-confidence - Get high confidence insights
+  app.get("/api/orbit/:slug/insights/high-confidence", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user as any;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const insights = await storage.getHighConfidenceInsights(slug);
+      
+      res.json({ insights });
+      
+    } catch (error) {
+      console.error("Error fetching high confidence insights:", error);
+      res.status(500).json({ message: "Error fetching insights" });
+    }
+  });
+
+  // PATCH /api/orbit/:slug/insights/:insightId - Respond to an insight
+  app.patch("/api/orbit/:slug/insights/:insightId", requireAuth, async (req, res) => {
+    try {
+      const { slug, insightId } = req.params;
+      const { ownerResponse, ownerNotes } = req.body;
+      const user = req.user as any;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const updates: Record<string, any> = {
+        respondedAt: new Date(),
+      };
+      
+      if (ownerResponse) {
+        updates.ownerResponse = ownerResponse;
+        updates.status = ownerResponse === 'dismissed' ? 'dismissed' : 'accepted';
+      }
+      if (ownerNotes) {
+        updates.ownerNotes = ownerNotes;
+      }
+      
+      const insight = await storage.updateOrbitInsight(parseInt(insightId), updates);
+      
+      res.json({ insight });
+      
+    } catch (error) {
+      console.error("Error updating insight:", error);
+      res.status(500).json({ message: "Error updating insight" });
+    }
+  });
+
+  // GET /api/orbit/:slug/suggestions - Get suggestions for an orbit
+  app.get("/api/orbit/:slug/suggestions", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { status } = req.query;
+      const user = req.user as any;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const suggestions = status 
+        ? await storage.getOrbitSuggestions(slug, status as any)
+        : await storage.getOrbitSuggestions(slug);
+      
+      res.json({ suggestions });
+      
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      res.status(500).json({ message: "Error fetching suggestions" });
+    }
+  });
+
+  // GET /api/orbit/:slug/suggestions/pending - Get pending suggestions to surface
+  app.get("/api/orbit/:slug/suggestions/pending", requireAuth, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user as any;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const suggestions = await storage.getPendingOrbitSuggestions(slug);
+      
+      res.json({ suggestions });
+      
+    } catch (error) {
+      console.error("Error fetching pending suggestions:", error);
+      res.status(500).json({ message: "Error fetching suggestions" });
+    }
+  });
+
+  // PATCH /api/orbit/:slug/suggestions/:suggestionId - Respond to a suggestion
+  app.patch("/api/orbit/:slug/suggestions/:suggestionId", requireAuth, async (req, res) => {
+    try {
+      const { slug, suggestionId } = req.params;
+      const { ownerResponse, dismissReason } = req.body;
+      const user = req.user as any;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      let suggestion;
+      if (ownerResponse === 'dismissed') {
+        suggestion = await storage.recordSuggestionDismissal(parseInt(suggestionId), dismissReason);
+      } else {
+        const updates: Record<string, any> = {
+          ownerResponse,
+          respondedAt: new Date(),
+          status: ownerResponse === 'accepted' ? 'accepted' : 'shown',
+        };
+        suggestion = await storage.updateOrbitSuggestion(parseInt(suggestionId), updates);
+      }
+      
+      res.json({ suggestion });
+      
+    } catch (error) {
+      console.error("Error updating suggestion:", error);
+      res.status(500).json({ message: "Error updating suggestion" });
     }
   });
 

@@ -1,0 +1,747 @@
+# REPLIT PROMPT: Business Orbit Marketing Page
+
+## PROJECT OVERVIEW
+
+Build a high-converting, product-led SaaS marketing page for Business Orbit — a conversational business intelligence platform that positions as a new software category. The page must establish category definition (not feature comparison), optimize for self-serve signup, and communicate premium positioning for established companies.
+
+## TECHNICAL REQUIREMENTS
+
+### Stack
+
+- **Framework**: Next.js 14+ with App Router
+- **Styling**: Tailwind CSS
+- **Components**: React with TypeScript
+- **Animations**: Framer Motion for scroll animations and micro-interactions
+- **Forms**: React Hook Form for email capture
+- **Deployment**: Vercel-ready configuration
+
+### Design System
+
+#### Brand Colors (from logo)
+
+```
+Primary Dark Navy: #1a1b2e (background)
+Accent Gradient: linear-gradient(135deg, #ff6b4a 0%, #ff4d8f 50%, #a855f7 100%)
+  - Coral: #ff6b4a
+  - Pink: #ff4d8f  
+  - Purple: #a855f7
+Text Primary: #ffffff
+Text Secondary: #cbd5e1 (slate-300)
+Accent Neutral: #334155 (slate-700)
+```
+
+#### Typography
+
+```
+Headings: Inter (700-800 weight)
+Body: Inter (400-500 weight)
+Accent/UI: Inter (600 weight)
+
+Scale:
+H1: 4rem (64px) / 4.5rem (72px) desktop
+H2: 3rem (48px)
+H3: 2rem (32px)
+H4: 1.5rem (24px)
+Body: 1.125rem (18px)
+Small: 1rem (16px)
+```
+
+#### Spacing Philosophy
+
+- Generous whitespace (premium positioning)
+- Sections: 120px vertical padding desktop, 80px mobile
+- Content max-width: 1200px
+- Reading width for copy blocks: 65ch
+
+### Performance Requirements
+
+- Core Web Vitals optimized
+- Lazy loading for below-fold content
+- Image optimization with Next.js Image component
+- Smooth 60fps animations
+
+-----
+
+## PAGE STRUCTURE & CONTENT
+
+### SECTION 1: HERO
+
+**Purpose**: Instantly communicate category definition and primary value prop. Problem-aware headline that resonates with executives drowning in data but lacking clarity.
+
+**Layout**:
+
+- Full viewport height
+- Centered content
+- Gradient accent (subtle) behind headline
+- Primary CTA prominent
+- Secondary CTA (learn more → smooth scroll to next section)
+
+**Copy**:
+
+```
+[Overline - small text above headline]
+For established companies
+
+[Headline - H1]
+Your business already has the answers.
+It just can't talk to you yet.
+
+[Subheadline - Large body text]
+Traditional BI was built when analytics meant creating dashboards for passive viewers. Business Orbit is conversational intelligence that learns your business, challenges your thinking, and turns data into strategic dialogue.
+
+[Primary CTA Button]
+Start Your Free Trial
+
+[Secondary CTA - Text link]
+See how it works ↓
+
+[Trust Signal - Small text]
+Built for strategic leaders at established companies
+```
+
+**Design Notes**:
+
+- Hero gradient should be subtle, emanating from behind text
+- Consider animated chat bubble elements floating in background (subtle, not distracting)
+- Headline should have gradient text treatment on key words
+- CTA buttons: gradient background for primary, outlined gradient for secondary
+
+-----
+
+### SECTION 2: PROBLEM AGITATION
+
+**Purpose**: Establish that current BI fundamentally fails. Make the pain visceral and recognizable.
+
+**Layout**:
+
+- Two-column on desktop (stat callouts left, narrative right)
+- Single column mobile
+- Dark background continues
+- Stat callouts with gradient accents
+
+**Copy**:
+
+```
+[Section Label]
+The failure of static intelligence
+
+[Headline - H2]
+You have more data than ever.
+And less clarity than you need.
+
+[Body - Two columns worth of content]
+Executives waste six weeks annually searching for documents they can't find. Workers spend 30% of their day hunting for information across disconnected systems. 72% of leaders admit data volume has stopped them from making decisions altogether.
+
+The problem isn't data access. It's that dashboards show what happened without helping you decide what to do about it.
+
+Traditional BI delivers visualizations. Your decisions need conversation.
+
+[Stat Callouts - Cards with gradient borders]
+📊 80%
+of analytics insights fail to deliver business outcomes
+— Gartner
+
+⏱️ 6 weeks
+wasted annually by executives searching for information
+— IDC Research
+
+🤔 72%
+of leaders stopped by data volume from making decisions
+— Oracle Study
+
+💼 85%
+of analytics projects fail to meet objectives
+— Gartner
+```
+
+**Design Notes**:
+
+- Stat cards should have subtle gradient borders
+- Consider subtle animation on scroll (fade up, stagger)
+- Background could have very subtle grid pattern (like dashboard wireframes, abstracted)
+
+-----
+
+### SECTION 3: SOLUTION INTRODUCTION
+
+**Purpose**: Introduce the new mental model. Shift from “better BI tool” to “conversational intelligence that learns and challenges.”
+
+**Layout**:
+
+- Centered content
+- Visual metaphor (chat interface preview or conceptual diagram)
+- Gradient background section (inverted - lighter than surrounding)
+
+**Copy**:
+
+```
+[Section Label]
+A different kind of intelligence
+
+[Headline - H2]  
+Business intelligence that thinks with you,
+not just for you.
+
+[Body]
+Business Orbit is built around structured knowledge nodes that you discuss with an AI entity designed specifically for your business. It doesn't just answer questions—it asks the ones you should be asking.
+
+Unlike dashboards you browse or chatbots you query, Business Orbit engages in strategic dialogue. It learns from every conversation, remembers what matters, and challenges assumptions the way a trusted advisor would.
+
+[Three Key Differentiators - Cards]
+
+💬 Strategic Dialogue
+Not query-response. Real conversation that explores alternatives, pressure-tests thinking, and surfaces blind spots.
+
+🧠 Learns Your Business  
+Every interaction builds institutional memory. Context compounds. Strategic history becomes accessible.
+
+⚡ Constructive Challenge
+The best advisors don't just answer—they ask. Intelligence that earns the right to push back on incomplete thinking.
+```
+
+**Design Notes**:
+
+- Consider animated chat interface preview showing back-and-forth dialogue
+- Cards should feel conversational (chat bubble aesthetic)
+- This section could have slightly lighter background (#252640) to create visual rhythm
+
+-----
+
+### SECTION 4: HOW IT WORKS
+
+**Purpose**: Reduce friction by showing simplicity. Make the abstract concept concrete.
+
+**Layout**:
+
+- Horizontal stepper/timeline on desktop
+- Vertical flow on mobile
+- Icons with gradient treatments
+- Clean, minimal
+
+**Copy**:
+
+```
+[Headline - H2]
+From setup to strategic advantage in three steps
+
+[Step 1]
+Icon: 📊
+Build your knowledge base
+Connect your business data, upload strategic documents, and define the knowledge nodes that matter. Business Orbit creates a structured intelligence layer.
+
+[Step 2]  
+Icon: 💬
+Start the conversation
+Ask strategic questions. Explore positioning alternatives. Pressure-test decisions. Business Orbit learns your business context with every dialogue.
+
+[Step 3]
+Icon: 🚀  
+Make better decisions, faster
+Access strategic intelligence whenever you need it—2 AM before a board meeting, during competitive crises, or in the quiet moments when clarity matters most.
+
+[Subtext]
+No implementation teams. No months-long rollouts. No consultant dependencies.
+```
+
+**Design Notes**:
+
+- Icons should have gradient fill or gradient glow
+- Connection lines between steps with gradient stroke
+- Consider subtle progress animation on scroll
+
+-----
+
+### SECTION 5: USE CASES / WHO IT’S FOR
+
+**Purpose**: Help prospects self-identify. Show role-specific value without overwhelming with features.
+
+**Layout**:
+
+- Tab interface or card grid
+- Each use case is scannable
+- Focus on outcomes, not features
+
+**Copy**:
+
+```
+[Headline - H2]
+Built for strategic leaders navigating complexity
+
+[Tabs/Cards - 4 Primary Personas]
+
+C-Suite Executives
+"I need synthesis across domains quickly, validation for intuition, and confidence in high-velocity decisions."
+
+Business Orbit delivers clarity through noise, helps you trust decisions without second-guessing, and provides strategic dialogue when you need it most—not just during quarterly reviews.
+
+→ Scenario testing • Risk identification • Board communication
+
+
+Chief Marketing Officers  
+"I need to prove ROI in CFO language, but connecting attribution across fragmented channels is nearly impossible."
+
+Business Orbit synthesizes customer intelligence across touchpoints, helps articulate marketing value in business terms, and identifies positioning opportunities competitors miss.
+
+→ Attribution clarity • Positioning refinement • Campaign intelligence
+
+
+Strategic Planning Teams
+"4 out of 5 executives say our strategy isn't well understood. We need shared mental models, not more static documents."
+
+Business Orbit creates transparency across initiatives, surfaces alignment gaps before they become problems, and enables rapid scenario evaluation when conditions change.
+
+→ Strategy alignment • Scenario planning • Progress visibility
+
+
+Board Members & Investors
+"I need to fulfill fiduciary responsibilities but face significant knowledge gaps between quarterly meetings."
+
+Business Orbit provides succinct, outcome-focused intelligence with clear connections between initiatives and strategic value—enabling informed questions without technical depth.
+
+→ Strategic oversight • Risk visibility • Informed governance
+```
+
+**Design Notes**:
+
+- Tab interface feels premium and organized
+- Each tab content should have gradient accent on left border
+- Consider icon or illustration for each persona type
+- Scannable format: big quote, explanation paragraph, bullet outcomes
+
+-----
+
+### SECTION 6: DIFFERENTIATION
+
+**Purpose**: Address “how is this different from X?” objections preemptively. Category creation through sharp contrast.
+
+**Layout**:
+
+- Comparison grid or accordion
+- Visual contrast (show old way vs new way)
+- Clear, confident positioning
+
+**Copy**:
+
+```
+[Headline - H2]
+What makes conversational intelligence different
+
+[Comparison Cards - Visual grid]
+
+Traditional BI Dashboards
+Shows what happened
+↓
+Business Orbit
+Helps decide what to do about it
+
+Knowledge Management Tools  
+Stores information
+↓
+Business Orbit
+Activates it strategically
+
+AI Chatbots
+Answers your questions
+↓
+Business Orbit
+Challenges the questions you should be asking
+
+Management Consultants
+Strategic dialogue quarterly, at premium cost
+↓
+Business Orbit
+Continuous strategic dialogue, always available
+
+[Closing Statement]
+Business Orbit occupies genuine whitespace—the intersection of strategic dialogue, institutional learning, and constructive challenge that no existing tool delivers.
+```
+
+**Design Notes**:
+
+- Visual treatment should show “old paradigm → new paradigm”
+- Use gradient arrows or dividers
+- Cards should have subtle gradient borders
+- Consider animated transitions on scroll
+
+-----
+
+### SECTION 7: SOCIAL PROOF
+
+**Purpose**: Build credibility and trust. For early stage, focus on problem validation, expert quotes, or design partner signals.
+
+**Layout**:
+
+- Testimonial cards or logo grid
+- Statistics with gradient highlights
+- Trust badges (SOC2, security certifications when available)
+
+**Copy** (adapt based on current traction):
+
+```
+[Headline - H2]
+Trusted by strategic leaders defining the future of business intelligence
+
+[If you have testimonials]
+"The kind of strategic conversation that used to cost $500K in consulting fees—now available whenever I need it."
+— [Name], [Title], [Company]
+
+[If early stage / no testimonials yet]
+The Strategic Intelligence Gap
+
+70% of business leaders would prefer intelligent assistance for decisions
+— Oracle Global Study
+
+$15B+ spent annually on BI tools that deliver 25% workforce adoption
+— Gartner Research
+
+76% of category value captured by the company that defines it
+— Category Design Research
+
+[Trust Elements]
+• Enterprise-grade security
+• Built for regulated industries
+• Your data stays yours
+• SOC2 Type II [if applicable]
+```
+
+**Design Notes**:
+
+- Testimonial cards with gradient top border
+- Statistics should have large numbers with gradient text
+- Logo grid (if available) in grayscale with gradient on hover
+- Professional headshots with gradient border treatment
+
+-----
+
+### SECTION 8: FINAL CTA
+
+**Purpose**: Convert. Remove friction. Create urgency without false scarcity.
+
+**Layout**:
+
+- Centered, focused
+- Gradient background section
+- Form inline or modal trigger
+- Clear value prop reinforcement
+
+**Copy**:
+
+```
+[Headline - H2]
+Your decisions deserve more than dashboards
+
+[Subheadline]
+Join the leaders defining what business intelligence becomes next.
+
+[Primary CTA Button - Large]
+Start Your Free Trial
+
+[Form Fields if inline]
+• Business Email
+• Company Name  
+• [Submit Button] → Get Started
+
+[Trust Signals Below Form]
+✓ No credit card required
+✓ Full access for 14 days
+✓ Set up in minutes
+
+[Alternative if waitlist/early access]
+Request Early Access
+[Waitlist form with qualification questions]
+```
+
+**Design Notes**:
+
+- This section should have full gradient background (coral → pink → purple)
+- Text should be white for contrast
+- Large, prominent CTA button (white with dark text, or dark with gradient border)
+- Form should be minimal, friction-free
+- Consider subtle animation on CTA button (gradient shift, glow)
+
+-----
+
+### SECTION 9: FOOTER
+
+**Purpose**: Provide navigation, legal, social proof. Keep clean and minimal.
+
+**Layout**:
+
+- Logo left
+- Links center/right
+- Social icons
+- Copyright/legal
+
+**Copy**:
+
+```
+[Logo with gradient treatment]
+Business Orbit
+
+[Navigation Columns]
+Product               Company              Resources
+How It Works         About                 Blog
+Pricing              Careers               Documentation  
+Security             Contact               Case Studies
+
+[Social Icons with gradient on hover]
+LinkedIn • Twitter • YouTube
+
+[Legal]
+© 2025 Business Orbit. All rights reserved.
+Privacy Policy • Terms of Service • Security
+```
+
+**Design Notes**:
+
+- Dark footer maintains brand consistency
+- Links with subtle hover state (gradient underline or text gradient)
+- Social icons outlined, gradient fill on hover
+- Keep spacious, not cramped
+
+-----
+
+## TECHNICAL IMPLEMENTATION NOTES
+
+### Component Structure
+
+```
+app/
+  page.tsx (main landing page)
+  layout.tsx (global layout with font loading)
+  components/
+    Hero.tsx
+    ProblemSection.tsx
+    SolutionSection.tsx
+    HowItWorks.tsx
+    UseCases.tsx
+    Differentiation.tsx
+    SocialProof.tsx
+    FinalCTA.tsx
+    Footer.tsx
+    ui/
+      Button.tsx
+      Card.tsx
+      GradientText.tsx
+      Section.tsx
+```
+
+### Animation Strategy
+
+- Use Framer Motion for scroll-triggered animations
+- Stagger children animations for card grids
+- Subtle parallax effects for depth
+- Respect prefers-reduced-motion
+- Keep animations subtle and premium (not flashy)
+
+### Responsive Breakpoints
+
+```
+sm: 640px
+md: 768px  
+lg: 1024px
+xl: 1280px
+2xl: 1536px
+```
+
+### Key Micro-interactions
+
+1. **CTA Buttons**: Gradient shift on hover, subtle scale
+1. **Stat Cards**: Glow effect on scroll-into-view
+1. **Use Case Tabs**: Smooth transition with gradient indicator
+1. **Comparison Cards**: Subtle lift on hover
+1. **Form Inputs**: Gradient border on focus
+
+### Accessibility Requirements
+
+- WCAG 2.1 AA compliant
+- Semantic HTML
+- Proper heading hierarchy
+- Keyboard navigation
+- Focus indicators with gradient treatment
+- Alt text for all images/icons
+- Proper ARIA labels for interactive elements
+
+### Performance Optimization
+
+- Code splitting by route
+- Image optimization (WebP with fallbacks)
+- Font subsetting (only load needed characters)
+- Lazy load below-fold sections
+- Prefetch critical resources
+- Minimize layout shift (CLS)
+
+-----
+
+## CONVERSION OPTIMIZATION PRINCIPLES
+
+### Above the Fold Priority
+
+1. Clear value prop (conversational intelligence vs dashboards)
+1. Primary CTA visible without scrolling
+1. Trust signal (built for established companies)
+1. No navigation complexity (focus on conversion)
+
+### CTA Strategy
+
+- Primary CTA: “Start Your Free Trial” (repeated 3x: hero, after use cases, final)
+- Secondary CTA: “See How It Works” (scroll trigger, low friction)
+- Form friction: Minimal fields (email + company name only)
+- Button copy: Action-oriented, benefit-clear
+
+### Copy Principles
+
+1. **Lead with category definition** (“conversational intelligence that learns and challenges”)
+1. **Use sharp contrasts** (“Unlike dashboards that show what happened, Business Orbit helps decide what to do”)
+1. **Challenge as benefit** (“The best advisors don’t just answer—they ask”)
+1. **Premium voice** (confident, clear, no hype words)
+1. **Outcomes over features** (focus on decisions, clarity, confidence)
+
+### Trust Building
+
+- Problem validation with research statistics
+- Category creation positioning (define the space, don’t compete in existing)
+- Strategic leader framing (not “for everyone”)
+- Security/enterprise signals
+- Clear, honest value prop (no false scarcity or misleading claims)
+
+-----
+
+## CONTENT STRATEGY NOTES
+
+### Voice & Tone
+
+- **Confident without arrogance**: “Business Orbit occupies genuine whitespace” not “Business Orbit is revolutionary”
+- **Clear without dumbing down**: Speak to strategic leaders as peers
+- **Aspirational without fluff**: Focus on what becomes possible
+- **Challenging without aggressive**: “Your decisions deserve more than dashboards”
+
+### Words to Avoid
+
+❌ Revolutionary, game-changing, cutting-edge, next-generation, seamless, synergy, leverage, disrupt, unlock, transform
+
+### Words to Embrace
+
+✅ Strategic, deliberate, rigorous, decisive, purposeful, proven, designed for, built around, enables, creates clarity
+
+### Messaging Hierarchy
+
+1. **Category definition**: Conversational intelligence (not better BI)
+1. **Core differentiation**: Learns and challenges (not just answers)
+1. **Primary benefit**: Better decisions through dialogue (not just data access)
+1. **Target audience**: Strategic leaders at established companies (not everyone)
+1. **Proof point**: Consultant-quality thinking at software scale (validation of need)
+
+-----
+
+## REPLIT-SPECIFIC INSTRUCTIONS
+
+### Setup Commands
+
+```bash
+npx create-next-app@latest business-orbit-landing --typescript --tailwind --app
+cd business-orbit-landing
+npm install framer-motion react-hook-form
+```
+
+### Key Files to Create
+
+1. **tailwind.config.js** - Extend with custom colors, gradients, animations
+1. **app/globals.css** - Define gradient utilities, animation keyframes
+1. **app/layout.tsx** - Load Inter font, set metadata
+1. **app/page.tsx** - Import and render all sections
+1. **components/[section].tsx** - Individual section components
+1. **components/ui/*.tsx** - Reusable UI components (Button, Card, etc.)
+
+### Environment Setup
+
+- Set up Next.js environment variables for form submission endpoint
+- Configure Vercel deployment settings
+- Set up analytics (PostHog, Plausible, or similar - privacy-focused)
+
+### Testing Checklist
+
+- [ ] Mobile responsive on 375px, 768px, 1024px, 1440px
+- [ ] CTA buttons work and navigate correctly
+- [ ] Form validation functions properly
+- [ ] Animations perform at 60fps
+- [ ] Images lazy load correctly
+- [ ] Lighthouse score: 90+ across all metrics
+- [ ] Cross-browser testing (Chrome, Firefox, Safari, Edge)
+- [ ] Accessibility audit passes
+
+-----
+
+## BRAND GUIDELINES REFERENCE
+
+### Logo Usage
+
+- Minimum size: 120px width
+- Clear space: Equal to height of “O” in “Orbit”
+- Always on dark background (#1a1b2e) or transparent
+- Never distort aspect ratio
+- Never add effects (drop shadow, outer glow, etc.)
+
+### Gradient Application
+
+- Primary use: Accents, borders, text highlights, CTAs
+- Never: Full background gradient (too overwhelming)
+- Opacity: 80-100% for primary elements, 20-40% for subtle effects
+- Direction: 135deg (diagonal) maintains brand consistency
+
+### Iconography Style
+
+- Outlined style preferred (not filled)
+- Gradient stroke treatment for key icons
+- Consistent stroke weight: 2px
+- Icons from same family (Lucide, Heroicons, or Phosphor)
+
+-----
+
+## SUCCESS CRITERIA
+
+### Conversion Metrics
+
+- Primary goal: 5-8% free trial signup rate (industry benchmark for B2B SaaS)
+- Secondary: 15-20% scroll depth to “How It Works”
+- Tertiary: 30-40% scroll to use cases
+
+### Performance Targets
+
+- Lighthouse Performance: 95+
+- Lighthouse Accessibility: 100
+- Lighthouse Best Practices: 100
+- Lighthouse SEO: 95+
+- Core Web Vitals: All green
+
+### Design Quality
+
+- Premium feel: Spacious, confident, refined
+- Category clarity: Visitor understands “conversational intelligence” concept
+- Trust signals: Feels enterprise-ready, not startup MVP
+- Mobile experience: Equally compelling on small screens
+
+-----
+
+## FINAL NOTES
+
+This landing page positions Business Orbit as category-defining, not feature-competitive. Every section should reinforce the core message: **Traditional BI was built for passive viewing. Your strategic decisions deserve conversational intelligence that learns and challenges.**
+
+The page should feel:
+
+- **Premium**: Spacious, refined, confident
+- **Clear**: No jargon, no confusion about what this is
+- **Conversational**: Matches the product’s core metaphor
+- **Credible**: Grounded in research, honest about capabilities
+
+Avoid:
+
+- Feature lists
+- Technical jargon
+- AI hype language
+- False urgency
+- Comparison tables (use contrast statements instead)
+
+The goal is not to convince everyone—it’s to convert strategic leaders at established companies who immediately recognize the problem and see Business Orbit as the solution they didn’t know existed.
+
+Build something worthy of the category it’s defining.

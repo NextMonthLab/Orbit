@@ -364,6 +364,20 @@ export interface IStorage {
   getAppliedNodeRefinements(businessSlug: string): Promise<schema.NodeRefinement[]>;
   updateNodeRefinement(id: number, data: Partial<schema.InsertNodeRefinement>): Promise<schema.NodeRefinement | undefined>;
 
+  // Phase 5: Intelligent Leverage & Suggestion Layer
+  createOrbitInsight(data: schema.InsertOrbitInsight): Promise<schema.OrbitInsight>;
+  getOrbitInsights(businessSlug: string, status?: schema.InsightStatus): Promise<schema.OrbitInsight[]>;
+  getHighConfidenceInsights(businessSlug: string): Promise<schema.OrbitInsight[]>;
+  getOrbitInsight(id: number): Promise<schema.OrbitInsight | undefined>;
+  updateOrbitInsight(id: number, data: Partial<schema.InsertOrbitInsight>): Promise<schema.OrbitInsight | undefined>;
+  
+  createOrbitSuggestion(data: schema.InsertOrbitSuggestion): Promise<schema.OrbitSuggestion>;
+  getOrbitSuggestions(businessSlug: string, status?: schema.SuggestionStatus): Promise<schema.OrbitSuggestion[]>;
+  getPendingOrbitSuggestions(businessSlug: string): Promise<schema.OrbitSuggestion[]>;
+  getOrbitSuggestion(id: number): Promise<schema.OrbitSuggestion | undefined>;
+  updateOrbitSuggestion(id: number, data: Partial<schema.InsertOrbitSuggestion>): Promise<schema.OrbitSuggestion | undefined>;
+  recordSuggestionDismissal(id: number, reason?: string): Promise<schema.OrbitSuggestion | undefined>;
+
   // Phase 2: Orbit Insights Summary
   getOrbitInsightsSummary(businessSlug: string): Promise<schema.OrbitInsightsSummary | undefined>;
   upsertOrbitInsightsSummary(data: schema.InsertOrbitInsightsSummary): Promise<schema.OrbitInsightsSummary>;
@@ -2939,6 +2953,113 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.nodeRefinements.id, id))
       .returning();
     return refinement;
+  }
+
+  // Phase 5: Intelligent Leverage & Suggestion Layer
+  async createOrbitInsight(data: schema.InsertOrbitInsight): Promise<schema.OrbitInsight> {
+    const [insight] = await db.insert(schema.orbitInsights).values(data).returning();
+    return insight;
+  }
+
+  async getOrbitInsights(businessSlug: string, status?: schema.InsightStatus): Promise<schema.OrbitInsight[]> {
+    if (status) {
+      return db.query.orbitInsights.findMany({
+        where: and(
+          eq(schema.orbitInsights.businessSlug, businessSlug),
+          eq(schema.orbitInsights.status, status)
+        ),
+        orderBy: [desc(schema.orbitInsights.createdAt)],
+      });
+    }
+    return db.query.orbitInsights.findMany({
+      where: eq(schema.orbitInsights.businessSlug, businessSlug),
+      orderBy: [desc(schema.orbitInsights.createdAt)],
+    });
+  }
+
+  async getHighConfidenceInsights(businessSlug: string): Promise<schema.OrbitInsight[]> {
+    return db.query.orbitInsights.findMany({
+      where: and(
+        eq(schema.orbitInsights.businessSlug, businessSlug),
+        eq(schema.orbitInsights.confidence, 'high'),
+        eq(schema.orbitInsights.status, 'active')
+      ),
+      orderBy: [desc(schema.orbitInsights.createdAt)],
+    });
+  }
+
+  async getOrbitInsight(id: number): Promise<schema.OrbitInsight | undefined> {
+    return db.query.orbitInsights.findFirst({
+      where: eq(schema.orbitInsights.id, id),
+    });
+  }
+
+  async updateOrbitInsight(id: number, data: Partial<schema.InsertOrbitInsight>): Promise<schema.OrbitInsight | undefined> {
+    const [insight] = await db.update(schema.orbitInsights)
+      .set(data)
+      .where(eq(schema.orbitInsights.id, id))
+      .returning();
+    return insight;
+  }
+
+  async createOrbitSuggestion(data: schema.InsertOrbitSuggestion): Promise<schema.OrbitSuggestion> {
+    const [suggestion] = await db.insert(schema.orbitSuggestions).values(data).returning();
+    return suggestion;
+  }
+
+  async getOrbitSuggestions(businessSlug: string, status?: schema.SuggestionStatus): Promise<schema.OrbitSuggestion[]> {
+    if (status) {
+      return db.query.orbitSuggestions.findMany({
+        where: and(
+          eq(schema.orbitSuggestions.businessSlug, businessSlug),
+          eq(schema.orbitSuggestions.status, status)
+        ),
+        orderBy: [desc(schema.orbitSuggestions.createdAt)],
+      });
+    }
+    return db.query.orbitSuggestions.findMany({
+      where: eq(schema.orbitSuggestions.businessSlug, businessSlug),
+      orderBy: [desc(schema.orbitSuggestions.createdAt)],
+    });
+  }
+
+  async getPendingOrbitSuggestions(businessSlug: string): Promise<schema.OrbitSuggestion[]> {
+    return db.query.orbitSuggestions.findMany({
+      where: and(
+        eq(schema.orbitSuggestions.businessSlug, businessSlug),
+        eq(schema.orbitSuggestions.status, 'pending')
+      ),
+      orderBy: [desc(schema.orbitSuggestions.priority), desc(schema.orbitSuggestions.createdAt)],
+    });
+  }
+
+  async getOrbitSuggestion(id: number): Promise<schema.OrbitSuggestion | undefined> {
+    return db.query.orbitSuggestions.findFirst({
+      where: eq(schema.orbitSuggestions.id, id),
+    });
+  }
+
+  async updateOrbitSuggestion(id: number, data: Partial<schema.InsertOrbitSuggestion>): Promise<schema.OrbitSuggestion | undefined> {
+    const [suggestion] = await db.update(schema.orbitSuggestions)
+      .set(data)
+      .where(eq(schema.orbitSuggestions.id, id))
+      .returning();
+    return suggestion;
+  }
+
+  async recordSuggestionDismissal(id: number, reason?: string): Promise<schema.OrbitSuggestion | undefined> {
+    const [suggestion] = await db.update(schema.orbitSuggestions)
+      .set({
+        status: 'dismissed',
+        ownerResponse: 'dismissed',
+        dismissReason: reason,
+        respondedAt: new Date(),
+        lastDismissedAt: new Date(),
+        repeatCount: sql`${schema.orbitSuggestions.repeatCount} + 1`,
+      })
+      .where(eq(schema.orbitSuggestions.id, id))
+      .returning();
+    return suggestion;
   }
 
   // Phase 2: Orbit Insights Summary

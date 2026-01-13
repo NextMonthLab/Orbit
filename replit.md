@@ -29,9 +29,9 @@ Phase 1 established:
 
 **Phase 1 is LOCKED. Do not redesign, reinterpret, or add new onboarding metaphors.**
 
-### Phase 2: Internal Owner Conversation Layer — CURRENT FOCUS
+### Phase 2: Internal Owner Conversation Layer — COMPLETE ✓
 
-The sole objective is implementing owner-only conversational mode:
+Phase 2 established:
 - Business owners can talk directly to their Orbit
 - Ask how Orbit understands their business
 - Question emphasis, gaps, or inaccuracies
@@ -41,21 +41,61 @@ The sole objective is implementing owner-only conversational mode:
 **Core Principle (Non-Negotiable):**
 Owners do not "edit Orbit". They **train it through conversation**, the same way they would onboard a new employee.
 
-**Phase 2 must NOT include:**
-- Configuration dashboards
-- Complex settings
-- Visible data structures
-- Manual tile manipulation
-- Direct tile editing
-- Visual or image replacement
-- Page or URL reassignment
-- Scoped per-tile chat panes
-- Analytics dashboards
-- Power-ups or automation suggestions
+**Phase 2 is LOCKED. Do not add configuration dashboards, complex settings, or manual tile manipulation.**
 
-Orbit handles structure internally. The owner speaks in plain language.
+### Phase 3: Knowledge ↔ Visual Binding — COMPLETE ✓
 
-### Behavioural Expectations for Orbit (Phase 2)
+Phase 3 established:
+- Knowledge nodes bind to visual representations
+- Tiles reflect understanding through visual consistency
+- Changes in knowledge cascade to visual updates
+
+**Phase 3 is LOCKED.**
+
+### Phase 4: Scoped Node Refinement Layer — COMPLETE ✓
+
+Phase 4 established:
+- Owners can focus on individual knowledge nodes (tiles)
+- Scoped conversations only affect that node by default
+- Cross-node impact detection with explicit confirmation
+- Refinement types: emphasis, framing, audience, relationship, meaning, timing
+- Refinement scopes: local (default), similar_nodes, global
+- Refinement statuses: tentative, confirmed, applied, reverted
+- Tabbed OwnerPane with Refine/Visual toggle
+
+**Core Principle:** Safe experimentation with explicit confirmation before widening scope.
+
+**Phase 4 is LOCKED.**
+
+### Phase 5: Intelligent Leverage & Suggestion Layer — COMPLETE ✓
+
+Phase 5 established:
+- Orbit can detect meaningful patterns across the whole business
+- Orbit identifies gaps, imbalances, and opportunities
+- Orbit suggests improvements calmly and selectively
+- Orbit offers leverage, not instructions
+- Orbit always defers final judgment to the owner
+
+**Insight Types:**
+- Pattern (repeated questions, disproportionate attention)
+- Opportunity (underrepresented offers, unlinked nodes)
+- Clarity (conflicting information, mixed signals)
+- Engagement (high/low performing content)
+- Gap (missing information, unanswered questions)
+- Alignment (visual/strategic misalignment)
+
+**Surfacing Rules:**
+- Insights only appear when owner explicitly asks or views dedicated pane
+- Orbit never interrupts active refinement or conversation
+- "No" is always a valid, respected answer
+- Dismissed suggestions are not aggressively repeated
+- Silence is better than noise
+
+**Core Principle:** Orbit is a sharp strategist who waits until the room is quiet before speaking.
+
+**Phase 5 is LOCKED. This completes the core Orbit system.**
+
+### Behavioural Expectations for Orbit
 
 Orbit must behave like a thoughtful internal colleague:
 - Transparent about uncertainty
