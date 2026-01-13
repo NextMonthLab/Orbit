@@ -8768,6 +8768,7 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
   });
 
   // Phase 3: GET /api/orbit/:slug/tiles/:tileId/visuals - Get visual bindings for a tile
+  // Supports both numeric tile IDs and string identifiers (e.g., "topic:brand-story")
   app.get("/api/orbit/:slug/tiles/:tileId/visuals", async (req, res) => {
     try {
       const { slug, tileId } = req.params;
@@ -8777,7 +8778,32 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         return res.status(404).json({ message: "Orbit not found" });
       }
       
-      const bindings = await storage.getTileVisualBindings(parseInt(tileId));
+      // Handle both numeric IDs and string identifiers
+      let numericTileId: number | undefined;
+      const parsedId = parseInt(tileId, 10);
+      
+      if (!isNaN(parsedId)) {
+        // Direct numeric ID
+        numericTileId = parsedId;
+      } else if (tileId.startsWith('topic:')) {
+        // String identifier like "topic:brand-story" - try to find matching tile by label
+        const topicLabel = tileId.replace('topic:', '').replace(/-/g, ' ');
+        const tiles = await storage.getTopicTiles(orbitMeta.id);
+        const matchingTile = tiles.find(t => 
+          t.label.toLowerCase() === topicLabel.toLowerCase() ||
+          t.label.toLowerCase().replace(/\s+/g, '-') === topicLabel.toLowerCase()
+        );
+        if (matchingTile) {
+          numericTileId = matchingTile.id;
+        }
+      }
+      
+      // Return empty bindings if no valid tile found
+      if (!numericTileId) {
+        return res.json({ bindings: [] });
+      }
+      
+      const bindings = await storage.getTileVisualBindings(numericTileId);
       
       res.json({ bindings });
       

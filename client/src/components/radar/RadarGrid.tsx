@@ -3,9 +3,23 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
 import { ChatHub, type ChatResponse } from "./ChatHub";
 import { KnowledgeTile } from "./KnowledgeTile";
+import { VisualPane } from "./VisualPane";
 import type { SiteKnowledge, AnyKnowledgeItem } from "@/lib/siteKnowledge";
 import { getAllItems, rankByRelevance, scoreRelevance } from "@/lib/siteKnowledge";
 import { ensureMessageBody, type EchoContext } from "@/lib/echoUtils";
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() => 
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  return isDesktop;
+}
 
 const TAP_THRESHOLD_MS = 200;
 const TAP_MOVE_THRESHOLD = 8;
@@ -95,6 +109,8 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
   const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+  const [showVisualPane, setShowVisualPane] = useState(false);
+  const isDesktop = useIsDesktop();
   const dragStart = useRef({ x: 0, y: 0 });
   const offsetStart = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -214,7 +230,11 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
     const itemKeywords = item.keywords.slice(0, 3);
     handleIntentChange(itemKeywords);
     onInteraction?.();
-  }, [handleIntentChange, onInteraction]);
+    // Show visual pane for owner mode on desktop when a tile is selected
+    if (isOwnerMode && isDesktop) {
+      setShowVisualPane(true);
+    }
+  }, [handleIntentChange, onInteraction, isOwnerMode, isDesktop]);
 
   const handleSendMessage = useCallback(async (message: string) => {
     if (selectedItem) {
@@ -606,6 +626,42 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-xs pointer-events-none text-center" style={{ zIndex: 20 }}>
         Tiles move to reflect what we're talking about
       </div>
+
+      {/* Visual Pane - Owner mode only on desktop */}
+      {isOwnerMode && isDesktop && showVisualPane && (
+        <AnimatePresence>
+          <motion.div
+            initial={{ x: 320, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 320, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="fixed right-0 top-0 h-full w-80 bg-zinc-900/95 backdrop-blur-sm border-l border-white/10 z-30"
+            data-testid="visual-pane"
+          >
+            <div className="flex items-center justify-between p-3 border-b border-white/10">
+              <span className="text-sm font-medium text-white/80">Visual Preview</span>
+              <button
+                onClick={() => setShowVisualPane(false)}
+                className="text-white/40 hover:text-white/80 transition-colors"
+                data-testid="button-close-visual-pane"
+              >
+                <Plus className="w-4 h-4 rotate-45" />
+              </button>
+            </div>
+            <VisualPane
+              tile={selectedItem ? {
+                id: selectedItem.id,
+                label: 'label' in selectedItem ? (selectedItem as any).label : undefined,
+                name: 'name' in selectedItem ? (selectedItem as any).name : undefined,
+                title: 'title' in selectedItem ? (selectedItem as any).title : undefined,
+              } : null}
+              orbitSlug={orbitSlug || ''}
+              isOwnerMode={isOwnerMode}
+              className="h-[calc(100%-52px)]"
+            />
+          </motion.div>
+        </AnimatePresence>
+      )}
     </div>
   );
 }

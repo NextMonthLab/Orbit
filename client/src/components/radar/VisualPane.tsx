@@ -16,14 +16,25 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { TileVisualBinding, TopicTile } from '@shared/schema';
+import type { TileVisualBinding } from '@shared/schema';
+
+interface TileInfo {
+  id: number | string;
+  label?: string;
+  name?: string;
+  title?: string;
+}
 
 interface VisualPaneProps {
-  tile: TopicTile | null;
+  tile: TileInfo | null;
   orbitSlug: string;
   isOwnerMode: boolean;
   onVisualCorrection?: (message: string) => void;
   className?: string;
+}
+
+function getTileLabel(tile: TileInfo): string {
+  return tile.label || tile.name || tile.title || 'Unknown';
 }
 
 export function VisualPane({ 
@@ -47,13 +58,19 @@ export function VisualPane({
     const fetchBindings = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/orbit/${orbitSlug}/tiles/${tile.id}/visuals`, {
+        // tile.id can be number or string - pass as-is to API
+        // API will handle parsing/lookup based on ID format
+        const tileId = String(tile.id);
+        const response = await fetch(`/api/orbit/${orbitSlug}/tiles/${encodeURIComponent(tileId)}/visuals`, {
           credentials: 'include'
         });
         if (response.ok) {
           const data = await response.json();
           setBindings(data.bindings || []);
           setCurrentIndex(0);
+        } else {
+          // Not found is ok - tile may not have bindings
+          setBindings([]);
         }
       } catch (error) {
         console.error('Failed to fetch visual bindings:', error);
@@ -120,7 +137,7 @@ export function VisualPane({
       )}>
         <ImageIcon className="w-12 h-12 mb-3 opacity-50" />
         <p className="text-sm text-center mb-2">
-          No visuals linked to "{tile.label}" yet
+          No visuals linked to "{getTileLabel(tile)}" yet
         </p>
         {isOwnerMode && (
           <p className="text-xs text-center opacity-70">
@@ -137,7 +154,7 @@ export function VisualPane({
         <div className="flex items-center gap-2">
           {getBindingIcon(currentBinding?.bindingType || 'page')}
           <span className="text-sm font-medium truncate max-w-[200px]">
-            {currentBinding?.title || tile.label}
+            {currentBinding?.title || getTileLabel(tile)}
           </span>
         </div>
         {currentBinding?.isPrimary && (
