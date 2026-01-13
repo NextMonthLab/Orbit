@@ -3420,6 +3420,64 @@ export const insertTopicTileSchema = createInsertSchema(topicTiles).omit({ id: t
 export type InsertTopicTile = z.infer<typeof insertTopicTileSchema>;
 export type TopicTile = typeof topicTiles.$inferSelect;
 
+// ============ TILE VISUAL BINDINGS (Phase 3) ============
+// Links knowledge tiles to visual sources (pages, images, media)
+
+export type VisualBindingType = 'page' | 'image' | 'video' | 'document' | 'embed';
+export type VisualBindingSource = 'auto_detected' | 'owner_specified' | 'crawl_inferred';
+
+export const tileVisualBindings = pgTable("tile_visual_bindings", {
+  id: serial("id").primaryKey(),
+  tileId: integer("tile_id").references(() => topicTiles.id, { onDelete: "cascade" }).notNull(),
+  orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
+  
+  bindingType: text("binding_type").$type<VisualBindingType>().notNull(),
+  sourceUrl: text("source_url"), // URL of the page or external resource
+  assetPath: text("asset_path"), // Path to uploaded asset in object storage
+  thumbnailUrl: text("thumbnail_url"), // Generated or provided thumbnail
+  
+  title: text("title"), // Display title for the visual
+  description: text("description"), // Brief description of what this visual shows
+  
+  source: text("source").$type<VisualBindingSource>().default("auto_detected").notNull(),
+  sourceReason: text("source_reason"), // Why this binding was created (AI explanation)
+  
+  isPrimary: boolean("is_primary").default(false).notNull(), // Main visual for this tile
+  confidence: real("confidence").default(0.5).notNull(), // 0-1 confidence in the binding
+  
+  ownerApproved: boolean("owner_approved").default(false).notNull(), // Owner verified this binding
+  ownerRejected: boolean("owner_rejected").default(false).notNull(), // Owner said this is wrong
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertTileVisualBindingSchema = createInsertSchema(tileVisualBindings).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertTileVisualBinding = z.infer<typeof insertTileVisualBindingSchema>;
+export type TileVisualBinding = typeof tileVisualBindings.$inferSelect;
+
+// Visual correction requests from owners
+export const visualCorrectionRequests = pgTable("visual_correction_requests", {
+  id: serial("id").primaryKey(),
+  orbitId: integer("orbit_id").references(() => orbitMeta.id, { onDelete: "cascade" }).notNull(),
+  tileId: integer("tile_id").references(() => topicTiles.id, { onDelete: "cascade" }),
+  bindingId: integer("binding_id").references(() => tileVisualBindings.id, { onDelete: "set null" }),
+  
+  correctionType: text("correction_type").$type<'replace' | 'remove' | 'add' | 'update_primary'>().notNull(),
+  ownerMessage: text("owner_message").notNull(), // What the owner said
+  suggestedUrl: text("suggested_url"), // URL the owner provided
+  suggestedAssetPath: text("suggested_asset_path"), // Uploaded asset path
+  
+  status: text("status").$type<'pending' | 'applied' | 'rejected'>().default("pending").notNull(),
+  appliedAt: timestamp("applied_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertVisualCorrectionRequestSchema = createInsertSchema(visualCorrectionRequests).omit({ id: true, createdAt: true });
+export type InsertVisualCorrectionRequest = z.infer<typeof insertVisualCorrectionRequestSchema>;
+export type VisualCorrectionRequest = typeof visualCorrectionRequests.$inferSelect;
+
 // ============ PULSE MONITORING SYSTEM ============
 // Monitors industry sources for events and updates
 

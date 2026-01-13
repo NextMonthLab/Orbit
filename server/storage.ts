@@ -335,6 +335,20 @@ export interface IStorage {
   updateOwnerCorrection(id: number, data: Partial<schema.InsertOrbitOwnerCorrection>): Promise<schema.OrbitOwnerCorrection | undefined>;
   getAppliedCorrections(businessSlug: string): Promise<schema.OrbitOwnerCorrection[]>;
 
+  // Phase 3: Tile Visual Bindings
+  createTileVisualBinding(data: schema.InsertTileVisualBinding): Promise<schema.TileVisualBinding>;
+  getTileVisualBindings(tileId: number): Promise<schema.TileVisualBinding[]>;
+  getTileVisualBindingsByOrbit(orbitId: number): Promise<schema.TileVisualBinding[]>;
+  getPrimaryVisualBinding(tileId: number): Promise<schema.TileVisualBinding | undefined>;
+  updateTileVisualBinding(id: number, data: Partial<schema.InsertTileVisualBinding>): Promise<schema.TileVisualBinding | undefined>;
+  deleteTileVisualBinding(id: number): Promise<void>;
+  setPrimaryVisualBinding(tileId: number, bindingId: number): Promise<void>;
+  
+  // Phase 3: Visual Correction Requests
+  createVisualCorrectionRequest(data: schema.InsertVisualCorrectionRequest): Promise<schema.VisualCorrectionRequest>;
+  getVisualCorrectionRequests(orbitId: number, status?: 'pending' | 'applied' | 'rejected'): Promise<schema.VisualCorrectionRequest[]>;
+  updateVisualCorrectionRequest(id: number, data: Partial<schema.InsertVisualCorrectionRequest>): Promise<schema.VisualCorrectionRequest | undefined>;
+
   // Phase 2: Orbit Insights Summary
   getOrbitInsightsSummary(businessSlug: string): Promise<schema.OrbitInsightsSummary | undefined>;
   upsertOrbitInsightsSummary(data: schema.InsertOrbitInsightsSummary): Promise<schema.OrbitInsightsSummary>;
@@ -2692,6 +2706,95 @@ export class DatabaseStorage implements IStorage {
       ),
       orderBy: [desc(schema.orbitOwnerCorrections.appliedAt)],
     });
+  }
+
+  // Phase 3: Tile Visual Bindings
+  async createTileVisualBinding(data: schema.InsertTileVisualBinding): Promise<schema.TileVisualBinding> {
+    const [binding] = await db.insert(schema.tileVisualBindings).values(data).returning();
+    return binding;
+  }
+
+  async getTileVisualBindings(tileId: number): Promise<schema.TileVisualBinding[]> {
+    return db.query.tileVisualBindings.findMany({
+      where: and(
+        eq(schema.tileVisualBindings.tileId, tileId),
+        eq(schema.tileVisualBindings.ownerRejected, false)
+      ),
+      orderBy: [desc(schema.tileVisualBindings.isPrimary), desc(schema.tileVisualBindings.confidence)],
+    });
+  }
+
+  async getTileVisualBindingsByOrbit(orbitId: number): Promise<schema.TileVisualBinding[]> {
+    return db.query.tileVisualBindings.findMany({
+      where: and(
+        eq(schema.tileVisualBindings.orbitId, orbitId),
+        eq(schema.tileVisualBindings.ownerRejected, false)
+      ),
+      orderBy: [desc(schema.tileVisualBindings.isPrimary), desc(schema.tileVisualBindings.confidence)],
+    });
+  }
+
+  async getPrimaryVisualBinding(tileId: number): Promise<schema.TileVisualBinding | undefined> {
+    return db.query.tileVisualBindings.findFirst({
+      where: and(
+        eq(schema.tileVisualBindings.tileId, tileId),
+        eq(schema.tileVisualBindings.isPrimary, true),
+        eq(schema.tileVisualBindings.ownerRejected, false)
+      ),
+    });
+  }
+
+  async updateTileVisualBinding(id: number, data: Partial<schema.InsertTileVisualBinding>): Promise<schema.TileVisualBinding | undefined> {
+    const [binding] = await db.update(schema.tileVisualBindings)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.tileVisualBindings.id, id))
+      .returning();
+    return binding;
+  }
+
+  async deleteTileVisualBinding(id: number): Promise<void> {
+    await db.delete(schema.tileVisualBindings).where(eq(schema.tileVisualBindings.id, id));
+  }
+
+  async setPrimaryVisualBinding(tileId: number, bindingId: number): Promise<void> {
+    // First, unset all primary bindings for this tile
+    await db.update(schema.tileVisualBindings)
+      .set({ isPrimary: false, updatedAt: new Date() })
+      .where(eq(schema.tileVisualBindings.tileId, tileId));
+    // Then set the specified binding as primary
+    await db.update(schema.tileVisualBindings)
+      .set({ isPrimary: true, updatedAt: new Date() })
+      .where(eq(schema.tileVisualBindings.id, bindingId));
+  }
+
+  // Phase 3: Visual Correction Requests
+  async createVisualCorrectionRequest(data: schema.InsertVisualCorrectionRequest): Promise<schema.VisualCorrectionRequest> {
+    const [request] = await db.insert(schema.visualCorrectionRequests).values(data).returning();
+    return request;
+  }
+
+  async getVisualCorrectionRequests(orbitId: number, status?: 'pending' | 'applied' | 'rejected'): Promise<schema.VisualCorrectionRequest[]> {
+    if (status) {
+      return db.query.visualCorrectionRequests.findMany({
+        where: and(
+          eq(schema.visualCorrectionRequests.orbitId, orbitId),
+          eq(schema.visualCorrectionRequests.status, status)
+        ),
+        orderBy: [desc(schema.visualCorrectionRequests.createdAt)],
+      });
+    }
+    return db.query.visualCorrectionRequests.findMany({
+      where: eq(schema.visualCorrectionRequests.orbitId, orbitId),
+      orderBy: [desc(schema.visualCorrectionRequests.createdAt)],
+    });
+  }
+
+  async updateVisualCorrectionRequest(id: number, data: Partial<schema.InsertVisualCorrectionRequest>): Promise<schema.VisualCorrectionRequest | undefined> {
+    const [request] = await db.update(schema.visualCorrectionRequests)
+      .set(data)
+      .where(eq(schema.visualCorrectionRequests.id, id))
+      .returning();
+    return request;
   }
 
   // Phase 2: Orbit Insights Summary

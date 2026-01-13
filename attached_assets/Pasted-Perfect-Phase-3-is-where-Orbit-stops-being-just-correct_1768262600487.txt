@@ -1,0 +1,225 @@
+Perfect. Phase 3 is where Orbit stops being just correct and starts being visually truthful.
+
+Up to now:
+	•	Phase 1 taught people what Orbit is
+	•	Phase 2 let owners train the intelligence
+
+Phase 3 answers the next, very human question:
+
+“Okay… but is this what people actually see?”
+
+Here’s Phase 3, written in the same replica-prompt, copy-paste-ready format as Phases 1 and 2.
+
+⸻
+
+PHASE 3 REPLICA PROMPT
+
+Orbit – Knowledge ↔ Visual Binding Layer
+
+Context
+
+Phase 1 established Orbit as a living intelligence.
+Phase 2 allowed owners to interrogate and train that intelligence through conversation.
+
+Phase 3 introduces the explicit connection between knowledge nodes (tiles) and the visual reality of the business.
+
+This is the phase where Orbit becomes accountable for what it shows.
+
+Orbit is still not a traditional editor.
+But it now understands that what it knows must match what users see.
+
+⸻
+
+Objective
+
+Enable internal users to:
+	1.	See how each knowledge node maps to real visuals (pages, images, embeds)
+	2.	Understand why a particular visual is associated with a node
+	3.	Identify mismatches between meaning and presentation
+	4.	Correct those mismatches conversationally
+	5.	Gain confidence that Orbit reflects the business accurately
+
+This phase introduces visual accountability, not design tools.
+
+⸻
+
+Core Mental Model (Must Be Explicit)
+
+Orbit must communicate to internal users:
+
+Each knowledge node is connected to real pages, images, and media.
+What people see externally is influenced by how I understand and link those visuals.
+
+You don’t need to edit layouts – you just tell me when something doesn’t match what you mean.
+
+This reinforces:
+	•	Meaning first
+	•	Visuals second
+	•	Conversation over controls
+
+⸻
+
+Desktop Behaviour (Primary Focus)
+
+Visual Pane Activation
+
+On desktop, Orbit must include:
+	•	A visual pane that displays the page, image set, or media linked to the currently relevant knowledge node(s)
+
+When:
+	•	A tile becomes prominent due to conversation
+or
+	•	An internal user selects a tile
+
+Orbit should:
+	•	Highlight the associated visual context
+	•	Make the relationship obvious (without labels or jargon)
+
+⸻
+
+Conversational Capabilities Introduced in Phase 3
+
+1️⃣ Explain visual linkage
+
+Internal users may ask:
+	•	“Why are you showing this page?”
+	•	“Where are these images coming from?”
+	•	“Is this the main page you associate with this service?”
+
+Orbit should respond transparently, e.g.:
+
+I’m linking this service to your /services/design page because it’s the most referenced and contains the clearest description.
+
+⸻
+
+2️⃣ Accept visual corrections conversationally
+
+Examples of valid owner input:
+	•	“Those aren’t the right images”
+	•	“That’s not the page customers should land on”
+	•	“This service is correct, but the visuals are outdated”
+	•	“We don’t want to show that page anymore”
+
+Orbit must:
+	•	Acknowledge the issue
+	•	Ask how the owner wants to correct it
+	•	Offer simple input options
+
+Example response:
+
+Got it. Would you like to replace the visuals, change the linked page, or add a better source?
+
+⸻
+
+3️⃣ Handle visual input sources
+
+Orbit may accept:
+	•	URLs to preferred pages
+	•	Uploaded images or documents
+	•	Simple explanations (“use the homepage section instead”)
+
+Orbit must not require:
+	•	Manual image selection tools
+	•	Page editors
+	•	Layout controls
+
+Conversation remains the interface.
+
+⸻
+
+Tile Behaviour in Phase 3
+
+Tiles remain:
+	•	Non-draggable
+	•	Non-manually editable
+
+But Orbit can now:
+	•	Update internal bindings between tiles and visuals
+	•	Reprioritise visuals based on owner input
+	•	Confirm when a correction has been applied
+
+Orbit should explicitly confirm changes, e.g.:
+
+Okay – I’ll treat this page as the primary visual reference for that service going forward.
+
+⸻
+
+Agenda Transparency (What Comes Next)
+
+Orbit should signal progression:
+
+Once visuals are aligned, you’ll be able to refine individual areas in more depth and focus on specific nodes without affecting the whole.
+
+This prepares users for Phase 4 (Scoped Node Refinement).
+
+⸻
+
+Explicit Constraints (Very Important)
+
+For Phase 3:
+	•	❌ No layout editing
+	•	❌ No drag-and-drop interfaces
+	•	❌ No per-image styling controls
+	•	❌ No scoped side-by-side node chat panes yet
+	•	❌ No automation or proactive suggestions
+
+If an owner asks for deeper control, Orbit should respond calmly:
+
+That level of refinement comes next once all visuals are aligned.
+
+⸻
+
+Tone & Behaviour Rules
+
+Orbit must behave like:
+	•	A conscientious representative of the business
+	•	Honest about mismatches
+	•	Careful with visual authority
+	•	Precise but not technical
+
+Never imply:
+	•	“This is how it must look”
+	•	“This is correct by default”
+
+Orbit should defer to the owner’s intent.
+
+⸻
+
+Success Criteria
+
+Phase 3 is successful if:
+	•	Owners trust that Orbit reflects what customers actually see
+	•	Visual mismatches are easy to identify and correct
+	•	Corrections feel conversational, not technical
+	•	Users stop worrying about “wrong pages” or “wrong images”
+	•	Orbit feels accountable, not abstract
+
+⸻
+
+End State
+
+At the end of Phase 3, internal users should feel:
+
+“What Orbit understands and what people see are finally aligned.”
+
+This is the moment Orbit stops being interesting and starts being credible.
+
+⸻
+
+What comes next (optional preview)
+
+Phase 4 will introduce:
+	•	Scoped, per-node refinement
+	•	Focused conversations without losing global context
+	•	Deeper shaping of individual services, products, or ideas
+
+But Phase 3 must be solid before anything else moves forward.
+
+⸻
+
+If you want next, we can:
+	•	Lock Phase 4 replica prompt
+	•	Design the visual pane ↔ tile interaction rules
+	•	Or write Orbit’s exact confirmation language for visual changes
+
+You’re sequencing this properly. This is how it becomes powerful without becoming messy.
