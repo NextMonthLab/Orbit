@@ -33,38 +33,44 @@
 }
 
 :root {
-  /* Dark Mode Default - Cinematic Noir */
-  --background: 240 10% 3.9%;
+  /* Dark Mode Default - Business Orbit Navy */
+  --background: 240 25% 8%;
   --foreground: 0 0% 95%;
 
-  --card: 240 10% 5%;
+  --card: 240 25% 10%;
   --card-foreground: 0 0% 95%;
 
-  --popover: 240 10% 5%;
+  --popover: 240 25% 10%;
   --popover-foreground: 0 0% 95%;
 
-  /* Refined Purple - desaturated, slightly darker, more authoritative */
-  --primary: 263 50% 45%;
-  --primary-foreground: 0 0% 98%;
+  /* Coral-Pink-Purple gradient primary - using coral as base */
+  --primary: 11 100% 64%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 240 4% 12%;
+  --secondary: 240 20% 15%;
   --secondary-foreground: 0 0% 95%;
 
-  --muted: 240 4% 14%;
-  --muted-foreground: 240 5% 60%;
+  --muted: 240 20% 18%;
+  --muted-foreground: 214 20% 69%;
 
-  /* Accent matches primary for consistency */
-  --accent: 263 50% 45%;
-  --accent-foreground: 0 0% 98%;
+  /* Accent uses purple from gradient */
+  --accent: 270 90% 66%;
+  --accent-foreground: 0 0% 100%;
 
   --destructive: 0 55% 35%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 240 4% 16%;
-  --input: 240 4% 16%;
-  --ring: 263 50% 45%;
+  --border: 240 20% 20%;
+  --input: 240 20% 20%;
+  --ring: 11 100% 64%;
 
   --radius: 0.5rem;
+  
+  /* Business Orbit gradient colors */
+  --orbit-coral: 11 100% 64%;
+  --orbit-pink: 330 100% 65%;
+  --orbit-purple: 270 90% 66%;
+  --orbit-navy: 240 25% 8%;
 }
 
 /* Light Mode */
