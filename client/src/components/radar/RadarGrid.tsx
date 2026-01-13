@@ -169,19 +169,24 @@ function OwnerPane({ isVisible, selectedItem, orbitSlug, isOwnerMode, onClose }:
   );
 }
 
-function generateTilePositions(count: number, ringSpacing: number = 180): { x: number; y: number }[] {
+const SAFE_ZONE_RADIUS = 200;
+const RING_SPACING = 120;
+const MAX_VISIBLE_TILES = 18;
+
+function generateTilePositions(count: number, ringSpacing: number = RING_SPACING): { x: number; y: number }[] {
   const positions: { x: number; y: number }[] = [];
   let ring = 1;
   let placed = 0;
   
   while (placed < count) {
-    const radius = ring * ringSpacing;
-    const tilesInRing = Math.max(6, Math.floor(ring * 6));
+    const radius = SAFE_ZONE_RADIUS + ring * ringSpacing;
+    const tilesInRing = Math.max(5, Math.floor(ring * 5));
     const angleStep = (2 * Math.PI) / tilesInRing;
+    const staggerOffset = ring % 2 === 0 ? angleStep / 2 : 0;
     
     for (let i = 0; i < tilesInRing && placed < count; i++) {
-      const angle = angleStep * i - Math.PI / 2;
-      const jitter = (Math.random() - 0.5) * 30;
+      const angle = angleStep * i - Math.PI / 2 + staggerOffset;
+      const jitter = (Math.random() - 0.5) * 15;
       positions.push({
         x: Math.cos(angle) * radius + jitter,
         y: Math.sin(angle) * radius + jitter,
@@ -226,7 +231,6 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
     return Math.min(conversationKeywords.length / 5, 1); // 0-1 scale
   }, [conversationKeywords]);
 
-  // Elastic zones: high intent = fewer visible tiles, more space
   const visibleItems = useMemo(() => {
     const query = conversationKeywords.join(' ');
     const scoredItems = rankedItems.map(item => ({
@@ -234,67 +238,38 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
       score: scoreRelevance(item, query)
     }));
     
-    // Always show minimum 50 tiles for infinite universe feel
-    // Even at high intent, maintain 50+ tiles for density
-    const maxVisible = Math.round(60 - intentLevel * 10); // 60 at ambient, 50 at focused
+    const maxVisible = Math.round(MAX_VISIBLE_TILES - intentLevel * 6);
     
-    // Sort by score descending, take top N (always at least 50)
     return scoredItems
       .sort((a, b) => b.score - a.score)
-      .slice(0, Math.max(50, maxVisible));
+      .slice(0, Math.max(12, maxVisible));
   }, [rankedItems, conversationKeywords, intentLevel]);
 
   const positionMap = useMemo(() => {
-    const tileWidth = 120;
-    const tileHeight = 100;
-    const tileSpacing = 10;
-    const safeGap = tileHeight + tileSpacing; // minimum between zones
-    
-    // Ring spacing for compact but readable 50+ tile layout
-    const ringSpacing = 95; // Compact packing, tiles can slightly overlap for density
+    const tileWidth = 200;
+    const tileHeight = 90;
+    const tileGap = 30;
     
     const map = new Map<string, { x: number; y: number; distance: number }>();
     
-    // Priority zone: only 1-2 tiles at high intent, up to 3 at low intent
-    const priorityCapacity = intentLevel > 0.5 ? 1 : (intentLevel > 0.2 ? 2 : 3);
-    const priorityRadius = 90; // Fixed radius for priority items
+    const firstRingRadius = SAFE_ZONE_RADIUS + RING_SPACING;
     
-    // Ring 1 must be far enough from priority zone to avoid overlap
-    const ring1Radius = priorityRadius + safeGap; // 90 + 140 = 230px
-    
-    const priorityItems = visibleItems.slice(0, priorityCapacity);
-    const regularItems = visibleItems.slice(priorityCapacity);
-    
-    // Place priority items with generous spacing
-    priorityItems.forEach((p, i) => {
-      const angle = (i / Math.max(priorityCapacity, 1)) * 2 * Math.PI - Math.PI / 2;
-      map.set(p.item.id, {
-        x: Math.cos(angle) * priorityRadius,
-        y: Math.sin(angle) * priorityRadius,
-        distance: priorityRadius,
-      });
-    });
-    
-    // Place remaining items in outer rings with staggered angles
     let placed = 0;
     let ringIndex = 0;
     
-    while (placed < regularItems.length) {
-      const ringRadius = ring1Radius + ringIndex * ringSpacing;
+    while (placed < visibleItems.length) {
+      const ringRadius = firstRingRadius + ringIndex * RING_SPACING;
       
-      // Calculate safe tile capacity for this ring
       const circumference = 2 * Math.PI * ringRadius;
-      const tileFootprint = tileWidth + tileSpacing;
+      const tileFootprint = tileWidth + tileGap;
       const maxTilesInRing = Math.max(1, Math.floor(circumference / tileFootprint));
       
-      // Limit to remaining items
-      const tilesInRing = Math.min(maxTilesInRing, regularItems.length - placed);
+      const tilesInRing = Math.min(maxTilesInRing, visibleItems.length - placed);
       
-      // Stagger angle offset between rings to prevent vertical stacking
-      const staggerAngle = (ringIndex % 2 === 0) ? 0 : Math.PI / tilesInRing;
+      const staggerAngle = (ringIndex % 2 === 0) ? 0 : Math.PI / Math.max(tilesInRing, 1);
       
-      for (let i = 0; i < tilesInRing && placed < regularItems.length; i++) {
-        const { item } = regularItems[placed];
+      for (let i = 0; i < tilesInRing && placed < visibleItems.length; i++) {
+        const { item } = visibleItems[placed];
         const angle = (i / tilesInRing) * 2 * Math.PI - Math.PI / 2 + staggerAngle;
         
         map.set(item.id, {
@@ -307,7 +282,7 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
       ringIndex++;
     }
     return map;
-  }, [visibleItems, intentLevel]);
+  }, [visibleItems]);
 
   const handleIntentChange = useCallback((keywords: string[]) => {
     setConversationKeywords(prev => {
@@ -589,24 +564,36 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
       onWheel={handleWheel}
       data-testid="radar-grid"
     >
-      {/* Grid pattern - moves with canvas */}
+      {/* Subtle dot grid - ambient background */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none opacity-30"
         style={{
-          backgroundImage: `
-            linear-gradient(${gridLineColor} 1px, transparent 1px),
-            linear-gradient(90deg, ${gridLineColor} 1px, transparent 1px)
-          `,
+          backgroundImage: `radial-gradient(${gridLineColor} 1px, transparent 1px)`,
           backgroundSize: `${gridSize}px ${gridSize}px`,
           backgroundPosition: `${gridOffsetX}px ${gridOffsetY}px`,
         }}
       />
       
-      {/* Radial glow from center */}
+      {/* Radial glow from center - stronger to anchor chat */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `radial-gradient(circle at 50% 50%, ${accentColor}15 0%, transparent 40%)`,
+          background: `radial-gradient(circle at 50% 45%, ${accentColor}12 0%, ${accentColor}05 20%, transparent 45%)`,
+        }}
+      />
+      
+      {/* Safe zone indicator - very subtle ring around center */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          left: '50%',
+          top: '45%',
+          width: SAFE_ZONE_RADIUS * 2,
+          height: SAFE_ZONE_RADIUS * 2,
+          marginLeft: -SAFE_ZONE_RADIUS,
+          marginTop: -SAFE_ZONE_RADIUS,
+          borderRadius: '50%',
+          border: `1px dashed ${lightMode ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)'}`,
         }}
       />
       

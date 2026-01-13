@@ -366,13 +366,13 @@ export function ChatHub({
       data-chat-hub
     >
       <div 
-        className="rounded-2xl overflow-hidden backdrop-blur-xl"
+        className="rounded-2xl overflow-hidden"
         style={{
-          backgroundColor: lightMode ? 'rgba(255, 255, 255, 0.98)' : 'rgba(10, 10, 10, 0.95)',
-          border: `1px solid ${accentColor}40`,
+          backgroundColor: lightMode ? 'rgba(255, 255, 255, 1)' : 'rgba(8, 8, 12, 0.98)',
+          border: `1px solid ${lightMode ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)'}`,
           boxShadow: lightMode 
-            ? `0 0 60px ${accentColor}15, 0 25px 50px -12px rgba(0, 0, 0, 0.15)`
-            : `0 0 60px ${accentColor}20, 0 25px 50px -12px rgba(0, 0, 0, 0.5)`,
+            ? `0 0 80px ${accentColor}15, 0 32px 64px -16px rgba(0, 0, 0, 0.2)`
+            : `0 0 100px ${accentColor}25, 0 32px 64px -16px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.05) inset`,
         }}
       >
         {/* Header */}
