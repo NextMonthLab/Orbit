@@ -1,0 +1,253 @@
+# Orbit → Render Deployment Readiness Prompt (Replit Instance)
+
+You are the Replit agent managing the Orbit repository.
+Your job is to make Orbit deploy to Render with identical behaviour to Replit, while being production-safe, scalable, and cost-controlled.
+
+Orbit is NOT a toy app. It includes ingestion, background processing, embeddings, and long-lived data.
+Assume this will run unattended in production.
+
+Non-negotiables:
+- Do NOT break existing Orbit functionality.
+- Do NOT rely on Replit-only behaviour.
+- Do NOT assume in-memory or local filesystem persistence.
+- Prefer boring, explicit infrastructure over clever shortcuts.
+- Everything must run cleanly on Render with clear failure modes.
+- Produce documentation + implement required changes in-repo.
+
+---
+
+## 0) Confirm Orbit Architecture (Fact Finding Only)
+Inspect the repo and report clearly:
+- Frontend framework (Vite / Next / etc) and build output path
+- Backend framework (Express / Fastify / Next API / workers)
+- Whether Orbit is:
+  A) Single Node service (API + frontend), or  
+  B) Split frontend + API, or  
+  C) API-only with separate UI repo
+- Current Node version expectations
+- Where ingestion logic lives (routes, services, workers)
+- Whether embeddings / vector DB logic exists and where
+
+Deliverable: short factual architecture summary.
+
+---
+
+## 1) Identify and Remove Replit Couplings (Critical)
+Audit and eliminate all Replit-specific assumptions:
+- Replit-only env helpers
+- Hardcoded ports or localhost URLs
+- File paths tied to Replit filesystem
+- In-memory queues used as if persistent
+- Long-running processes incorrectly attached to HTTP requests
+
+Replace with Render-safe patterns.
+
+Deliverable:
+- List of exact files changed
+- Why each change was required for Render
+
+---
+
+## 2) Choose the Correct Render Deployment Shape (Justify It)
+Orbit has background work. Choose deliberately.
+
+Options:
+- Option A: One Render Web Service handling:
+  - API
+  - frontend serving
+  - background jobs (via internal queue)
+- Option B: Multiple services:
+  - Web Service (API + frontend)
+  - Background Worker Service (ingestion, embeddings, refresh jobs)
+- Option C: API-only + separate static frontend
+
+Pick the **lowest-risk** option that preserves Orbit’s behaviour.
+
+Deliverables:
+- Selected architecture and justification
+- Render Build Command(s)
+- Render Start Command(s)
+- Health check endpoint(s)
+
+---
+
+## 3) Runtime + Scripts (Must Be Explicit)
+Ensure Orbit is production-ready:
+- package.json scripts must include:
+  - "build"
+  - "start" (production only)
+  - "dev" (Replit/local)
+- Server must bind to `process.env.PORT` and `0.0.0.0`
+- NODE_ENV must be respected
+- Node version must be locked (package.json engines + optional .nvmrc)
+
+Deliverable:
+- Final scripts block
+- Explanation of any changes
+
+---
+
+## 4) Ingestion + Background Job Strategy (Orbit-Specific)
+Orbit must NOT rely on:
+- long-running HTTP requests
+- in-memory queues
+- cron logic hidden in frontend/API routes
+
+Audit and categorise Orbit jobs:
+A) On-demand ingestion (user-triggered)
+B) Scheduled refresh (polling, re-ingest)
+C) Heavy processing (embeddings, summarisation)
+
+Implement or propose:
+- Background worker strategy (same service or separate Render worker)
+- Queue mechanism (lightweight internal queue, DB-backed jobs, or explicit worker loop)
+- Clear retry and failure behaviour
+
+Deliverable:
+- Job types list
+- How jobs are queued, processed, retried
+- Where jobs run in Render
+
+---
+
+## 5) Database + Vector Storage (Explicit and Minimal)
+Audit Orbit’s data needs:
+
+Must persist:
+- Orbits
+- Nodes / knowledge items
+- Source metadata
+- Ingestion runs + status
+- Tenancy / ownership
+- Audit logs
+
+Embeddings:
+- Identify whether Orbit uses:
+  - External vector DB
+  - Postgres + vector extension
+  - In-memory (not allowed in prod)
+
+Implement or confirm:
+- Primary DB (Postgres strongly preferred)
+- ORM / migrations strategy
+- Vector storage approach
+- Clear separation of tenant data
+
+Deliverables:
+- Minimal schema outline
+- Migration strategy
+- Vector storage decision + env vars
+
+---
+
+## 6) File + Media Storage (No Local Disk Assumptions)
+Audit any use of:
+- downloaded pages
+- scraped assets
+- uploaded files
+- cached content
+
+Rules:
+- Render filesystem is ephemeral
+- Do NOT rely on local disk persistence
+
+Implement or confirm:
+- Object storage for files (S3-compatible preferred)
+- Clear bucket/key strategy
+- Signed URL or proxy access model
+
+Deliverable:
+- Storage strategy
+- Required env vars
+- Files touched to enforce this
+
+---
+
+## 7) Environment Variables (Authoritative Inventory)
+Create a complete env var inventory.
+For each variable include:
+- Name
+- Required vs optional
+- Example format
+- What breaks if missing
+- Where it is used
+
+Must include:
+- APP_URL / PUBLIC_URL
+- API base URL
+- DATABASE_URL
+- Vector DB config (if any)
+- AI provider keys
+- Job/worker flags
+- Storage credentials
+- Webhook secrets
+- Feature flags
+
+Deliverables:
+- Commit `.env.example`
+- Add env var section to DEPLOY_RENDER.md
+
+---
+
+## 8) Frontend Routing + API Boundaries
+Ensure Orbit UI works in production:
+- Deep links must survive refresh
+- API routes must not collide with frontend routes
+- CORS must be correct for chosen architecture
+
+Verify behaviour for:
+- /
+- /orbit/:slug
+- /node/:id
+- /api/health
+
+Deliverable:
+- Confirmation and fixes if needed
+
+---
+
+## 9) Production Safety + Guardrails
+Add if missing:
+- /api/health endpoint
+- Startup validation for required env vars
+- Structured logging (no secrets)
+- Ingestion rate limits or guards
+- Hard caps or warnings for expensive operations
+
+Deliverable:
+- What safeguards were added and why
+
+---
+
+## 10) Render Docs + Blueprint (Must Commit)
+Add:
+- `DEPLOY_RENDER.md` with:
+  - Service setup steps
+  - Build/start commands
+  - Env var configuration
+  - DB + migration steps
+  - Worker setup (if any)
+  - Common failure modes
+- Optional but preferred: `render.yaml`
+
+---
+
+## 11) Validation Checklist (Mandatory)
+Before finishing:
+- Run production build locally
+- Run production server using env vars only
+- Confirm DB migrations run clean
+- Trigger an Orbit ingestion end-to-end
+- Confirm background jobs execute correctly
+- Confirm no data loss on server restart
+
+---
+
+## Final Output Format
+1) What changed (file paths + reasons)
+2) Render deployment architecture
+3) Env var table
+4) DB + vector + storage plan
+5) Background job model
+6) DEPLOY_RENDER.md summary
+7) Open risks / decisions needed

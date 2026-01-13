@@ -1,5 +1,6 @@
 import { type ComponentType, Fragment } from "react";
 import { Building2, Globe, Loader2, AlertCircle, ClipboardPaste, FileSpreadsheet, Link2, Shield, UtensilsCrossed, ShoppingCart, Briefcase, BookOpen, FileText, MapPin, Sparkles, ArrowLeft, Check, ArrowRight, X, Clock, Zap, Upload, ExternalLink, Code, FileCode, ChevronRight, Mail, CheckCircle, Headphones } from "lucide-react";
+import businessOrbitLogo from "@assets/business-orbit-logo-cropped.png";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -399,7 +400,7 @@ export default function OrbitClaim() {
           <div className="max-w-3xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] flex items-center justify-center">
                   <Sparkles className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-white font-medium">Orbit setup</span>
@@ -408,7 +409,7 @@ export default function OrbitClaim() {
             </div>
             {/* Progress bar */}
             <div className="mt-3 h-1 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full w-1/2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" />
+              <div className="h-full w-1/2 bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] rounded-full" />
             </div>
           </div>
         </div>
@@ -436,7 +437,7 @@ export default function OrbitClaim() {
             {/* Selection limit indicator */}
             {atLimit && (
               <div className="text-center">
-                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm">
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#ff6b4a]/10 border border-[#ff6b4a]/20 text-[#ff6b4a] text-sm">
                   <Check className="w-3.5 h-3.5" />
                   Maximum 3 selected
                 </span>
@@ -446,23 +447,23 @@ export default function OrbitClaim() {
             {/* Let Orbit decide - Recommended option at top */}
             <button
               onClick={handleLetOrbitDecide}
-              className="w-full p-4 rounded-xl border border-transparent bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/15 hover:to-purple-500/15 text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 ring-1 ring-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
+              className="w-full p-4 rounded-xl border border-transparent bg-gradient-to-r from-[#ff6b4a]/10 via-[#ff4d8f]/10 to-[#a855f7]/10 hover:from-[#ff6b4a]/15 hover:via-[#ff4d8f]/15 hover:to-[#a855f7]/15 text-left transition-all focus:outline-none focus:ring-2 focus:ring-[#ff6b4a]/50 ring-1 ring-[#ff6b4a]/30 shadow-[0_0_20px_rgba(255,107,74,0.1)]"
               data-testid="button-intent-auto"
             >
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center flex-shrink-0 ring-1 ring-blue-500/50">
-                  <Sparkles className="w-5 h-5 text-blue-400" />
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#ff6b4a]/20 via-[#ff4d8f]/20 to-[#a855f7]/20 flex items-center justify-center flex-shrink-0 ring-1 ring-[#ff6b4a]/50">
+                  <Sparkles className="w-5 h-5 text-[#ff6b4a]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-white">Let Orbit decide</span>
-                    <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium">
+                    <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] text-white text-xs font-medium">
                       Recommended
                     </span>
                   </div>
                   <span className="text-white/50 text-sm">Fastest setup — we'll analyse your site automatically</span>
                 </div>
-                <ArrowRight className="w-5 h-5 text-blue-400 flex-shrink-0 mt-2" />
+                <ArrowRight className="w-5 h-5 text-[#ff6b4a] flex-shrink-0 mt-2" />
               </div>
             </button>
 
@@ -487,9 +488,9 @@ export default function OrbitClaim() {
                     onClick={() => togglePriority(option.id)}
                     disabled={isDisabled}
                     className={`
-                      relative p-4 rounded-xl border text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50
+                      relative p-4 rounded-xl border text-left transition-all focus:outline-none focus:ring-2 focus:ring-[#ff6b4a]/50
                       ${isSelected
-                        ? 'bg-white/[0.07] border-transparent ring-2 ring-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.15)]'
+                        ? 'bg-white/[0.07] border-transparent ring-2 ring-[#ff6b4a] shadow-[0_0_20px_rgba(255,107,74,0.15)]'
                         : isDisabled
                         ? 'bg-white/[0.02] border-white/5 opacity-50 cursor-not-allowed'
                         : 'bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.05] cursor-pointer'
@@ -499,7 +500,7 @@ export default function OrbitClaim() {
                   >
                     {/* Recommended chip */}
                     {isRecommended && (
-                      <span className="absolute -top-2 right-3 px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium">
+                      <span className="absolute -top-2 right-3 px-2 py-0.5 rounded-full bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] text-white text-xs font-medium">
                         Suggested
                       </span>
                     )}
@@ -509,11 +510,11 @@ export default function OrbitClaim() {
                       <div className={`
                         w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-all
                         ${isSelected
-                          ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 ring-1 ring-blue-500/50'
+                          ? 'bg-gradient-to-br from-[#ff6b4a]/20 via-[#ff4d8f]/20 to-[#a855f7]/20 ring-1 ring-[#ff6b4a]/50'
                           : 'bg-white/[0.05]'
                         }
                       `}>
-                        <Icon className={`w-5 h-5 ${isSelected ? 'text-blue-400' : 'text-white/60'}`} />
+                        <Icon className={`w-5 h-5 ${isSelected ? 'text-[#ff6b4a]' : 'text-white/60'}`} />
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -529,7 +530,7 @@ export default function OrbitClaim() {
                       <div className={`
                         w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-all
                         ${isSelected
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-500'
+                          ? 'bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7]'
                           : 'border border-white/20'
                         }
                       `}>
@@ -569,7 +570,7 @@ export default function OrbitClaim() {
               <Button
                 onClick={handleContinueWithSelection}
                 disabled={selectedPriorities.length === 0}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed border-0"
                 data-testid="button-continue"
               >
                 Continue
@@ -588,8 +589,8 @@ export default function OrbitClaim() {
         <div className="p-6 max-w-[720px] mx-auto space-y-6">
           {/* Header - Positive framing */}
           <div className="text-center space-y-3">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 flex items-center justify-center mx-auto">
-              <Shield className="w-7 h-7 text-blue-400" />
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#ff6b4a]/20 via-[#ff4d8f]/20 to-[#a855f7]/20 border border-[#ff6b4a]/30 flex items-center justify-center mx-auto">
+              <Shield className="w-7 h-7 text-[#ff6b4a]" />
             </div>
             <h1 className="text-2xl font-semibold text-white" data-testid="text-blocked-title">
               This site has extra protection
@@ -618,18 +619,18 @@ export default function OrbitClaim() {
                 }
               }}
               disabled={analyzeWebsiteMutation.isPending}
-              className="w-full p-4 rounded-xl border border-transparent bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/15 hover:to-purple-500/15 text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 ring-1 ring-blue-500/30"
+              className="w-full p-4 rounded-xl border border-transparent bg-gradient-to-r from-[#ff6b4a]/10 via-[#ff4d8f]/10 to-[#a855f7]/10 hover:from-[#ff6b4a]/15 hover:via-[#ff4d8f]/15 hover:to-[#a855f7]/15 text-left transition-all focus:outline-none focus:ring-2 focus:ring-[#ff6b4a]/50 ring-1 ring-[#ff6b4a]/30"
               data-testid="button-try-sitemap"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center flex-shrink-0 ring-1 ring-blue-500/50">
-                    <FileCode className="w-5 h-5 text-blue-400" />
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#ff6b4a]/20 via-[#ff4d8f]/20 to-[#a855f7]/20 flex items-center justify-center flex-shrink-0 ring-1 ring-[#ff6b4a]/50">
+                    <FileCode className="w-5 h-5 text-[#ff6b4a]" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-white">Try sitemap.xml</span>
-                      <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium">
+                      <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] text-white text-xs font-medium">
                         Fastest
                       </span>
                       <span className="text-xs text-white/40 flex items-center gap-1">
@@ -640,9 +641,9 @@ export default function OrbitClaim() {
                   </div>
                 </div>
                 {analyzeWebsiteMutation.isPending ? (
-                  <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                  <Loader2 className="w-5 h-5 text-[#ff6b4a] animate-spin" />
                 ) : (
-                  <ChevronRight className="w-5 h-5 text-blue-400" />
+                  <ChevronRight className="w-5 h-5 text-[#ff6b4a]" />
                 )}
               </div>
             </button>
@@ -656,7 +657,7 @@ export default function OrbitClaim() {
                   setQuickSetupData(prev => ({ ...prev, homepage: validatedUrl }));
                 }
               }}
-              className="w-full p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] hover:border-white/20 text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] hover:border-white/20 text-left transition-all focus:outline-none focus:ring-2 focus:ring-[#ff6b4a]/50"
               data-testid="button-quick-setup"
             >
               <div className="flex items-center justify-between">
@@ -687,7 +688,7 @@ export default function OrbitClaim() {
                 // Show snippet modal
                 alert('Snippet installation coming soon. For now, use Quick Setup.');
               }}
-              className="w-full p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] hover:border-white/20 text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] hover:border-white/20 text-left transition-all focus:outline-none focus:ring-2 focus:ring-[#ff6b4a]/50"
               data-testid="button-install-snippet"
             >
               <div className="flex items-center justify-between">
@@ -925,7 +926,7 @@ export default function OrbitClaim() {
           <DialogContent className="bg-black border-white/10 text-white max-w-xl max-h-[90vh] overflow-y-auto">
             {isBuilding ? (
               <div className="py-12 text-center space-y-4">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto" />
+                <Loader2 className="w-10 h-10 animate-spin text-[#ff6b4a] mx-auto" />
                 <p className="text-lg font-medium">Building your Orbit…</p>
                 <p className="text-sm text-white/50">This usually takes about 30 seconds</p>
               </div>
@@ -941,7 +942,7 @@ export default function OrbitClaim() {
                   {/* Progress bar */}
                   <div className="h-1 bg-white/10 rounded-full mt-3 overflow-hidden">
                     <div 
-                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] rounded-full transition-all duration-300"
                       style={{ width: quickSetupStep === 1 ? '50%' : '100%' }}
                     />
                   </div>
@@ -961,7 +962,7 @@ export default function OrbitClaim() {
                           <button
                             type="button"
                             onClick={() => setQuickSetupData(prev => ({ ...prev, aboutMode: 'url' }))}
-                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${quickSetupData.aboutMode === 'url' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-[#ff6b4a] ${quickSetupData.aboutMode === 'url' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
                             aria-pressed={quickSetupData.aboutMode === 'url'}
                             data-testid="toggle-about-url"
                           >
@@ -970,7 +971,7 @@ export default function OrbitClaim() {
                           <button
                             type="button"
                             onClick={() => setQuickSetupData(prev => ({ ...prev, aboutMode: 'text' }))}
-                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${quickSetupData.aboutMode === 'text' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-[#ff6b4a] ${quickSetupData.aboutMode === 'text' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
                             aria-pressed={quickSetupData.aboutMode === 'text'}
                             data-testid="toggle-about-text"
                           >
@@ -991,7 +992,7 @@ export default function OrbitClaim() {
                           placeholder="Paste your about page content..."
                           value={quickSetupData.aboutText}
                           onChange={(e) => setQuickSetupData(prev => ({ ...prev, aboutText: e.target.value }))}
-                          className="w-full h-20 px-3 py-2 rounded-md bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          className="w-full h-20 px-3 py-2 rounded-md bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#ff6b4a]/50"
                           data-testid="textarea-about-text"
                           aria-label="About page content"
                         />
@@ -1006,7 +1007,7 @@ export default function OrbitClaim() {
                           <button
                             type="button"
                             onClick={() => setQuickSetupData(prev => ({ ...prev, servicesMode: 'url' }))}
-                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${quickSetupData.servicesMode === 'url' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-[#ff6b4a] ${quickSetupData.servicesMode === 'url' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
                             aria-pressed={quickSetupData.servicesMode === 'url'}
                             data-testid="toggle-services-url"
                           >
@@ -1015,7 +1016,7 @@ export default function OrbitClaim() {
                           <button
                             type="button"
                             onClick={() => setQuickSetupData(prev => ({ ...prev, servicesMode: 'text' }))}
-                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${quickSetupData.servicesMode === 'text' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-[#ff6b4a] ${quickSetupData.servicesMode === 'text' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
                             aria-pressed={quickSetupData.servicesMode === 'text'}
                             data-testid="toggle-services-text"
                           >
@@ -1036,7 +1037,7 @@ export default function OrbitClaim() {
                           placeholder="Paste your services or pricing info..."
                           value={quickSetupData.servicesText}
                           onChange={(e) => setQuickSetupData(prev => ({ ...prev, servicesText: e.target.value }))}
-                          className="w-full h-20 px-3 py-2 rounded-md bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          className="w-full h-20 px-3 py-2 rounded-md bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#ff6b4a]/50"
                           data-testid="textarea-services-text"
                           aria-label="Services or pricing content"
                         />
@@ -1051,7 +1052,7 @@ export default function OrbitClaim() {
                           <button
                             type="button"
                             onClick={() => setQuickSetupData(prev => ({ ...prev, faqMode: 'url' }))}
-                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${quickSetupData.faqMode === 'url' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-[#ff6b4a] ${quickSetupData.faqMode === 'url' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
                             aria-pressed={quickSetupData.faqMode === 'url'}
                             data-testid="toggle-faq-url"
                           >
@@ -1060,7 +1061,7 @@ export default function OrbitClaim() {
                           <button
                             type="button"
                             onClick={() => setQuickSetupData(prev => ({ ...prev, faqMode: 'text' }))}
-                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${quickSetupData.faqMode === 'text' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
+                            className={`px-2 py-1 text-xs rounded focus:outline-none focus:ring-1 focus:ring-[#ff6b4a] ${quickSetupData.faqMode === 'text' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
                             aria-pressed={quickSetupData.faqMode === 'text'}
                             data-testid="toggle-faq-text"
                           >
@@ -1081,7 +1082,7 @@ export default function OrbitClaim() {
                           placeholder="Paste your FAQ or contact info..."
                           value={quickSetupData.faqText}
                           onChange={(e) => setQuickSetupData(prev => ({ ...prev, faqText: e.target.value }))}
-                          className="w-full h-20 px-3 py-2 rounded-md bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          className="w-full h-20 px-3 py-2 rounded-md bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#ff6b4a]/50"
                           data-testid="textarea-faq-text"
                           aria-label="FAQ or contact content"
                         />
@@ -1101,7 +1102,7 @@ export default function OrbitClaim() {
                       <Button
                         onClick={() => setQuickSetupStep(2)}
                         disabled={!quickSetupHasContent()}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50"
+                        className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] hover:opacity-90 border-0 disabled:opacity-50"
                         data-testid="button-wizard-continue"
                       >
                         Continue
@@ -1171,7 +1172,7 @@ export default function OrbitClaim() {
                         checked={quickSetupData.prioritizeSocials}
                         onCheckedChange={(checked) => setQuickSetupData(prev => ({ ...prev, prioritizeSocials: checked === true }))}
                         data-testid="checkbox-prioritize-socials"
-                        className="border-white/20 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-purple-500 data-[state=checked]:border-0"
+                        className="border-white/20 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#ff6b4a] data-[state=checked]:via-[#ff4d8f] data-[state=checked]:to-[#a855f7] data-[state=checked]:border-0"
                       />
                       <label htmlFor="prioritize-socials" className="text-sm text-white/70 cursor-pointer">
                         Prioritise these pages first
@@ -1199,7 +1200,7 @@ export default function OrbitClaim() {
                       </Button>
                       <Button
                         onClick={handleQuickSetupSubmit}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] hover:opacity-90 border-0"
                         data-testid="button-build-orbit"
                         disabled={isBuilding}
                       >
@@ -1221,8 +1222,8 @@ export default function OrbitClaim() {
                   <div className="space-y-6 mt-4 text-center py-4">
                     {/* Success indicator */}
                     <div className="flex flex-col items-center gap-4">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 flex items-center justify-center animate-pulse">
-                        <Sparkles className="w-8 h-8 text-blue-400" />
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#ff6b4a]/20 via-[#ff4d8f]/20 to-[#a855f7]/20 flex items-center justify-center animate-pulse">
+                        <Sparkles className="w-8 h-8 text-[#ff6b4a]" />
                       </div>
                       <div>
                         <h3 className="text-xl font-semibold text-white mb-2">Orbit Powered Up</h3>
@@ -1250,7 +1251,7 @@ export default function OrbitClaim() {
                       </div>
                       <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-4">
                         <div 
-                          className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
+                          className="h-full bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] rounded-full transition-all duration-500"
                           style={{ width: `${powerUpResult.strengthScore}%` }}
                         />
                       </div>
@@ -1299,9 +1300,9 @@ export default function OrbitClaim() {
 
                     {/* Status badge */}
                     <div className="flex justify-center">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30">
-                        <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                        <span className="text-sm font-medium text-blue-300">Powered insights live</span>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#ff6b4a]/20 via-[#ff4d8f]/20 to-[#a855f7]/20 border border-[#ff6b4a]/30">
+                        <span className="w-2 h-2 rounded-full bg-[#ff6b4a] animate-pulse" />
+                        <span className="text-sm font-medium text-[#ff6b4a]">Powered insights live</span>
                       </span>
                     </div>
 
@@ -1312,7 +1313,7 @@ export default function OrbitClaim() {
                           setShowQuickSetup(false);
                           setLocation('/launchpad');
                         }}
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        className="w-full bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] hover:opacity-90 border-0"
                         data-testid="button-go-launchpad"
                       >
                         Go to Launchpad
@@ -1346,8 +1347,8 @@ export default function OrbitClaim() {
     <OrbitLayout>
       <div className="p-6 max-w-2xl mx-auto space-y-8">
         <div className="text-center space-y-2">
-          <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-8 h-8 text-blue-400" />
+          <div className="w-20 h-20 mx-auto mb-4">
+            <img src={businessOrbitLogo} alt="Business Orbit" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-bold text-white" data-testid="text-claim-title">
             Claim Your Orbit
@@ -1389,7 +1390,7 @@ export default function OrbitClaim() {
               <Button 
                 onClick={handleContinue}
                 disabled={isLoading || !websiteUrl.trim()}
-                className="bg-blue-500 hover:bg-blue-600 min-w-[100px]" 
+                className="bg-gradient-to-r from-[#ff6b4a] to-[#ff4d8f] hover:opacity-90 min-w-[100px] border-0" 
                 data-testid="button-continue"
               >
                 Continue
@@ -1401,9 +1402,9 @@ export default function OrbitClaim() {
         <div className="pt-4 text-center">
           <p className="text-xs text-white/40">
             By continuing, you agree to our{" "}
-            <Link href="/terms" className="text-blue-400 hover:underline">Terms of Service</Link>
+            <Link href="/terms" className="text-[#ff6b4a] hover:underline">Terms of Service</Link>
             {" "}and{" "}
-            <Link href="/privacy" className="text-blue-400 hover:underline">Privacy Policy</Link>
+            <Link href="/privacy" className="text-[#ff6b4a] hover:underline">Privacy Policy</Link>
           </p>
         </div>
       </div>
