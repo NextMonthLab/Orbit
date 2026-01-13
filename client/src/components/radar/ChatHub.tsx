@@ -359,7 +359,7 @@ export function ChatHub({
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
+      animate={{ opacity: 1, scale: 1.02 }}
       exit={{ opacity: 0, scale: 0.9 }}
       className="fixed left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 z-[60] w-[360px] max-w-[90vw] mb-16"
       data-testid="chat-hub"
@@ -368,11 +368,11 @@ export function ChatHub({
       <div 
         className="rounded-2xl overflow-hidden"
         style={{
-          backgroundColor: lightMode ? 'rgba(255, 255, 255, 1)' : 'rgba(8, 8, 12, 0.98)',
-          border: `1px solid ${lightMode ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)'}`,
+          backgroundColor: lightMode ? 'rgba(255, 255, 255, 1)' : 'rgba(12, 12, 18, 1)',
+          border: `1px solid ${lightMode ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)'}`,
           boxShadow: lightMode 
-            ? `0 0 80px ${accentColor}15, 0 32px 64px -16px rgba(0, 0, 0, 0.2)`
-            : `0 0 100px ${accentColor}25, 0 32px 64px -16px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.05) inset`,
+            ? `0 0 120px ${accentColor}20, 0 40px 80px -20px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0,0,0,0.05)`
+            : `0 0 150px ${accentColor}30, 0 48px 96px -24px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255,255,255,0.08) inset, 0 0 0 2px rgba(255,255,255,0.02) inset`,
         }}
       >
         {/* Header */}

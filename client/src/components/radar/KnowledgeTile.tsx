@@ -4,6 +4,8 @@ import { FileText, User, Star, Video, Phone, Mail, Quote, Lightbulb, ExternalLin
 import type { AnyKnowledgeItem, Topic, Page, Person, Proof, Action, Blog, Social } from "@/lib/siteKnowledge";
 import { orbitTokens } from "@/lib/designTokens";
 
+type DepthTier = 'A' | 'B' | 'C';
+
 interface KnowledgeTileProps {
   item: AnyKnowledgeItem;
   relevanceScore: number;
@@ -11,6 +13,7 @@ interface KnowledgeTileProps {
   accentColor?: string;
   zoomLevel?: number;
   lightMode?: boolean;
+  depthTier?: DepthTier;
 }
 
 const typeIcons: Record<string, LucideIcon> = {
@@ -187,10 +190,17 @@ function getActionIcon(actionType: string) {
   }
 }
 
-export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoomLevel = 1, lightMode = false }: KnowledgeTileProps) {
+const tierStyles = {
+  A: { opacity: 0.75, textOpacity: 0.9, summaryOpacity: 0.7, blur: 0, showSummary: true },
+  B: { opacity: 0.55, textOpacity: 0.7, summaryOpacity: 0.45, blur: 0, showSummary: true },
+  C: { opacity: 0.35, textOpacity: 0.5, summaryOpacity: 0.25, blur: 1, showSummary: false },
+};
+
+export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoomLevel = 1, lightMode = false, depthTier = 'A' }: KnowledgeTileProps) {
   const shouldReduceMotion = useReducedMotion();
   const [imageError, setImageError] = useState(false);
   const CategoryIcon = getCategoryIcon(item);
+  const tierStyle = tierStyles[depthTier];
   
   const getTypeIcon = (): LucideIcon => {
     if (item.type === 'action') return getActionIcon((item as Action).actionType);
@@ -314,48 +324,55 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
   const tileWidth = 200;
   const tileHeight = 90;
   
-  const driftX = Math.sin(hashString(item.id) * 0.1) * 3;
-  const driftY = Math.cos(hashString(item.id) * 0.1) * 2;
-  const driftDuration = 8 + (hashString(item.id) % 4);
+  const hash = hashString(item.id);
+  const driftX = Math.sin(hash * 0.1) * 4;
+  const driftY = Math.cos(hash * 0.1) * 3;
+  const driftDuration = 10 + (hash % 6);
+  const microRotation = ((hash % 100) - 50) * 0.02;
 
   return (
     <motion.div
-      initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.9 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.9, rotate: 0 }}
       animate={{ 
-        opacity: 0.60, 
+        opacity: tierStyle.opacity, 
         scale: 1,
+        rotate: shouldReduceMotion ? 0 : [microRotation, -microRotation, microRotation],
         x: shouldReduceMotion ? position.x : [position.x - driftX, position.x + driftX, position.x - driftX],
         y: shouldReduceMotion ? position.y : [position.y - driftY, position.y + driftY, position.y - driftY],
       }}
       transition={shouldReduceMotion ? { duration: 0 } : { 
         x: { repeat: Infinity, duration: driftDuration, ease: "easeInOut" },
-        y: { repeat: Infinity, duration: driftDuration * 1.1, ease: "easeInOut" },
-        opacity: { duration: 0.4 },
-        scale: { type: 'spring', stiffness: 100, damping: 20 }
+        y: { repeat: Infinity, duration: driftDuration * 1.15, ease: "easeInOut" },
+        rotate: { repeat: Infinity, duration: driftDuration * 1.3, ease: "easeInOut" },
+        opacity: { duration: 0.5 },
+        scale: { type: 'spring', stiffness: 80, damping: 18 }
       }}
       whileHover={shouldReduceMotion ? {} : { 
         opacity: 1,
-        scale: 1.04,
+        scale: 1.06,
+        rotate: 0,
+        filter: 'blur(0px)',
         zIndex: 50,
-        transition: { duration: 0.2 }
+        transition: { duration: 0.25 }
       }}
       whileTap={shouldReduceMotion ? {} : { 
-        scale: 0.98,
-        transition: { duration: 0.08 }
+        scale: 0.97,
+        transition: { duration: 0.1 }
       }}
       className="absolute rounded-xl text-left overflow-hidden group"
       style={{
         width: tileWidth,
         height: tileHeight,
         background: lightMode 
-          ? `linear-gradient(135deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.82) 100%)`
-          : `linear-gradient(135deg, rgba(20,20,24,0.75) 0%, rgba(20,20,24,0.65) 100%)`,
-        backdropFilter: 'blur(8px)',
-        borderLeft: `3px solid ${color}60`,
-        borderTop: `1px solid ${lightMode ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'}`,
-        borderRight: `1px solid ${lightMode ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)'}`,
-        borderBottom: `1px solid ${lightMode ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}`,
-        boxShadow: `0 4px 16px rgba(0,0,0,0.15)`,
+          ? `linear-gradient(135deg, rgba(255,255,255,${0.7 + tierStyle.opacity * 0.3}) 0%, rgba(255,255,255,${0.6 + tierStyle.opacity * 0.3}) 100%)`
+          : `linear-gradient(135deg, rgba(18,18,22,${0.6 + tierStyle.opacity * 0.3}) 0%, rgba(18,18,22,${0.5 + tierStyle.opacity * 0.3}) 100%)`,
+        backdropFilter: `blur(${6 + tierStyle.blur}px)`,
+        filter: tierStyle.blur > 0 ? `blur(${tierStyle.blur}px)` : undefined,
+        borderLeft: `3px solid ${color}${Math.round(tierStyle.opacity * 80).toString(16).padStart(2, '0')}`,
+        borderTop: `1px solid ${lightMode ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'}`,
+        borderRight: `1px solid ${lightMode ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)'}`,
+        borderBottom: `1px solid ${lightMode ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)'}`,
+        boxShadow: `0 4px 20px rgba(0,0,0,${0.08 + tierStyle.opacity * 0.1})`,
         left: '50%',
         top: '50%',
         marginLeft: -tileWidth / 2,
@@ -364,31 +381,38 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
       }}
       data-tile-id={item.id}
       data-testid={`tile-${item.id}`}
+      data-tier={depthTier}
     >
       <div className="p-3 h-full flex flex-col justify-between relative z-10">
         <div className="flex items-start gap-2.5">
           <div 
             className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-all group-hover:scale-110"
             style={{ 
-              backgroundColor: `${color}15`,
-              border: `1px solid ${color}25`,
+              backgroundColor: `${color}${Math.round(tierStyle.textOpacity * 20).toString(16).padStart(2, '0')}`,
+              border: `1px solid ${color}${Math.round(tierStyle.textOpacity * 30).toString(16).padStart(2, '0')}`,
             }}
             title={item.type.charAt(0).toUpperCase() + item.type.slice(1)}
           >
-            <TypeIcon className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-opacity" style={{ color }} />
+            <TypeIcon 
+              className="w-3.5 h-3.5 group-hover:opacity-100 transition-opacity" 
+              style={{ color, opacity: tierStyle.textOpacity * 0.9 }} 
+            />
           </div>
           
           <div className="flex-1 min-w-0 flex items-start gap-2">
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium leading-snug line-clamp-2 transition-colors ${lightMode ? 'text-gray-800 group-hover:text-gray-900' : 'text-white/80 group-hover:text-white'}`}>
+              <p 
+                className={`text-sm font-medium leading-snug line-clamp-2 transition-all group-hover:opacity-100 ${lightMode ? 'text-gray-800 group-hover:text-gray-900' : 'group-hover:text-white'}`}
+                style={{ opacity: tierStyle.textOpacity, color: lightMode ? undefined : `rgba(255,255,255,${tierStyle.textOpacity})` }}
+              >
                 {getLabel()}
               </p>
             </div>
             
             {hasOfficialImage && imageUrl && (
               <div 
-                className="w-9 h-9 rounded-md overflow-hidden shrink-0 border opacity-80 group-hover:opacity-100 transition-opacity"
-                style={{ borderColor: `${color}20` }}
+                className="w-9 h-9 rounded-md overflow-hidden shrink-0 border group-hover:opacity-100 transition-opacity"
+                style={{ borderColor: `${color}20`, opacity: tierStyle.textOpacity }}
               >
                 <img
                   src={imageUrl}
@@ -402,18 +426,23 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
           </div>
         </div>
         
-        <p className={`text-xs leading-relaxed line-clamp-2 transition-colors ${lightMode ? 'text-gray-500 group-hover:text-gray-600' : 'text-white/50 group-hover:text-white/70'}`}>
-          {getSummary()}
-        </p>
+        {tierStyle.showSummary && (
+          <p 
+            className={`text-xs leading-relaxed line-clamp-2 transition-all group-hover:opacity-80 ${lightMode ? 'text-gray-500 group-hover:text-gray-600' : 'group-hover:text-white/70'}`}
+            style={{ opacity: tierStyle.summaryOpacity, color: lightMode ? undefined : `rgba(255,255,255,${tierStyle.summaryOpacity})` }}
+          >
+            {getSummary()}
+          </p>
+        )}
       </div>
       
       <div 
-        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none"
+        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none"
         style={{ 
-          boxShadow: `0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px ${color}30`,
+          boxShadow: `0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px ${color}40`,
           background: lightMode 
-            ? 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 100%)'
-            : 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%)',
+            ? 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 100%)'
+            : 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 100%)',
         }}
       />
     </motion.div>

@@ -564,9 +564,27 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
       onWheel={handleWheel}
       data-testid="radar-grid"
     >
+      {/* Faint network pattern background */}
+      <svg 
+        className="absolute inset-0 w-full h-full pointer-events-none" 
+        style={{ opacity: lightMode ? 0.03 : 0.025 }}
+      >
+        <defs>
+          <pattern id="network-nodes" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+            <circle cx="40" cy="40" r="1" fill={lightMode ? '#000' : '#fff'} />
+          </pattern>
+          <pattern id="network-lines" x="0" y="0" width="160" height="160" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="80" x2="80" y2="0" stroke={lightMode ? '#000' : '#fff'} strokeWidth="0.5" opacity="0.3" />
+            <line x1="80" y1="160" x2="160" y2="80" stroke={lightMode ? '#000' : '#fff'} strokeWidth="0.5" opacity="0.3" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#network-nodes)" />
+        <rect width="100%" height="100%" fill="url(#network-lines)" />
+      </svg>
+      
       {/* Subtle dot grid - ambient background */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-30"
+        className="absolute inset-0 pointer-events-none opacity-20"
         style={{
           backgroundImage: `radial-gradient(${gridLineColor} 1px, transparent 1px)`,
           backgroundSize: `${gridSize}px ${gridSize}px`,
@@ -578,22 +596,22 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `radial-gradient(circle at 50% 45%, ${accentColor}12 0%, ${accentColor}05 20%, transparent 45%)`,
+          background: `radial-gradient(circle at 50% 45%, ${accentColor}18 0%, ${accentColor}08 15%, transparent 40%)`,
         }}
       />
       
-      {/* Safe zone indicator - very subtle ring around center */}
+      {/* Safe zone - clear area around center */}
       <div
         className="absolute pointer-events-none"
         style={{
           left: '50%',
           top: '45%',
-          width: SAFE_ZONE_RADIUS * 2,
-          height: SAFE_ZONE_RADIUS * 2,
-          marginLeft: -SAFE_ZONE_RADIUS,
-          marginTop: -SAFE_ZONE_RADIUS,
+          width: (SAFE_ZONE_RADIUS + RING_SPACING) * 2,
+          height: (SAFE_ZONE_RADIUS + RING_SPACING) * 2,
+          marginLeft: -(SAFE_ZONE_RADIUS + RING_SPACING),
+          marginTop: -(SAFE_ZONE_RADIUS + RING_SPACING),
           borderRadius: '50%',
-          border: `1px dashed ${lightMode ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)'}`,
+          background: `radial-gradient(circle, ${bgColor} 0%, ${bgColor} 50%, transparent 100%)`,
         }}
       />
       
@@ -610,7 +628,13 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
         data-testid="tile-layer"
       >
         {visibleItems.map(({ item, score }) => {
-          const pos = positionMap.get(item.id) || { x: 0, y: 0, distance: 200 };
+          const pos = positionMap.get(item.id) || { x: 0, y: 0, distance: 400 };
+          
+          const tierAThreshold = SAFE_ZONE_RADIUS + RING_SPACING * 1.5;
+          const tierBThreshold = SAFE_ZONE_RADIUS + RING_SPACING * 2.5;
+          const depthTier: 'A' | 'B' | 'C' = 
+            pos.distance <= tierAThreshold ? 'A' : 
+            pos.distance <= tierBThreshold ? 'B' : 'C';
           
           return (
             <KnowledgeTile
@@ -621,6 +645,7 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
               accentColor={accentColor}
               lightMode={lightMode}
               zoomLevel={zoomLevel}
+              depthTier={depthTier}
             />
           );
         })}
