@@ -41,6 +41,16 @@ function getAppBaseUrl(req: any): string {
   return `${protocol}://${host}`;
 }
 
+const DEMO_ORBIT_SLUGS = [
+  'slice-and-stone-pizza',
+  'clarity-chartered-accountants',
+  'techvault-uk'
+] as const;
+
+function isDemoOrbit(slug: string): boolean {
+  return DEMO_ORBIT_SLUGS.includes(slug as any);
+}
+
 // OpenAI client for image generation - uses Replit AI Integrations (no API key needed)
 // Charges are billed to your Replit credits
 let _openai: OpenAI | null = null;
@@ -3536,6 +3546,34 @@ export async function registerRoutes(
       console.error("Error seeding demo orbits:", error);
       res.status(500).json({ message: "Error seeding demo orbits", error: error.message });
     }
+  });
+
+  app.get("/api/orbit/:slug/demo-documents", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      if (!isDemoOrbit(slug)) {
+        return res.status(403).json({ message: "This endpoint is only available for demo orbits" });
+      }
+      
+      const documents = await db.select({
+        id: schema.orbitDocuments.id,
+        title: schema.orbitDocuments.title,
+        category: schema.orbitDocuments.category,
+        status: schema.orbitDocuments.status,
+      }).from(schema.orbitDocuments)
+        .where(eq(schema.orbitDocuments.businessSlug, slug));
+      
+      res.json({ documents, isDemo: true });
+    } catch (error) {
+      console.error("Error getting demo documents:", error);
+      res.status(500).json({ message: "Error getting documents" });
+    }
+  });
+
+  app.get("/api/orbit/:slug/is-demo", async (req, res) => {
+    const { slug } = req.params;
+    res.json({ isDemo: isDemoOrbit(slug) });
   });
 
   // ============ AUDIO LIBRARY ROUTES ============
