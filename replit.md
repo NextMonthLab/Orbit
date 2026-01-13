@@ -155,6 +155,28 @@ ICE Maker (Interactive Content Experiences) exists as a separate but related pro
 - **Orbit Settings**: `/orbit/:slug/settings` with business configuration
 - **Orbit Type Doctrine**: 'industry' vs 'standard' orbits with different ownership models
 
+### Demo Orbits (Flagship Examples)
+
+Three fully-seeded demo Orbits showcase Orbit's capabilities:
+
+**Slice & Stone Pizza** (`/orbit/slice-and-stone-pizza`)
+- 61 boxes: 40+ menu items, delivery zones, deals, 10+ problem FAQs
+- 4 documents: allergen guide, delivery zones, complaints policy, holiday hours
+- Covers: late delivery, refunds, allergies, weather closures
+
+**Clarity Chartered Accountants** (`/orbit/clarity-chartered-accountants`)
+- 37 boxes: tiered packages (all turnover bands), team, FAQs
+- 5 documents: tax deadlines, Ltd vs sole trader, onboarding, penalties, IR35
+- Covers: missed deadlines, switching accountants, tax advice boundaries
+
+**TechVault UK** (`/orbit/techvault-uk`)
+- 60 boxes: 40+ products, 10+ device comparisons, grading, FAQs
+- 5 documents: grading guide, warranty/returns, trade-in, comparisons, sustainability
+- Covers: battery health, Consumer Rights Act, damaged trade-ins
+
+Seed script: `server/scripts/seedDemoOrbits.ts` (idempotent)
+Admin endpoint: `POST /api/admin/seed-demo-orbits`
+
 ### Subscription & Payments
 
 - **Stripe Subscription System**: Full billing with webhook sync
