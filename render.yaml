@@ -1,17 +1,43 @@
 services:
   - type: web
-    name: storyflix
-    env: node
+    name: orbit
+    runtime: node
+    plan: starter
     buildCommand: npm install && npm run build
     startCommand: npm run start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: sqlite:./data/prod.db
+        sync: false
       - key: SESSION_SECRET
         generateValue: true
-    disk:
-      name: data
-      mountPath: /opt/render/project/src/data
-      sizeGB: 1
+      - key: PUBLIC_TOKEN_SECRET
+        generateValue: true
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        value: eu-west-2
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: EMAIL_FROM_ADDRESS
+        value: hello@nextmonth.io
+
+databases:
+  - name: orbit-db
+    plan: starter
+    databaseName: orbit
+    user: orbit
