@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TrendingUp, MessageCircle, Package, HelpCircle, Users, Clock } from "lucide-react";
+import { TrendingUp, MessageCircle, Package, HelpCircle, Users, Clock, Briefcase } from "lucide-react";
 
 interface OrbitBox {
   id: number;
@@ -29,12 +29,14 @@ function generateDemoAnalytics(boxes: OrbitBox[], slug: string): DemoAnalytics {
   const categories: Record<string, number> = {};
   const items: { title: string; views: number }[] = [];
   
-  boxes.forEach(box => {
+  boxes.forEach((box, index) => {
     if (box.category) {
       categories[box.category] = (categories[box.category] || 0) + 1;
     }
     if (box.boxType === 'menu_item' || box.boxType === 'product') {
-      items.push({ title: box.title, views: Math.floor(Math.random() * 500) + 100 });
+      // Use deterministic views based on box id to avoid hydration drifts
+      const baseViews = 600 - (index * 17) % 400;
+      items.push({ title: box.title, views: baseViews });
     }
   });
 
