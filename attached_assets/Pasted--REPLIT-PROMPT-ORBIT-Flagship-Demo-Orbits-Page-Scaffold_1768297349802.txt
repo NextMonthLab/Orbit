@@ -1,0 +1,96 @@
+# REPLIT PROMPT — ORBIT: Flagship Demo Orbits Page (Scaffold Only)
+
+## Context
+We are going to hardcode several “Flagship Demo Orbits” as showcase experiences on the public site.
+These demos will NOT be created through the normal Orbit creation UI. They will be curated/hardcoded and launched directly.
+
+Your task right now is ONLY to scaffold the dedicated demo page + routing + placeholder launch flows.
+DO NOT build the demo Orbits themselves yet. Just create the infrastructure that expects them.
+
+## Objectives (Scaffold Only)
+1) Create a dedicated public page for demos:
+   - Route: `/orbits/demos` (or `/orbit/demos` if that matches existing conventions)
+   - Page title: “Demo Orbits” (or “Flagship Demo Orbits”)
+   - Short intro copy explaining these are curated showcase Orbits.
+   - A strong CTA above the list: “Start a Demo” / “Launch a Demo” / “Explore Demo Orbits”
+
+2) On this page, display a list/grid of demo Orbit “cards” (placeholder data for now).
+   Each card must include:
+   - Name
+   - Industry tag (e.g., Takeaway, Professional Services, Ecommerce)
+   - One-line promise (what makes it impressive)
+   - Status badge: “Coming Soon” (until wired)
+   - Primary button: “Launch Demo”
+   - Secondary button/link: “View What You Can Do” (links to pricing/onboarding page if it exists, otherwise placeholder)
+
+3) Clicking “Launch Demo” should route the user straight into a demo Orbit session:
+   - Route pattern: `/orbit/demo/:demoId`
+   - For now, this route should load a placeholder “Demo Orbit Shell” screen that confirms:
+     - demoId
+     - “This is a hardcoded flagship demo Orbit. Data will be injected here soon.”
+   - NO ingestion logic. NO UI wizard. NO create-orbit flow.
+   - This is a clean, direct launch.
+
+4) Add a small “Developer Notes” / “TODO” block (only visible in dev mode if possible):
+   - “Demo Orbits are hardcoded and will be added as JSON payloads / fixtures.”
+   - “This route bypasses standard Orbit creation UI.”
+
+## Data Structure (Placeholder Fixtures)
+Create a simple fixture file for demo listings, e.g.:
+- `client/src/data/demoOrbits.ts` (or equivalent)
+Export an array like:
+[
+  {
+    id: "pizza-01",
+    name: "Banbury Pizza Co.",
+    industry: "Takeaway",
+    tagline: "A menu you can talk to: delivery, allergens, offers, the lot.",
+    status: "coming_soon"
+  },
+  {
+    id: "accountancy-01",
+    name: "Summit Accountants",
+    industry: "Professional Services",
+    tagline: "Services, onboarding, pricing, timelines – instantly clear.",
+    status: "coming_soon"
+  },
+  {
+    id: "techshop-01",
+    name: "Northside Tech",
+    industry: "Ecommerce",
+    tagline: "Compare devices, warranties, returns, delivery, finance – properly.",
+    status: "coming_soon"
+  }
+]
+
+The UI should render from this fixture so we can swap “coming_soon” to “live” later.
+
+## UI Requirements
+- Keep styling consistent with the current Orbit brand and design system.
+- Ensure it looks premium, not like an admin screen:
+  - Hero header (title + subtitle + CTA)
+  - Card grid with clear buttons
+- Buttons should be clearly labelled:
+  - Primary: “Launch Demo”
+  - Alternative acceptable copy: “Start Demo”, “Explore Demo”, “Enter Demo Orbit”
+
+## Technical Requirements
+- Add routes to the existing router (React Router etc.)
+- Add two new pages/components:
+  - `DemoOrbitsPage` for `/orbits/demos`
+  - `DemoOrbitShellPage` for `/orbit/demo/:demoId`
+- Use the fixture array for listing and for resolving `demoId` in the shell page.
+- If demoId not found, show a friendly 404 state with a button back to `/orbits/demos`.
+
+## Non-Goals (Do Not Do Yet)
+- Do not implement Orbit ingestion.
+- Do not implement the full Orbit chat experience for demos.
+- Do not implement the real demo datasets.
+- Do not add pricing logic or authentication gating unless already present.
+
+## Deliverables
+- Routes added
+- Pages created
+- Fixture file created
+- Buttons launch into the shell route
+- Clean placeholder copy indicating hardcoded demos are coming next

@@ -35,6 +35,8 @@ import OrbitSettings from "@/pages/orbit/OrbitSettings";
 import OrbitClaim from "@/pages/orbit/OrbitClaim";
 import CatalogueImport from "@/pages/orbit/CatalogueImport";
 import SocialProofLibrary from "@/pages/orbit/SocialProofLibrary";
+import DemoOrbitsPage from "@/pages/orbit/DemoOrbitsPage";
+import DemoOrbitShellPage from "@/pages/orbit/DemoOrbitShellPage";
 import { useSearch } from "wouter";
 
 function OrbitRouter() {
@@ -161,6 +163,8 @@ function Router() {
       <Route path="/orbit/actions" component={OrbitActions} />
       <Route path="/orbit/settings" component={OrbitSettings} />
       <Route path="/orbit/claim" component={OrbitClaim} />
+      <Route path="/orbit/demos" component={DemoOrbitsPage} />
+      <Route path="/orbit/demo/:demoId" component={DemoOrbitShellPage} />
       
       <Route path="/o/:slug" component={OrbitRouter} />
       <Route path="/orbit/:slug" component={OrbitRouter} />
