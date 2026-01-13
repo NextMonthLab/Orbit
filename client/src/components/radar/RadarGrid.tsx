@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Minus, Plus, Image, Focus } from "lucide-react";
 import { ChatHub, type ChatResponse } from "./ChatHub";
 import { KnowledgeTile } from "./KnowledgeTile";
+import { TileDetailModal } from "./TileDetailModal";
 import { VisualPane } from "./VisualPane";
 import { ScopedRefinementPane } from "./ScopedRefinementPane";
 import type { SiteKnowledge, AnyKnowledgeItem } from "@/lib/siteKnowledge";
@@ -203,6 +204,7 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
   const [isHubMinimized, setIsHubMinimized] = useState(false);
   const [conversationKeywords, setConversationKeywords] = useState<string[]>([]);
   const [selectedItem, setSelectedItem] = useState<AnyKnowledgeItem | null>(null);
+  const [showTileDetail, setShowTileDetail] = useState(false);
   const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
@@ -292,16 +294,23 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
   }, []);
 
   const handleTileClick = useCallback((item: AnyKnowledgeItem) => {
+    console.log('[RadarGrid] handleTileClick:', item.id, 'isOwnerMode:', isOwnerMode);
     setSelectedItem(item);
     setIsHubMinimized(false);
     const itemKeywords = item.keywords.slice(0, 3);
     handleIntentChange(itemKeywords);
     onInteraction?.();
-    // Show visual pane for owner mode on desktop when a tile is selected
+    
     if (isOwnerMode && isDesktop) {
       setShowVisualPane(true);
+    } else {
+      setShowTileDetail(true);
     }
   }, [handleIntentChange, onInteraction, isOwnerMode, isDesktop]);
+  
+  const handleCloseTileDetail = useCallback(() => {
+    setShowTileDetail(false);
+  }, []);
 
   const handleSendMessage = useCallback(async (message: string) => {
     if (selectedItem) {
@@ -646,6 +655,7 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
               lightMode={lightMode}
               zoomLevel={zoomLevel}
               depthTier={depthTier}
+              onSelect={handleTileClick}
             />
           );
         })}
@@ -738,6 +748,15 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
         orbitSlug={orbitSlug || ''}
         isOwnerMode={isOwnerMode}
         onClose={() => setShowVisualPane(false)}
+      />
+      
+      {/* Tile Detail Modal for public users */}
+      <TileDetailModal
+        item={selectedItem}
+        isOpen={showTileDetail && !isOwnerMode}
+        onClose={handleCloseTileDetail}
+        accentColor={accentColor}
+        lightMode={lightMode}
       />
     </div>
   );

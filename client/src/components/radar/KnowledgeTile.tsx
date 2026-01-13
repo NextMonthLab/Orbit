@@ -14,6 +14,7 @@ interface KnowledgeTileProps {
   zoomLevel?: number;
   lightMode?: boolean;
   depthTier?: DepthTier;
+  onSelect?: (item: AnyKnowledgeItem) => void;
 }
 
 const typeIcons: Record<string, LucideIcon> = {
@@ -196,11 +197,18 @@ const tierStyles = {
   C: { opacity: 0.35, textOpacity: 0.5, summaryOpacity: 0.25, blur: 1, showSummary: false },
 };
 
-export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoomLevel = 1, lightMode = false, depthTier = 'A' }: KnowledgeTileProps) {
+export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoomLevel = 1, lightMode = false, depthTier = 'A', onSelect }: KnowledgeTileProps) {
   const shouldReduceMotion = useReducedMotion();
   const [imageError, setImageError] = useState(false);
   const CategoryIcon = getCategoryIcon(item);
   const tierStyle = tierStyles[depthTier];
+  
+  const handleClick = () => {
+    console.log('[KnowledgeTile] Click fired for:', item.id, item.type);
+    if (onSelect) {
+      onSelect(item);
+    }
+  };
   
   const getTypeIcon = (): LucideIcon => {
     if (item.type === 'action') return getActionIcon((item as Action).actionType);
@@ -379,6 +387,7 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
         marginTop: -tileHeight / 2,
         cursor: 'pointer',
       }}
+      onClick={handleClick}
       data-tile-id={item.id}
       data-testid={`tile-${item.id}`}
       data-tier={depthTier}
