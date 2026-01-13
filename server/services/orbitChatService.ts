@@ -560,7 +560,8 @@ export function buildOwnerSystemPrompt(
   offeringsLabel: string,
   items: any[],
   heroPostContext: string = '',
-  appliedCorrections: { correctionType: string; originalContent: string; correctedContent: string }[] = []
+  appliedCorrections: { correctionType: string; originalContent: string; correctedContent: string }[] = [],
+  visualBindings: { tileLabel: string; bindingType: string; title: string; sourceUrl?: string; isPrimary: boolean }[] = []
 ): string {
   const { brandName, sourceDomain, siteSummary, keyServices } = context;
 
@@ -601,6 +602,15 @@ export function buildOwnerSystemPrompt(
     siteContext = `\nSite Summary:\n${siteSummary}\n`;
   }
 
+  // Format visual bindings context (Phase 3)
+  let visualContext = '';
+  if (visualBindings.length > 0) {
+    const bindingsList = visualBindings.slice(0, 15).map(b => 
+      `- "${b.tileLabel}" → ${b.bindingType}: ${b.title}${b.sourceUrl ? ` (${b.sourceUrl.slice(0, 50)})` : ''}${b.isPrimary ? ' [PRIMARY]' : ''}`
+    ).join('\n');
+    visualContext = `\n\n## Visual Bindings (What Customers See):\n${bindingsList}\n`;
+  }
+
   return `You are Orbit, the conversational intelligence for ${brandName}. You are speaking directly with the business owner.
 
 ## Your Role
@@ -609,7 +619,7 @@ You are in OWNER MODE - this is an internal conversation where the owner is trai
 ## Your Knowledge State
 ${siteContext}${servicesSection}
 ${contextSummary}
-${documentContext}${heroPostContext}${correctionsContext}
+${documentContext}${heroPostContext}${correctionsContext}${visualContext}
 
 ## Core Behavioral Principles (CRITICAL)
 
@@ -653,6 +663,15 @@ ${documentContext}${heroPostContext}${correctionsContext}
 
 ### When asked "How confident are you about X?"
 → Give an honest confidence assessment and explain what it's based on
+
+### When asked about visuals or what customers see
+→ If you have visual bindings, explain what page/image is linked to each knowledge area
+→ If asked "what image do you show for X?", answer based on the Visual Bindings section
+→ If the owner says "that's the wrong image for X" or similar visual corrections, acknowledge it and note what they want shown instead
+
+### When owner provides a URL or mentions a page to link
+→ Acknowledge you understand they want to link that visual to a knowledge area
+→ Confirm what knowledge tile they want it associated with
 
 ## What NOT to Do
 - Never suggest features, power-ups, or automation

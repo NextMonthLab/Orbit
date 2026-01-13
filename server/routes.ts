@@ -8497,6 +8497,20 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         correctedContent: c.correctedContent || '',
       }));
       
+      // Get visual bindings for all tiles (Phase 3)
+      const visualBindings = await storage.getTileVisualBindingsByOrbit(orbitMeta.id);
+      const tiles = await storage.getTopicTiles(orbitMeta.id);
+      const visualBindingsForPrompt = visualBindings.map(vb => {
+        const tile = tiles.find(t => t.id === vb.tileId);
+        return {
+          tileLabel: tile?.label || 'Unknown',
+          bindingType: vb.bindingType,
+          title: vb.title || '',
+          sourceUrl: vb.sourceUrl || undefined,
+          isPrimary: vb.isPrimary || false,
+        };
+      });
+      
       // Build context
       const orbitContext = await buildOrbitContext(storage, slug);
       
@@ -8527,7 +8541,8 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         orbitContext.offeringsLabel,
         orbitContext.items,
         orbitContext.heroPostContext,
-        correctionsForPrompt
+        correctionsForPrompt,
+        visualBindingsForPrompt
       );
       
       // Prepare history for AI
