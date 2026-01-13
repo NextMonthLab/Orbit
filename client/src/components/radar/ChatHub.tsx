@@ -244,7 +244,7 @@ export function ChatHub({
   };
   
   const getProactiveWelcome = () => {
-    return `This is not a menu.\n\nOrbit is a living intelligence that understands ${brandName}. Each tile represents a knowledge node about products, services, pages, or ideas.\n\nAs you talk to me, I'll bring the most relevant knowledge closer together so I can respond accurately.\n\nYou don't need to find the right page. Just ask.\n\n· · ·\n\nOrbit evolves over time — first understanding the business, then letting owners shape the intelligence, then connecting knowledge to visuals.`;
+    return `I'm ${brandName}'s Orbit — a conversational guide to everything this business offers.\n\nTap any tile to explore, or just ask me anything.`;
   };
 
   const [messages, setMessages] = useState<Message[]>(() => [
