@@ -1,179 +1,163 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Sparkles, Building2, Film, GraduationCap, Upload, Wand2, MessageCircle, Share2, Shield, Eye, Lock, CheckCircle2, Radio, Clock, DollarSign, Zap, BookOpen, Megaphone, Lightbulb } from "lucide-react";
-import ScenarioCarousel from "@/components/ScenarioCarousel";
+import { Input } from "@/components/ui/input";
+import { 
+  ArrowRight, 
+  ArrowDown,
+  MessageSquare, 
+  Brain, 
+  Zap,
+  BarChart3,
+  Users,
+  Target,
+  ShieldCheck,
+  Building2,
+  Briefcase,
+  LineChart,
+  Clock,
+  TrendingUp,
+  CheckCircle,
+  Linkedin,
+  Twitter,
+  Youtube
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
-import { useEffect } from "react";
-import MarketingHeader from "@/components/MarketingHeader";
+import { useEffect, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const useCases = [
-  {
-    id: "brands",
-    title: "For Brands & Businesses",
-    description: "Orbit is a Business-to-AI interface that helps you control how your brand is represented in AI-powered discovery.",
-    icon: Building2,
-    href: "/for/brands",
-    color: "from-blue-500 to-purple-500",
-    microCta: "Claim your business Orbit",
-    intent: "brands",
-    secondaryLink: "/ai-discovery-control",
-    secondaryCta: "Why this matters",
-  },
-  {
-    id: "creators",
-    title: "For Creators & Filmmakers",
-    description: "Bring scripts and ideas to life, one moment at a time.",
-    icon: Film,
-    href: "/for/creators",
-    color: "from-blue-600 to-purple-600",
-    microCta: "Bring my script to life",
-    intent: "creators",
-  },
-  {
-    id: "knowledge",
-    title: "For Knowledge & Learning",
-    description: "Transform dense information into experiences people remember.",
-    icon: GraduationCap,
-    href: "/for/knowledge",
-    color: "from-blue-500 to-indigo-500",
-    microCta: "Transform my material",
-    intent: "knowledge",
-  },
-];
+const fadeInUp = {
+  initial: { opacity: 0, y: 30 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true },
+  transition: { duration: 0.6 }
+};
 
-const pipelineSteps = [
-  {
-    step: 1,
-    title: "Upload content",
-    description: "Script, PDF, website, or deck",
-    icon: Upload,
-  },
-  {
-    step: 2,
-    title: "Extract meaning",
-    description: "Themes and structure, not just summaries",
-    icon: Wand2,
-  },
-  {
-    step: 3,
-    title: "Build visual story",
-    description: "Cinematic cards with AI imagery",
-    icon: Film,
-  },
-  {
-    step: 4,
-    title: "Enable interaction",
-    description: "Source-grounded chat audiences can trust",
-    icon: MessageCircle,
-  },
-  {
-    step: 5,
-    title: "Share everywhere",
-    description: "Link, embed, or export as an asset",
-    icon: Share2,
-  },
+const staggerChildren = {
+  initial: { opacity: 0 },
+  whileInView: { opacity: 1 },
+  viewport: { once: true },
+  transition: { staggerChildren: 0.1 }
+};
+
+const stats = [
+  { value: "80%", label: "of analytics insights fail to deliver business outcomes", source: "Gartner" },
+  { value: "6 weeks", label: "wasted annually by executives searching for information", source: "IDC Research" },
+  { value: "72%", label: "of leaders stopped by data volume from making decisions", source: "Oracle Study" },
+  { value: "85%", label: "of analytics projects fail to meet objectives", source: "Gartner" },
 ];
 
 const differentiators = [
   {
-    text: "Not just video. Interactive moments.",
-    icon: Play,
+    icon: MessageSquare,
+    title: "Strategic Dialogue",
+    description: "Not query-response. Real conversation that explores alternatives, pressure-tests thinking, and surfaces blind spots."
   },
   {
-    text: "Not generic AI. Guardrailed and grounded.",
-    icon: Shield,
+    icon: Brain,
+    title: "Learns Your Business",
+    description: "Every interaction builds institutional memory. Context compounds. Strategic history becomes accessible."
   },
   {
-    text: "Not passive content. Audiences can talk back.",
-    icon: MessageCircle,
-  },
-  {
-    text: "Not locked in. Export, embed, share.",
-    icon: Share2,
-  },
+    icon: Zap,
+    title: "Constructive Challenge",
+    description: "The best advisors don't just answer—they ask. Intelligence that earns the right to push back on incomplete thinking."
+  }
 ];
 
-const trustFeatures = [
+const howItWorks = [
   {
-    title: "Creator-editable prompts",
-    description: "Full control over AI behavior and output",
-    icon: Eye,
+    step: 1,
+    icon: BarChart3,
+    title: "Build your knowledge base",
+    description: "Connect your business data, upload strategic documents, and define the knowledge nodes that matter. Business Orbit creates a structured intelligence layer."
   },
   {
-    title: "Explicit guardrails",
-    description: "Prevent hallucination and drift from source",
-    icon: Shield,
+    step: 2,
+    icon: MessageSquare,
+    title: "Start the conversation",
+    description: "Ask strategic questions. Explore positioning alternatives. Pressure-test decisions. Business Orbit learns your business context with every dialogue."
   },
   {
-    title: "Source-grounded chat",
-    description: "Characters only know what you tell them",
-    icon: Lock,
-  },
-  {
-    title: "Human review",
-    description: "Approve before publishing where required",
-    icon: CheckCircle2,
-  },
+    step: 3,
+    icon: TrendingUp,
+    title: "Make better decisions, faster",
+    description: "Access strategic intelligence whenever you need it—2 AM before a board meeting, during competitive crises, or in the quiet moments when clarity matters most."
+  }
 ];
 
-const valueComparison = [
+const personas = [
   {
-    path: "Traditional Agency",
-    time: "2-4 weeks",
-    cost: "$5,000+",
-    timeLabel: "Weeks of waiting",
-    costLabel: "Thousands spent",
-    highlight: false,
+    id: "executives",
+    icon: Briefcase,
+    title: "C-Suite Executives",
+    quote: "I need synthesis across domains quickly, validation for intuition, and confidence in high-velocity decisions.",
+    description: "Business Orbit delivers clarity through noise, helps you trust decisions without second-guessing, and provides strategic dialogue when you need it most—not just during quarterly reviews.",
+    outcomes: ["Scenario testing", "Risk identification", "Board communication"]
   },
   {
-    path: "DIY Tools",
-    time: "30+ hours",
-    cost: "$100+/mo",
-    timeLabel: "Hours of learning",
-    costLabel: "Multiple subscriptions",
-    highlight: false,
+    id: "cmo",
+    icon: Target,
+    title: "Chief Marketing Officers",
+    quote: "I need to prove ROI in CFO language, but connecting attribution across fragmented channels is nearly impossible.",
+    description: "Business Orbit synthesizes customer intelligence across touchpoints, helps articulate marketing value in business terms, and identifies positioning opportunities competitors miss.",
+    outcomes: ["Attribution clarity", "Positioning refinement", "Campaign intelligence"]
   },
   {
-    path: "NextMonth",
-    time: "Under 1 hour",
-    cost: "From $9.99",
-    timeLabel: "Minutes to create",
-    costLabel: "Pay per experience",
-    highlight: true,
+    id: "strategy",
+    icon: LineChart,
+    title: "Strategic Planning Teams",
+    quote: "4 out of 5 executives say our strategy isn't well understood. We need shared mental models, not more static documents.",
+    description: "Business Orbit creates transparency across initiatives, surfaces alignment gaps before they become problems, and enables rapid scenario evaluation when conditions change.",
+    outcomes: ["Strategy alignment", "Scenario planning", "Progress visibility"]
   },
+  {
+    id: "board",
+    icon: Users,
+    title: "Board Members & Investors",
+    quote: "I need to fulfill fiduciary responsibilities but face significant knowledge gaps between quarterly meetings.",
+    description: "Business Orbit provides succinct, outcome-focused intelligence with clear connections between initiatives and strategic value—enabling informed questions without technical depth.",
+    outcomes: ["Strategic oversight", "Risk visibility", "Informed governance"]
+  }
 ];
 
-const iceUseCases = [
-  {
-    title: "Marketing & Sales",
-    description: "Interactive landing pages, product explainers, and pitch experiences that convert.",
-    icon: Megaphone,
-    color: "from-blue-500 to-purple-500",
+const comparisons = [
+  { 
+    old: "Traditional BI Dashboards", 
+    oldDesc: "Shows what happened",
+    new: "Business Orbit",
+    newDesc: "Helps decide what to do about it"
   },
-  {
-    title: "Content & Publishing",
-    description: "Turn articles, blogs, or scripts into interactive stories people actually finish.",
-    icon: BookOpen,
-    color: "from-blue-600 to-purple-600",
+  { 
+    old: "Knowledge Management Tools", 
+    oldDesc: "Stores information",
+    new: "Business Orbit",
+    newDesc: "Activates it strategically"
   },
-  {
-    title: "Training & Knowledge",
-    description: "Onboarding, education, and internal explainers that stick in memory.",
-    icon: GraduationCap,
-    color: "from-blue-500 to-cyan-500",
+  { 
+    old: "AI Chatbots", 
+    oldDesc: "Answers your questions",
+    new: "Business Orbit",
+    newDesc: "Challenges the questions you should be asking"
   },
-  {
-    title: "Creative & Storytelling",
-    description: "Narrative prototypes, interactive films, and character-driven experiences.",
-    icon: Lightbulb,
-    color: "from-blue-400 to-purple-500",
-  },
+  { 
+    old: "Management Consultants", 
+    oldDesc: "Strategic dialogue quarterly, at premium cost",
+    new: "Business Orbit",
+    newDesc: "Continuous strategic dialogue, always available"
+  }
+];
+
+const trustStats = [
+  { value: "70%", label: "of business leaders would prefer intelligent assistance for decisions", source: "Oracle Global Study" },
+  { value: "$15B+", label: "spent annually on BI tools that deliver 25% workforce adoption", source: "Gartner Research" },
+  { value: "76%", label: "of category value captured by the company that defines it", source: "Category Design Research" },
 ];
 
 export default function MarketingHome() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -185,581 +169,522 @@ export default function MarketingHome() {
     return null;
   }
 
+  const scrollToHowItWorks = () => {
+    document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white">
-      <MarketingHeader />
+    <div className="min-h-screen bg-[#1a1b2e] text-white">
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#1a1b2e]/80 backdrop-blur-lg border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/">
+            <div className="flex items-center gap-2 cursor-pointer">
+              <div className="relative w-8 h-8">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] opacity-80" />
+                <div className="absolute inset-[2px] rounded-full bg-[#1a1b2e]" />
+              </div>
+              <span className="text-lg font-semibold text-white">Business Orbit</span>
+            </div>
+          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/login">
+              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/5" data-testid="button-header-login">
+                Sign In
+              </Button>
+            </Link>
+            <Link href="/orbit/claim">
+              <Button className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] text-white border-0 hover:opacity-90" data-testid="button-header-trial">
+                Start Free Trial
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </header>
 
       <main>
-        {/* Hero Section - reduced ambient gradients */}
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-neutral-950 via-black to-black" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-950/20 via-transparent to-transparent" />
+        {/* SECTION 1: HERO */}
+        <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+          <div className="absolute inset-0 bg-[#1a1b2e]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#ff6b4a]/10 via-[#ff4d8f]/5 to-transparent" />
           
-          <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }} />
-
-          <div className="max-w-5xl mx-auto px-6 text-center relative z-10 pt-28">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-            >
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-medium bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-sm">
-                <Sparkles className="w-4 h-4 text-blue-400" />
-                <span className="text-white/80">This is how stories are experienced now</span>
-              </div>
+          <div className="max-w-5xl mx-auto px-6 text-center relative z-10 py-24">
+            <motion.div {...fadeInUp}>
+              <p className="text-sm font-medium text-slate-400 mb-6 tracking-wide uppercase" data-testid="text-hero-overline">
+                For established companies
+              </p>
               
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[0.95]" data-testid="text-hero-title">
-                Turn anything into an{' '}
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">interactive experience</span>
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-8 leading-[1.1]" data-testid="text-hero-title">
+                Your business already has the answers.
+                <br />
+                <span className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] bg-clip-text text-transparent">
+                  It just can't talk to you yet.
+                </span>
               </h1>
               
-              <p className="text-xl md:text-2xl text-white/60 max-w-3xl mx-auto mb-6 leading-relaxed" data-testid="text-hero-description">
-                Transform documents, decks, and web pages into cinematic journeys people can explore, feel, and remember.
+              <p className="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto mb-10 leading-relaxed" data-testid="text-hero-description">
+                Traditional BI was built when analytics meant creating dashboards for passive viewers. 
+                Business Orbit is conversational intelligence that learns your business, challenges your thinking, 
+                and turns data into strategic dialogue.
               </p>
               
-              <p className="text-base text-white/50 max-w-2xl mx-auto mb-10">
-                Built for brands, creators, and educators who want people to engage, not just scroll.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/try">
-                  <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3 rounded-xl" data-testid="button-hero-cta">
-                    Launch Experience Builder
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+                <Link href="/orbit/claim">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] text-white border-0 shadow-lg shadow-[#ff4d8f]/20 gap-3 rounded-xl hover:opacity-90" data-testid="button-hero-cta">
+                    Start Your Free Trial
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 </Link>
-                <Button size="lg" variant="outline" className="h-14 px-8 text-lg bg-transparent border-white/30 text-white hover:bg-white/10 hover:border-white/50 gap-3 rounded-xl" data-testid="button-hero-demo">
-                  <Play className="w-5 h-5 fill-current" />
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="h-14 px-8 text-lg bg-transparent border-white/20 text-white hover:bg-white/5 gap-3 rounded-xl"
+                  onClick={scrollToHowItWorks}
+                  data-testid="button-hero-scroll"
+                >
                   See how it works
+                  <ArrowDown className="w-5 h-5" />
                 </Button>
               </div>
               
-              <p className="text-sm text-white/40 mt-6">
-                No code required. Share as a link or embed on your site.
+              <p className="text-sm text-slate-500">
+                Built for strategic leaders at established companies
               </p>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-              className="mt-20 relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 pointer-events-none" />
-              <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-xl">
-                <div className="aspect-video bg-neutral-900 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-blue-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/20 cursor-pointer hover:from-blue-400 hover:via-purple-400 hover:to-blue-400 transition-all">
-                      <Play className="w-8 h-8 text-white ml-1 fill-white" />
-                    </div>
-                    <p className="text-white/40 text-sm">See NextMonth in action</p>
-                  </div>
-                </div>
-              </div>
             </motion.div>
           </div>
           
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#1a1b2e] to-transparent" />
         </section>
 
-        {/* Value Framing Section - Time Comparison */}
-        <section className="py-20 px-6 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
-          <div className="max-w-5xl mx-auto relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-value-title">
-                <span className="text-white/80">Weeks</span>{' '}
-                <span className="text-white/40">→</span>{' '}
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">Minutes</span>
-              </h2>
-              <p className="text-white/50 text-lg max-w-xl mx-auto">
-                Creating interactive experiences used to take forever. Not anymore.
-              </p>
-            </motion.div>
-
-            <div className="grid md:grid-cols-3 gap-4">
-              {valueComparison.map((item, index) => (
-                <motion.div
-                  key={item.path}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className={`p-6 rounded-2xl border transition-all ${
-                    item.highlight 
-                      ? 'bg-gradient-to-b from-purple-900/30 to-pink-900/20 border-purple-500/50 shadow-lg shadow-purple-500/10' 
-                      : 'bg-white/5 border-white/10'
-                  }`}
-                  data-testid={`card-comparison-${index}`}
-                >
-                  <p className={`text-sm font-medium mb-4 ${item.highlight ? 'text-purple-400' : 'text-white/40'}`}>
-                    {item.path}
-                  </p>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        item.highlight ? 'bg-purple-500/20' : 'bg-white/10'
-                      }`}>
-                        <Clock className={`w-5 h-5 ${item.highlight ? 'text-purple-400' : 'text-white/40'}`} />
-                      </div>
-                      <div>
-                        <p className={`text-2xl font-bold ${item.highlight ? 'text-white' : 'text-white/70'}`}>
-                          {item.time}
-                        </p>
-                        <p className="text-xs text-white/40">{item.timeLabel}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        item.highlight ? 'bg-blue-500/20' : 'bg-white/10'
-                      }`}>
-                        <DollarSign className={`w-5 h-5 ${item.highlight ? 'text-blue-400' : 'text-white/40'}`} />
-                      </div>
-                      <div>
-                        <p className={`text-2xl font-bold ${item.highlight ? 'text-white' : 'text-white/70'}`}>
-                          {item.cost}
-                        </p>
-                        <p className="text-xs text-white/40">{item.costLabel}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {item.highlight && (
-                    <div className="mt-6 pt-4 border-t border-purple-500/20">
-                      <Link href="/try">
-                        <Button size="sm" className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-blue-500 text-white border-0" data-testid="button-comparison-cta">
-                          Try it now <ArrowRight className="w-4 h-4 ml-2" />
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ICE Use Cases Section */}
-        <section className="py-20 px-6 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-neutral-950 via-black to-neutral-950" />
-          <div className="max-w-5xl mx-auto relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-usecases-title">
-                What people use{' '}
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">ICE</span>{' '}
-                for
-              </h2>
-              <p className="text-white/50 text-lg max-w-xl mx-auto">
-                Interactive Cinematic Experiences for every storytelling need
-              </p>
-            </motion.div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              {iceUseCases.map((useCase, index) => (
-                <motion.div
-                  key={useCase.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-all group"
-                  data-testid={`card-iceuse-${index}`}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${useCase.color} flex items-center justify-center flex-shrink-0 shadow-lg`}>
-                      <useCase.icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">
-                        {useCase.title}
-                      </h3>
-                      <p className="text-white/50 text-sm leading-relaxed">
-                        {useCase.description}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="mt-10 text-center"
-            >
-              <Link href="/try">
-                <Button size="lg" className="h-12 px-8 bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-2" data-testid="button-usecases-cta">
-                  Start building your experience
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Scenario Case Studies Section */}
-        <section className="py-20 px-6 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
-          <div className="max-w-5xl mx-auto relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-scenarios-title">
-                See how{' '}
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">real people</span>{' '}
-                use ICE
-              </h2>
-              <p className="text-white/50 text-lg max-w-xl mx-auto">
-                From technical documents to creative stories, these scenarios show what's possible
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <ScenarioCarousel filter="all" />
-            </motion.div>
-          </div>
-        </section>
-
-        {/* AI Discovery Shift Section */}
-        <section className="py-20 px-6 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
-          <div className="max-w-4xl mx-auto relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-center"
-            >
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 text-sm font-medium bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-sm">
-                <Radio className="w-4 h-4 text-blue-400" />
-                <span className="text-blue-300">AI Discovery</span>
-              </div>
-              
-              <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-ai-discovery-title">
-                Discovery has changed.{' '}
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">AI now answers.</span>
-              </h2>
-              
-              <p className="text-lg md:text-xl text-white/60 max-w-3xl mx-auto mb-10 leading-relaxed">
-                People no longer find businesses only through search results.
-                They ask AI systems like ChatGPT and Gemini and trust the answers.
-                Orbit helps you control how your business is understood, described, and recommended.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/ai-discovery-control">
-                  <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-ai-discovery-learn">
-                    Learn about AI discovery
-                    <ArrowRight className="w-5 h-5" />
-                  </Button>
-                </Link>
-                <Link href="/for/brands">
-                  <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/20 text-white hover:bg-white/10 gap-3" data-testid="button-ai-discovery-claim">
-                    Claim your business Orbit
-                  </Button>
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* What is NextMonth - Pipeline Visualization */}
-        <section id="how-it-works" className="py-24 px-6 relative scroll-mt-24">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
-          <div className="max-w-7xl mx-auto relative z-10">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-pipeline-title">
-                What is <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextMonth?</span>
-              </h2>
-              <p className="text-white/50 text-lg max-w-xl mx-auto">
-                From content to cinematic experience in five steps
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {pipelineSteps.map((step, index) => (
-                <motion.div
-                  key={step.step}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="relative"
-                >
-                  <div className="p-6 rounded-xl bg-gradient-to-b from-white/5 to-transparent border border-white/10 text-center h-full">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center mx-auto mb-4">
-                      <step.icon className="w-6 h-6 text-violet-400" />
-                    </div>
-                    <div className="text-xs text-violet-400 font-medium mb-2">Step {step.step}</div>
-                    <h3 className="text-base font-bold mb-1">{step.title}</h3>
-                    <p className="text-white/50 text-sm">{step.description}</p>
-                  </div>
-                  {index < pipelineSteps.length - 1 && (
-                    <div className="hidden md:block absolute top-1/2 -right-2 transform -translate-y-1/2 z-10">
-                      <ArrowRight className="w-4 h-4 text-white/20" />
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Three Ways to Use NextMonth */}
-        <section className="py-24 px-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-neutral-950" />
-          
-          <div className="max-w-7xl mx-auto relative z-10">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-usecases-title">
-                Three ways to use <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">NextMonth</span>
-              </h2>
-              <p className="text-white/50 text-lg max-w-xl mx-auto">
-                One engine, built for every storyteller
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-6">
-              {useCases.map((useCase, index) => (
-                <motion.div
-                  key={useCase.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                >
-                  <div 
-                    className="group p-8 rounded-2xl bg-gradient-to-b from-white/5 to-transparent border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:bg-white/5 h-full flex flex-col"
-                    data-testid={`card-usecase-${useCase.id}`}
-                  >
-                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${useCase.color} flex items-center justify-center mb-6 shadow-lg`}>
-                      <useCase.icon className="w-7 h-7 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold mb-3 group-hover:text-purple-400 transition-colors">
-                      {useCase.title}
-                    </h3>
-                    <p className="text-white/50 leading-relaxed mb-4 flex-grow">
-                      {useCase.description}
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      <Link href={useCase.href}>
-                        <button 
-                          className="flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors cursor-pointer"
-                          data-testid={`button-microcta-${useCase.id}`}
-                        >
-                          {useCase.microCta} <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </Link>
-                      {useCase.secondaryLink && (
-                        <Link href={useCase.secondaryLink}>
-                          <span className="text-white/40 hover:text-white/60 text-sm transition-colors cursor-pointer">
-                            {useCase.secondaryCta}
-                          </span>
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Why NextMonth is Different */}
+        {/* SECTION 2: PROBLEM AGITATION */}
         <section className="py-24 px-6 relative">
-          <div className="absolute inset-0 bg-black" />
-          <div className="max-w-5xl mx-auto relative z-10">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-different-title">
-                Why NextMonth is <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">different</span>
-              </h2>
-              <p className="text-white/50 text-lg max-w-xl mx-auto">
-                Replace flat links with guided journeys. Great for pitches, onboarding, learning, and sales.
+          <div className="max-w-6xl mx-auto">
+            <motion.div {...fadeInUp} className="text-center mb-16">
+              <p className="text-sm font-medium text-[#ff6b4a] mb-4 tracking-wide uppercase">
+                The failure of static intelligence
               </p>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-4">
-              {differentiators.map((diff, index) => (
+              <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-problem-title">
+                You have more data than ever.
+                <br />
+                <span className="text-slate-400">And less clarity than you need.</span>
+              </h2>
+              <p className="text-lg text-slate-400 max-w-3xl mx-auto leading-relaxed">
+                Executives waste six weeks annually searching for documents they can't find. 
+                Workers spend 30% of their day hunting for information across disconnected systems. 
+                72% of leaders admit data volume has stopped them from making decisions altogether.
+              </p>
+              <p className="text-lg text-slate-300 max-w-2xl mx-auto mt-6 font-medium">
+                The problem isn't data access. It's that dashboards show what happened without helping you decide what to do about it.
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {stats.map((stat, index) => (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="p-6 rounded-2xl bg-white/5 border border-white/10 relative overflow-hidden group"
+                  data-testid={`card-stat-${index}`}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#ff6b4a]/5 via-[#ff4d8f]/5 to-[#a855f7]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7]" />
+                  <p className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] bg-clip-text text-transparent mb-2">
+                    {stat.value}
+                  </p>
+                  <p className="text-slate-400 text-sm mb-3 leading-relaxed">
+                    {stat.label}
+                  </p>
+                  <p className="text-slate-500 text-xs">
+                    — {stat.source}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 3: SOLUTION INTRODUCTION */}
+        <section className="py-24 px-6 relative bg-[#252640]">
+          <div className="max-w-5xl mx-auto">
+            <motion.div {...fadeInUp} className="text-center mb-16">
+              <p className="text-sm font-medium text-[#a855f7] mb-4 tracking-wide uppercase">
+                A different kind of intelligence
+              </p>
+              <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-solution-title">
+                Business intelligence that thinks{" "}
+                <span className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] bg-clip-text text-transparent">with you</span>,
+                <br />
+                not just for you.
+              </h2>
+              <p className="text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed">
+                Business Orbit is built around structured knowledge nodes that you discuss with an AI entity 
+                designed specifically for your business. It doesn't just answer questions—it asks the ones you should be asking.
+              </p>
+              <p className="text-lg text-slate-400 max-w-3xl mx-auto mt-4 leading-relaxed">
+                Unlike dashboards you browse or chatbots you query, Business Orbit engages in strategic dialogue. 
+                It learns from every conversation, remembers what matters, and challenges assumptions the way a trusted advisor would.
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {differentiators.map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.15 }}
+                  className="p-6 rounded-2xl bg-[#1a1b2e]/50 border border-white/10"
+                  data-testid={`card-differentiator-${index}`}
+                >
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#ff6b4a]/20 via-[#ff4d8f]/20 to-[#a855f7]/20 flex items-center justify-center mb-4">
+                    <item.icon className="w-6 h-6 text-[#ff4d8f]" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">{item.title}</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed">{item.description}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 4: HOW IT WORKS */}
+        <section id="how-it-works" className="py-24 px-6 relative scroll-mt-24">
+          <div className="max-w-5xl mx-auto">
+            <motion.div {...fadeInUp} className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-howitworks-title">
+                From setup to strategic advantage{" "}
+                <span className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] bg-clip-text text-transparent">
+                  in three steps
+                </span>
+              </h2>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {howItWorks.map((step, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.15 }}
+                  className="relative"
+                  data-testid={`card-step-${index}`}
+                >
+                  <div className="p-6 rounded-2xl bg-white/5 border border-white/10 h-full">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] flex items-center justify-center mb-4">
+                      <step.icon className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="text-sm font-medium text-[#ff4d8f] mb-2">Step {step.step}</div>
+                    <h3 className="text-xl font-bold mb-3">{step.title}</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed">{step.description}</p>
+                  </div>
+                  {index < howItWorks.length - 1 && (
+                    <div className="hidden md:flex absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
+                      <ArrowRight className="w-6 h-6 text-[#ff4d8f]/50" />
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.p 
+              {...fadeInUp}
+              className="text-center text-slate-400 mt-12"
+            >
+              No implementation teams. No months-long rollouts. No consultant dependencies.
+            </motion.p>
+          </div>
+        </section>
+
+        {/* SECTION 5: USE CASES / WHO IT'S FOR */}
+        <section className="py-24 px-6 relative bg-[#252640]">
+          <div className="max-w-5xl mx-auto">
+            <motion.div {...fadeInUp} className="text-center mb-12">
+              <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-personas-title">
+                Built for{" "}
+                <span className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] bg-clip-text text-transparent">
+                  strategic leaders
+                </span>{" "}
+                navigating complexity
+              </h2>
+            </motion.div>
+
+            <Tabs defaultValue="executives" className="w-full">
+              <TabsList className="flex flex-wrap justify-center gap-2 bg-transparent mb-8 h-auto">
+                {personas.map((persona) => (
+                  <TabsTrigger 
+                    key={persona.id}
+                    value={persona.id}
+                    className="px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-slate-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#ff6b4a] data-[state=active]:via-[#ff4d8f] data-[state=active]:to-[#a855f7] data-[state=active]:text-white data-[state=active]:border-transparent"
+                    data-testid={`tab-persona-${persona.id}`}
+                  >
+                    <persona.icon className="w-4 h-4 mr-2" />
+                    {persona.title}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {personas.map((persona) => (
+                <TabsContent 
+                  key={persona.id} 
+                  value={persona.id}
+                  className="mt-0"
+                >
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="p-8 rounded-2xl bg-[#1a1b2e]/50 border border-white/10 border-l-4 border-l-[#ff4d8f]"
+                    data-testid={`content-persona-${persona.id}`}
+                  >
+                    <p className="text-xl text-slate-300 italic mb-6">"{persona.quote}"</p>
+                    <p className="text-slate-400 mb-6 leading-relaxed">{persona.description}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {persona.outcomes.map((outcome, idx) => (
+                        <span 
+                          key={idx}
+                          className="px-3 py-1 rounded-full text-sm bg-[#ff4d8f]/10 text-[#ff4d8f] border border-[#ff4d8f]/20"
+                        >
+                          {outcome}
+                        </span>
+                      ))}
+                    </div>
+                  </motion.div>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
+        </section>
+
+        {/* SECTION 6: DIFFERENTIATION */}
+        <section className="py-24 px-6 relative">
+          <div className="max-w-5xl mx-auto">
+            <motion.div {...fadeInUp} className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-differentiation-title">
+                What makes{" "}
+                <span className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] bg-clip-text text-transparent">
+                  conversational intelligence
+                </span>{" "}
+                different
+              </h2>
+            </motion.div>
+
+            <div className="grid gap-4">
+              {comparisons.map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="flex items-center gap-4 p-6 rounded-xl bg-gradient-to-r from-white/5 to-transparent border border-white/10"
+                  className="flex flex-col md:flex-row items-stretch gap-4 p-4 rounded-2xl bg-white/5 border border-white/10"
+                  data-testid={`card-comparison-${index}`}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                    <diff.icon className="w-5 h-5 text-purple-400" />
+                  <div className="flex-1 p-4 rounded-xl bg-[#1a1b2e]/50">
+                    <p className="text-slate-500 text-sm mb-1">{item.old}</p>
+                    <p className="text-slate-400">{item.oldDesc}</p>
                   </div>
-                  <p className="text-lg font-medium">{diff.text}</p>
+                  <div className="flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] flex items-center justify-center">
+                      <ArrowRight className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1 p-4 rounded-xl bg-gradient-to-r from-[#ff6b4a]/10 via-[#ff4d8f]/10 to-[#a855f7]/10 border border-[#ff4d8f]/20">
+                    <p className="text-[#ff4d8f] text-sm mb-1 font-medium">{item.new}</p>
+                    <p className="text-white">{item.newDesc}</p>
+                  </div>
                 </motion.div>
               ))}
             </div>
+
+            <motion.p 
+              {...fadeInUp}
+              className="text-center text-slate-300 mt-12 text-lg max-w-3xl mx-auto"
+            >
+              Business Orbit occupies genuine whitespace—the intersection of strategic dialogue, 
+              institutional learning, and constructive challenge that no existing tool delivers.
+            </motion.p>
           </div>
         </section>
 
-        {/* Trust & Control */}
-        <section className="py-24 px-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-neutral-950" />
-          <div className="max-w-7xl mx-auto relative z-10">
-            <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 text-sm font-medium bg-white/5 border border-white/10 rounded-full">
-                <Shield className="w-4 h-4 text-purple-400" />
-                <span className="text-white/70">Built for Trust</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-trust-title">
-                Trust & Control
+        {/* SECTION 7: SOCIAL PROOF */}
+        <section className="py-24 px-6 relative bg-[#252640]">
+          <div className="max-w-5xl mx-auto">
+            <motion.div {...fadeInUp} className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-proof-title">
+                The{" "}
+                <span className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] bg-clip-text text-transparent">
+                  Strategic Intelligence
+                </span>{" "}
+                Gap
               </h2>
-              <p className="text-white/50 text-lg max-w-xl mx-auto">
-                Credibility matters. NextMonth gives you full control.
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {trustFeatures.map((feature, index) => (
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              {trustStats.map((stat, index) => (
                 <motion.div
-                  key={feature.title}
+                  key={index}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="p-6 rounded-xl bg-gradient-to-b from-white/5 to-transparent border border-white/10"
+                  className="p-6 rounded-2xl bg-[#1a1b2e]/50 border border-white/10 text-center"
+                  data-testid={`card-trust-${index}`}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center mb-4">
-                    <feature.icon className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <h3 className="text-base font-bold mb-2">{feature.title}</h3>
-                  <p className="text-white/50 text-sm">{feature.description}</p>
+                  <p className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] bg-clip-text text-transparent mb-3">
+                    {stat.value}
+                  </p>
+                  <p className="text-slate-400 text-sm mb-2 leading-relaxed">
+                    {stat.label}
+                  </p>
+                  <p className="text-slate-500 text-xs">
+                    — {stat.source}
+                  </p>
                 </motion.div>
               ))}
             </div>
-          </div>
-        </section>
 
-        {/* Website Experience Section */}
-        <section className="py-32 px-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-black" />
-          <div className="max-w-4xl mx-auto text-center relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+            <motion.div 
+              {...fadeInUp}
+              className="flex flex-wrap justify-center gap-8 pt-8 border-t border-white/10"
             >
-              <h2 className="text-4xl md:text-6xl font-bold mb-6" data-testid="text-website-title">
-                Turn your website into an<br />
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">interactive experience</span>
-              </h2>
-              <p className="text-xl text-white/60 mb-10 max-w-2xl mx-auto leading-relaxed">
-                Close the gap between where visitors land and where your best information lives. Guide them through what matters instead of hoping they find it.
-              </p>
-              <Link href="/try">
-                <Button size="lg" className="h-14 px-8 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3 rounded-xl" data-testid="button-website-cta">
-                  Launch Experience Builder
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
-              <p className="text-sm text-white/40 mt-4">
-                Start with a URL. Publish in minutes.
-              </p>
+              <div className="flex items-center gap-2 text-slate-400">
+                <ShieldCheck className="w-5 h-5 text-[#a855f7]" />
+                <span className="text-sm">Enterprise-grade security</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-400">
+                <Building2 className="w-5 h-5 text-[#ff4d8f]" />
+                <span className="text-sm">Built for regulated industries</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-400">
+                <CheckCircle className="w-5 h-5 text-[#ff6b4a]" />
+                <span className="text-sm">Your data stays yours</span>
+              </div>
             </motion.div>
           </div>
         </section>
 
-        {/* Final CTA */}
-        <section className="py-32 px-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-neutral-950" />
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-white/10" />
+        {/* SECTION 8: FINAL CTA */}
+        <section className="py-24 px-6 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#ff6b4a]/20 via-[#ff4d8f]/20 to-[#a855f7]/20" />
+          <div className="absolute inset-0 bg-[#1a1b2e]/80" />
           
-          <div className="max-w-4xl mx-auto text-center relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="text-4xl md:text-6xl font-bold mb-6" data-testid="text-cta-title">
-                Stop sending links.<br />
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent">Start guiding people.</span>
+          <div className="max-w-3xl mx-auto relative z-10 text-center">
+            <motion.div {...fadeInUp}>
+              <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-cta-title">
+                Your decisions deserve more than dashboards
               </h2>
-              <p className="text-xl text-white/50 mb-10 max-w-xl mx-auto">
-                Turn your content into an interactive journey that people actually finish.
+              <p className="text-lg text-slate-300 mb-10">
+                Join the leaders defining what business intelligence becomes next.
               </p>
-              <Link href="/try">
-                <Button size="lg" className="h-16 px-12 text-lg bg-blue-500 hover:bg-blue-400 text-white border-0 shadow-lg shadow-blue-500/30 gap-3" data-testid="button-footer-cta">
-                  Launch Experience Builder
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-xl mx-auto mb-6">
+                <Input
+                  type="email"
+                  placeholder="Business email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-14 px-6 bg-white/10 border-white/20 text-white placeholder:text-slate-400 rounded-xl focus:border-[#ff4d8f] focus:ring-[#ff4d8f]"
+                  data-testid="input-cta-email"
+                />
+                <Link href="/orbit/claim">
+                  <Button 
+                    size="lg" 
+                    className="h-14 px-8 bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] text-white border-0 hover:opacity-90 whitespace-nowrap rounded-xl"
+                    data-testid="button-cta-submit"
+                  >
+                    Get Started
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-400">
+                <span className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-[#ff4d8f]" />
+                  No credit card required
+                </span>
+                <span className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-[#ff4d8f]" />
+                  Full access for 14 days
+                </span>
+                <span className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-[#ff4d8f]" />
+                  Set up in minutes
+                </span>
+              </div>
             </motion.div>
           </div>
         </section>
 
-        {/* Proof Strip */}
-        <Link href="/ai-discovery-control">
-          <section className="py-8 px-6 relative cursor-pointer group" data-testid="section-proof-strip">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-blue-500/5 group-hover:from-blue-500/10 group-hover:via-purple-500/10 group-hover:to-blue-500/10 transition-all" />
-            <div className="max-w-4xl mx-auto relative z-10 text-center">
-              <p className="text-lg md:text-xl text-white/60 group-hover:text-white/80 transition-colors">
-                Stop being interpreted by default. Give AI a source it can trust.
-              </p>
-            </div>
-          </section>
-        </Link>
+        {/* SECTION 9: FOOTER */}
+        <footer className="py-16 px-6 border-t border-white/10">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-4 gap-12 mb-12">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="relative w-8 h-8">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] opacity-80" />
+                    <div className="absolute inset-[2px] rounded-full bg-[#1a1b2e]" />
+                  </div>
+                  <span className="text-lg font-semibold text-white">Business Orbit</span>
+                </div>
+                <p className="text-slate-500 text-sm">
+                  Conversational intelligence for strategic leaders.
+                </p>
+              </div>
 
-        {/* Footer */}
-        <footer className="py-12 px-6 border-t border-white/10 bg-black">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-              <img 
-                src="/logo.png" 
-                alt="NextMonth" 
-                className="h-[48px]"
-              />
-              <div className="flex items-center gap-8">
-                <Link href="/for/brands" className="text-white/50 hover:text-white text-sm transition-colors">Brands</Link>
-                <Link href="/for/creators" className="text-white/50 hover:text-white text-sm transition-colors">Creators</Link>
-                <Link href="/for/knowledge" className="text-white/50 hover:text-white text-sm transition-colors">Knowledge</Link>
+              <div>
+                <h4 className="font-semibold mb-4 text-white">Product</h4>
+                <ul className="space-y-3 text-sm text-slate-400">
+                  <li><Link href="#how-it-works" className="hover:text-[#ff4d8f] transition-colors">How It Works</Link></li>
+                  <li><Link href="/pricing" className="hover:text-[#ff4d8f] transition-colors">Pricing</Link></li>
+                  <li><Link href="/security" className="hover:text-[#ff4d8f] transition-colors">Security</Link></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-4 text-white">Company</h4>
+                <ul className="space-y-3 text-sm text-slate-400">
+                  <li><Link href="/about" className="hover:text-[#ff4d8f] transition-colors">About</Link></li>
+                  <li><Link href="/careers" className="hover:text-[#ff4d8f] transition-colors">Careers</Link></li>
+                  <li><Link href="/contact" className="hover:text-[#ff4d8f] transition-colors">Contact</Link></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-4 text-white">Resources</h4>
+                <ul className="space-y-3 text-sm text-slate-400">
+                  <li><Link href="/blog" className="hover:text-[#ff4d8f] transition-colors">Blog</Link></li>
+                  <li><Link href="/docs" className="hover:text-[#ff4d8f] transition-colors">Documentation</Link></li>
+                  <li><Link href="/case-studies" className="hover:text-[#ff4d8f] transition-colors">Case Studies</Link></li>
+                </ul>
               </div>
             </div>
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-white/5">
-              <div className="flex items-center gap-6">
-                <Link href="/privacy" className="text-white/40 hover:text-white/70 text-xs transition-colors">Privacy Policy</Link>
-                <Link href="/terms" className="text-white/40 hover:text-white/70 text-xs transition-colors">Terms of Service</Link>
-                <Link href="/cookies" className="text-white/40 hover:text-white/70 text-xs transition-colors">Cookie Policy</Link>
-                <Link href="/security" className="text-white/40 hover:text-white/70 text-xs transition-colors">Security</Link>
+
+            <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-white/10 gap-4">
+              <div className="flex gap-4">
+                <a href="#" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-slate-400 hover:text-[#ff4d8f] hover:border-[#ff4d8f]/50 transition-colors" data-testid="link-social-linkedin">
+                  <Linkedin className="w-5 h-5" />
+                </a>
+                <a href="#" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-slate-400 hover:text-[#ff4d8f] hover:border-[#ff4d8f]/50 transition-colors" data-testid="link-social-twitter">
+                  <Twitter className="w-5 h-5" />
+                </a>
+                <a href="#" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-slate-400 hover:text-[#ff4d8f] hover:border-[#ff4d8f]/50 transition-colors" data-testid="link-social-youtube">
+                  <Youtube className="w-5 h-5" />
+                </a>
               </div>
-              <p className="text-white/30 text-xs">
-                © {new Date().getFullYear()} NextMonth Ltd. All rights reserved.
-              </p>
+
+              <div className="flex flex-wrap gap-6 text-sm text-slate-500">
+                <span>© 2025 Business Orbit. All rights reserved.</span>
+                <Link href="/privacy" className="hover:text-[#ff4d8f] transition-colors">Privacy Policy</Link>
+                <Link href="/terms" className="hover:text-[#ff4d8f] transition-colors">Terms of Service</Link>
+                <Link href="/security" className="hover:text-[#ff4d8f] transition-colors">Security</Link>
+              </div>
             </div>
           </div>
         </footer>
