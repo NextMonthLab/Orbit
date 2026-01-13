@@ -8576,6 +8576,34 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
           appliedAt: new Date(),
         });
         
+        // Handle visual corrections (Phase 3)
+        if (correctionAnalysis.correctionType === 'visual' && correctionAnalysis.visualCorrection) {
+          const vc = correctionAnalysis.visualCorrection;
+          // Find the tile by label if specified
+          let targetTileId: number | undefined;
+          if (vc.targetTileLabel) {
+            const matchingTile = tiles.find(t => 
+              t.label.toLowerCase().includes(vc.targetTileLabel!.toLowerCase()) ||
+              vc.targetTileLabel!.toLowerCase().includes(t.label.toLowerCase())
+            );
+            if (matchingTile) {
+              targetTileId = matchingTile.id;
+            }
+          }
+          
+          // Create a visual correction request
+          await storage.createVisualCorrectionRequest({
+            orbitId: orbitMeta.id,
+            conversationId: conversation.id,
+            messageId: savedMessage.id,
+            tileId: targetTileId || null,
+            requestType: vc.action === 'remove' ? 'remove' : (vc.action === 'add' ? 'add' : 'replace'),
+            requestedSourceUrl: vc.newSourceUrl || null,
+            requestedDescription: vc.newAssetDescription || null,
+            status: 'pending',
+          });
+        }
+        
         // Update conversation counts based on correction type
         const updateData: any = {};
         if (correctionAnalysis.correctionType === 'new_info') {
@@ -8621,6 +8649,7 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         correction: correctionAnalysis.isCorrection ? {
           type: correctionAnalysis.correctionType,
           confidence: correctionAnalysis.confidence,
+          visualCorrection: correctionAnalysis.visualCorrection || null,
         } : null,
       });
       

@@ -683,10 +683,16 @@ ${documentContext}${heroPostContext}${correctionsContext}${visualContext}
 
 export interface OwnerChatAnalysis {
   isCorrection: boolean;
-  correctionType?: 'factual' | 'emphasis' | 'gap_fill' | 'new_info' | 'removal';
+  correctionType?: 'factual' | 'emphasis' | 'gap_fill' | 'new_info' | 'removal' | 'visual';
   originalContent?: string;
   correctedContent?: string;
   confidence: number;
+  visualCorrection?: {
+    targetTileLabel?: string;
+    newSourceUrl?: string;
+    newAssetDescription?: string;
+    action?: 'replace' | 'add' | 'remove';
+  };
 }
 
 /**
@@ -715,10 +721,16 @@ Latest message: "${message}"
 Respond in JSON format:
 {
   "isCorrection": boolean,
-  "correctionType": "factual" | "emphasis" | "gap_fill" | "new_info" | "removal" | null,
+  "correctionType": "factual" | "emphasis" | "gap_fill" | "new_info" | "removal" | "visual" | null,
   "originalContent": "what was wrong/missing (if correction)",
   "correctedContent": "what should be known instead (if correction)",
-  "confidence": 0.0-1.0
+  "confidence": 0.0-1.0,
+  "visualCorrection": {
+    "targetTileLabel": "name of knowledge area if visual correction",
+    "newSourceUrl": "URL if owner provided one",
+    "newAssetDescription": "description of desired image/visual",
+    "action": "replace" | "add" | "remove"
+  }
 }
 
 Correction types:
@@ -727,8 +739,16 @@ Correction types:
 - gap_fill: Owner is providing information that was missing
 - new_info: Owner is adding brand new information unprompted
 - removal: Owner is saying to stop mentioning something
+- visual: Owner is correcting what image/page/visual should be shown for a knowledge area
 
-Only mark as correction if the owner is clearly providing training/correction, not just chatting.`;
+Visual correction examples:
+- "Use this image for our services: https://..."
+- "That's the wrong picture for our team page"
+- "Show our homepage for the company overview"
+- "Don't show that old logo anymore"
+
+Only mark as correction if the owner is clearly providing training/correction, not just chatting.
+Include visualCorrection object only if correctionType is "visual".`;
 
   try {
     const completion = await openai.chat.completions.create({
