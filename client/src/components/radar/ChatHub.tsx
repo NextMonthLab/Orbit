@@ -406,7 +406,10 @@ export function ChatHub({
         </div>
 
         {/* Messages */}
-        <div className="h-[280px] overflow-y-auto p-4 space-y-3">
+        <div 
+          className="h-[280px] overflow-y-auto p-4 space-y-3"
+          onWheel={(e) => e.stopPropagation()}
+        >
           {messages.map((msg, i) => (
             <div
               key={i}
