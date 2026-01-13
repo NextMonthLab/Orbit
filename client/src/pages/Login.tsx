@@ -34,7 +34,7 @@ export default function Login() {
           title: "Account created",
           description: "Welcome to Orbit!",
         });
-        setLocation("/onboarding");
+        setLocation(returnUrl || "/launchpad");
       } else {
         await login(username, password);
         toast({

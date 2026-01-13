@@ -185,14 +185,14 @@ export default function DemoBackendView() {
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-2xl md:text-3xl font-bold text-white">
-                  {orbit.name}
+                  {demoInfo?.name || orbit.businessSlug}
                 </h1>
                 <Badge variant="outline" className="text-white/60 border-white/20">
                   {demoInfo?.sector || 'Demo'}
                 </Badge>
               </div>
               <p className="text-white/60 max-w-2xl">
-                {orbit.description || demoInfo?.tagline || 'Explore this demo Orbit backend'}
+                {demoInfo?.tagline || 'Explore this demo Orbit backend'}
               </p>
             </div>
 
@@ -301,7 +301,7 @@ export default function DemoBackendView() {
                               </Badge>
                             </div>
                             <h4 className="text-white font-medium mb-1 line-clamp-1">{box.title}</h4>
-                            <p className="text-white/50 text-sm line-clamp-2">{box.shortDescription || box.longDescription}</p>
+                            <p className="text-white/50 text-sm line-clamp-2">{box.description}</p>
                           </div>
                         ))}
                       </div>
@@ -345,7 +345,7 @@ export default function DemoBackendView() {
                             <div className="flex-1 min-w-0">
                               <h4 className="text-white font-medium truncate">{doc.title}</h4>
                               <p className="text-white/50 text-sm">
-                                {doc.docType || 'document'}
+                                {doc.category || 'document'}
                               </p>
                             </div>
                           </div>
@@ -376,11 +376,11 @@ export default function DemoBackendView() {
                     <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-white/50 text-sm w-32">Business Name</span>
-                        <span className="text-white">{orbit.name}</span>
+                        <span className="text-white">{demoInfo?.name || orbit.businessSlug}</span>
                       </div>
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-white/50 text-sm w-32">Slug</span>
-                        <span className="text-white font-mono text-sm">{orbit.slug}</span>
+                        <span className="text-white font-mono text-sm">{orbit.businessSlug}</span>
                       </div>
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-white/50 text-sm w-32">Type</span>
@@ -388,16 +388,16 @@ export default function DemoBackendView() {
                           {orbit.orbitType || 'standard'}
                         </Badge>
                       </div>
-                      {orbit.websiteUrl && (
+                      {orbit.sourceUrl && (
                         <div className="flex items-center gap-3">
                           <span className="text-white/50 text-sm w-32">Website</span>
                           <a 
-                            href={orbit.websiteUrl} 
+                            href={orbit.sourceUrl} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-blue-400 hover:underline flex items-center gap-1"
                           >
-                            {orbit.websiteUrl}
+                            {orbit.sourceUrl}
                             <ExternalLink className="w-3 h-3" />
                           </a>
                         </div>
