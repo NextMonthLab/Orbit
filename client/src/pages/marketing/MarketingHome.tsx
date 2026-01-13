@@ -221,15 +221,17 @@ export default function MarketingHome() {
           </Link>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-4">
             <Link href="/for/business">
-              <span className="text-white/70 hover:text-white text-sm cursor-pointer transition-colors">For Businesses</span>
+              <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 text-sm" data-testid="nav-for-business">
+                For Businesses
+              </Button>
             </Link>
             <Link href="/orbit/demos">
-              <span className="text-white/70 hover:text-white text-sm cursor-pointer transition-colors flex items-center gap-1.5">
+              <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 text-sm gap-1.5" data-testid="nav-demo-orbits">
                 <Compass className="w-4 h-4" />
                 Demo Orbits
-              </span>
+              </Button>
             </Link>
           </nav>
           
