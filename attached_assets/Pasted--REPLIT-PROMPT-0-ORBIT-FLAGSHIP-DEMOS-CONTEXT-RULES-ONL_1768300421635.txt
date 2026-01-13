@@ -1,0 +1,72 @@
+# REPLIT PROMPT 0 — ORBIT FLAGSHIP DEMOS (CONTEXT + RULES ONLY, NO BUILDS YET)
+
+## What we’re doing
+We are adding **Flagship Demo Orbits** to NextMonth Orbit as hardcoded showcase experiences.
+These demos will NOT be created through the normal Orbit creation / ingestion UI.
+They will be curated, fixture-backed, and launched directly from a dedicated demos page.
+
+This prompt is **context + guardrails only**.
+DO NOT build the demo Orbits yet.
+DO NOT implement ingestion or “create orbit” flows.
+DO NOT generate large datasets yet.
+We are just preparing Replit to understand what’s coming next and to align how we will implement it.
+
+## The five demo Orbits (names + intent)
+We will hardcode five flagship demo Orbits. They must feel UK-real and operationally mature:
+
+1) **Slice & Stone Pizza** (Bristol)  
+   - delivery zones, peak times, allergens, deals, complaint handling
+
+2) **Clarity Chartered Accountants** (Leeds, UK-wide remote)  
+   - fixed-fee packages, inclusions/exclusions, deadlines, switching process, onboarding steps
+
+3) **TechVault UK** (Manchester, UK-wide delivery)  
+   - refurbished grades, battery health, comparisons, returns/warranty policy, trade-in values
+
+4) **Fernwood Dental Practice** (Nottingham)  
+   - NHS vs private pricing logic, treatments, nervous patient guidance, booking rules
+
+5) **Greenway Property Lettings** (Oxford)  
+   - landlord vs tenant journeys, fees, processes, compliance-aware FAQs
+
+## Non-negotiable flagship rules (global)
+- These demos are **hardcoded** and bypass the standard orbit creation UI.
+- Each demo Orbit will be backed by **structured datasets** (fixtures) such as:
+  - products/services/packages, policies, FAQs, operational info, comparisons, etc.
+- **Assistant grounding is strict**:
+  - It must never invent prices, availability, policies, deadlines, delivery times, etc.
+  - It can only answer based on its Orbit’s datasets.
+  - It must escalate to human contact for edge cases that require it.
+
+## UX goals
+- Visitors should land on demos and immediately feel:
+  “This is 100x better than a website. I want this for my business.”
+- Premium, public-facing UI. Not admin-y.
+- Zero learning curve: clear demo cards, clear launch buttons, direct entry.
+
+## Routing conventions (expected)
+We will be implementing:
+- A dedicated demo listing page:
+  - `/orbits/demos` (or the closest existing route convention in the app)
+- A demo launch route:
+  - `/orbit/demo/:demoId`
+
+If the app already uses different conventions, follow the existing patterns — but keep the concept identical.
+
+## What comes next (do not do it yet)
+After this context prompt, we will issue separate prompts to:
+1) Scaffold the demos page + routes + placeholder demo shell
+2) Create fixture data structure + per-demo payload files
+3) Build the first three demo Orbits to “premium finished” level (Pizza, Accountants, Tech)
+
+## Output required from you in this prompt
+Reply with:
+1) The existing route conventions you found in the codebase (Orbit routes) and what you will align to.
+2) The proposed file locations you will use for demo fixtures (no files created yet).
+3) Any conflicts you foresee with current Orbit UI flows and how you will avoid touching them.
+
+## Important
+- This prompt is a **planning alignment step**.
+- Do not create new pages, routes, or files yet.
+- Do not refactor anything yet.
+- Just confirm understanding and plan the implementation locations so the next prompts can be executed cleanly.
