@@ -322,7 +322,7 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
     <motion.div
       initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.9 }}
       animate={{ 
-        opacity: 0.85, 
+        opacity: 0.60, 
         scale: 1,
         x: shouldReduceMotion ? position.x : [position.x - driftX, position.x + driftX, position.x - driftX],
         y: shouldReduceMotion ? position.y : [position.y - driftY, position.y + driftY, position.y - driftY],
