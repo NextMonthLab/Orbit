@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import businessOrbitLogo from "@assets/business-orbit-logo.png";
+import businessOrbitLogo from "@assets/business-orbit-logo-cropped.png";
 import { 
   ArrowRight, 
   ArrowDown,
@@ -184,7 +184,7 @@ export default function MarketingHome() {
               <img 
                 src={businessOrbitLogo} 
                 alt="Business Orbit" 
-                className="h-8 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
             </div>
           </Link>
@@ -631,7 +631,7 @@ export default function MarketingHome() {
                   <img 
                     src={businessOrbitLogo} 
                     alt="Business Orbit" 
-                    className="h-8 w-auto object-contain"
+                    className="h-10 w-auto object-contain"
                   />
                 </div>
                 <p className="text-slate-500 text-sm">
