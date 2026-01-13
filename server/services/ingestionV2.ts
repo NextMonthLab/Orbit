@@ -71,7 +71,7 @@ const MAX_PAGES_LIGHT = 12;
 const MAX_PAGES_STANDARD = 25;
 const URL_CACHE_TTL_HOURS = 24;
 
-const USER_AGENT = 'NextMonthBot/1.0 (+https://nextmonth.io/bot-info; respectful crawler)';
+const USER_AGENT = 'OrbitBot/1.0 (+https://businessorbit.io/bot-info; respectful crawler)';
 
 export async function runIngestionV2(
   businessSlug: string,

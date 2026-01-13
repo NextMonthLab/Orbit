@@ -81,7 +81,7 @@ export function FirstRunOnboarding({
         className="sm:max-w-2xl bg-black border border-zinc-800 p-0 gap-0 overflow-hidden"
         data-testid="first-run-onboarding-modal"
       >
-        <DialogTitle className="sr-only">Welcome to NextMonth</DialogTitle>
+        <DialogTitle className="sr-only">Welcome to Orbit</DialogTitle>
         
         <button
           onClick={handleSkip}
@@ -98,7 +98,7 @@ export function FirstRunOnboarding({
               <span className="text-sm font-medium text-blue-300">Quick Start Guide</span>
             </div>
             <h2 className="text-2xl font-semibold text-white mb-2">
-              Welcome to NextMonth
+              Welcome to Orbit
             </h2>
             <p className="text-zinc-400">
               Get started by claiming your Orbit

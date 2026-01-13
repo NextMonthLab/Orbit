@@ -180,7 +180,7 @@ export default function ForEducator() {
                   <BookOpen className="w-7 h-7 text-emerald-400" />
                 </div>
                 <div className="text-sm font-bold text-emerald-400 mb-2">2</div>
-                <h3 className="font-bold mb-2">NextMonth turns it into a chapter-based story</h3>
+                <h3 className="font-bold mb-2">Orbit turns it into a chapter-based story</h3>
               </motion.div>
               
               <motion.div
@@ -224,7 +224,7 @@ export default function ForEducator() {
           <div className="max-w-6xl mx-auto relative z-10">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-usecases-title">
-                How educators use NextMonth
+                How educators use Orbit
               </h2>
               <p className="text-white/60 max-w-2xl mx-auto">
                 Create story-based lessons, interactive learning companions, and chapter drops that improve engagement and retention.
@@ -332,7 +332,7 @@ export default function ForEducator() {
           <div className="max-w-4xl mx-auto relative z-10">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4" data-testid="text-benefits-title">
-                Why educators choose NextMonth
+                Why educators choose Orbit
               </h2>
             </div>
             
@@ -475,7 +475,7 @@ export default function ForEducator() {
                 Create lessons students can explore, not just read.
               </p>
               <p className="text-white/60 text-sm mb-8">
-                Join educators already creating story-driven lessons with NextMonth.
+                Join educators already creating story-driven lessons with Orbit.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link href="/try">
@@ -504,7 +504,7 @@ export default function ForEducator() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
               <img 
                 src="/logo.png" 
-                alt="NextMonth" 
+                alt="Orbit" 
                 className="h-40"
                 style={{ clipPath: 'inset(30% 0 30% 0)' }}
               />
@@ -520,7 +520,7 @@ export default function ForEducator() {
                 <Link href="/terms" className="text-white/40 hover:text-white/70 text-xs transition-colors">Terms of Service</Link>
                 <Link href="/cookies" className="text-white/40 hover:text-white/70 text-xs transition-colors">Cookie Policy</Link>
               </div>
-              <p className="text-white/30 text-xs">© {new Date().getFullYear()} NextMonth Ltd. All rights reserved.</p>
+              <p className="text-white/30 text-xs">© {new Date().getFullYear()} Orbit Ltd. All rights reserved.</p>
             </div>
           </div>
         </footer>

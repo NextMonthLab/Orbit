@@ -1,5 +1,5 @@
 /**
- * Feature Flags & Kill-Switches for NextMonth
+ * Feature Flags & Kill-Switches for Orbit
  * 
  * PRINCIPLE: Cost-aware operation with instant kill-switches for expensive features.
  * All flags can be overridden by environment variables for runtime control.

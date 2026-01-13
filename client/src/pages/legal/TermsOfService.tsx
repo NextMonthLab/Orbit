@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 
-const LOGO_URL = "/logo.png";
+import businessOrbitLogo from "@assets/business-orbit-logo-cropped.png";
 
 export default function TermsOfService() {
   return (
@@ -9,7 +9,7 @@ export default function TermsOfService() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/">
-            <img src={LOGO_URL} alt="NextMonth" className="h-20 cursor-pointer" style={{ clipPath: 'inset(30% 0 30% 0)' }} />
+            <img src={businessOrbitLogo} alt="Orbit" className="h-10 cursor-pointer object-contain" />
           </Link>
           <Link href="/">
             <span className="text-white/60 hover:text-white text-sm flex items-center gap-2 cursor-pointer">
@@ -28,7 +28,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold mb-4 text-white">1. Agreement to Terms</h2>
             <p className="text-white/70 leading-relaxed">
-              These Terms of Service ("Terms") constitute a legally binding agreement between you and NextMonth Ltd ("Company", "we", "us", or "our"), company number 16464586, registered at 44 Orchard Way, Banbury, United Kingdom, OX16 0HA, concerning your access to and use of the NextMonth platform and services.
+              These Terms of Service ("Terms") constitute a legally binding agreement between you and Orbit Ltd ("Company", "we", "us", or "our"), company number 16464586, registered at 44 Orchard Way, Banbury, United Kingdom, OX16 0HA, concerning your access to and use of the Orbit platform and services.
             </p>
             <p className="text-white/70 leading-relaxed mt-4">
               By accessing or using our service, you agree to be bound by these Terms. If you disagree with any part of these Terms, you may not access the service.
@@ -38,7 +38,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold mb-4 text-white">2. Description of Service</h2>
             <p className="text-white/70 leading-relaxed">
-              NextMonth is a content transformation platform that converts scripts, documents, websites, and other structured content into interactive, cinematic story experiences. Our service includes AI-generated visuals, character chat functionality, and content distribution features.
+              Orbit is a content transformation platform that converts scripts, documents, websites, and other structured content into interactive, cinematic story experiences. Our service includes AI-generated visuals, character chat functionality, and content distribution features.
             </p>
           </section>
 
@@ -116,7 +116,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold mb-4 text-white">7. Intellectual Property</h2>
             <p className="text-white/70 leading-relaxed">
-              The service, including its original content, features, and functionality, is owned by NextMonth Ltd and is protected by copyright, trademark, and other intellectual property laws. Our trademarks may not be used without our prior written consent.
+              The service, including its original content, features, and functionality, is owned by Orbit Ltd and is protected by copyright, trademark, and other intellectual property laws. Our trademarks may not be used without our prior written consent.
             </p>
           </section>
 
@@ -143,7 +143,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold mb-4 text-white">10. Limitation of Liability</h2>
             <p className="text-white/70 leading-relaxed">
-              To the maximum extent permitted by law, NextMonth Ltd shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or goodwill, arising from your use of the service.
+              To the maximum extent permitted by law, Orbit Ltd shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or goodwill, arising from your use of the service.
             </p>
             <p className="text-white/70 leading-relaxed mt-4">
               Our total liability shall not exceed the amount you paid to us in the twelve months preceding the claim.
@@ -160,7 +160,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold mb-4 text-white">12. Indemnification</h2>
             <p className="text-white/70 leading-relaxed">
-              You agree to indemnify and hold harmless NextMonth Ltd and its officers, directors, employees, and agents from any claims, damages, losses, or expenses arising from your use of the service or violation of these Terms.
+              You agree to indemnify and hold harmless Orbit Ltd and its officers, directors, employees, and agents from any claims, damages, losses, or expenses arising from your use of the service or violation of these Terms.
             </p>
           </section>
 
@@ -191,7 +191,7 @@ export default function TermsOfService() {
               For any questions about these Terms, please contact us at:
             </p>
             <p className="text-white/70 leading-relaxed mt-4">
-              NextMonth Ltd<br />
+              Orbit Ltd<br />
               44 Orchard Way<br />
               Banbury, United Kingdom<br />
               OX16 0HA<br />
@@ -203,7 +203,7 @@ export default function TermsOfService() {
 
       <footer className="py-8 px-6 border-t border-white/10 bg-black">
         <div className="max-w-4xl mx-auto text-center text-white/50 text-sm">
-          © {new Date().getFullYear()} NextMonth Ltd. All rights reserved.
+          © {new Date().getFullYear()} Orbit Ltd. All rights reserved.
         </div>
       </footer>
     </div>

@@ -31,8 +31,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-const LOGO_URL_LIGHT = "/logo.png";
-const LOGO_URL_DARK = "https://res.cloudinary.com/drl0fxrkq/image/upload/h_250,fl_preserve_transparency/v1746537994/0A6752C9-3498-4269-9627-A1BE7A36A800_dgqotr.jpg";
+import businessOrbitLogo from "@assets/business-orbit-logo-cropped.png";
 
 type NavVariant = 'marketing' | 'app';
 
@@ -45,6 +44,7 @@ const marketingLinks = [
   { href: '/for/business', label: 'For Businesses', icon: Building2 },
   { href: '/for/creators', label: 'For Creators', icon: Film },
   { href: '/for/educator', label: 'For Educators', icon: GraduationCap },
+  { href: '/orbit/demos', label: 'Demo Orbits', icon: Compass },
 ];
 
 const appLinks = [
@@ -87,10 +87,9 @@ export default function SiteNav({ variant: explicitVariant, onStartTour }: SiteN
         <Link href={logoHref}>
           <div className="flex items-center gap-2 cursor-pointer" data-testid="link-site-logo">
             <img 
-              src={theme === 'light' ? LOGO_URL_DARK : LOGO_URL_LIGHT} 
-              alt="NextMonth" 
-              className="h-24 w-auto"
-              style={{ clipPath: 'inset(35% 0 35% 0)' }}
+              src={businessOrbitLogo} 
+              alt="Business Orbit" 
+              className="h-10 w-auto object-contain"
             />
           </div>
         </Link>

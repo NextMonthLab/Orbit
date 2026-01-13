@@ -359,7 +359,7 @@ export async function exportCpac(orbitMeta: OrbitMeta): Promise<CpacV1Export> {
     packType: "export",
     generatedAt: new Date().toISOString(),
     sourceAgent: {
-      name: "NextMonth CPAC Exporter",
+      name: "Orbit CPAC Exporter",
       version: "1.0.0",
     },
     orbit: {

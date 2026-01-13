@@ -545,7 +545,7 @@ export default function ForBrands() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
               <img
                 src="/logo.png"
-                alt="NextMonth"
+                alt="Orbit"
                 className="h-40"
                 style={{ clipPath: 'inset(30% 0 30% 0)' }}
               />
@@ -562,7 +562,7 @@ export default function ForBrands() {
                 <Link href="/cookies" className="text-white/40 hover:text-white/70 text-xs transition-colors">Cookie Policy</Link>
               </div>
               <p className="text-white/30 text-xs">
-                © {new Date().getFullYear()} NextMonth Ltd. All rights reserved.
+                © {new Date().getFullYear()} Orbit Ltd. All rights reserved.
                 {import.meta.env.DEV && import.meta.env.VITE_GIT_COMMIT_HASH && (
                   <span className="ml-2 font-mono text-white/20">
                     v{import.meta.env.VITE_GIT_COMMIT_HASH.slice(0, 7)}

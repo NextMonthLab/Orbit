@@ -34,7 +34,7 @@ export default function PersonaPage({ persona }: PersonaPageProps) {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/">
             <span className="text-xl font-display font-black tracking-tight cursor-pointer" data-testid="link-logo">
-              NextMonth
+              Orbit
             </span>
           </Link>
           <div className="flex items-center gap-4">
@@ -80,7 +80,7 @@ export default function PersonaPage({ persona }: PersonaPageProps) {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-display font-bold mb-4" data-testid="text-usecases-title">
-                How {persona.title} Use NextMonth
+                How {persona.title} Use Orbit
               </h2>
               <p className="text-white/60 max-w-xl mx-auto">
                 {persona.description}
@@ -125,7 +125,7 @@ export default function PersonaPage({ persona }: PersonaPageProps) {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-display font-bold mb-4" data-testid="text-benefits-title">
-                Why {persona.title} Choose NextMonth
+                Why {persona.title} Choose Orbit
               </h2>
             </div>
             
@@ -167,7 +167,7 @@ export default function PersonaPage({ persona }: PersonaPageProps) {
               Ready to Transform Your {persona.title.replace(/s$/, '')} Content?
             </h2>
             <p className="text-white/80 mb-8 max-w-xl mx-auto">
-              Join thousands of {persona.title.toLowerCase()} already creating engaging stories with NextMonth.
+              Join thousands of {persona.title.toLowerCase()} already creating engaging stories with Orbit.
             </p>
             <Link href={`/login?signup=true&persona=${persona.id}`}>
               <Button size="lg" variant="secondary" className="gap-2" data-testid="button-footer-cta">
@@ -183,7 +183,7 @@ export default function PersonaPage({ persona }: PersonaPageProps) {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <Link href="/">
             <span className="text-sm text-white/60 hover:text-white transition-colors cursor-pointer">
-              Back to NextMonth Home
+              Back to Orbit Home
             </span>
           </Link>
           <div className="flex items-center gap-6 text-sm text-white/60">

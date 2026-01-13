@@ -24,7 +24,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-const LOGO_URL = "/logo.png";
+import businessOrbitLogo from "@assets/business-orbit-logo-cropped.png";
 
 interface AppHeaderProps {
   showBackToMarketing?: boolean;
@@ -69,8 +69,8 @@ export default function AppHeader({ showBackToMarketing = true }: AppHeaderProps
           <Link href="/app">
             <div className="h-12 flex items-center">
               <img 
-                src={LOGO_URL} 
-                alt="NextMonth" 
+                src={businessOrbitLogo} 
+                alt="Orbit" 
                 className="h-16 w-auto cursor-pointer" 
                 style={{ clipPath: 'inset(30% 0 30% 0)' }}
                 data-testid="link-app-logo"

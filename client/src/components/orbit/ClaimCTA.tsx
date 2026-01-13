@@ -49,7 +49,7 @@ export function ClaimCTA({ businessSlug, brandName, isSticky = true }: ClaimCTAP
       
       <div className="text-center py-2 border-t border-zinc-800/50">
         <p className="text-xs text-zinc-500">
-          Powered by <span className="text-pink-400 font-medium">NextMonth</span>
+          Powered by <span className="text-pink-400 font-medium">Orbit</span>
         </p>
       </div>
     </div>

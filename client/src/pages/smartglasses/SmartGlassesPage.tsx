@@ -122,7 +122,7 @@ export default function SmartGlassesPage() {
       
       <footer className="border-t border-zinc-800 py-8 px-4">
         <div className="max-w-6xl mx-auto text-center text-zinc-500 text-sm">
-          <p>Smart Glasses Discovery by NextMonth</p>
+          <p>Smart Glasses Discovery by Orbit</p>
           <p className="mt-2">Editorial content is independent. Sponsored placements are clearly labelled.</p>
         </div>
       </footer>

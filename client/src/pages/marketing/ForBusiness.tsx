@@ -119,7 +119,7 @@ export default function ForBusiness() {
               </div>
               
               <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-4 text-white" data-testid="hero-headline">
-                See what NextMonth does for businesses in 60 seconds
+                See what Orbit does for businesses in 60 seconds
               </h1>
               
               <p className="text-lg text-white/60 max-w-2xl mx-auto mb-8" data-testid="hero-subheadline">
@@ -259,7 +259,7 @@ export default function ForBusiness() {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4" data-testid="text-usecases-title">
-                How businesses use NextMonth
+                How businesses use Orbit
               </h2>
               <p className="text-white/60 max-w-xl mx-auto">
                 From product launches to customer stories, turn your content into experiences that drive engagement.
@@ -461,7 +461,7 @@ export default function ForBusiness() {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4" data-testid="text-benefits-title">
-                Why businesses choose NextMonth
+                Why businesses choose Orbit
               </h2>
             </div>
 
@@ -495,7 +495,7 @@ export default function ForBusiness() {
               Ready to transform your business content?
             </h2>
             <p className="text-white/80 mb-8 max-w-xl mx-auto">
-              Join businesses already creating story experiences with NextMonth.
+              Join businesses already creating story experiences with Orbit.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto w-full">
@@ -546,7 +546,7 @@ export default function ForBusiness() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <Link href="/">
             <span className="text-sm text-white/60 hover:text-foreground transition-colors cursor-pointer">
-              Back to NextMonth Home
+              Back to Orbit Home
             </span>
           </Link>
           <div className="flex items-center gap-6 text-sm text-white/60">

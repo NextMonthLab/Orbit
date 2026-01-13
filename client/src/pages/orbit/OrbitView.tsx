@@ -1417,7 +1417,7 @@ export default function OrbitView() {
           <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-t border-white/10 py-2 px-4">
             <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
               <span className="text-xs text-white/60">
-                Powered by <span className="text-pink-400 font-medium">NextMonth</span>
+                Powered by <span className="text-pink-400 font-medium">Orbit</span>
               </span>
               <Button
                 size="sm"
@@ -2055,7 +2055,7 @@ export default function OrbitView() {
             {/* Hide branding for paid tier users */}
             {!isPaidTier && (
               <span className="text-xs text-white/60">
-                Powered by <span className="text-pink-400 font-medium">NextMonth</span>
+                Powered by <span className="text-pink-400 font-medium">Orbit</span>
               </span>
             )}
             {isPaidTier && <span />}
@@ -2095,7 +2095,7 @@ export default function OrbitView() {
           <div className="max-w-lg mx-auto flex flex-col items-center gap-1">
             <div className="w-full flex items-center justify-between gap-3">
               <span className="text-xs text-white/60">
-                Powered by <span className="text-pink-400 font-medium">NextMonth</span>
+                Powered by <span className="text-pink-400 font-medium">Orbit</span>
               </span>
               <Button 
                 size="sm"

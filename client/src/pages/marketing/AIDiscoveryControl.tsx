@@ -481,7 +481,7 @@ export default function AIDiscoveryControl() {
             <Link href="/">
               <img
                 src="/logo.png"
-                alt="NextMonth"
+                alt="Orbit"
                 className="h-24 cursor-pointer opacity-60 hover:opacity-100 transition-opacity"
                 style={{ clipPath: 'inset(30% 0 30% 0)' }}
               />

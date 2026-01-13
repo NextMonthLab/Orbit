@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 
-const LOGO_URL = "/logo.png";
+import businessOrbitLogo from "@assets/business-orbit-logo-cropped.png";
 
 export default function CookiePolicy() {
   return (
@@ -9,7 +9,7 @@ export default function CookiePolicy() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/">
-            <img src={LOGO_URL} alt="NextMonth" className="h-20 cursor-pointer" style={{ clipPath: 'inset(30% 0 30% 0)' }} />
+            <img src={businessOrbitLogo} alt="Orbit" className="h-10 cursor-pointer object-contain" />
           </Link>
           <Link href="/">
             <span className="text-white/60 hover:text-white text-sm flex items-center gap-2 cursor-pointer">
@@ -28,7 +28,7 @@ export default function CookiePolicy() {
           <section>
             <h2 className="text-2xl font-semibold mb-4 text-white">1. Introduction</h2>
             <p className="text-white/70 leading-relaxed">
-              This Cookie Policy explains how NextMonth Ltd ("we", "us", or "our"), company number 16464586, uses cookies and similar technologies when you visit the NextMonth platform. This policy should be read alongside our <Link href="/privacy" className="text-purple-400 hover:text-purple-300">Privacy Policy</Link>.
+              This Cookie Policy explains how Orbit Ltd ("we", "us", or "our"), company number 16464586, uses cookies and similar technologies when you visit the Orbit platform. This policy should be read alongside our <Link href="/privacy" className="text-purple-400 hover:text-purple-300">Privacy Policy</Link>.
             </p>
           </section>
 
@@ -182,7 +182,7 @@ export default function CookiePolicy() {
               If you have any questions about our use of cookies, please contact us at:
             </p>
             <p className="text-white/70 leading-relaxed mt-4">
-              NextMonth Ltd<br />
+              Orbit Ltd<br />
               44 Orchard Way<br />
               Banbury, United Kingdom<br />
               OX16 0HA<br />
@@ -194,7 +194,7 @@ export default function CookiePolicy() {
 
       <footer className="py-8 px-6 border-t border-white/10 bg-black">
         <div className="max-w-4xl mx-auto text-center text-white/50 text-sm">
-          © {new Date().getFullYear()} NextMonth Ltd. All rights reserved.
+          © {new Date().getFullYear()} Orbit Ltd. All rights reserved.
         </div>
       </footer>
     </div>

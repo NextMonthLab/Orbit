@@ -13308,7 +13308,7 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
         // Build headers with auth
         const headers: Record<string, string> = {
           'Accept': 'application/json',
-          'User-Agent': 'NextMonth-Orbit/1.0',
+          'User-Agent': 'Business-Orbit/1.0',
         };
         
         if (connection.authSecretId) {
@@ -13958,7 +13958,7 @@ GUIDELINES:
             currency: 'gbp',
             unit_amount: 29900, // £299.00 one-time
             product_data: {
-              name: 'NextMonth Orbit Cube Hardware',
+              name: 'Business Orbit Cube Hardware',
             },
           });
           

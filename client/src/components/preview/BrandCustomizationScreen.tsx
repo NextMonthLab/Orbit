@@ -51,7 +51,7 @@ interface AccentPreset {
 const accentPresets: AccentPreset[] = [
   { 
     id: 'nextmonth', 
-    name: 'NextMonth', 
+    name: 'Orbit', 
     color: '#3b82f6', 
     gradient: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
     recommended: true 

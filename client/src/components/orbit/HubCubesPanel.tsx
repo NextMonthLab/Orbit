@@ -179,7 +179,7 @@ export function HubCubesPanel({ businessSlug, planTier }: HubCubesPanelProps) {
           </div>
           <h2 className="text-3xl font-bold text-white mb-3">Bring Orbit into the room</h2>
           <p className="text-zinc-400 text-lg mb-8 max-w-lg mx-auto">
-            The NextMonth Orbit Cube is a dedicated, always-on interface for your business intelligence — 
+            The Orbit Cube is a dedicated, always-on interface for your business intelligence — 
             voice-enabled, secure, and built to live on your desk or boardroom table.
           </p>
           
@@ -387,7 +387,7 @@ export function HubCubesPanel({ businessSlug, planTier }: HubCubesPanelProps) {
           {orderStep === 1 && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-white">NextMonth Orbit Cube</DialogTitle>
+                <DialogTitle className="text-white">Orbit Cube</DialogTitle>
                 <DialogDescription>
                   A dedicated physical interface for Orbit. Always on. Voice enabled. Built for decision-making, not dashboards.
                 </DialogDescription>

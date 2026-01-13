@@ -24,7 +24,7 @@ interface PlanConfig {
 const PLAN_CONFIGS: PlanConfig[] = [
   {
     name: 'pro',
-    displayName: 'NextMonth Pro',
+    displayName: 'Orbit Pro',
     description: 'Create up to 3 active ICE experiences with AI-powered story generation, character chat, and more.',
     monthlyPriceCents: 1900,
     yearlyPriceCents: 19000,
@@ -36,7 +36,7 @@ const PLAN_CONFIGS: PlanConfig[] = [
   },
   {
     name: 'business',
-    displayName: 'NextMonth Business',
+    displayName: 'Orbit Business',
     description: 'Create up to 10 active ICE experiences with video credits, voice credits, team collaboration, and priority support.',
     monthlyPriceCents: 4900,
     yearlyPriceCents: 49000,

@@ -110,7 +110,7 @@ export default function DemoOrbitsPage() {
             Flagship Demo Orbits
           </h1>
           <p className="text-xl text-white/70 max-w-3xl mx-auto mb-10">
-            Explore fully curated demo Orbits that show what your business could feel like with NextMonth. 
+            Explore fully curated demo Orbits that show what your business could feel like with Orbit. 
             Each demo is a real, working Orbit backed by structured datasets.
           </p>
           <Button 

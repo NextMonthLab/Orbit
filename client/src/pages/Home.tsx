@@ -47,7 +47,7 @@ export default function Home() {
               </p>
               
               <p className="text-base text-white/50 max-w-xl mx-auto">
-                NextMonth is the engine that turns your business knowledge into trusted AI discovery and interactive experiences, without a production team.
+                Orbit is the engine that turns your business knowledge into trusted AI discovery and interactive experiences, without a production team.
               </p>
             </div>
             
@@ -92,7 +92,7 @@ export default function Home() {
                 From knowledge to discovery to experience
               </h2>
               <p className="text-white/60 mt-4 max-w-xl mx-auto">
-                NextMonth works as a simple pipeline:
+                Orbit works as a simple pipeline:
               </p>
             </div>
             
@@ -250,12 +250,12 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* NextMonth */}
+              {/* Orbit */}
               <div className="p-6 rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-2 border-green-500/30 relative">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
                   Recommended
                 </div>
-                <h3 className="font-bold text-green-400 mb-4">NextMonth</h3>
+                <h3 className="font-bold text-green-400 mb-4">Orbit</h3>
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-green-400" />
@@ -382,7 +382,7 @@ export default function Home() {
               <div className="mt-6 pt-6 border-t border-white/10 text-center">
                 <Link href="/examples">
                   <Button variant="outline" className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10" data-testid="cta-see-examples">
-                    See NextMonth in action
+                    See Orbit in action
                     <ExternalLink className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
@@ -400,7 +400,7 @@ export default function Home() {
               Built for trust, not hallucinations
             </h2>
             <p className="text-white/60 mb-10 max-w-xl mx-auto">
-              Credibility matters. NextMonth gives you control.
+              Credibility matters. Orbit gives you control.
             </p>
             
             <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto text-left">

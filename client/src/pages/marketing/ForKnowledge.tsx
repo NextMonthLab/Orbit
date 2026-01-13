@@ -8,7 +8,7 @@ import MarketingHeader from "@/components/MarketingHeader";
 const features = [
   {
     title: "PDFs, decks, and documents",
-    description: "Upload any educational content. NextMonth understands structure, hierarchy, and key concepts.",
+    description: "Upload any educational content. Orbit understands structure, hierarchy, and key concepts.",
     icon: FileText,
   },
   {
@@ -136,7 +136,7 @@ export default function ForKnowledge() {
                 Stories stick. Documents don't.
               </h2>
               <p className="text-xl text-white/70 max-w-2xl mx-auto mb-4">
-                People remember narratives 22x better than facts alone. NextMonth transforms 
+                People remember narratives 22x better than facts alone. Orbit transforms 
                 your educational content into story-driven experiences with built-in interaction 
                 that reinforces learning.
               </p>
@@ -207,7 +207,7 @@ export default function ForKnowledge() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
               <img 
                 src="/logo.png" 
-                alt="NextMonth" 
+                alt="Orbit" 
                 className="h-40"
                 style={{ clipPath: 'inset(30% 0 30% 0)' }}
               />
@@ -223,7 +223,7 @@ export default function ForKnowledge() {
                 <Link href="/terms" className="text-white/40 hover:text-white/70 text-xs transition-colors">Terms of Service</Link>
                 <Link href="/cookies" className="text-white/40 hover:text-white/70 text-xs transition-colors">Cookie Policy</Link>
               </div>
-              <p className="text-white/30 text-xs">© {new Date().getFullYear()} NextMonth Ltd. All rights reserved.</p>
+              <p className="text-white/30 text-xs">© {new Date().getFullYear()} Orbit Ltd. All rights reserved.</p>
             </div>
           </div>
         </footer>

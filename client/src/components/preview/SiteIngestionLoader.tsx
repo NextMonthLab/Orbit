@@ -203,7 +203,7 @@ export function SiteIngestionLoader({ brandName, accentColor = "#8b5cf6", isComp
           <div className="flex items-center justify-center mb-4">
             <img 
               src="/logo.png" 
-              alt="NextMonth" 
+              alt="Orbit" 
               className="h-36 animate-pulse"
             />
           </div>

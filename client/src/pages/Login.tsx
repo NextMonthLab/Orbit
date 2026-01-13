@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Sparkles, Globe, User } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
-const LOGO_URL = "/logo.png";
+import businessOrbitLogo from "@assets/business-orbit-logo-cropped.png";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -32,7 +32,7 @@ export default function Login() {
         await register(username, password);
         toast({
           title: "Account created",
-          description: "Welcome to NextMonth!",
+          description: "Welcome to Orbit!",
         });
         setLocation("/onboarding");
       } else {
@@ -65,8 +65,8 @@ export default function Login() {
         <div className="w-full max-w-md space-y-4 md:space-y-6 relative z-10">
             <div className="text-center space-y-1">
                 <img 
-                  src={LOGO_URL} 
-                  alt="NextMonth" 
+                  src={businessOrbitLogo} 
+                  alt="Orbit" 
                   className="h-28 md:h-48 mx-auto object-contain"
                   style={{ clipPath: 'inset(35% 0 35% 0)' }}
                   data-testid="img-logo"

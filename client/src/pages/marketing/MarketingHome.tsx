@@ -20,7 +20,13 @@ import {
   CheckCircle,
   Linkedin,
   Twitter,
-  Youtube
+  Youtube,
+  Menu,
+  X,
+  Compass,
+  Pizza,
+  Calculator,
+  Laptop
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
@@ -155,10 +161,35 @@ const trustStats = [
   { value: "76%", label: "of category value captured by the company that defines it", source: "Category Design Research" },
 ];
 
+const demoOrbits = [
+  {
+    slug: "slice-and-stone-pizza",
+    name: "Slice & Stone Pizza",
+    description: "Artisan pizza restaurant with delivery zones, allergen info, and customer support",
+    icon: Pizza,
+    color: "from-orange-500 to-red-500"
+  },
+  {
+    slug: "clarity-chartered-accountants",
+    name: "Clarity Accountants",
+    description: "Professional accounting firm with tiered packages and tax deadline guidance",
+    icon: Calculator,
+    color: "from-blue-500 to-indigo-500"
+  },
+  {
+    slug: "techvault-uk",
+    name: "TechVault UK",
+    description: "Refurbished tech retailer with product grading, warranties, and trade-ins",
+    icon: Laptop,
+    color: "from-purple-500 to-pink-500"
+  }
+];
+
 export default function MarketingHome() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -178,29 +209,79 @@ export default function MarketingHome() {
     <div className="min-h-screen bg-[#1a1b2e] text-white">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#1a1b2e]/80 backdrop-blur-lg border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 h-28 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer">
               <img 
                 src={businessOrbitLogo} 
                 alt="Business Orbit" 
-                className="h-28 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
             </div>
           </Link>
-          <div className="flex items-center gap-4">
+          
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link href="/for/business">
+              <span className="text-white/70 hover:text-white text-sm cursor-pointer transition-colors">For Businesses</span>
+            </Link>
+            <Link href="/orbit/demos">
+              <span className="text-white/70 hover:text-white text-sm cursor-pointer transition-colors flex items-center gap-1.5">
+                <Compass className="w-4 h-4" />
+                Demo Orbits
+              </span>
+            </Link>
+          </nav>
+          
+          <div className="flex items-center gap-3">
             <Link href="/login">
-              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/5" data-testid="button-header-login">
+              <Button variant="ghost" className="hidden sm:flex text-white/70 hover:text-white hover:bg-white/5" data-testid="button-header-login">
                 Sign In
               </Button>
             </Link>
             <Link href="/orbit/claim">
-              <Button className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] text-white border-0 hover:opacity-90" data-testid="button-header-trial">
+              <Button className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] text-white border-0 hover:opacity-90 text-sm" data-testid="button-header-trial">
                 Start Free Trial
               </Button>
             </Link>
+            
+            {/* Mobile Menu Button */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="md:hidden text-white/70 hover:text-white hover:bg-white/5"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              data-testid="button-mobile-menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
           </div>
         </div>
+        
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-[#1a1b2e]/95 backdrop-blur-lg border-t border-white/5">
+            <div className="px-6 py-4 space-y-3">
+              <Link href="/for/business" onClick={() => setMobileMenuOpen(false)}>
+                <div className="flex items-center gap-3 py-2 text-white/70 hover:text-white cursor-pointer">
+                  <Building2 className="w-5 h-5" />
+                  <span>For Businesses</span>
+                </div>
+              </Link>
+              <Link href="/orbit/demos" onClick={() => setMobileMenuOpen(false)}>
+                <div className="flex items-center gap-3 py-2 text-white/70 hover:text-white cursor-pointer">
+                  <Compass className="w-5 h-5" />
+                  <span>Demo Orbits</span>
+                </div>
+              </Link>
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                <div className="flex items-center gap-3 py-2 text-white/70 hover:text-white cursor-pointer">
+                  <span>Sign In</span>
+                </div>
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       <main>
@@ -569,7 +650,68 @@ export default function MarketingHome() {
           </div>
         </section>
 
-        {/* SECTION 8: FINAL CTA */}
+        {/* SECTION 8: DEMO ORBITS */}
+        <section className="py-24 px-6 relative">
+          <div className="max-w-5xl mx-auto">
+            <motion.div {...fadeInUp} className="text-center mb-16">
+              <p className="text-sm font-medium text-[#ff6b4a] mb-4 tracking-wide uppercase">
+                See it in action
+              </p>
+              <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-demos-title">
+                Explore{" "}
+                <span className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] bg-clip-text text-transparent">
+                  live demo Orbits
+                </span>
+              </h2>
+              <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+                Experience how businesses use Orbit to answer customer questions, surface insights, and build trust.
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-10">
+              {demoOrbits.map((demo, index) => (
+                <motion.div
+                  key={demo.slug}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  data-testid={`card-demo-${demo.slug}`}
+                >
+                  <Link href={`/orbit/${demo.slug}`}>
+                    <div className="group p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-[#ff4d8f]/50 transition-all cursor-pointer h-full">
+                      <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${demo.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                        <demo.icon className="w-7 h-7 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold mb-2 group-hover:text-[#ff4d8f] transition-colors">{demo.name}</h3>
+                      <p className="text-slate-400 text-sm leading-relaxed mb-4">{demo.description}</p>
+                      <div className="flex items-center gap-2 text-[#ff4d8f] text-sm font-medium">
+                        <span>Explore Orbit</span>
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div {...fadeInUp} className="text-center">
+              <Link href="/orbit/demos">
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  className="bg-transparent border-white/20 text-white hover:bg-white/5 gap-2 rounded-xl"
+                  data-testid="button-view-all-demos"
+                >
+                  <Compass className="w-5 h-5" />
+                  View All Demo Orbits
+                </Button>
+              </Link>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* SECTION 9: FINAL CTA */}
         <section className="py-24 px-6 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-[#ff6b4a]/20 via-[#ff4d8f]/20 to-[#a855f7]/20" />
           <div className="absolute inset-0 bg-[#1a1b2e]/80" />

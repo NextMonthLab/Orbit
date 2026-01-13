@@ -245,7 +245,7 @@ export default function BlogPublisherPage() {
   const sampleMarkdown = `---
 title: "Getting Started with Orbit"
 description: "Learn how Orbit transforms how AI systems discover and represent your business"
-author: "NextMonth Team"
+author: "Orbit Team"
 tags: [orbit, ai-discovery, business]
 heroImageUrl: "/images/orbit-hero.jpg"
 ctaPrimaryLabel: "Claim Your Orbit"

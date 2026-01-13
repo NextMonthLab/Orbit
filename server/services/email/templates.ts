@@ -20,7 +20,7 @@ const baseStyles = `
   .warning p { color: #fbbf24; font-size: 14px; margin: 0; }
 `;
 
-const LOGO_URL = 'https://nextmonth.io/logo.png';
+const LOGO_URL = 'https://businessorbit.io/logo.png';
 
 function wrapHtml(content: string): string {
   return `<!DOCTYPE html>
@@ -34,12 +34,12 @@ function wrapHtml(content: string): string {
   <div class="container">
     <div class="card">
       <div class="logo">
-        <img src="${LOGO_URL}" alt="NextMonth" style="height: 32px; width: auto;" />
+        <img src="${LOGO_URL}" alt="Orbit" style="height: 32px; width: auto;" />
       </div>
       ${content}
       <div class="footer">
-        <p>This email was sent by NextMonth. If you didn't expect this email, you can safely ignore it.</p>
-        <p>&copy; ${new Date().getFullYear()} NextMonth. All rights reserved.</p>
+        <p>This email was sent by Orbit. If you didn't expect this email, you can safely ignore it.</p>
+        <p>&copy; ${new Date().getFullYear()} Orbit. All rights reserved.</p>
       </div>
     </div>
   </div>
@@ -82,7 +82,7 @@ This link will expire in ${expiryMinutes} minutes.
 If you didn't request this, you can safely ignore this email.
 
 ---
-NextMonth`;
+Orbit`;
 
   return {
     subject: `Claim your Orbit for ${businessName}`,
@@ -124,7 +124,7 @@ What's next:
 - Monitor conversations and leads
 
 ---
-NextMonth`;
+Orbit`;
 
   return {
     subject: `Your Orbit for ${businessName} is live!`,
@@ -171,7 +171,7 @@ ${messages[changeType].replace(/<\/?strong>/g, '')}
 Manage your subscription: ${settingsUrl}
 
 ---
-NextMonth`;
+Orbit`;
 
   return {
     subject: titles[changeType],
@@ -204,7 +204,7 @@ You have ${leadCount} new lead${leadCount > 1 ? 's' : ''} from your Orbit.
 View leads: ${leadsUrl}
 
 ---
-NextMonth`;
+Orbit`;
 
   return {
     subject: `${leadCount} new lead${leadCount > 1 ? 's' : ''} from ${orbitName}`,
