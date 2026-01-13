@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import businessOrbitLogo from "@assets/business-orbit-logo.png";
 import { 
   ArrowRight, 
   ArrowDown,
@@ -180,11 +181,11 @@ export default function MarketingHome() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer">
-              <div className="relative w-8 h-8">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] opacity-80" />
-                <div className="absolute inset-[2px] rounded-full bg-[#1a1b2e]" />
-              </div>
-              <span className="text-lg font-semibold text-white">Business Orbit</span>
+              <img 
+                src={businessOrbitLogo} 
+                alt="Business Orbit" 
+                className="h-8 w-auto object-contain"
+              />
             </div>
           </Link>
           <div className="flex items-center gap-4">
@@ -627,11 +628,11 @@ export default function MarketingHome() {
             <div className="grid md:grid-cols-4 gap-12 mb-12">
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="relative w-8 h-8">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] opacity-80" />
-                    <div className="absolute inset-[2px] rounded-full bg-[#1a1b2e]" />
-                  </div>
-                  <span className="text-lg font-semibold text-white">Business Orbit</span>
+                  <img 
+                    src={businessOrbitLogo} 
+                    alt="Business Orbit" 
+                    className="h-8 w-auto object-contain"
+                  />
                 </div>
                 <p className="text-slate-500 text-sm">
                   Conversational intelligence for strategic leaders.
