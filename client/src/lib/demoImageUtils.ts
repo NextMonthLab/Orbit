@@ -118,9 +118,10 @@ export function getDemoImageUrl(
   }
   
   const seed = hashString(id + title);
-  const encodedQuery = encodeURIComponent(query);
   
-  return `https://source.unsplash.com/${width}x${height}/?${encodedQuery}&sig=${seed}`;
+  // Use picsum.photos which is reliable and doesn't require API keys
+  // The seed ensures the same image is returned for the same item
+  return `https://picsum.photos/seed/${seed}/${width}/${height}`;
 }
 
 export function getDemoHeroImageUrl(
@@ -148,5 +149,6 @@ export function getDemoThumbnailUrl(
 }
 
 export function isVisualItemType(type: string): boolean {
-  return ['menu_item', 'product', 'person', 'blog', 'proof'].includes(type);
+  // Include 'topic' because database boxes (menu_item, product, etc.) get converted to 'topic' type in knowledge items
+  return ['menu_item', 'product', 'person', 'blog', 'proof', 'topic', 'page'].includes(type);
 }
