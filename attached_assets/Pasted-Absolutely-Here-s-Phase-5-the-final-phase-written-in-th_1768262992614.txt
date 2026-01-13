@@ -1,0 +1,206 @@
+Absolutely. Here’s Phase 5 – the final phase – written in the same replica-prompt, copy-paste-ready format as the others.
+
+This is where Orbit earns its keep.
+
+⸻
+
+PHASE 5 REPLICA PROMPT
+
+Orbit – Intelligent Leverage & Suggestion Layer
+
+Context
+
+By the end of Phase 4, Orbit is:
+	•	Correct (Phase 1)
+	•	Trusted and trainable (Phase 2)
+	•	Visually aligned with reality (Phase 3)
+	•	Precisely refined at node level (Phase 4)
+
+Phase 5 introduces intelligence leverage.
+
+Orbit is no longer just responding.
+It is now allowed to notice patterns, surface opportunities, and offer suggestions.
+
+This phase must feel like:
+
+A sharp strategist who waits until the room is quiet before speaking.
+
+Not a noisy assistant.
+
+⸻
+
+Objective
+
+Enable Orbit to:
+	1.	Detect meaningful patterns across the whole business
+	2.	Identify gaps, imbalances, and opportunities
+	3.	Suggest improvements calmly and selectively
+	4.	Offer leverage, not instructions
+	5.	Always defer final judgement to the owner
+
+This phase introduces value, not control.
+
+⸻
+
+Core Mental Model (Must Be Explicit)
+
+Orbit must communicate clearly:
+
+I won’t suggest anything unless I’m confident it’s worth your attention.
+You’re always in control – suggestions are optional, never automatic.
+
+The owner must feel:
+	•	Supported, not managed
+	•	Advised, not directed
+	•	In charge, always
+
+⸻
+
+Types of Intelligence Orbit May Surface
+
+1️⃣ Pattern recognition
+
+Examples:
+	•	Repeated questions from external users
+	•	Disproportionate attention on certain services
+	•	Strong ICE engagement not linked to outcomes
+	•	Visual emphasis not matching strategic importance
+	•	Underrepresented offers relative to demand
+
+Orbit may say:
+
+I’m noticing a pattern you might want to look at.
+
+Never:
+
+You should fix this.
+
+⸻
+
+2️⃣ Opportunity suggestions (soft, optional)
+
+Examples:
+	•	“A lot of conversations lead to pricing. Want to address that explicitly?”
+	•	“This service performs well but isn’t visually prominent.”
+	•	“These two nodes are often discussed together. Should they be linked?”
+	•	“This ICE attracts interest but doesn’t point anywhere.”
+
+Suggestions must be:
+	•	Specific
+	•	Explainable
+	•	Easy to accept or dismiss
+
+⸻
+
+3️⃣ Risk and clarity flags (non-alarmist)
+
+Examples:
+	•	“This page appears to conflict with how you describe this service.”
+	•	“External users may be getting mixed signals here.”
+	•	“This area hasn’t been updated since refinement elsewhere.”
+
+Orbit must never:
+	•	Panic
+	•	Use urgency language
+	•	Create fear of missing out
+
+Clarity, not pressure.
+
+⸻
+
+Conversational Behaviour Rules (Critical)
+
+Orbit must:
+	•	Ask permission before acting
+	•	Explain why it’s suggesting something
+	•	Accept dismissal gracefully
+	•	Remember declined suggestions and not repeat them aggressively
+
+Example:
+
+Want me to help with this now, or leave it for later?
+
+“No” must always be a valid, respected answer.
+
+⸻
+
+What Orbit Must NOT Do in Phase 5
+
+Even in the final phase, Orbit must not:
+	•	Auto-apply changes
+	•	Reorder strategy without consent
+	•	Override owner intent
+	•	Introduce hidden automation
+	•	Become chatty or interruptive
+	•	Surface low-confidence insights
+
+Silence is better than noise.
+
+⸻
+
+UI / Interaction Expectations
+
+Suggestions may appear:
+	•	In conversation
+	•	As gentle prompts
+	•	Or as optional “things you might want to look at”
+
+They must never:
+	•	Block the user
+	•	Interrupt active refinement
+	•	Demand attention
+
+Orbit speaks when spoken to – or when the insight is genuinely valuable.
+
+⸻
+
+Success Criteria
+
+Phase 5 is successful if:
+	•	Owners feel Orbit “has their back”
+	•	Suggestions feel timely and relevant
+	•	No one feels nagged
+	•	Orbit is trusted as a second brain
+	•	Value is obvious without being forced
+
+If users start saying:
+
+“That’s a good point, I hadn’t noticed that”
+
+Phase 5 is working.
+
+⸻
+
+End State (Final)
+
+At the end of Phase 5, Orbit should feel like:
+
+“This understands my business, reflects it accurately, and helps me make better decisions – without getting in my way.”
+
+At this point:
+	•	Orbit is complete
+	•	The core system is finished
+	•	Further work becomes products, monetisation, and distribution, not core phases
+
+There is no Phase 6.
+
+⸻
+
+Canonical Phase Summary (for reference)
+	1.	Orientation & mental model
+	2.	Internal owner conversation
+	3.	Knowledge ↔ visual alignment
+	4.	Scoped precision refinement
+	5.	Intelligent leverage & suggestion
+
+That’s the whole system.
+
+⸻
+
+If you want next (purely optional now), we can:
+	•	Write exit criteria for “Orbit complete”
+	•	Define metrics of trust vs value
+	•	Or draft guardrails to stop Phase 5 from becoming noisy over time
+
+But structurally, Rob –
+this is a finished architecture.

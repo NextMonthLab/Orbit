@@ -1,0 +1,235 @@
+Brilliant. Phase 4 is where Orbit becomes precise without becoming fragile.
+
+Up to now:
+	•	Phase 1 taught users how to think about Orbit
+	•	Phase 2 let owners train it conversationally
+	•	Phase 3 aligned intelligence with visual reality
+
+Phase 4 answers the next natural owner instinct:
+
+“Okay. Now let me really dial this in – this service, this product, this idea – without breaking everything else.”
+
+Here is Phase 4, in the same replica-prompt, copy-paste-ready format.
+
+⸻
+
+PHASE 4 REPLICA PROMPT
+
+Orbit – Scoped Node Refinement Layer
+
+Context
+
+Phase 4 builds on:
+	•	A trusted global intelligence (Phases 1–2)
+	•	Visually accountable knowledge (Phase 3)
+
+Phase 4 introduces focused refinement of individual knowledge nodes without losing global awareness.
+
+This phase allows owners to go deep locally while Orbit remains coherent globally.
+
+Orbit is still not a traditional editor.
+It is a context-aware collaborator.
+
+⸻
+
+Objective
+
+Enable internal users to:
+	1.	Focus on a single knowledge node (service, product, idea, ICE, etc.)
+	2.	Have a scoped conversation about that node only
+	3.	Refine meaning, emphasis, framing, and relationships
+	4.	Make precise adjustments without unintended knock-on effects
+	5.	Feel safe going deep without “breaking the Orbit”
+
+This phase introduces depth with containment.
+
+⸻
+
+Core Mental Model (Must Be Explicit)
+
+Orbit must communicate clearly:
+
+We’re focusing on one part of your business right now.
+I’ll keep the rest in mind, but this conversation only affects this node unless you tell me otherwise.
+
+This reassurance is critical.
+
+The owner must feel:
+	•	Free to experiment
+	•	Confident nothing else will silently change
+
+⸻
+
+UI / Interaction Model (Desktop Primary)
+
+Scoped Refinement Mode
+
+When an internal user selects or focuses on a tile:
+	•	A scoped refinement pane appears (side-by-side or contextual)
+	•	Conversation is explicitly limited to that node
+	•	The rest of Orbit remains visible but de-emphasised
+
+Orbit must make the scope obvious:
+	•	Visually
+	•	Conversationally
+	•	Behaviourally
+
+⸻
+
+Conversational Capabilities Introduced in Phase 4
+
+1️⃣ Node-specific interrogation
+
+Examples:
+	•	“How do you currently describe this service?”
+	•	“Why do you think this is important?”
+	•	“What questions do people ask about this?”
+
+Orbit should answer only within that node’s context.
+
+⸻
+
+2️⃣ Precision refinement (meaning, not mechanics)
+
+Valid owner inputs include:
+	•	“This service should feel more premium”
+	•	“This product is secondary, not core”
+	•	“This offer is seasonal”
+	•	“This should be framed as an outcome, not a feature”
+	•	“We want this to appeal to X, not Y”
+
+Orbit must:
+	•	Acknowledge intent
+	•	Reflect understanding
+	•	Adjust internal weighting, framing, and relationships
+
+No UI sliders.
+No labels.
+Conversation only.
+
+⸻
+
+3️⃣ Explicit scope confirmation
+
+Whenever a change could affect other nodes, Orbit must ask:
+
+Do you want this change to apply only here, or across similar services?
+
+This prevents accidental global drift.
+
+Default behaviour:
+	•	Local only, unless explicitly widened.
+
+⸻
+
+4️⃣ Controlled experimentation
+
+Orbit should allow tentative exploration, e.g.:
+	•	“What if this was positioned differently?”
+	•	“How would this look if it were less prominent?”
+
+Orbit may simulate or explain outcomes without committing changes until confirmed.
+
+This makes refinement feel safe and creative.
+
+⸻
+
+Tile Behaviour in Phase 4
+
+Tiles now support:
+	•	Entering and exiting scoped refinement
+	•	Visual indication of “focused” vs “global” context
+
+Tiles still do not support:
+	•	Drag-and-drop
+	•	Manual restructuring
+	•	Freeform hierarchy editing
+
+Orbit owns structure.
+The owner owns intent.
+
+⸻
+
+Agenda Transparency (What Comes Next)
+
+Orbit may lightly signal:
+
+Once individual areas are refined, I’ll be able to spot patterns and suggest improvements across the whole business.
+
+This tees up Phase 5 without pressure.
+
+⸻
+
+Explicit Constraints (Very Important)
+
+For Phase 4:
+	•	❌ No automation suggestions yet
+	•	❌ No analytics-driven nudges
+	•	❌ No batch edits across nodes without confirmation
+	•	❌ No structural hierarchy editing
+	•	❌ No visual layout controls
+
+If an owner asks for proactive advice, Orbit should respond:
+
+I can do that once refinement is complete and you’re happy with how everything is positioned.
+
+⸻
+
+Tone & Behaviour Rules
+
+Orbit must behave like:
+	•	A senior strategist
+	•	Careful with scope
+	•	Explicit about consequences
+	•	Calm, precise, and thoughtful
+
+Never surprise the owner.
+Never silently propagate changes.
+
+⸻
+
+Success Criteria
+
+Phase 4 is successful if:
+	•	Owners confidently refine individual services or products
+	•	Changes feel contained and reversible
+	•	No one worries about unintended side effects
+	•	Orbit feels precise, not brittle
+	•	Users feel like they are shaping meaning, not managing software
+
+⸻
+
+End State
+
+At the end of Phase 4, internal users should feel:
+
+“I can tune every part of my business exactly how I want – without losing the bigger picture.”
+
+At this point, Orbit is:
+	•	Trusted
+	•	Accurate
+	•	Visually aligned
+	•	Precisely shaped
+
+Only now is it ready to give back.
+
+⸻
+
+Next Phase (Final)
+
+Phase 5 will introduce:
+	•	Pattern recognition
+	•	Intelligent suggestions
+	•	Leverage across the whole Orbit
+
+But Phase 5 must never undermine the owner’s sense of control established here.
+
+⸻
+
+If you want next, we can:
+	•	Lock Phase 5 replica prompt
+	•	Define exit criteria from Phase 4 → Phase 5
+	•	Or write Orbit’s exact scoped-mode language to keep tone consistent
+
+You’ve built this like a proper system, Rob.
+Phase 4 is the moment it becomes surgical.

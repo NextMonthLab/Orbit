@@ -8723,6 +8723,127 @@ ${preview.keyServices.map((s: string) => `• ${s}`).join('\n')}` : ''}
     }
   });
 
+  // Phase 3: GET /api/orbit/:slug/tiles/:tileId/visuals - Get visual bindings for a tile
+  app.get("/api/orbit/:slug/tiles/:tileId/visuals", async (req, res) => {
+    try {
+      const { slug, tileId } = req.params;
+      
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const bindings = await storage.getTileVisualBindings(parseInt(tileId));
+      
+      res.json({ bindings });
+      
+    } catch (error) {
+      console.error("Error fetching tile visual bindings:", error);
+      res.status(500).json({ message: "Error fetching visual bindings" });
+    }
+  });
+
+  // Phase 3: POST /api/orbit/:slug/tiles/:tileId/visuals - Add visual binding (owner only)
+  app.post("/api/orbit/:slug/tiles/:tileId/visuals", requireAuth, async (req, res) => {
+    try {
+      const { slug, tileId } = req.params;
+      const { bindingType, sourceUrl, assetPath, title, description, isPrimary } = req.body;
+      
+      const user = req.user as any;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const binding = await storage.createTileVisualBinding({
+        tileId: parseInt(tileId),
+        orbitId: orbitMeta.id,
+        bindingType: bindingType || 'page',
+        sourceUrl,
+        assetPath,
+        title,
+        description,
+        source: 'owner_specified',
+        sourceReason: 'Set by owner',
+        isPrimary: isPrimary || false,
+        ownerApproved: true,
+      });
+      
+      res.json({ binding });
+      
+    } catch (error) {
+      console.error("Error creating visual binding:", error);
+      res.status(500).json({ message: "Error creating visual binding" });
+    }
+  });
+
+  // Phase 3: PATCH /api/orbit/:slug/visuals/:bindingId - Update visual binding (owner only)
+  app.patch("/api/orbit/:slug/visuals/:bindingId", requireAuth, async (req, res) => {
+    try {
+      const { slug, bindingId } = req.params;
+      const updates = req.body;
+      
+      const user = req.user as any;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      const binding = await storage.updateTileVisualBinding(parseInt(bindingId), updates);
+      
+      res.json({ binding });
+      
+    } catch (error) {
+      console.error("Error updating visual binding:", error);
+      res.status(500).json({ message: "Error updating visual binding" });
+    }
+  });
+
+  // Phase 3: DELETE /api/orbit/:slug/visuals/:bindingId - Remove visual binding (owner only)
+  app.delete("/api/orbit/:slug/visuals/:bindingId", requireAuth, async (req, res) => {
+    try {
+      const { slug, bindingId } = req.params;
+      
+      const user = req.user as any;
+      const orbitMeta = await storage.getOrbitMeta(slug);
+      
+      if (!orbitMeta) {
+        return res.status(404).json({ message: "Orbit not found" });
+      }
+      
+      const isOwner = orbitMeta.ownerId === user.id || 
+        orbitMeta.ownerEmail?.toLowerCase() === (user.email || user.username)?.toLowerCase();
+      
+      if (!isOwner) {
+        return res.status(403).json({ message: "Owner access required" });
+      }
+      
+      await storage.deleteTileVisualBinding(parseInt(bindingId));
+      
+      res.json({ success: true });
+      
+    } catch (error) {
+      console.error("Error deleting visual binding:", error);
+      res.status(500).json({ message: "Error deleting visual binding" });
+    }
+  });
+
   // Orbit Data Hub - Get analytics summary (owner only for full data, public for counts)
   app.get("/api/orbit/:slug/hub", async (req, res) => {
     try {
