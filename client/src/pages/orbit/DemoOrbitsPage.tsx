@@ -216,18 +216,25 @@ export default function DemoOrbitsPage() {
                       </CardDescription>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-3 pt-4">
-                      <Link href={`/orbit/demo/${demo.id}`} className="w-full">
+                      {isLive ? (
+                        <Link href={`/orbit/${demo.slug}`} className="w-full">
+                          <Button 
+                            className="w-full bg-gradient-to-r from-[#ff6b4a] to-[#ff4d8f] hover:opacity-90 text-white border-0"
+                            data-testid={`button-launch-${demo.id}`}
+                          >
+                            Launch Demo
+                            <ArrowRight className="ml-2 w-4 h-4" />
+                          </Button>
+                        </Link>
+                      ) : (
                         <Button 
-                          className={`w-full ${isLive 
-                            ? 'bg-gradient-to-r from-[#ff6b4a] to-[#ff4d8f] hover:opacity-90' 
-                            : 'bg-white/10 hover:bg-white/20'
-                          } text-white border-0`}
+                          disabled
+                          className="w-full bg-white/10 text-white/50 border-0 cursor-not-allowed"
                           data-testid={`button-launch-${demo.id}`}
                         >
-                          {isLive ? 'Launch Demo' : 'Coming Soon'}
-                          {isLive && <ArrowRight className="ml-2 w-4 h-4" />}
+                          Coming Soon
                         </Button>
-                      </Link>
+                      )}
                       <Link href="/" className="w-full">
                         <Button 
                           variant="ghost" 
@@ -255,9 +262,9 @@ export default function DemoOrbitsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-amber-200/80 text-sm font-mono space-y-2">
-                <p>Demo Orbits are hardcoded fixtures that bypass standard Orbit creation/ingestion.</p>
-                <p>To add a new demo: Edit <code className="bg-amber-500/20 px-1 rounded">client/src/data/demoOrbits.ts</code></p>
-                <p>To make a demo live: Set <code className="bg-amber-500/20 px-1 rounded">status: "live"</code></p>
+                <p>Demo Orbits are REAL Orbits seeded into the database via <code className="bg-amber-500/20 px-1 rounded">server/scripts/seedDemoOrbits.ts</code></p>
+                <p>Re-seed: <code className="bg-amber-500/20 px-1 rounded">npx tsx server/scripts/seedDemoOrbits.ts</code></p>
+                <p>Admin endpoint: <code className="bg-amber-500/20 px-1 rounded">POST /api/admin/seed-demo-orbits</code></p>
               </CardContent>
             </Card>
           </section>

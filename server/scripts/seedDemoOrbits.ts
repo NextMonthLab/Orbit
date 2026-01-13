@@ -515,7 +515,10 @@ export async function seedAllDemoOrbits(): Promise<void> {
   }
 }
 
-if (require.main === module) {
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+  process.argv[1]?.endsWith('seedDemoOrbits.ts');
+
+if (isMainModule) {
   seedAllDemoOrbits()
     .then(() => process.exit(0))
     .catch(() => process.exit(1));
