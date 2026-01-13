@@ -4,6 +4,7 @@ import { Minus, Plus, Image, Focus } from "lucide-react";
 import { ChatHub, type ChatResponse } from "./ChatHub";
 import { KnowledgeTile } from "./KnowledgeTile";
 import { SmartWindow } from "./SmartWindow";
+import { TileDetailModal } from "./TileDetailModal";
 import { VisualPane } from "./VisualPane";
 import { ScopedRefinementPane } from "./ScopedRefinementPane";
 import type { SiteKnowledge, AnyKnowledgeItem } from "@/lib/siteKnowledge";
@@ -764,6 +765,15 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
           lightMode={lightMode}
         />
       )}
+      
+      {/* Tile Detail Modal - Fallback for mobile/tablet public users */}
+      <TileDetailModal
+        item={selectedItem}
+        isOpen={showTileDetail && !isOwnerMode && !isDesktop}
+        onClose={handleCloseTileDetail}
+        accentColor={accentColor}
+        lightMode={lightMode}
+      />
     </div>
   );
 }
