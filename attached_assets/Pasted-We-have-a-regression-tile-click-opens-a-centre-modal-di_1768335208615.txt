@@ -1,0 +1,38 @@
+We have a regression: tile click opens a centre modal/dialog (blocking overlay). This is NOT the intended “Smart Window”.
+
+INTENDED BEHAVIOUR (already agreed):
+- Clicking a tile opens a RIGHT-HAND docked Smart Window (side panel).
+- The Orbit canvas/tiles shift left or resize to make space.
+- The Smart Window can render richer content including: source material in an iframe, comparison tables, etc.
+- This is desktop behaviour. Mobile can use a modal/drawer if needed.
+
+STRICT INSTRUCTION:
+Do NOT design or invent a new Smart Window. Investigate why the existing code path is using a Dialog/Modal and restore/reconnect the intended side-panel behaviour.
+
+INVESTIGATION STEPS (report findings, don’t guess):
+1) Identify the exact component being used for the current popup
+   - Is it shadcn Dialog? Radix Dialog? Something else?
+   - Point to the file(s) and component name(s).
+
+2) Trace the click -> state -> render path
+   - Where is selectedTopic/activeNode set?
+   - Where is the popup rendered?
+   - Is there a desktop conditional that routes to Dialog?
+
+3) Search the repo for the intended panel components
+   - Look for components named: RightPanel, Inspector, DetailsPane, SmartWindow, SidePanel, Sheet, Drawer, Panel, SplitView, ResizablePanelGroup.
+   - If found, report their paths and whether they’re currently unused.
+
+4) If the panel code existed before the Orbit/IceMaker split:
+   - Check git history / previous commit / other branch / old repo snapshot for the Smart Window implementation.
+   - Identify what files didn’t make it across and why.
+
+5) Fix by RESTORING the correct behaviour
+   - Replace the Dialog usage with the docked right panel (desktop).
+   - Ensure layout uses a split container (flex/grid) so orbit area resizes left.
+   - Keep mobile fallback if needed, but desktop must dock right.
+
+DELIVERABLE:
+- Root cause summary (1–2 bullets).
+- List the exact files changed.
+- Confirm: on desktop, click tile -> docked right panel, orbit shifts left, no blocking overlay.

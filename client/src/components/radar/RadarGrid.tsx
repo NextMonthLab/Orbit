@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Minus, Plus, Image, Focus } from "lucide-react";
 import { ChatHub, type ChatResponse } from "./ChatHub";
 import { KnowledgeTile } from "./KnowledgeTile";
-import { TileDetailModal } from "./TileDetailModal";
+import { SmartWindow } from "./SmartWindow";
 import { VisualPane } from "./VisualPane";
 import { ScopedRefinementPane } from "./ScopedRefinementPane";
 import type { SiteKnowledge, AnyKnowledgeItem } from "@/lib/siteKnowledge";
@@ -556,23 +556,26 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
   const gridLineColor = lightMode ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.03)';
   const edgeFadeColor = lightMode ? '#f8fafc' : '#0a0a0a';
 
+  const showSmartWindow = showTileDetail && !isOwnerMode && isDesktop;
+
   return (
-    <div
-      ref={containerRef}
-      className="fixed inset-0 overflow-hidden select-none"
-      style={{
-        background: bgColor,
-        cursor: isDragging ? 'grabbing' : 'grab',
-        touchAction: 'none',
-      }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onPointerLeave={handlePointerUp}
-      onWheel={handleWheel}
-      data-testid="radar-grid"
-    >
+    <div className="fixed inset-0 flex" data-testid="radar-layout">
+      <div
+        ref={containerRef}
+        className="flex-1 relative overflow-hidden select-none"
+        style={{
+          background: bgColor,
+          cursor: isDragging ? 'grabbing' : 'grab',
+          touchAction: 'none',
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        onWheel={handleWheel}
+        data-testid="radar-grid"
+      >
       {/* Faint network pattern background */}
       <svg 
         className="absolute inset-0 w-full h-full pointer-events-none" 
@@ -749,15 +752,18 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
         isOwnerMode={isOwnerMode}
         onClose={() => setShowVisualPane(false)}
       />
+      </div>
       
-      {/* Tile Detail Modal for public users */}
-      <TileDetailModal
-        item={selectedItem}
-        isOpen={showTileDetail && !isOwnerMode}
-        onClose={handleCloseTileDetail}
-        accentColor={accentColor}
-        lightMode={lightMode}
-      />
+      {/* Smart Window - Right-docked panel for public users (desktop) */}
+      {showSmartWindow && (
+        <SmartWindow
+          item={selectedItem}
+          isOpen={showSmartWindow}
+          onClose={handleCloseTileDetail}
+          accentColor={accentColor}
+          lightMode={lightMode}
+        />
+      )}
     </div>
   );
 }
