@@ -1,0 +1,133 @@
+Cloning from https://github.com/NextMonthLab/Orbit
+==> Checking out commit ccf6e6f6cb6d4e2ab32343bfd298ae324bbc6295 in branch main
+==> Requesting Node.js version >=20.0.0
+==> Using Node.js version 25.3.0 via /opt/render/project/src/package.json
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Running build command 'npm install; npm run build'...
+added 869 packages, and audited 870 packages in 21s
+100 packages are looking for funding
+  run `npm fund` for details
+10 vulnerabilities (2 low, 4 moderate, 4 high)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 build
+> tsx script/build.ts
+building client...
+vite v7.1.12 building for production...
+transforming...
+✓ 2815 modules transformed.
+rendering chunks...
+[meta-images] no Replit deployment domain found, skipping meta tag updates
+computing gzip size...
+../dist/public/index.html                                             2.58 kB │ gzip:   0.86 kB
+../dist/public/assets/business_professiona_dba1a455-B-roPHxo.jpg    139.02 kB
+../dist/public/assets/creative_writer_work_c38a4245-oAsYai_O.jpg    165.75 kB
+../dist/public/assets/teacher_educator_in__8c1ca5d7-D7lUb8D8.jpg    205.94 kB
+../dist/public/assets/filmmaker_director_r_bff3ccae-C5IZ-AGo.jpg    208.51 kB
+../dist/public/assets/engineer_working_in__08fad5a8-DZQp2Iel.jpg    356.82 kB
+../dist/public/assets/business-orbit-logo-cropped-4uS0cbrF.png      541.72 kB
+../dist/public/assets/index-BIc3D5_e.css                            285.38 kB │ gzip:  35.14 kB
+../dist/public/assets/browser-B8RDTpO9.js                            25.78 kB │ gzip:  10.13 kB
+../dist/public/assets/index-CYNF7Fke.js                           1,856.02 kB │ gzip: 464.29 kB
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.12s
+building server...
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+    server/scripts/seedDemoOrbits.ts:1187:21:
+      1187 │ const isMainModule = import.meta.url === `file://${process.argv[...
+           ╵                      ~~~~~~~~~~~
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+1 warning
+  dist/index.cjs  2.2mb ⚠️
+⚡ Done in 422ms
+==> Uploading build...
+==> Uploaded in 60.2s. Compression took 12.8s
+==> Build successful 🎉
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+==> Deploying...
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.cjs
+========================================
+  Security Startup Checks (Phase 1.1)
+========================================
+Environment: production
+Platform: Standard (Render/other)
+[Token System]
+  - PUBLIC_TOKEN_SECRET: RANDOM (dev mode)
+  - Token version: 1
+  - Token expiry: 3600 seconds (1 hour)
+  - Resource types: story, preview
+  - Audiences: analytics, chat
+[Stripe Configuration]
+  - Mode: Standard environment variables
+  - STRIPE_SECRET_KEY: NOT SET
+  - STRIPE_WEBHOOK_SECRET: NOT SET
+[Email Configuration]
+  - Mode: NOT CONFIGURED
+[Rate Limiting]
+  - Analytics: 100 requests/minute per IP
+  - Activation/Pause: 10 requests/minute per IP
+  - Chat: 30 requests/minute per user/IP
+[Warnings]
+  ⚠️  WARNING: SESSION_SECRET is recommended in production but not set
+  ⚠️  WARNING: STRIPE_WEBHOOK_SECRET is recommended in production but not set
+  ⚠️  WARNING: OPENAI_API_KEY is recommended in production but not set
+  ⚠️  WARNING: STRIPE_WEBHOOK_SECRET not set - webhook verification may fail
+  ⚠️  WARNING: Email not configured - magic links and notifications will not be sent
+[ERRORS - CRITICAL]
+  ❌ CRITICAL: PUBLIC_TOKEN_SECRET is REQUIRED in production but not set
+  ❌ CRITICAL: DATABASE_URL is REQUIRED in production but not set
+  ❌ CRITICAL: STRIPE_SECRET_KEY is required in production
+❌ SECURITY CHECKS FAILED - see errors above
+========================================
+🛑 SERVER WILL NOT START IN PRODUCTION WITH MISSING SECURITY CONFIG
+FATAL: Cannot start server in production with missing security configuration.
+Please set all required environment variables and restart.
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.cjs
+========================================
+  Security Startup Checks (Phase 1.1)
+========================================
+Environment: production
+Platform: Standard (Render/other)
+[Token System]
+  - PUBLIC_TOKEN_SECRET: RANDOM (dev mode)
+  - Token version: 1
+  - Token expiry: 3600 seconds (1 hour)
+  - Resource types: story, preview
+  - Audiences: analytics, chat
+[Stripe Configuration]
+  - Mode: Standard environment variables
+  - STRIPE_SECRET_KEY: NOT SET
+  - STRIPE_WEBHOOK_SECRET: NOT SET
+[Email Configuration]
+  - Mode: NOT CONFIGURED
+[Rate Limiting]
+  - Analytics: 100 requests/minute per IP
+  - Activation/Pause: 10 requests/minute per IP
+  - Chat: 30 requests/minute per user/IP
+[Warnings]
+  ⚠️  WARNING: SESSION_SECRET is recommended in production but not set
+  ⚠️  WARNING: STRIPE_WEBHOOK_SECRET is recommended in production but not set
+  ⚠️  WARNING: OPENAI_API_KEY is recommended in production but not set
+  ⚠️  WARNING: STRIPE_WEBHOOK_SECRET not set - webhook verification may fail
+  ⚠️  WARNING: Email not configured - magic links and notifications will not be sent
+[ERRORS - CRITICAL]
+  ❌ CRITICAL: PUBLIC_TOKEN_SECRET is REQUIRED in production but not set
+  ❌ CRITICAL: DATABASE_URL is REQUIRED in production but not set
+  ❌ CRITICAL: STRIPE_SECRET_KEY is required in production
+❌ SECURITY CHECKS FAILED - see errors above
+🛑 SERVER WILL NOT START IN PRODUCTION WITH MISSING SECURITY CONFIG
+========================================
+FATAL: Cannot start server in production with missing security configuration.
+Please set all required environment variables and restart.

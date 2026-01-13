@@ -178,7 +178,7 @@ export default function MarketingHome() {
     <div className="min-h-screen bg-[#1a1b2e] text-white">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#1a1b2e]/80 backdrop-blur-lg border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 h-28 flex items-center justify-between">
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer">
               <img 
@@ -205,7 +205,7 @@ export default function MarketingHome() {
 
       <main>
         {/* SECTION 1: HERO */}
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+        <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-28">
           <div className="absolute inset-0 bg-[#1a1b2e]" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#ff6b4a]/10 via-[#ff4d8f]/5 to-transparent" />
           
