@@ -465,30 +465,27 @@ async function seedDemoOrbit(data: DemoOrbitData): Promise<void> {
     });
   }
 
+  const existingDocs = await storage.getOrbitDocuments(data.slug);
+  if (existingDocs.length > 0) {
+    console.log(`  - Clearing ${existingDocs.length} existing documents...`);
+    for (const doc of existingDocs) {
+      await storage.deleteOrbitDocument(doc.id);
+    }
+  }
+
   console.log(`  + Creating ${data.documents.length} knowledge documents...`);
   for (const docData of data.documents) {
-    const existingDocs = await storage.getOrbitDocuments(data.slug);
-    const existing = existingDocs.find(d => d.title === docData.title);
-    
-    if (existing) {
-      await storage.updateOrbitDocument(existing.id, {
-        extractedText: docData.content,
-        category: docData.category,
-        status: "ready",
-      });
-    } else {
-      await storage.createOrbitDocument({
-        businessSlug: data.slug,
-        fileName: `${docData.title.toLowerCase().replace(/\s+/g, '-')}.md`,
-        fileType: "md",
-        fileSizeBytes: docData.content.length,
-        storagePath: `/demos/${data.slug}/${docData.title.toLowerCase().replace(/\s+/g, '-')}.md`,
-        title: docData.title,
-        category: docData.category,
-        extractedText: docData.content,
-        status: "ready",
-      });
-    }
+    await storage.createOrbitDocument({
+      businessSlug: data.slug,
+      fileName: `${docData.title.toLowerCase().replace(/\s+/g, '-')}.md`,
+      fileType: "md",
+      fileSizeBytes: docData.content.length,
+      storagePath: `/demos/${data.slug}/${docData.title.toLowerCase().replace(/\s+/g, '-')}.md`,
+      title: docData.title,
+      category: docData.category,
+      extractedText: docData.content,
+      status: "ready",
+    });
   }
 
   console.log(`  ✅ ${data.name} seeded successfully!`);

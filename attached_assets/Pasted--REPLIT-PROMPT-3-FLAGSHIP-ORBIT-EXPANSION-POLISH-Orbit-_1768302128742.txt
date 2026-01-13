@@ -1,0 +1,87 @@
+# REPLIT PROMPT 3 — FLAGSHIP ORBIT EXPANSION & POLISH
+# Orbit: <ORBIT NAME> (<slug>)
+
+## Context
+This Orbit already exists as a real, seeded Orbit in the database.
+It loads at `/orbit/<slug>` using the standard OrbitView and orbitChatService.
+
+Your task is to elevate it to **flagship demo quality** using the existing data model and grounding pipeline.
+
+This is NOT a refactor.
+This is NOT a redesign.
+This is a controlled expansion of data + reasoning quality.
+
+## Non-negotiables
+- Do NOT change routing.
+- Do NOT change OrbitView or chat architecture.
+- Do NOT invent new systems.
+- Use existing tables, schemas, and ingestion/grounding paths.
+- All new information must be **grounded** (no hallucination).
+
+## Objectives
+1) Expand the Orbit’s datasets so it feels:
+   - operationally complete
+   - realistic
+   - opinionated
+   - useful in edge cases
+
+2) Improve the assistant’s usefulness by:
+   - adding richer facts
+   - covering “what happens if…” scenarios
+   - supporting comparisons and recommendations
+
+3) Ensure the Orbit passes the “business owner test”:
+   “Could this replace my website + FAQs + first-line support?”
+
+## Orbit-specific requirements
+Follow the Claude blueprint for this Orbit exactly.
+
+### Required expansions (example – adapt per Orbit)
+
+#### Slice & Stone Pizza
+- Expand products to 25–40 items
+- Expand delivery zones to cover all BS postcodes with peak logic
+- Add:
+  - holiday hours
+  - late delivery rules
+  - refund edge cases
+- Add at least 10 “problem” FAQs (late delivery, wrong item, cold food, allergens)
+
+#### Clarity Accountants
+- Expand packages to cover edge turnover bands
+- Add detailed penalty explanations
+- Add:
+  - IR35 scenarios
+  - switching edge cases
+  - missed deadlines flows
+- Ensure assistant refuses personalised tax advice correctly
+
+#### TechVault UK
+- Expand comparisons (10–15)
+- Add grading examples with photos/notes
+- Add battery health explanations
+- Add compatibility FAQs
+- Ensure return/warranty logic matches Consumer Rights Act tone
+
+## Grounding & chat validation
+After expansion, validate that the assistant can answer (grounded):
+- at least 15 complex questions
+- including comparisons, edge cases, and exceptions
+
+If the system cannot answer without guessing:
+- add data
+- do NOT loosen rules
+
+## Acceptance checklist (must pass)
+- Orbit still loads cleanly at `/orbit/<slug>`
+- No duplicate records created
+- Chat answers reference real facts
+- No invented prices, policies, or availability
+- Edge cases escalate correctly
+- Mobile experience still usable
+
+## Deliverables
+- Tables/files updated
+- Records added/expanded
+- Clear summary of what data was added
+- Example questions now supported that were not before
