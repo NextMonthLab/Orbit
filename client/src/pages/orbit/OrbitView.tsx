@@ -15,6 +15,9 @@ import { HubPanelContainer } from "@/components/orbit/HubPanelContainer";
 import { OrbitGrid } from "@/components/orbit/OrbitGrid";
 import { OrbitShareModal } from "@/components/orbit/OrbitShareModal";
 import { ViewWindscreen, MobileViewSheet } from "@/components/orbit/viewEngine/ViewWindscreen";
+import { DemoViewSwitcher, type DemoViewMode } from "@/components/orbit/DemoViewSwitcher";
+import { DemoBusinessView } from "@/components/orbit/DemoBusinessView";
+import { DemoIntelligenceView } from "@/components/orbit/DemoIntelligenceView";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -184,6 +187,11 @@ export default function OrbitView() {
   
   // Preview mode: owner viewing as a visitor (hide all admin UI)
   const isPreviewMode = new URLSearchParams(searchString).get('preview') === 'true';
+  
+  // Demo view mode (from query param)
+  const urlParams = new URLSearchParams(searchString);
+  const viewParam = urlParams.get('view') as DemoViewMode | null;
+  const [demoViewMode, setDemoViewMode] = useState<DemoViewMode>(viewParam || 'public');
   
   const [showCustomization, setShowCustomization] = useState(false);
   const [brandPreferences, setBrandPreferences] = useState<BrandPreferences | null>(null);
@@ -568,6 +576,37 @@ export default function OrbitView() {
     },
     enabled: !!slug,
   });
+
+  // Check if this is a demo orbit
+  const { data: demoStatus } = useQuery<{ isDemo: boolean }>({
+    queryKey: ["orbit-is-demo", slug],
+    queryFn: async () => {
+      const response = await fetch(`/api/orbit/${slug}/is-demo`);
+      return response.json();
+    },
+    enabled: !!slug,
+  });
+  const isDemo = demoStatus?.isDemo ?? false;
+
+  // Fetch demo documents for demo orbits (public endpoint)
+  const { data: demoDocsData } = useQuery<{ documents: Array<{ id: number; title: string; category: string; status: string }> }>({
+    queryKey: ["orbit-demo-documents", slug],
+    queryFn: async () => {
+      const response = await fetch(`/api/orbit/${slug}/demo-documents`);
+      if (!response.ok) return { documents: [] };
+      return response.json();
+    },
+    enabled: isDemo && !!slug,
+  });
+
+  // Handle demo view changes - update URL
+  const handleDemoViewChange = useCallback((view: DemoViewMode) => {
+    setDemoViewMode(view);
+    const newUrl = view === 'public' 
+      ? `/orbit/${slug}` 
+      : `/orbit/${slug}?view=${view}`;
+    setLocation(newUrl, { replace: true });
+  }, [slug, setLocation]);
 
   // Use viewer context as primary source of truth - default to safe values until loaded
   const viewerContextLoaded = !!viewerContext;
@@ -1811,6 +1850,40 @@ export default function OrbitView() {
       {!isEmbedMode && (
         <GlobalNav context="orbit" showBreadcrumb breadcrumbLabel="Orbit" minimal={showHub} />
       )}
+      
+      {/* Demo View Switcher - only for demo orbits */}
+      {isDemo && !isEmbedMode && !showHub && !showCustomization && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40">
+          <DemoViewSwitcher 
+            activeView={demoViewMode} 
+            onViewChange={handleDemoViewChange} 
+          />
+        </div>
+      )}
+
+      {/* Demo Business View */}
+      {isDemo && demoViewMode === 'business' && orbitData?.boxes && (
+        <DemoBusinessView
+          businessName={orbitData.customTitle || slug || 'Demo Business'}
+          businessSlug={slug || ''}
+          boxes={orbitData.boxes}
+          documentCount={demoDocsData?.documents?.length || 0}
+        />
+      )}
+
+      {/* Demo Intelligence View */}
+      {isDemo && demoViewMode === 'intelligence' && orbitData?.boxes && (
+        <DemoIntelligenceView
+          businessName={orbitData.customTitle || slug || 'Demo Business'}
+          businessSlug={slug || ''}
+          boxes={orbitData.boxes}
+          documents={demoDocsData?.documents || []}
+          lastUpdated={orbitData.lastUpdated}
+        />
+      )}
+
+      {/* Regular content (for public view or non-demo orbits) */}
+      {(!isDemo || demoViewMode === 'public') && (
       <div className="flex-1 flex relative">
       {/* Business Hub Sidebar for paid tier owners */}
       {!isEmbedMode && isOwner && isPaidTier && showHub && (
@@ -2360,6 +2433,7 @@ export default function OrbitView() {
       />
       </div>
       </div>
+      )}
     </div>
   );
 }

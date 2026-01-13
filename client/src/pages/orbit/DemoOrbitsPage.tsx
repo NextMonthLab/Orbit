@@ -14,7 +14,10 @@ import {
   Stethoscope,
   Home,
   MapPin,
-  Sparkles
+  Sparkles,
+  Eye,
+  Briefcase,
+  Brain
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -217,15 +220,41 @@ export default function DemoOrbitsPage() {
                     </CardContent>
                     <CardFooter className="flex flex-col gap-3 pt-4">
                       {isLive ? (
-                        <Link href={`/orbit/${demo.slug}`} className="w-full">
-                          <Button 
-                            className="w-full bg-gradient-to-r from-[#ff6b4a] to-[#ff4d8f] hover:opacity-90 text-white border-0"
-                            data-testid={`button-launch-${demo.id}`}
-                          >
-                            Launch Demo
-                            <ArrowRight className="ml-2 w-4 h-4" />
-                          </Button>
-                        </Link>
+                        <>
+                          <Link href={`/orbit/${demo.slug}`} className="w-full">
+                            <Button 
+                              className="w-full bg-gradient-to-r from-[#ff6b4a] to-[#ff4d8f] hover:opacity-90 text-white border-0"
+                              data-testid={`button-launch-${demo.id}`}
+                            >
+                              <Eye className="mr-2 w-4 h-4" />
+                              Public Experience
+                            </Button>
+                          </Link>
+                          <div className="flex gap-2 w-full">
+                            <Link href={`/orbit/${demo.slug}?view=business`} className="flex-1">
+                              <Button 
+                                variant="outline"
+                                className="w-full text-white border-white/20 hover:bg-white/10"
+                                size="sm"
+                                data-testid={`button-business-view-${demo.id}`}
+                              >
+                                <Briefcase className="mr-1.5 w-3.5 h-3.5" />
+                                Business
+                              </Button>
+                            </Link>
+                            <Link href={`/orbit/${demo.slug}?view=intelligence`} className="flex-1">
+                              <Button 
+                                variant="outline"
+                                className="w-full text-white border-white/20 hover:bg-white/10"
+                                size="sm"
+                                data-testid={`button-intelligence-view-${demo.id}`}
+                              >
+                                <Brain className="mr-1.5 w-3.5 h-3.5" />
+                                Intelligence
+                              </Button>
+                            </Link>
+                          </div>
+                        </>
                       ) : (
                         <Button 
                           disabled
@@ -235,15 +264,6 @@ export default function DemoOrbitsPage() {
                           Coming Soon
                         </Button>
                       )}
-                      <Link href="/" className="w-full">
-                        <Button 
-                          variant="ghost" 
-                          className="w-full text-white/60 hover:text-white hover:bg-white/5"
-                          data-testid={`button-what-can-orbit-do-${demo.id}`}
-                        >
-                          What can Orbit do?
-                        </Button>
-                      </Link>
                     </CardFooter>
                   </Card>
                 </motion.div>
