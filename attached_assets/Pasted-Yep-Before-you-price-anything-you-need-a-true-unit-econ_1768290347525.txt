@@ -1,0 +1,175 @@
+Yep. Before you price anything, you need a true unit-economics picture per claimed Orbit (and per active user/session). Otherwise you’ll accidentally build a loss-making “free intelligence layer”.
+
+Here’s how to interrogate the Wraplet/Replit project properly, and the exact outputs you need.
+
+⸻
+
+What “true cost to run Orbit for a business” actually means
+
+You’re looking for monthly cost per business split into:
+	1.	Fixed per-tenant (exists even if nobody chats)
+	•	data ingestion / refresh jobs
+	•	storage (DB + object storage)
+	•	embeddings / indexing
+	•	monitoring / logs
+	•	baseline hosting overhead
+	2.	Variable per usage
+	•	LLM tokens (chat + summarisation + challenge mode)
+	•	retrieval calls / vector queries
+	•	page fetches / crawling
+	•	image processing
+	•	bandwidth + CDN
+	•	rate limiting / abuse
+	3.	One-time setup costs
+	•	initial crawl + extraction
+	•	initial embeddings
+	•	first “Orbit map” build
+
+Pricing must cover the worst case: high engagement + frequent refresh.
+
+⸻
+
+The interrogation approach (do this in order)
+
+Step 1: Build a full “Cost Surface Map” from the codebase
+
+Find every place Orbit spends money. Concretely:
+	•	LLM calls (provider + model + input/output tokens)
+	•	Embeddings calls
+	•	Vector DB usage (or Postgres pgvector)
+	•	Scraping/fetching (serverless/job runner + outbound requests)
+	•	Storage (S3/R2/Supabase storage)
+	•	Database reads/writes growth
+	•	File uploads (images/docs)
+	•	Scheduled jobs (cron/queues)
+	•	Third-party APIs (news, analytics, search)
+
+Output: a table of cost drivers + where in code they happen.
+
+Step 2: Instrument it so you can measure reality
+
+Even before modelling, add logging counters:
+	•	tokens_in, tokens_out by endpoint
+	•	“Orbit refresh” run counts + duration
+	•	pages fetched per refresh
+	•	embeddings generated per refresh
+	•	vector queries per chat
+	•	attachments uploaded per tenant
+	•	response cache hit rate (important)
+
+Output: a metrics spec and minimal logging implementation.
+
+Step 3: Produce a unit-cost model (per business)
+
+Define 3 usage tiers (you already think this way):
+	•	Low: “claimed but light use”
+	•	Medium: “weekly active”
+	•	High: “daily active + heavy ingestion + team users”
+
+Output: cost per month per tenant at Low/Med/High.
+
+Step 4: Stress test “abuse” scenarios
+
+Orbit is uniquely vulnerable to:
+	•	people hammering chat
+	•	repeated refresh/crawls
+	•	large uploads
+
+Output: max exposure per tenant and guardrails (limits + pricing triggers).
+
+⸻
+
+The exact deliverable you want Wraplet to produce
+
+A) Cost Driver Inventory (table)
+
+Columns:
+	•	Driver (LLM, embeddings, storage, etc.)
+	•	Trigger (chat, refresh, upload, etc.)
+	•	Code location (file + function)
+	•	Unit (tokens, GB, requests)
+	•	Frequency assumption
+	•	Can we cache? (Y/N)
+	•	Can we cap? (Y/N)
+
+B) Per-tenant Unit Economics (Low/Med/High)
+
+Columns:
+	•	Component
+	•	Units/month
+	•	Cost/unit
+	•	Monthly cost
+	•	Notes
+
+C) Guardrails plan
+	•	rate limits
+	•	refresh limits
+	•	upload limits
+	•	caching strategy
+	•	when to force upgrade
+
+⸻
+
+Copy-paste prompt for Wraplet (Replit agent)
+
+Use this as-is:
+
+PROMPT: Wraplet – Orbit Cost Interrogation & Unit Economics
+
+You are working in the Orbit (Business Orbit) Replit project. Your goal is to determine the true operating cost of running Orbit for one claimed business (tenant), including fixed baseline costs, variable usage costs, and one-time setup costs.
+
+Outputs required
+	1.	Cost Driver Inventory Table
+List every cost-incurring operation in the codebase:
+
+	•	LLM calls (provider/model, where invoked)
+	•	embeddings generation
+	•	vector DB / search queries
+	•	database reads/writes growth
+	•	storage (uploads, generated assets)
+	•	web fetching/crawling/refresh jobs
+	•	background workers/cron/queues
+	•	third-party APIs
+For each driver include: file path + function name, what triggers it, units consumed (tokens/requests/GB), whether it can be cached/capped.
+
+	2.	Instrumentation Plan
+Define the minimal logging needed to measure real costs in production:
+
+	•	tokens_in/tokens_out per endpoint
+	•	refresh runs per tenant, pages fetched, embeddings generated
+	•	vector queries per chat
+	•	uploads per tenant, storage growth
+	•	cache hit rate
+Include exact locations in code to add logs and the event schema.
+
+	3.	Per-tenant Cost Model (Low/Med/High)
+Assume three tiers and compute monthly costs per tenant:
+
+	•	Low: claimed, light chat, rare refresh
+	•	Medium: weekly active usage
+	•	High: daily active, team usage, frequent refresh and uploads
+Provide a spreadsheet-style table showing assumptions and totals.
+
+	4.	Worst-case Exposure + Guardrails
+Identify how a single tenant could create runaway costs and propose caps:
+
+	•	rate limits, refresh limits, upload limits
+	•	caching requirements
+	•	pricing-trigger thresholds for upgrades
+
+Rules
+	•	Do not guess costs without evidence. Where a cost depends on external pricing, output the variable as a parameter (e.g., COST_PER_1K_TOKENS) and list exactly where it applies.
+	•	Search the repo for keywords: “openai”, “anthropic”, “chat”, “completion”, “embeddings”, “vector”, “pgvector”, “pinecone”, “supabase”, “storage”, “s3”, “r2”, “upload”, “cron”, “queue”, “bull”, “agenda”, “scheduler”, “fetch”, “crawl”, “scrape”, “puppeteer”, “playwright”.
+	•	Produce the tables and the instrumentation plan as the final output.
+
+⸻
+
+One extra thing (non-negotiable for pricing)
+
+When you get the output, your pricing decision needs two numbers:
+	1.	Gross margin at Medium usage (target: 70%+ if you want room to breathe)
+	2.	Maximum monthly exposure per tenant before caps kick in (this keeps you safe)
+
+If you want, once Wraplet gives you the tables, paste them here and I’ll turn it into:
+	•	a clean pricing ladder
+	•	plus the guardrails (limits) that make the ladder safe.
