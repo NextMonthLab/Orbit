@@ -1,0 +1,124 @@
+# REPLIT PROMPT 4 — DEMO ORBITS: PUBLIC VIEW + BUSINESS VIEW + ORBIT INTELLIGENCE (READ-ONLY)
+# Action now: Add a 3-view switcher for flagship demo Orbits so visitors can see the front end AND the back end.
+
+## Context (non-negotiable)
+Our flagship demo Orbits are REAL Orbits in the database and render via the standard OrbitView at `/orbit/:slug`.
+We are NOT creating a demo framework.
+We are exposing additional READ-ONLY views of the SAME Orbit so prospects can understand the full power:
+- what the public sees
+- what the business sees
+- what the intelligence engine looks like inside
+
+This must create a “holy sh*t” moment by letting users flip between views instantly.
+
+## Goal
+For each flagship demo Orbit, add a simple view switcher UI:
+[ Public Experience ] [ Business View ] [ Orbit Intelligence ]
+
+These are three lenses on the same Orbit.
+
+## Non-goals (do NOT do)
+- Do NOT fork OrbitView into a demo renderer.
+- Do NOT create a separate demo Orbit in memory.
+- Do NOT allow editing of any data in these views (read-only only).
+- Do NOT change ingestion/claim flows.
+- Do NOT introduce new backend systems if existing ones already provide the needed data.
+
+## Step 1 — Identify “demo Orbits”
+We need a reliable way to detect demo Orbits.
+Use ONE of these approaches, choosing what matches the current codebase best:
+
+A) Add a boolean flag on the Orbit record (preferred): `is_demo = true`
+B) Add a tag/metadata field: `tags` includes `demo`
+C) Maintain a server-side allowlist of slugs: ["slice-and-stone-pizza", "clarity-chartered-accountants", "techvault-uk", ...]
+(Choose the safest + quickest given current schema.)
+
+The view switcher must ONLY appear for demo Orbits.
+
+## Step 2 — Add a view switcher to the Orbit page
+On `/orbit/:slug`, near the top of the Orbit page (above tiles/chat), add a segmented control / tabs:
+
+- Public Experience (default)
+- Business View
+- Orbit Intelligence
+
+The switcher should:
+- update UI state
+- optionally persist via query param e.g. `?view=public|business|intelligence`
+- not break current routing
+
+## Step 3 — Define each view (behaviour + content)
+
+### View A: Public Experience (existing behaviour)
+This is the current Orbit experience:
+- tiles / boxes navigation as normal
+- chat as normal (public-facing persona)
+
+No changes required except ensuring the tab selects this mode.
+
+### View B: Business View (owner-facing lens, still conversational)
+This view should feel like the Orbit is helping the BUSINESS OWNER, not the public.
+
+Implementation guidance:
+- Reuse the same chat service and grounding.
+- Switch the assistant “system framing” / persona for business mode ONLY:
+  - Focus on: what customers ask, what’s popular, what to improve, where confusion happens.
+  - Strict grounding still applies (no invented analytics).
+
+UI elements to include in Business View:
+- A small “Business Quick Panel” above chat (read-only):
+  - Top categories (tiles)
+  - “Most popular items/services” (if we have any ranking fields in demo data)
+  - “Common questions” (if logs exist; if not, show seeded example questions for demos only)
+
+If real question logs/analytics do not exist yet:
+- seed a small “demo_analytics” fixture per demo orbit (server-side or in DB) and display it read-only.
+- Keep it clearly real-looking but labelled internally as seeded demo data.
+
+### View C: Orbit Intelligence (the internal intelligence engine, read-only)
+This is a dashboard-like view that exposes what’s “inside” the Orbit.
+
+Minimum viable intelligence panels (use existing DB fields/tables where possible):
+1) Knowledge Coverage
+   - list the Orbit’s major knowledge areas (based on boxes/nodes)
+   - show counts: documents, facts, items, FAQs, policies, etc. (whatever tables exist)
+2) Freshness
+   - last updated timestamp per knowledge area (if available)
+3) Grounding Integrity
+   - show what sources the assistant can cite from (documents/facts)
+4) Gaps / Opportunities (demo mode)
+   - show a small list of “questions we can’t fully answer yet” or “areas to improve”
+   - if no real telemetry exists, use seeded “gap suggestions” for demo orbits only
+
+Important: This is read-only and must not expose sensitive admin controls.
+
+## Step 4 — Routes / Navigation
+We want prospects to flip views without leaving the Orbit.
+So keep everything on `/orbit/:slug` with the view switcher.
+Optionally allow direct links:
+- `/orbit/:slug?view=public`
+- `/orbit/:slug?view=business`
+- `/orbit/:slug?view=intelligence`
+
+Update `/orbits/demos` cards to include:
+- Launch Public Experience
+- Launch Business View
+- Launch Orbit Intelligence
+(Or one Launch + a small dropdown. Choose the cleanest premium UI.)
+
+## Acceptance Criteria (must pass)
+- Demo Orbits show the 3-view switcher; normal Orbits do not.
+- Public Experience remains unchanged and fully functional.
+- Business View loads and uses the same Orbit + grounding, with owner-focused framing.
+- Orbit Intelligence shows read-only panels with real counts/metadata where possible.
+- No edit controls appear anywhere.
+- No new demo-only rendering system is created.
+- Links with `?view=` work and are shareable.
+- Mobile layout remains usable.
+
+## Deliverables
+After implementation, provide:
+1) Files changed/created
+2) How demo Orbits are detected (flag/tag/allowlist)
+3) What data sources power each Intelligence panel (which tables/fields)
+4) Any seeded demo analytics/gaps added and where they live
