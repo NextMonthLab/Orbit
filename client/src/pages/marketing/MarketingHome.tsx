@@ -340,6 +340,66 @@ export default function MarketingHome() {
           <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#1a1b2e] to-transparent" />
         </section>
 
+        {/* DEMO ORBITS SHOWCASE - Right after hero */}
+        <section className="py-16 px-6 relative bg-[#252640]">
+          <div className="max-w-5xl mx-auto">
+            <motion.div {...fadeInUp} className="text-center mb-10">
+              <p className="text-sm font-medium text-[#ff6b4a] mb-3 tracking-wide uppercase">
+                See it in action
+              </p>
+              <h2 className="text-2xl md:text-4xl font-bold mb-4" data-testid="text-demos-hero-title">
+                Explore{" "}
+                <span className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] bg-clip-text text-transparent">
+                  live demo Orbits
+                </span>
+              </h2>
+              <p className="text-slate-400 max-w-2xl mx-auto">
+                Experience how businesses use Orbit to answer customer questions and build trust.
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-5 mb-8">
+              {demoOrbits.map((demo, index) => (
+                <motion.div
+                  key={demo.slug}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  data-testid={`card-demo-hero-${demo.slug}`}
+                >
+                  <Link href={`/orbit/${demo.slug}`}>
+                    <div className="group p-5 rounded-2xl bg-[#1a1b2e]/50 border border-white/10 hover:border-[#ff4d8f]/50 transition-all cursor-pointer h-full">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${demo.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                        <demo.icon className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-lg font-bold mb-1 group-hover:text-[#ff4d8f] transition-colors">{demo.name}</h3>
+                      <p className="text-slate-400 text-sm leading-relaxed mb-3">{demo.description}</p>
+                      <div className="flex items-center gap-2 text-[#ff4d8f] text-sm font-medium">
+                        <span>Try it now</span>
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div {...fadeInUp} className="text-center">
+              <Link href="/orbit/demos">
+                <Button 
+                  variant="outline" 
+                  className="bg-transparent border-white/20 text-white hover:bg-white/5 gap-2 rounded-xl"
+                  data-testid="button-view-demos-hero"
+                >
+                  <Compass className="w-4 h-4" />
+                  View All Demos
+                </Button>
+              </Link>
+            </motion.div>
+          </div>
+        </section>
+
         {/* SECTION 2: PROBLEM AGITATION */}
         <section className="py-24 px-6 relative">
           <div className="max-w-6xl mx-auto">
@@ -652,68 +712,7 @@ export default function MarketingHome() {
           </div>
         </section>
 
-        {/* SECTION 8: DEMO ORBITS */}
-        <section className="py-24 px-6 relative">
-          <div className="max-w-5xl mx-auto">
-            <motion.div {...fadeInUp} className="text-center mb-16">
-              <p className="text-sm font-medium text-[#ff6b4a] mb-4 tracking-wide uppercase">
-                See it in action
-              </p>
-              <h2 className="text-3xl md:text-5xl font-bold mb-6" data-testid="text-demos-title">
-                Explore{" "}
-                <span className="bg-gradient-to-r from-[#ff6b4a] via-[#ff4d8f] to-[#a855f7] bg-clip-text text-transparent">
-                  live demo Orbits
-                </span>
-              </h2>
-              <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                Experience how businesses use Orbit to answer customer questions, surface insights, and build trust.
-              </p>
-            </motion.div>
-
-            <div className="grid md:grid-cols-3 gap-6 mb-10">
-              {demoOrbits.map((demo, index) => (
-                <motion.div
-                  key={demo.slug}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  data-testid={`card-demo-${demo.slug}`}
-                >
-                  <Link href={`/orbit/${demo.slug}`}>
-                    <div className="group p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-[#ff4d8f]/50 transition-all cursor-pointer h-full">
-                      <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${demo.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                        <demo.icon className="w-7 h-7 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold mb-2 group-hover:text-[#ff4d8f] transition-colors">{demo.name}</h3>
-                      <p className="text-slate-400 text-sm leading-relaxed mb-4">{demo.description}</p>
-                      <div className="flex items-center gap-2 text-[#ff4d8f] text-sm font-medium">
-                        <span>Explore Orbit</span>
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-
-            <motion.div {...fadeInUp} className="text-center">
-              <Link href="/orbit/demos">
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="bg-transparent border-white/20 text-white hover:bg-white/5 gap-2 rounded-xl"
-                  data-testid="button-view-all-demos"
-                >
-                  <Compass className="w-5 h-5" />
-                  View All Demo Orbits
-                </Button>
-              </Link>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* SECTION 9: FINAL CTA */}
+        {/* FINAL CTA */}
         <section className="py-24 px-6 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-[#ff6b4a]/20 via-[#ff4d8f]/20 to-[#a855f7]/20" />
           <div className="absolute inset-0 bg-[#1a1b2e]/80" />
