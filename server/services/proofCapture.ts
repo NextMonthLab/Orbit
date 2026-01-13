@@ -1,7 +1,16 @@
 import OpenAI from "openai";
 import type { SocialProofTopic } from "@shared/schema";
 
-const openai = new OpenAI();
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    _openai = new OpenAI({
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+  }
+  return _openai;
+}
 
 // Keyword lists for quick rule-based filtering
 // Note: "like" is handled separately via PRAISE_PATTERNS to avoid false positives
@@ -159,7 +168,7 @@ export async function isDetailedPraiseResponse(
   // For longer messages, use AI to check
   if (wordCount >= 10) {
     try {
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
@@ -344,7 +353,7 @@ export async function classifyTestimonialMoment(
       ? `Recent conversation context:\n${recentContext.slice(-5).join('\n')}\n\n` 
       : '';
     
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -468,7 +477,7 @@ export async function cleanAndGenerateVariants(rawQuote: string): Promise<{
   recommendedPlacements: ('homepage' | 'product_page' | 'checkout_reassurance' | 'case_study')[];
 }> {
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {

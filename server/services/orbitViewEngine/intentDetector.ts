@@ -1,7 +1,16 @@
 import OpenAI from "openai";
 import { IntentDetection, IntentDetectionSchema, IntentType } from "@shared/orbitViewEngine";
 
-const openai = new OpenAI();
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    _openai = new OpenAI({
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+  }
+  return _openai;
+}
 
 const INTENT_DETECTION_PROMPT = `You are an intent classifier for a smart product discovery system. Given the user's message and context, classify their intent and extract relevant entities.
 
@@ -42,7 +51,7 @@ export async function detectIntent(
     : '';
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: INTENT_DETECTION_PROMPT },

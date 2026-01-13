@@ -92,6 +92,48 @@ Orbit does NOT currently use embeddings or vector databases. All AI chat uses di
 
 **Vite plugins** (`cartographer`, `dev-banner`) are conditionally loaded only when `REPL_ID` is set, so they're automatically disabled on Render.
 
+### OpenAI Client Pattern (Lazy Initialization)
+
+All OpenAI SDK clients use **lazy initialization** to prevent startup crashes when `OPENAI_API_KEY` is missing:
+
+```typescript
+// Pattern used across all AI services
+let _openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    _openai = new OpenAI({ 
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+  }
+  return _openai;
+}
+```
+
+**Why this matters:**
+- OpenAI SDK throws on instantiation if no API key is provided
+- Eager `new OpenAI()` at module level crashes the server before startup checks run
+- Lazy pattern defers instantiation until first AI feature is used
+- Fallback supports both Replit connector (`AI_INTEGRATIONS_OPENAI_API_KEY`) and standard (`OPENAI_API_KEY`)
+
+**Files using this pattern:**
+- `server/services/topicTileGenerator.ts`
+- `server/services/businessDataExtractor.ts`
+- `server/services/bibleGenerator.ts`
+- `server/services/orbitChatService.ts`
+- `server/services/knowledgeCoach.ts`
+- `server/services/brandVoiceAnalysis.ts`
+- `server/services/catalogueDetection.ts`
+- `server/services/proofCapture.ts`
+- `server/services/heroPostEnrichment.ts`
+- `server/services/orbitViewEngine/*.ts`
+- `server/smartSitePipeline.ts`
+- `server/pipeline/runner.ts`
+- `server/replit_integrations/chat/routes.ts`
+- `server/replit_integrations/image/client.ts`
+- `server/routes.ts` (inline instances)
+
 ---
 
 ## Section 2: Render Deployment Architecture

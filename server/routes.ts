@@ -52,12 +52,13 @@ function isDemoOrbit(slug: string): boolean {
 }
 
 // OpenAI client for image generation - uses Replit AI Integrations (no API key needed)
-// Charges are billed to your Replit credits
+// Lazy-initialized OpenAI client - defers instantiation until first use
+// Supports both Replit connector and standard env vars
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
     _openai = new OpenAI({ 
-      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY || "dummy",
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
       baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
     });
   }
@@ -5114,7 +5115,10 @@ export async function registerRoutes(
           // Use OpenAI to summarize from card fields (no hallucination - only existing fields)
           try {
             const OpenAI = (await import("openai")).default;
-            const openai = new OpenAI();
+            const openai = new OpenAI({
+              apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+              baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+            });
             
             const prompt = `Summarize the following scene into a concise 1-paragraph narration suitable for text-to-speech. 
 Use ONLY the information provided below. Do NOT add any new facts, characters, or events.

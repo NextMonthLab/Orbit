@@ -523,7 +523,7 @@ export async function generateChatResponse(
   options: { maxTokens?: number; temperature?: number } = {}
 ): Promise<string> {
   const openai = new OpenAI({
-    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
     baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
   });
 
@@ -703,7 +703,7 @@ export async function analyzeOwnerMessage(
   recentHistory: ChatMessage[]
 ): Promise<OwnerChatAnalysis> {
   const openai = new OpenAI({
-    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
     baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
   });
 
@@ -859,7 +859,7 @@ export async function generateScopedChatResponse(
   orbitMeta: { businessName: string | null; businessType: string | null }
 ): Promise<ScopedChatResponse> {
   const openai = new OpenAI({
-    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
     baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
   });
 
@@ -974,7 +974,7 @@ async function analyzeScopedMessage(
   nodeLabel: string
 ): Promise<ScopedMessageAnalysis> {
   const openai = new OpenAI({
-    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
     baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
   });
 

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 const REQUIRED_IN_PRODUCTION = ['PUBLIC_TOKEN_SECRET', 'DATABASE_URL'];
-const RECOMMENDED_IN_PRODUCTION = ['SESSION_SECRET', 'STRIPE_WEBHOOK_SECRET'];
+const RECOMMENDED_IN_PRODUCTION = ['SESSION_SECRET', 'STRIPE_WEBHOOK_SECRET', 'OPENAI_API_KEY'];
 
 function hasReplitConnector(): boolean {
   return !!(

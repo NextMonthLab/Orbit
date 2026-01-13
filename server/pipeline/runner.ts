@@ -5,10 +5,16 @@ import * as fs from "fs";
 import * as path from "path";
 import { harvestImagesFromUrl, DownloadedImage } from "../imageExtractor";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    _openai = new OpenAI({
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+  }
+  return _openai;
+}
 
 export interface SourceGuardrails {
   coreThemes: string[];
@@ -104,7 +110,7 @@ async function updateJobStage(
 }
 
 async function callAI(systemPrompt: string, userPrompt: string, jsonMode = true): Promise<string> {
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
     messages: [
       { role: "system", content: systemPrompt },
