@@ -1280,6 +1280,7 @@ export default function OrbitView() {
               onCreateIce={handleCreateIceFromChat}
               canCreateIce={!!canCreateIce}
               isOwnerMode={isOwner}
+              isDemo={isDemo}
             />
           </div>
           
@@ -1409,6 +1410,7 @@ export default function OrbitView() {
               onCreateIce={handleCreateIceFromChat}
               canCreateIce={!!canCreateIce}
               isOwnerMode={isOwner}
+              isDemo={isDemo}
             />
           )}
         </div>
@@ -1990,6 +1992,7 @@ export default function OrbitView() {
           onCreateIce={handleCreateIceFromChat}
           canCreateIce={!!canCreateIce}
           isOwnerMode={isOwner}
+          isDemo={isDemo}
         />
       )}
 

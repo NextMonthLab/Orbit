@@ -78,6 +78,7 @@ interface RadarGridProps {
   onCreateIce?: (messageContent: string, messageIndex: number) => void;
   canCreateIce?: boolean;
   isOwnerMode?: boolean;
+  isDemo?: boolean;
 }
 
 type OwnerPaneTab = 'refine' | 'visual';
@@ -201,7 +202,7 @@ function generateTilePositions(count: number, ringSpacing: number = RING_SPACING
   return positions;
 }
 
-export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, accentColor = '#3b82f6', onInteraction, lightMode = false, onCreateIce, canCreateIce = false, isOwnerMode = false }: RadarGridProps) {
+export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, accentColor = '#3b82f6', onInteraction, lightMode = false, onCreateIce, canCreateIce = false, isOwnerMode = false, isDemo = false }: RadarGridProps) {
   const [isHubMinimized, setIsHubMinimized] = useState(false);
   const [conversationKeywords, setConversationKeywords] = useState<string[]>([]);
   const [selectedItem, setSelectedItem] = useState<AnyKnowledgeItem | null>(null);
@@ -660,6 +661,8 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
               zoomLevel={zoomLevel}
               depthTier={depthTier}
               onSelect={handleTileClick}
+              orbitSlug={orbitSlug}
+              isDemo={isDemo}
             />
           );
         })}
@@ -763,6 +766,8 @@ export function RadarGrid({ knowledge, onSendMessage, onVideoEvent, orbitSlug, a
           onClose={handleCloseTileDetail}
           accentColor={accentColor}
           lightMode={lightMode}
+          orbitSlug={orbitSlug}
+          isDemo={isDemo}
         />
       )}
       

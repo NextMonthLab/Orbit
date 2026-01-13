@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { FileText, User, Star, Video, Phone, Mail, Quote, Lightbulb, ExternalLink, Cloud, Sun, Calendar, MapPin, Globe, Briefcase, Award, MessageCircle, Zap, Book, TrendingUp, Shield, Heart, HelpCircle, Settings, Home, DollarSign, Clock, Users, Target, Sparkles, Rss, Twitter, Facebook, Instagram, Linkedin, Youtube, type LucideIcon } from "lucide-react";
 import type { AnyKnowledgeItem, Topic, Page, Person, Proof, Action, Blog, Social } from "@/lib/siteKnowledge";
 import { orbitTokens } from "@/lib/designTokens";
+import { getDemoThumbnailUrl, isVisualItemType } from "@/lib/demoImageUtils";
 
 type DepthTier = 'A' | 'B' | 'C';
 
@@ -15,6 +16,8 @@ interface KnowledgeTileProps {
   lightMode?: boolean;
   depthTier?: DepthTier;
   onSelect?: (item: AnyKnowledgeItem) => void;
+  orbitSlug?: string;
+  isDemo?: boolean;
 }
 
 const typeIcons: Record<string, LucideIcon> = {
@@ -197,7 +200,7 @@ const tierStyles = {
   C: { opacity: 0.35, textOpacity: 0.5, summaryOpacity: 0.25, blur: 1, showSummary: false },
 };
 
-export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoomLevel = 1, lightMode = false, depthTier = 'A', onSelect }: KnowledgeTileProps) {
+export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoomLevel = 1, lightMode = false, depthTier = 'A', onSelect, orbitSlug, isDemo = false }: KnowledgeTileProps) {
   const shouldReduceMotion = useReducedMotion();
   const [imageError, setImageError] = useState(false);
   const CategoryIcon = getCategoryIcon(item);
@@ -328,6 +331,24 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
       default: return '';
     }
   };
+  
+  const getItemCategory = (): string | null => {
+    if ('category' in item && typeof item.category === 'string') {
+      return item.category;
+    }
+    return null;
+  };
+  
+  const demoImageUrl = isDemo && isVisualItemType(item.type) 
+    ? getDemoThumbnailUrl(item.id, getLabel() || '', { 
+        category: getItemCategory(), 
+        orbitSlug, 
+        type: item.type 
+      })
+    : null;
+  
+  const showThumbnail = hasOfficialImage || (isDemo && demoImageUrl && isVisualItemType(item.type));
+  const thumbnailUrl = hasOfficialImage ? imageUrl : demoImageUrl;
 
   const tileWidth = 200;
   const tileHeight = 90;
@@ -418,13 +439,13 @@ export function KnowledgeTile({ item, relevanceScore, position, accentColor, zoo
               </p>
             </div>
             
-            {hasOfficialImage && imageUrl && (
+            {showThumbnail && thumbnailUrl && (
               <div 
                 className="w-9 h-9 rounded-md overflow-hidden shrink-0 border group-hover:opacity-100 transition-opacity"
                 style={{ borderColor: `${color}20`, opacity: tierStyle.textOpacity }}
               >
                 <img
-                  src={imageUrl}
+                  src={thumbnailUrl}
                   alt=""
                   loading="lazy"
                   onError={() => setImageError(true)}

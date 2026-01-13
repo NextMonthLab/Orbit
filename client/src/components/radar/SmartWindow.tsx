@@ -1,9 +1,10 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Lightbulb, FileText, User, Star, Globe, Briefcase, Award, MessageCircle, Zap, Book, HelpCircle, Rss, type LucideIcon } from "lucide-react";
+import { X, Lightbulb, FileText, User, Star, Globe, Briefcase, Award, MessageCircle, Zap, Book, HelpCircle, Rss, ImageOff, type LucideIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AnyKnowledgeItem, Topic, Page, Person, Proof, Action, Blog, Social } from "@/lib/siteKnowledge";
 import { orbitTokens } from "@/lib/designTokens";
+import { getDemoHeroImageUrl, isVisualItemType } from "@/lib/demoImageUtils";
 
 interface SmartWindowProps {
   item: AnyKnowledgeItem | null;
@@ -11,6 +12,8 @@ interface SmartWindowProps {
   onClose: () => void;
   accentColor?: string;
   lightMode?: boolean;
+  orbitSlug?: string;
+  isDemo?: boolean;
 }
 
 const typeIcons: Record<string, LucideIcon> = {
@@ -78,7 +81,9 @@ function getSummary(item: AnyKnowledgeItem): string {
   }
 }
 
-export function SmartWindow({ item, isOpen, onClose, accentColor = '#3b82f6', lightMode = false }: SmartWindowProps) {
+export function SmartWindow({ item, isOpen, onClose, accentColor = '#3b82f6', lightMode = false, orbitSlug, isDemo = false }: SmartWindowProps) {
+  const [heroError, setHeroError] = useState(false);
+  
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose();
@@ -93,6 +98,10 @@ export function SmartWindow({ item, isOpen, onClose, accentColor = '#3b82f6', li
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, handleKeyDown]);
+  
+  useEffect(() => {
+    setHeroError(false);
+  }, [item?.id]);
 
   if (!isOpen || !item) return null;
 
@@ -100,6 +109,21 @@ export function SmartWindow({ item, isOpen, onClose, accentColor = '#3b82f6', li
   const TypeIcon = typeIcons[item.type] || Globe;
   const label = getLabel(item);
   const summary = getSummary(item);
+  
+  const getItemCategory = (): string | null => {
+    if ('category' in item && typeof item.category === 'string') {
+      return item.category;
+    }
+    return null;
+  };
+  
+  const heroImageUrl = isDemo && isVisualItemType(item.type) && !heroError
+    ? getDemoHeroImageUrl(item.id, label, { 
+        category: getItemCategory(), 
+        orbitSlug, 
+        type: item.type 
+      })
+    : null;
 
   return (
     <AnimatePresence>
@@ -158,6 +182,33 @@ export function SmartWindow({ item, isOpen, onClose, accentColor = '#3b82f6', li
 
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-5">
+              {heroImageUrl ? (
+                <section data-testid="smart-window-hero">
+                  <div 
+                    className="w-full aspect-video rounded-lg overflow-hidden border"
+                    style={{ borderColor: lightMode ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)' }}
+                  >
+                    <img
+                      src={heroImageUrl}
+                      alt={label}
+                      loading="lazy"
+                      onError={() => setHeroError(true)}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </section>
+              ) : isVisualItemType(item.type) ? (
+                <section data-testid="smart-window-hero-placeholder">
+                  <div 
+                    className={`w-full aspect-video rounded-lg border flex items-center justify-center ${
+                      lightMode ? 'bg-gray-50 border-gray-200' : 'bg-white/5 border-white/10'
+                    }`}
+                  >
+                    <ImageOff className={`w-8 h-8 ${lightMode ? 'text-gray-300' : 'text-white/20'}`} />
+                  </div>
+                </section>
+              ) : null}
+              
               <section data-testid="smart-window-summary">
                 <h3 className={`text-xs font-medium uppercase tracking-wider mb-2 ${lightMode ? 'text-gray-500' : 'text-white/50'}`}>
                   Summary
